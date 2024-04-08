@@ -6,7 +6,9 @@ export const createClient = () => {
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    // process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_SERVICE_KEY!,
+
     {
       cookies: {
         get(name: string) {
@@ -40,4 +42,33 @@ export async function getUser() {
   const { data } = await supabase.auth.getUser();
 
   return data;
+}
+
+export async function getAllUsers() {
+  const supabase = createClient();
+  const {
+    data: { users },
+    error,
+  } = await supabase.auth.admin.listUsers({
+    page: 1,
+    perPage: 1000,
+  });
+
+  if (!error) {
+    return users;
+  }
+
+  return;
+}
+
+export async function sendPasswordRecovery(email: string) {
+  const supabase = createClient();
+  let { data, error } = await supabase.auth.resetPasswordForEmail(email);
+
+  if (!error) {
+    console.log(data);
+    return data;
+  }
+
+  return;
 }

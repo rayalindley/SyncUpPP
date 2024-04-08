@@ -26,8 +26,6 @@ export async function signOut() {
   return redirect("/signin");
 }
 
-// TODO: form input validation
-
 export async function signInWithPassword(formData: FormData) {
   const result = signInSchema.safeParse({
     email: formData.get("email"),
