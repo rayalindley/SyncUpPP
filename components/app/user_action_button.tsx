@@ -4,10 +4,10 @@ import { Fragment, useState } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { ChevronDownIcon, TrashIcon, UserIcon } from "@heroicons/react/20/solid";
 import { EnvelopeIcon } from "@heroicons/react/24/outline";
-import JSONPretty from "react-json-pretty";
 import { sendPasswordRecovery, deleteUser } from "@/lib/userActions";
 import { User } from "@supabase/supabase-js";
 import Swal from "sweetalert2";
+import UserInfo from "./UserInfo";
 
 const jsonTheme = {
   main: "line-height:1.3;color:#383a42;background:#ffffff;overflow:hidden;word-wrap:break-word;white-space: pre-wrap;word-wrap: break-word; ",
@@ -217,7 +217,7 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
                         </div>
                       </div>
                       <div className="relative mt-6 flex-1 flex-wrap overflow-hidden px-4 sm:px-6">
-                        <JSONPretty data={selectedUser} theme={jsonTheme}></JSONPretty>
+                        <UserInfo user={selectedUser} />
                       </div>
                     </div>
                   </Dialog.Panel>
