@@ -6,6 +6,7 @@ import { ChevronDownIcon, TrashIcon, UserIcon } from "@heroicons/react/20/solid"
 import { EnvelopeIcon } from "@heroicons/react/24/outline";
 import { sendPasswordRecovery, deleteUser } from "@/lib/userActions";
 import { User } from "@supabase/supabase-js";
+import { PencilIcon } from "@heroicons/react/20/solid";
 import Swal from "sweetalert2";
 import UserInfo from "./UserInfo";
 
@@ -24,6 +25,10 @@ function classNames(...classes: any[]) {
 }
 
 export default function UserActionButton({ selectedUser }: { selectedUser: User }) {
+  const handleEdit = () => {
+    localStorage.setItem('selectedUserId', selectedUser.id);
+    window.location.href = '/dashboard/edit-user-profile';
+  };  
   const deleteBtn = () => {
     Swal.fire({
       title: "Are you sure?",
@@ -79,10 +84,9 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
               <Menu.Item>
                 {({ active }) => (
                   <a
-                    href="#"
                     className={classNames(
                       active ? "bg-gray-100 text-gray-900" : "text-gray-700",
-                      "group flex items-center px-4 py-2 text-sm"
+                      "group flex cursor-pointer items-center px-4 py-2 text-sm"
                     )}
                     onClick={() => setOpen(true)}
                   >
@@ -91,6 +95,23 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
                       aria-hidden="true"
                     />
                     View User Info
+                  </a>
+                )}
+              </Menu.Item>
+              <Menu.Item>
+                {({ active }) => (
+                  <a
+                    onClick={handleEdit}
+                    className={classNames(
+                      active ? "bg-gray-100 text-gray-900" : "text-gray-700",
+                      "group flex cursor-pointer items-center px-4 py-2 text-sm"
+                    )}
+                  >
+                    <PencilIcon
+                      className="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500"
+                      aria-hidden="true"
+                    />
+                    Edit User Info
                   </a>
                 )}
               </Menu.Item>
@@ -150,10 +171,9 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
               <Menu.Item>
                 {({ active }) => (
                   <a
-                    href="#"
                     className={classNames(
                       active ? "bg-gray-100 text-gray-900" : "text-gray-700",
-                      "group flex items-center px-4 py-2 text-sm"
+                      "group flex cursor-pointer items-center px-4 py-2 text-sm"
                     )}
                     onClick={deleteBtn}
                   >
@@ -217,7 +237,7 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
                         </div>
                       </div>
                       <div className="relative mt-6 flex-1 flex-wrap overflow-hidden px-4 sm:px-6">
-                        <UserInfo user={selectedUser} />
+                        <UserInfo userId={selectedUser.id} />
                       </div>
                     </div>
                   </Dialog.Panel>

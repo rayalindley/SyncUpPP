@@ -4,15 +4,14 @@ import UserActionButton from "./user_action_button";
 import Swal from "sweetalert2";
 
 export default async function UsersTable() {
-  const deleteBtn = () => {
-    Swal.fire({
-      title: "Good job!",
-      text: "You clicked the button!",
-      icon: "success",
-    });
-  };
+  // const deleteBtn = () => {
+  //   Swal.fire({
+  //     title: "Good job!",
+  //     text: "You clicked the button!",
+  //     icon: "success",
+  //   });
+  // };
   const users: User[] = (await getAllUsers()) ?? [];
-
   return (
     <div className="px-4 sm:px-6 lg:px-8">
       <div className="sm:flex sm:items-center">
