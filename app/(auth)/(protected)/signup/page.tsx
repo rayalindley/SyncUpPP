@@ -3,20 +3,16 @@ import { signInWith, signUp } from "@/lib/auth";
 export default function SignUp({ searchParams }: { searchParams: any }) {
   return (
     <>
-      <div className="flex min-h-full flex-1 flex-col justify-center bg-gray-50 py-12 sm:px-6 lg:px-8">
+      <div className="flex min-h-full flex-1 flex-col justify-center bg-eerieblack py-12 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
-          <img
-            className="mx-auto h-10 w-auto"
-            src="https://tailwindui.com/img/logos/mark.svg?color=indigo&shade=600"
-            alt="Your Company"
-          />
-          <h2 className="mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
+          <img className="mx-auto h-10 w-auto" src="Symbian.png" alt="SyncUp" />
+          <h2 className="mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-chinawhite">
             Sign up to create your account.
           </h2>
         </div>
 
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-[480px]">
-          <div className="m-3 rounded-lg bg-white px-6 py-12 shadow sm:px-12">
+          <div className="m-3 rounded-lg bg-charleston px-6 py-12 shadow sm:px-12">
             {(searchParams?.error || searchParams?.success) && (
               <div
                 className={`rounded-md ${searchParams.error ? "bg-red-50" : "bg-green-50"} p-4`}
@@ -33,7 +29,7 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
                 <div>
                   <label
                     htmlFor="first_name"
-                    className="block text-sm font-medium leading-6 text-gray-900"
+                    className="block text-sm font-medium leading-6 text-chinawhite"
                   >
                     First Name
                   </label>
@@ -44,14 +40,14 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
                       type="text"
                       autoComplete="first_name"
                       required
-                      className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                      className="block w-full rounded-md border-0 bg-charleston py-1.5 text-chinawhite shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
                     />
                   </div>
                 </div>
                 <div>
                   <label
                     htmlFor="last_name"
-                    className="block text-sm font-medium leading-6 text-gray-900"
+                    className="block bg-charleston text-sm font-medium leading-6 text-chinawhite"
                   >
                     Last Name
                   </label>
@@ -62,7 +58,7 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
                       type="text"
                       autoComplete="last_name"
                       required
-                      className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                      className="block w-full rounded-md border-0 bg-charleston py-1.5 text-chinawhite shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
                     />
                   </div>
                 </div>
@@ -71,7 +67,7 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
               <div>
                 <label
                   htmlFor="email"
-                  className="block text-sm font-medium leading-6 text-gray-900"
+                  className="block text-sm font-medium leading-6 text-chinawhite"
                 >
                   Email address
                 </label>
@@ -82,7 +78,7 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
                     type="email"
                     autoComplete="email"
                     required
-                    className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                    className="block w-full rounded-md border-0 bg-charleston py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
                   />
                 </div>
               </div>
@@ -90,7 +86,7 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
               <div>
                 <label
                   htmlFor="password"
-                  className="block text-sm font-medium leading-6 text-gray-900"
+                  className="block bg-charleston text-sm font-medium leading-6 text-chinawhite"
                 >
                   Password
                 </label>
@@ -101,7 +97,7 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
                     type="password"
                     autoComplete="current-password"
                     required
-                    className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                    className="block w-full rounded-md border-0 bg-charleston py-1.5 text-chinawhite shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
                   />
                 </div>
               </div>
@@ -111,11 +107,11 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
-                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                  className="h-4 w-4 rounded border-gray-300 text-junglegreen focus:ring-junglegreen"
                 />
                 <label
                   htmlFor="remember-me"
-                  className="ml-3 block text-sm leading-6 text-gray-900"
+                  className="ml-3 block text-sm leading-6 text-chinawhite"
                 >
                   I agree with all the <a href="#">terms and conditions</a>
                 </label>
@@ -124,7 +120,7 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
               <div>
                 <button
                   type="submit"
-                  className="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                  className="flex w-full justify-center rounded-md bg-junglegreen px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-junglegreen focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-junglegreen"
                 >
                   Sign up
                 </button>
@@ -137,7 +133,9 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
                   <div className="w-full border-t border-gray-200" />
                 </div>
                 <div className="relative flex justify-center text-sm font-medium leading-6">
-                  <span className="bg-white px-3 text-gray-900">Or continue with</span>
+                  <span className="bg-charleston px-3 text-chinawhite">
+                    Or continue with
+                  </span>
                 </div>
               </div>
 
@@ -201,7 +199,7 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
             Already have an account?{" "}
             <a
               href="/signin"
-              className="font-semibold leading-6 text-indigo-600 hover:text-indigo-500"
+              className="font-semibold leading-6 text-junglegreen hover:text-junglegreen"
             >
               Sign in
             </a>

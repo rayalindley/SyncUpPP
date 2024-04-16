@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 
-import { getUser } from "@/lib/supabase/server";
-import { UserProvider } from "@/context/UserContext";
 import Header from "@/components/app/Header";
 import SideNavMenu from "@/components/app/SideNavMenu";
+import { UserProvider } from "@/context/UserContext";
+import { getUser } from "@/lib/supabase/server";
 
 export default async function DashboardLayout({
   children,
