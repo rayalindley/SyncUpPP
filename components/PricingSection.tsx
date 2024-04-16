@@ -88,7 +88,7 @@ const PricingSection = () => {
                     {tier.name}
                   </h3>
                   {tier.mostPopular ? (
-                    <p className="rounded-full bg-junglegreen px-2.5 py-1 text-xs font-semibold leading-5 text-chinawhite">
+                    <p className="rounded-full bg-darkjunglegreen px-2.5 py-1 text-xs font-semibold leading-5 text-chinawhite">
                       Most popular
                     </p>
                   ) : null}
@@ -124,8 +124,8 @@ const PricingSection = () => {
                 aria-describedby={tier.id}
                 className={classNames(
                   tier.mostPopular
-                    ? "bg-junglegreen text-white shadow-sm hover:bg-junglegreen"
-                    : "text-junglegreen ring-1 ring-inset ring-junglegreen hover:ring-junglegreen",
+                    ? "bg-darkjunglegreen text-white shadow-sm hover:bg-junglegreen"
+                    : "text-darkjunglegreen ring-1 ring-inset ring-darkjunglegreen hover:text-junglegreen hover:ring-junglegreen",
                   "mt-8 block rounded-md px-3 py-2 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-junglegreen"
                 )}
               >

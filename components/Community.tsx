@@ -48,7 +48,10 @@ export default function Example() {
         </div>
         <ul className="mx-auto mt-20 grid max-w-2xl grid-cols-1 gap-6 sm:grid-cols-2 lg:mx-0 lg:max-w-none lg:grid-cols-3 lg:gap-8">
           {people.map((person) => (
-            <li key={person.name} className="rounded-2xl bg-charleston px-8 py-10">
+            <li
+              key={person.name}
+              className="transform rounded-2xl px-8 py-10 transition duration-200 hover:scale-105 hover:bg-charleston"
+            >
               <img
                 className="mx-auto h-48 w-48 rounded-full md:h-56 md:w-56"
                 src={person.imageUrl}
@@ -67,7 +70,7 @@ export default function Example() {
               <div className="mt-2 flex items-center justify-center gap-x-6">
                 <a
                   href="#"
-                  className="my-2 rounded-md bg-junglegreen px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-junglegreen focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                  className="my-2 rounded-md bg-darkjunglegreen px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-junglegreen focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                 >
                   View
                 </a>

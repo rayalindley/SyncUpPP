@@ -29,7 +29,7 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
                 <div>
                   <label
                     htmlFor="first_name"
-                    className="block text-sm font-medium leading-6 text-chinawhite"
+                    className="block bg-charleston text-sm font-medium leading-6 text-chinawhite"
                   >
                     First Name
                   </label>
@@ -40,7 +40,7 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
                       type="text"
                       autoComplete="first_name"
                       required
-                      className="block w-full rounded-md border-0 bg-charleston py-1.5 text-chinawhite shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
+                      className="block w-full rounded-md border-0 bg-charleston py-1.5 text-chinawhite shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-chinawhite autofill:bg-charleston autofill:text-chinawhite focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
                     />
                   </div>
                 </div>
@@ -58,7 +58,7 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
                       type="text"
                       autoComplete="last_name"
                       required
-                      className="block w-full rounded-md border-0 bg-charleston py-1.5 text-chinawhite shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
+                      className="block w-full rounded-md border-0 bg-charleston py-1.5 text-chinawhite shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-chinawhite autofill:bg-charleston autofill:text-chinawhite focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
                     />
                   </div>
                 </div>
@@ -78,7 +78,7 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
                     type="email"
                     autoComplete="email"
                     required
-                    className="block w-full rounded-md border-0 bg-charleston py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
+                    className="block w-full rounded-md border-0 bg-charleston py-1.5 text-chinawhite shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
                   />
                 </div>
               </div>
@@ -120,7 +120,7 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
               <div>
                 <button
                   type="submit"
-                  className="flex w-full justify-center rounded-md bg-junglegreen px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-junglegreen focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-junglegreen"
+                  className="flex w-full justify-center rounded-md bg-junglegreen px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-darkjunglegreen focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-junglegreen"
                 >
                   Sign up
                 </button>
@@ -199,7 +199,7 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
             Already have an account?{" "}
             <a
               href="/signin"
-              className="font-semibold leading-6 text-junglegreen hover:text-junglegreen"
+              className="font-semibold leading-6 text-junglegreen hover:text-darkjunglegreen"
             >
               Sign in
             </a>

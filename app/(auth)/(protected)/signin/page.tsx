@@ -82,7 +82,7 @@ export default function SignIn({ searchParams }: { searchParams: any }) {
                 <div className="text-sm leading-6">
                   <a
                     href="forgot-password"
-                    className="font-semibold text-junglegreen hover:text-junglegreen"
+                    className="font-semibold text-darkjunglegreen hover:text-junglegreen"
                   >
                     Forgot password?
                   </a>
@@ -92,7 +92,7 @@ export default function SignIn({ searchParams }: { searchParams: any }) {
               <div>
                 <button
                   type="submit"
-                  className="flex w-full justify-center rounded-md bg-junglegreen px-3 py-1.5 text-sm font-semibold leading-6 text-chinawhite *:shadow-sm hover:bg-junglegreen focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-junglegreen"
+                  className="flex w-full justify-center rounded-md bg-darkjunglegreen px-3 py-1.5 text-sm font-semibold leading-6 text-chinawhite *:shadow-sm hover:bg-junglegreen focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-junglegreen"
                 >
                   Sign in
                 </button>
@@ -171,7 +171,7 @@ export default function SignIn({ searchParams }: { searchParams: any }) {
             Don&apos;t have an account?{" "}
             <a
               href="/signup"
-              className="font-semibold leading-6 text-junglegreen hover:text-junglegreen"
+              className="font-semibold leading-6 text-darkjunglegreen hover:text-junglegreen"
             >
               Sign up
             </a>
