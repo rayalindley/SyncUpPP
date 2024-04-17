@@ -111,7 +111,7 @@ export default function SignIn({ searchParams }: { searchParams: any }) {
                 </div>
               </div>
 
-              <form className="mt-6 grid grid-cols-2 gap-4">
+              <form className="mt-6 grid gap-4">
                 <button
                   type="submit"
                   formAction={async () => {
@@ -141,7 +141,7 @@ export default function SignIn({ searchParams }: { searchParams: any }) {
                   <span className="text-sm font-semibold leading-6">Google</span>
                 </button>
 
-                <button
+                {/* <button
                   type="submit"
                   formAction={async () => {
                     "use server";
@@ -162,7 +162,7 @@ export default function SignIn({ searchParams }: { searchParams: any }) {
                     />
                   </svg>
                   <span className="text-sm font-semibold leading-6">GitHub</span>
-                </button>
+                </button> */}
               </form>
             </div>
           </div>
