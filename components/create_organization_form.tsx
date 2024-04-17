@@ -8,6 +8,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { insertOrganization } from "@/lib/organization";
+import { useRouter } from "next/navigation";
 
 // Define the constants for Type of Organization
 const ORGANIZATION_TYPES = [
@@ -134,6 +135,7 @@ const CreateOrganizationForm = () => {
   const { prev, next, jump, total, current, progress } = useSteps();
 
   const [formData, setFormData] = useState<OrganizationFormValues>(null);
+  const router = useRouter();
 
   const {
     register,
@@ -187,6 +189,8 @@ const CreateOrganizationForm = () => {
         progress: undefined,
         theme: "light",
       });
+
+      router.push("/dashboard");
       reset();
     } else if (error) {
       toast.error(error.message || "An error occurred while adding the project");
