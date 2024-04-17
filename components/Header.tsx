@@ -1,6 +1,7 @@
 "use client";
 import { Dialog } from "@headlessui/react";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
+import { User } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 
 const navigation = [
@@ -11,7 +12,7 @@ const navigation = [
   { name: "Contact Us", href: "#contactus" },
 ];
 
-export default function Header({ user }) {
+export default function Header({ user }: { user: User }) {
   const handleNavClick = (href) => {
     const target = document.querySelector(href);
     if (target) {
@@ -64,18 +65,29 @@ export default function Header({ user }) {
           ))}
         </div>
         <div className="flex flex-1 items-center justify-end gap-x-6">
-          <a
-            href="/signin"
-            className="hidden hover:text-junglegreen lg:block lg:text-sm lg:font-semibold lg:leading-6 lg:text-chinawhite"
-          >
-            Log in
-          </a>
-          <a
-            href="/signup"
-            className="rounded-md bg-darkjunglegreen px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-junglegreen focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-junglegreen"
-          >
-            Sign up
-          </a>
+          {user ? (
+            <a
+              href="/dashboard"
+              className="rounded-md bg-darkjunglegreen px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-junglegreen focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-junglegreen"
+            >
+              Dashboard
+            </a>
+          ) : (
+            <>
+              <a
+                href="/signin"
+                className="hidden hover:text-junglegreen lg:block lg:text-sm lg:font-semibold lg:leading-6 lg:text-chinawhite"
+              >
+                Log in
+              </a>
+              <a
+                href="/signup"
+                className="rounded-md bg-darkjunglegreen px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-junglegreen focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-junglegreen"
+              >
+                Sign up
+              </a>
+            </>
+          )}
         </div>
         <div className="flex lg:hidden">
           <button

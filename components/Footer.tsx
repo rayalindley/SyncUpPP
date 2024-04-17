@@ -1,3 +1,4 @@
+"use client";
 const navigation = [
   {
     name: "Facebook",
@@ -71,7 +72,7 @@ export default function Footer() {
             <span className="sr-only">SyncUp</span>
             <img className="h-8 w-auto" src="Symbian.png" alt="" />
           </a>
-          <div className="text-chinawhite font text-l flex items-center px-2 font-semibold">
+          <div className="font text-l flex items-center px-2 font-semibold text-chinawhite">
             Sync Up
           </div>
         </div>
