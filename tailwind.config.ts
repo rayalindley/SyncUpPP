@@ -15,6 +15,7 @@ const config: Config = {
         chinawhite: "#E0E0E0",
         charleston: "#2A2A2A",
         junglegreen: "#1CAE8E",
+        darkjunglegreen: "#158A70",
       },
       fontFamily: {
         poppins: ["Poppins", "sans-serif"],

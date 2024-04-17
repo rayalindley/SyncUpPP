@@ -57,7 +57,7 @@ export default function Header({ user }) {
             <a
               key={item.name}
               href={item.href}
-              className="text-sm font-semibold leading-6 text-chinawhite"
+              className="text-sm font-semibold leading-6 text-chinawhite hover:text-junglegreen"
             >
               {item.name}
             </a>
@@ -66,13 +66,13 @@ export default function Header({ user }) {
         <div className="flex flex-1 items-center justify-end gap-x-6">
           <a
             href="/signin"
-            className="hidden lg:block lg:text-sm lg:font-semibold lg:leading-6 lg:text-chinawhite"
+            className="hidden hover:text-junglegreen lg:block lg:text-sm lg:font-semibold lg:leading-6 lg:text-chinawhite"
           >
             Log in
           </a>
           <a
             href="/signup"
-            className="rounded-md bg-junglegreen px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-junglegreen focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+            className="rounded-md bg-darkjunglegreen px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-junglegreen focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-junglegreen"
           >
             Sign up
           </a>
@@ -107,7 +107,7 @@ export default function Header({ user }) {
             </a>
             <a
               href="#"
-              className="ml-auto rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+              className="ml-auto rounded-md bg-junglegreen px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-darkjunglegreen focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-junglegreen"
             >
               Sign up
             </a>
