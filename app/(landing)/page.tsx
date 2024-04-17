@@ -1,48 +1,39 @@
-"use client"
-import { useState } from 'react'
-import { Dialog } from '@headlessui/react'
+"use client";
+import { useState } from "react";
 
-import Header from '@/components/Header'
-import Hero from '@/components/Hero'
-import LogoCloud from '@/components/LogoCloud'
-import FeaturesSection from '@/components/FeaturesSection'
-import TestimonialSection from '@/components/TestimonialSection'
-import PricingSection from '@/components/PricingSection'
-import FAQSection from '@/components/FAQSection'
-import Footer from '@/components/Footer'
-
-
+import Community from "@/components/Community";
+import ContactUs from "@/components/ContactUs";
+import FeaturesSection from "@/components/FeaturesSection";
+import Footer from "@/components/Footer";
+import Header from "@/components/Header";
+import Hero from "@/components/Hero";
+import PricingSection from "@/components/PricingSection";
 
 export default function Home() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <div className="bg-white">
-      
+    <div className="bg-eerieblack">
       <Header />
 
       <main className="isolate">
         <Hero />
 
-        <LogoCloud />
-
         {/* Feature section */}
         <FeaturesSection />
 
         {/* Testimonial section */}
-        <TestimonialSection />
+        <Community />
 
         {/* Pricing section */}
         <PricingSection />
 
-        <FAQSection />
-
-        {/* CTA section */}
-        
+        {/* Contact Us */}
+        <ContactUs />
       </main>
 
       {/* Footer */}
       <Footer />
     </div>
-  )
+  );
 }
