@@ -67,8 +67,11 @@ export default function Features() {
         <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-4xl">
           <dl className="grid max-w-xl grid-cols-1 gap-x-12 gap-y-10 lg:max-w-none lg:grid-cols-2 lg:gap-y-12">
             {features.map((feature) => (
-              <div className="transform rounded-lg p-6 transition duration-200 hover:scale-105 hover:bg-charleston">
-                <div key={feature.name} className="relative pl-16">
+              <div
+                className="transform rounded-lg p-6 transition duration-200 hover:scale-105 hover:bg-charleston"
+                key={feature.name}
+              >
+                <div className="relative pl-16">
                   <dt className="text-base font-bold leading-7 text-chinawhite">
                     <div className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-junglegreen">
                       <feature.icon className="h-6 w-6 text-white" aria-hidden="true" />

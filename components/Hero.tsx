@@ -11,7 +11,7 @@ export default function Hero() {
           <div className="mx-auto max-w-4xl text-center">
             <p className="text-chinawhite">A CRM Solution for Organizations</p>
             <h1 className="my-4 text-4xl font-bold tracking-tight text-chinawhite sm:text-6xl">
-              Organize, Connect, and Empower Your Organization's Members
+              Organize, Connect, and Empower Your Organization&apos;s Members
             </h1>
             <p className="mt-6 text-lg leading-8 text-chinawhite">
               Streamline operations and boost engagement with our all-in-one CRM solution,

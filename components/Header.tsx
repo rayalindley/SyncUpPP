@@ -12,8 +12,8 @@ const navigation = [
   { name: "Contact Us", href: "#contactus" },
 ];
 
-export default function Header({ user }: { user: User }) {
-  const handleNavClick = (href) => {
+export default function Header({ user = null }: { user: User | null }) {
+  const handleNavClick = (href: any) => {
     const target = document.querySelector(href);
     if (target) {
       window.scrollTo({

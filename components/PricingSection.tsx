@@ -63,8 +63,8 @@ const PricingSection = () => {
           </p>
         </div>
         <p className="mx-auto mt-6 max-w-2xl text-center text-lg leading-8 text-chinawhite">
-          Find the perfect subscription tier for your organization's needs. Explore our
-          flexible pricing options and unlock the full potential of SyncUp.
+          Find the perfect subscription tier for your organization&apos;s needs. Explore
+          our flexible pricing options and unlock the full potential of SyncUp.
         </p>
         <div className="isolate mx-auto mt-16 grid max-w-md grid-cols-1 gap-y-8 sm:mt-20 lg:mx-0 lg:max-w-none lg:grid-cols-3">
           {tiers.map((tier, tierIdx) => (

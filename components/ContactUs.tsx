@@ -11,7 +11,7 @@ export default function ContactUs() {
         </h2>
         <p className="mt-2 text-lg leading-8 text-chinawhite">
           Have questions or need assistance? Reach out to our friendly team for support,
-          inquiries, or partnership opportunities. We're here to help!
+          inquiries, or partnership opportunities. We&apos;re here to help!
         </p>
         <div className="mt-16 flex flex-col gap-16 sm:gap-y-20 lg:flex-row">
           <form action="#" method="POST" className="lg:flex-auto">
