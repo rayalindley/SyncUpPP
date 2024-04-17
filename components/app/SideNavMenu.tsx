@@ -124,7 +124,7 @@ const SideNavMenu = () => {
                       </li>
                       <li>
                         <div className="text-xs font-semibold leading-6 text-gray-400">
-                          Your teams
+                          Your Organizations
                         </div>
                         <ul role="list" className="-mx-2 mt-2 space-y-1">
                           {teams.map((team) => (
@@ -178,7 +178,7 @@ const SideNavMenu = () => {
       {/* Static sidebar for desktop */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
         {/* Sidebar component, swap this element with another sidebar if you like */}
-        <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-eerieblack px-6 pb-4">
+        <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-[#525252] bg-eerieblack px-6 pb-4">
           <div className="flex h-16 shrink-0 items-center">
             <img className="h-8 w-auto" src="Symbian.png" alt="SyncUp" />
             <p className="ml-2 font-semibold text-chinawhite">SyncUp</p>
@@ -216,7 +216,7 @@ const SideNavMenu = () => {
               </li>
               <li>
                 <div className="text-xs font-semibold leading-6 text-chinawhite">
-                  Your teams
+                  Your Organizations
                 </div>
                 <ul role="list" className="-mx-2 mt-2 space-y-1">
                   {teams.map((team) => (
