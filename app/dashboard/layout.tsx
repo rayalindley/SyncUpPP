@@ -18,13 +18,13 @@ export default async function DashboardLayout({
 
   return (
     <UserProvider>
-      <div>
+      <div className="">
         <SideNavMenu />
 
         <div className="lg:pl-72">
           <Header user={user} />
 
-          <main className="py-10">
+          <main className="bg-gray py-10">
             <div className="px-4 sm:px-6 lg:px-8">{children}</div>
           </main>
         </div>
