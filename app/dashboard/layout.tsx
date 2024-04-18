@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
-import Header from "@/components/app/Header";
-import SideNavMenu from "@/components/app/SideNavMenu";
+import Header from "@/components/dashboard/Header";
+import SideNavMenu from "@/components/dashboard/SideNavMenu";
 import { UserProvider } from "@/context/UserContext";
 import { getUser } from "@/lib/supabase/server";
 
