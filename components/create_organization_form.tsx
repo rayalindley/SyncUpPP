@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
 import { Steps, useSteps } from "react-step-builder";
 import { ToastContainer, toast } from "react-toastify";
@@ -9,6 +9,8 @@ import { z } from "zod";
 
 import { insertOrganization } from "@/lib/organization";
 import { useRouter } from "next/navigation";
+
+import { createClient } from "@/lib/supabase/client";
 
 // Define the constants for Type of Organization
 const ORGANIZATION_TYPES = [
@@ -52,7 +54,9 @@ const ORGANIZATION_SIZES = [
 
 interface OrganizationFormValues {
   name: string;
-  organizationType: string; // Now simply a string
+  slug: string;
+  description: string;
+  organizationType: string;
   industry: string; // Now simply a string
   organizationSize: string; // Now simply a string
   website: string;
@@ -71,6 +75,8 @@ interface OrganizationFormValues {
 
 const OrganizationSchema = z.object({
   name: z.string().min(1, "Organization Name is required"),
+  slug: z.string().min(1, "A valid slug is required"),
+  description: z.string().min(1, "Description is required"),
   organizationType: z.enum(ORGANIZATION_TYPES, {
     errorMap: () => ({ message: "Invalid organization type" }),
   }),
@@ -131,6 +137,40 @@ const datepicker_options = {
   },
 };
 
+function slugify(text: string) {
+  return text
+    .toString()
+    .toLowerCase()
+    .replace(/\s+/g, "-") // Replace spaces with -
+    .replace(/[^\w\-]+/g, "") // Remove all non-word chars
+    .replace(/\-\-+/g, "-") // Replace multiple - with single -
+    .replace(/^-+/, "") // Trim - from start of text
+    .replace(/-+$/, ""); // Trim - from end of text
+}
+
+async function checkSlugAvailability(slug: string) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("organizations")
+    .select("slug")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Error fetching slug:", error);
+    return {
+      isAvailable: false,
+      error: error.message,
+    };
+  }
+
+  // If data is null, no rows exist, hence the slug is available
+  return {
+    isAvailable: !data,
+    error: null,
+  };
+}
+
 const CreateOrganizationForm = () => {
   const { prev, next, jump, total, current, progress } = useSteps();
 
@@ -143,12 +183,41 @@ const CreateOrganizationForm = () => {
     control,
     reset,
     getValues,
+    setValue,
+    setError,
+    clearErrors,
+    watch,
     formState: { errors, isValid },
     trigger,
   } = useForm<OrganizationFormValues>({
     resolver: zodResolver(OrganizationSchema),
     mode: "onChange",
   });
+
+  const slugValue = watch("slug");
+
+  useEffect(() => {
+    if (slugValue) {
+      const timer = setTimeout(async () => {
+        const { isAvailable, error } = await checkSlugAvailability(slugValue);
+
+        console.log(isAvailable, error);
+        if (error) {
+          toast.error("Error checking slug availability");
+          console.error("Error fetching slug:", error);
+        } else if (!isAvailable) {
+          setError("slug", {
+            type: "manual",
+            message: "Slug is already taken",
+          });
+        } else {
+          clearErrors("slug");
+        }
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [slugValue, setError, clearErrors]);
 
   const handleNext = async () => {
     const currentStepId = `step${current}`;
@@ -161,7 +230,22 @@ const CreateOrganizationForm = () => {
 
     const result = await trigger(fieldNames);
 
-    if (result) {
+    const { isAvailable, error } = await checkSlugAvailability(slugValue);
+
+    console.log(isAvailable, error);
+    if (error) {
+      toast.error("Error checking slug availability");
+      console.error("Error fetching slug:", error);
+    } else if (!isAvailable) {
+      setError("slug", {
+        type: "manual",
+        message: "Slug is already taken",
+      });
+    } else {
+      clearErrors("slug");
+    }
+
+    if (result && isAvailable) {
       setFormData(getValues());
       next();
     }
@@ -241,8 +325,55 @@ const CreateOrganizationForm = () => {
                   autoComplete="name"
                   className="focus:ring-primary block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6 "
                   {...register("name")}
+                  onKeyUp={(e) => {
+                    const slugValue = slugify(e.target.value);
+                    setValue("slug", slugValue); // Automatically update the slug field
+                  }}
                 />
                 {errors.name && <p className="text-red-500">{errors.name.message}</p>}
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="slug"
+                className="block text-sm font-medium leading-6 text-white"
+              >
+                Slug
+              </label>
+              <div className="mt-2">
+                <input
+                  id="slug"
+                  type="text"
+                  autoComplete="slug"
+                  className="focus:ring-primary block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6 "
+                  {...register("slug")}
+                />
+                <span className="text-xs text-gray-400">
+                  Your organization address will be at http://syncup.com/jimtech
+                </span>
+                {errors.slug && <p className="text-red-500">{errors.slug.message}</p>}
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="slug"
+                className="block text-sm font-medium leading-6 text-white"
+              >
+                Description
+              </label>
+              <div className="mt-2">
+                <textarea
+                  id="description"
+                  autoComplete="description"
+                  className="focus:ring-primary block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6 "
+                  {...register("description")}
+                />
+
+                {errors.description && (
+                  <p className="text-red-500">{errors.description.message}</p>
+                )}
               </div>
             </div>
 
