@@ -7,7 +7,7 @@ import { Fragment, useRef } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { convertToBase64 } from "@/lib/utils";
+import { convertToBase64, isValidURL } from "@/lib/utils";
 
 interface EditUserDetailsProps {
   userId: string;
@@ -20,7 +20,7 @@ const UserProfileSchema = z.object({
   dateofbirth: z.string(),
   description: z.string(),
   company: z.string(),
-  website: z.string(),
+  website: z.string().refine(value => value === "" || isValidURL(value), { message: 'Invalid URL format' }),
 });
 
 const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
