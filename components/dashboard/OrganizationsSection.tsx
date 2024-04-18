@@ -30,7 +30,7 @@ export default function OrganizationSection() {
     <div className="mt-10">
       <a
         href="/organization/create"
-        className="border-1 rounded-md border border-junglegreen bg-darkjunglegreen p-1 px-2 text-sm text-gray-100 hover:cursor-pointer"
+        className="border-1 border-primary bg-primarydark rounded-md border p-1 px-2 text-sm text-gray-100 hover:cursor-pointer"
       >
         New Organization
       </a>

@@ -57,12 +57,12 @@ const PricingSection = () => {
     <div id="pricing" className="py-24 sm:pt-32">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-4xl text-center">
-          <h2 className="text-base font-semibold leading-7 text-junglegreen">Pricing</h2>
-          <p className="mt-2 text-4xl font-bold tracking-tight text-chinawhite sm:text-5xl">
+          <h2 className="text-primary text-base font-semibold leading-7">Pricing</h2>
+          <p className="text-light mt-2 text-4xl font-bold tracking-tight sm:text-5xl">
             Choose Your Plan
           </p>
         </div>
-        <p className="mx-auto mt-6 max-w-2xl text-center text-lg leading-8 text-chinawhite">
+        <p className="text-light mx-auto mt-6 max-w-2xl text-center text-lg leading-8">
           Find the perfect subscription tier for your organization&apos;s needs. Explore
           our flexible pricing options and unlock the full potential of SyncUp.
         </p>
@@ -82,37 +82,32 @@ const PricingSection = () => {
                   <h3
                     id={tier.id}
                     className={classNames(
-                      tier.mostPopular ? "text-junglegreen" : "text-chinawhite",
+                      tier.mostPopular ? "text-primary" : "text-light",
                       "text-lg font-semibold leading-8"
                     )}
                   >
                     {tier.name}
                   </h3>
                   {tier.mostPopular ? (
-                    <p className="rounded-full bg-darkjunglegreen px-2.5 py-1 text-xs font-semibold leading-5 text-chinawhite">
+                    <p className="bg-primarydark text-light rounded-full px-2.5 py-1 text-xs font-semibold leading-5">
                       Most popular
                     </p>
                   ) : null}
                 </div>
-                <p className="mt-4 text-sm leading-6 text-chinawhite">
-                  {tier.description}
-                </p>
+                <p className="text-light mt-4 text-sm leading-6">{tier.description}</p>
                 <p className="mt-6 flex items-baseline gap-x-1">
-                  <span className="text-4xl font-bold tracking-tight text-chinawhite">
+                  <span className="text-light text-4xl font-bold tracking-tight">
                     {tier.priceMonthly}
                   </span>
-                  <span className="text-sm font-semibold leading-6 text-chinawhite">
+                  <span className="text-light text-sm font-semibold leading-6">
                     /month
                   </span>
                 </p>
-                <ul
-                  role="list"
-                  className="mt-8 space-y-3 text-sm leading-6 text-chinawhite"
-                >
+                <ul role="list" className="text-light mt-8 space-y-3 text-sm leading-6">
                   {tier.features.map((feature) => (
                     <li key={feature} className="flex gap-x-3">
                       <CheckIcon
-                        className="h-6 w-5 flex-none text-junglegreen"
+                        className="text-primary h-6 w-5 flex-none"
                         aria-hidden="true"
                       />
                       {feature}
@@ -125,9 +120,9 @@ const PricingSection = () => {
                 aria-describedby={tier.id}
                 className={classNames(
                   tier.mostPopular
-                    ? "bg-darkjunglegreen text-white shadow-sm hover:bg-junglegreen"
-                    : "text-darkjunglegreen ring-1 ring-inset ring-darkjunglegreen hover:text-junglegreen hover:ring-junglegreen",
-                  "mt-8 block rounded-md px-3 py-2 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-junglegreen"
+                    ? "bg-primary hover:bg-primarydark text-white shadow-sm"
+                    : "text-primarydark ring-primarydark hover:text-primary hover:ring-primary ring-1 ring-inset",
+                  "focus-visible:outline-primary mt-8 block rounded-md px-3 py-2 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
                 )}
               >
                 Buy plan

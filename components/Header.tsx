@@ -49,7 +49,7 @@ export default function Header({ user = null }: { user: User | null }) {
             <span className="sr-only">SyncUp</span>
             <img className="h-8 w-auto" src="Symbian.png" alt="" />
           </a>
-          <div className="font text-l flex items-center px-2 font-semibold text-chinawhite">
+          <div className="font text-l text-light flex items-center px-2 font-semibold">
             Sync Up
           </div>
         </div>
@@ -58,7 +58,7 @@ export default function Header({ user = null }: { user: User | null }) {
             <a
               key={item.name}
               href={item.href}
-              className="text-sm font-semibold leading-6 text-chinawhite hover:text-junglegreen"
+              className="hover:text-primary text-light text-sm font-semibold leading-6"
             >
               {item.name}
             </a>
@@ -68,7 +68,7 @@ export default function Header({ user = null }: { user: User | null }) {
           {user ? (
             <a
               href="/dashboard"
-              className="rounded-md bg-darkjunglegreen px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-junglegreen focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-junglegreen"
+              className="bg-primary hover:bg-primarydark focus-visible:outline-primary rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
             >
               Dashboard
             </a>
@@ -76,13 +76,13 @@ export default function Header({ user = null }: { user: User | null }) {
             <>
               <a
                 href="/signin"
-                className="hidden hover:text-junglegreen lg:block lg:text-sm lg:font-semibold lg:leading-6 lg:text-chinawhite"
+                className="hover:text-primary lg:text-light hidden lg:block lg:text-sm lg:font-semibold lg:leading-6"
               >
                 Log in
               </a>
               <a
                 href="/signup"
-                className="rounded-md bg-darkjunglegreen px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-junglegreen focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-junglegreen"
+                className="bg-primary hover:bg-primarydark focus-visible:outline-primary rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
               >
                 Sign up
               </a>
@@ -119,7 +119,7 @@ export default function Header({ user = null }: { user: User | null }) {
             </a>
             <a
               href="#"
-              className="ml-auto rounded-md bg-junglegreen px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-darkjunglegreen focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-junglegreen"
+              className="bg-primary hover:bg-primarydark focus-visible:outline-primary ml-auto rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
             >
               Sign up
             </a>

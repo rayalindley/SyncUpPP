@@ -72,7 +72,7 @@ export default function Footer() {
             <span className="sr-only">SyncUp</span>
             <img className="h-8 w-auto" src="Symbian.png" alt="" />
           </a>
-          <div className="font text-l flex items-center px-2 font-semibold text-chinawhite">
+          <div className="font text-l text-light flex items-center px-2 font-semibold">
             Sync Up
           </div>
         </div>
@@ -86,7 +86,7 @@ export default function Footer() {
             <a
               key={item.name}
               href={item.href}
-              className="text-chinawhite hover:text-gray-500"
+              className="text-light hover:text-gray-500"
             >
               <span className="sr-only">{item.name}</span>
               <item.icon className="h-6 w-6" aria-hidden="true" />

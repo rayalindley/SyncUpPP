@@ -181,7 +181,7 @@ const SideNavMenu = () => {
         <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-[#525252] bg-eerieblack px-6 pb-4">
           <div className="flex h-16 shrink-0 items-center">
             <img className="h-8 w-auto" src="Symbian.png" alt="SyncUp" />
-            <p className="ml-2 font-semibold text-chinawhite">SyncUp</p>
+            <p className="text-light ml-2 font-semibold">SyncUp</p>
           </div>
 
           <nav className="flex flex-1 flex-col">
@@ -194,16 +194,16 @@ const SideNavMenu = () => {
                         href={item.href}
                         className={classNames(
                           item.current
-                            ? "bg-charleston text-chinawhite"
-                            : "text-gray-400 hover:bg-charleston hover:text-chinawhite",
+                            ? "text-light bg-charleston"
+                            : "hover:text-light text-gray-400 hover:bg-charleston",
                           "group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6"
                         )}
                       >
                         <item.icon
                           className={classNames(
                             item.current
-                              ? "text-chinawhite"
-                              : "text-gray-400 group-hover:text-chinawhite",
+                              ? "text-light"
+                              : "group-hover:text-light text-gray-400",
                             "h-6 w-6 shrink-0"
                           )}
                           aria-hidden="true"
@@ -215,7 +215,7 @@ const SideNavMenu = () => {
                 </ul>
               </li>
               <li>
-                <div className="text-xs font-semibold leading-6 text-chinawhite">
+                <div className="text-light text-xs font-semibold leading-6">
                   Your Organizations
                 </div>
                 <ul role="list" className="-mx-2 mt-2 space-y-1">
@@ -225,16 +225,16 @@ const SideNavMenu = () => {
                         href={team.href}
                         className={classNames(
                           team.current
-                            ? "bg-gray-50 text-junglegreen"
-                            : "text-gray-400 hover:bg-charleston hover:text-junglegreen",
+                            ? "text-primary bg-gray-50"
+                            : "hover:text-primary text-gray-400 hover:bg-charleston",
                           "group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6"
                         )}
                       >
                         <span
                           className={classNames(
                             team.current
-                              ? "border-junglegreen text-junglegreen"
-                              : "border-gray-200 text-gray-400 group-hover:border-junglegreen group-hover:text-junglegreen",
+                              ? "border-primary text-primary"
+                              : "group-hover:border-primary group-hover:text-primary border-gray-200 text-gray-400",
                             "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border bg-charleston text-[0.625rem] font-medium"
                           )}
                         >
@@ -249,10 +249,10 @@ const SideNavMenu = () => {
               <li className="mt-auto">
                 <a
                   href="#"
-                  className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-chinawhite hover:bg-charleston hover:text-chinawhite"
+                  className="text-light hover:text-light group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 hover:bg-charleston"
                 >
                   <Cog6ToothIcon
-                    className="h-6 w-6 shrink-0 text-chinawhite group-hover:text-chinawhite"
+                    className="text-light group-hover:text-light h-6 w-6 shrink-0"
                     aria-hidden="true"
                   />
                   Settings

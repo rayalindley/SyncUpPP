@@ -38,7 +38,7 @@ function Header({ user }: { user: User }) {
           />
           <input
             id="search-field"
-            className="placeholder:text-gray-400k block h-full w-full border-0 bg-eerieblack py-0 pl-8 pr-0 text-chinawhite focus:ring-0 sm:text-sm"
+            className="placeholder:text-gray-400k text-light block h-full w-full border-0 bg-eerieblack py-0 pl-8 pr-0 focus:ring-0 sm:text-sm"
             placeholder="Search..."
             type="search"
             name="search"
@@ -70,7 +70,7 @@ function Header({ user }: { user: User }) {
               />
               <span className="hidden lg:flex lg:items-center">
                 <span
-                  className="ml-4 text-sm font-semibold leading-6 text-chinawhite"
+                  className="text-light ml-4 text-sm font-semibold leading-6"
                   aria-hidden="true"
                 >
                   {user.user_metadata.first_name}
@@ -90,12 +90,10 @@ function Header({ user }: { user: User }) {
               leaveFrom="transform opacity-100 scale-100"
               leaveTo="transform opacity-0 scale-95"
             >
-              <Menu.Items className="absolute right-0 z-10 mt-2 w-56 origin-top-right divide-y divide-[#525252] rounded-md bg-charleston shadow-lg ring-1 ring-chinawhite ring-opacity-5 focus:outline-none">
+              <Menu.Items className="ring-light absolute right-0 z-10 mt-2 w-56 origin-top-right divide-y divide-[#525252] rounded-md bg-charleston shadow-lg ring-1 ring-opacity-5 focus:outline-none">
                 <div className="px-4 py-3">
-                  <p className="text-sm text-chinawhite">Signed in as</p>
-                  <p className="truncate text-sm font-medium text-chinawhite">
-                    {user.email}
-                  </p>
+                  <p className="text-light text-sm">Signed in as</p>
+                  <p className="text-light truncate text-sm font-medium">{user.email}</p>
                 </div>
                 <div className="py-1">
                   <Menu.Item>
@@ -103,7 +101,7 @@ function Header({ user }: { user: User }) {
                       <a
                         href="#"
                         className={classNames(
-                          active ? "bg-[#383838] text-chinawhite" : "text-chinawhite",
+                          active ? "text-light bg-[#383838]" : "text-light",
                           "block px-4 py-2 text-sm"
                         )}
                       >
@@ -116,7 +114,7 @@ function Header({ user }: { user: User }) {
                       <a
                         href="#"
                         className={classNames(
-                          active ? "bg-[#383838] text-chinawhite" : "text-chinawhite",
+                          active ? "text-light bg-[#383838]" : "text-light",
                           "block px-4 py-2 text-sm"
                         )}
                       >
@@ -129,7 +127,7 @@ function Header({ user }: { user: User }) {
                       <a
                         href="#"
                         className={classNames(
-                          active ? "bg-[#383838] text-chinawhite" : "text-chinawhite",
+                          active ? "text-light bg-[#383838]" : "text-light",
                           "block px-4 py-2 text-sm"
                         )}
                       >
@@ -143,7 +141,7 @@ function Header({ user }: { user: User }) {
                     {({ active }) => (
                       <button
                         className={classNames(
-                          active ? "bg-[#383838] text-chinawhite" : "text-chinawhite",
+                          active ? "text-light bg-[#383838]" : "text-light",
                           "block w-full px-4 py-2 text-left text-sm"
                         )}
                         onClick={async () => {

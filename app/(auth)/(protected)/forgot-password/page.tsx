@@ -8,10 +8,10 @@ export default function ForgotPassword({ searchParams }: { searchParams: any }) 
           <div className="m-3 rounded-lg bg-charleston px-6 py-12 shadow sm:px-12">
             <div className="mb-6 sm:mx-auto sm:w-full sm:max-w-md">
               <img className="mx-auto h-10 w-auto" src="Symbian.png" alt="SyncUp" />
-              <h2 className="mt-3 text-center text-2xl font-bold leading-9 tracking-tight text-chinawhite">
+              <h2 className="text-light mt-3 text-center text-2xl font-bold leading-9 tracking-tight">
                 Reset your password
               </h2>
-              <p className="text-center text-sm text-chinawhite">
+              <p className="text-light text-center text-sm">
                 Enter your email to receive instructions on how to reset your password.
               </p>
             </div>
@@ -33,7 +33,7 @@ export default function ForgotPassword({ searchParams }: { searchParams: any }) 
               <div>
                 <label
                   htmlFor="email"
-                  className="block text-sm font-medium leading-6 text-chinawhite"
+                  className="text-light block text-sm font-medium leading-6"
                 >
                   Email
                 </label>
@@ -44,7 +44,7 @@ export default function ForgotPassword({ searchParams }: { searchParams: any }) 
                     type="email"
                     autoComplete="email"
                     required
-                    className="block w-full rounded-md border-0 bg-charleston py-1.5 text-chinawhite shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
+                    className="focus:ring-primary text-light block w-full rounded-md border-0 bg-charleston py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6"
                   />
                 </div>
               </div>
@@ -52,7 +52,7 @@ export default function ForgotPassword({ searchParams }: { searchParams: any }) 
               <div>
                 <button
                   type="submit"
-                  className="flex w-full justify-center rounded-md bg-darkjunglegreen px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-junglegreen focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-junglegreen"
+                  className="bg-primary hover:bg-primarydark focus-visible:outline-primary flex w-full justify-center rounded-md px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
                 >
                   Reset Password
                 </button>
@@ -62,7 +62,7 @@ export default function ForgotPassword({ searchParams }: { searchParams: any }) 
           <p className="mt-6 text-center text-sm text-gray-500">
             <a
               href="/signin"
-              className="font-semibold  text-darkjunglegreen hover:text-junglegreen"
+              className="text-primarydark  hover:text-primary font-semibold"
             >
               Return to login
             </a>

@@ -6,10 +6,8 @@ export default function ContactUs() {
       className="relative isolate bg-eerieblack px-6 py-24 sm:py-32 lg:px-8"
     >
       <div className="mx-auto max-w-xl lg:max-w-2xl">
-        <h2 className="flex text-4xl font-bold tracking-tight text-chinawhite">
-          Contact Us
-        </h2>
-        <p className="mt-2 text-lg leading-8 text-chinawhite">
+        <h2 className="text-light flex text-4xl font-bold tracking-tight">Contact Us</h2>
+        <p className="text-light mt-2 text-lg leading-8">
           Have questions or need assistance? Reach out to our friendly team for support,
           inquiries, or partnership opportunities. We&apos;re here to help!
         </p>
@@ -19,7 +17,7 @@ export default function ContactUs() {
               <div>
                 <label
                   htmlFor="first-name"
-                  className="block text-sm font-semibold leading-6 text-chinawhite"
+                  className="text-light block text-sm font-semibold leading-6"
                 >
                   First name
                 </label>
@@ -29,14 +27,14 @@ export default function ContactUs() {
                     name="first-name"
                     id="first-name"
                     autoComplete="given-name"
-                    className="block w-full rounded-md border-0 bg-charleston px-3.5 py-2 text-chinawhite shadow-sm ring-1 ring-inset ring-raisinblack placeholder:text-chinawhite focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
+                    className="focus:ring-primary text-light placeholder:text-light block w-full rounded-md border-0 bg-charleston px-3.5 py-2 shadow-sm ring-1 ring-inset ring-raisinblack focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6"
                   />
                 </div>
               </div>
               <div>
                 <label
                   htmlFor="last-name"
-                  className="block text-sm font-semibold leading-6 text-chinawhite"
+                  className="text-light block text-sm font-semibold leading-6"
                 >
                   Last name
                 </label>
@@ -46,14 +44,14 @@ export default function ContactUs() {
                     name="last-name"
                     id="last-name"
                     autoComplete="family-name"
-                    className="block w-full rounded-md border-0 bg-charleston px-3.5 py-2 text-chinawhite shadow-sm ring-2 ring-inset ring-raisinblack placeholder:text-chinawhite focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
+                    className="focus:ring-primary text-light placeholder:text-light block w-full rounded-md border-0 bg-charleston px-3.5 py-2 shadow-sm ring-2 ring-inset ring-raisinblack focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6"
                   />
                 </div>
               </div>
               <div className="sm:col-span-2">
                 <label
                   htmlFor="email"
-                  className="block text-sm font-semibold leading-6 text-chinawhite"
+                  className="text-light block text-sm font-semibold leading-6"
                 >
                   Email Address
                 </label>
@@ -63,14 +61,14 @@ export default function ContactUs() {
                     name="budget"
                     type="email"
                     required
-                    className="block w-full rounded-md border-0 bg-charleston px-3.5 py-2 text-chinawhite shadow-sm ring-1 ring-inset ring-raisinblack placeholder:text-chinawhite focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
+                    className="focus:ring-primary text-light placeholder:text-light block w-full rounded-md border-0 bg-charleston px-3.5 py-2 shadow-sm ring-1 ring-inset ring-raisinblack focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6"
                   />
                 </div>
               </div>
               <div className="sm:col-span-2">
                 <label
                   htmlFor="message"
-                  className="block text-sm font-semibold leading-6 text-chinawhite"
+                  className="text-light block text-sm font-semibold leading-6"
                 >
                   Message
                 </label>
@@ -80,7 +78,7 @@ export default function ContactUs() {
                     name="message"
                     rows={4}
                     required
-                    className="block w-full rounded-md border-0 bg-charleston px-3.5 py-2 text-chinawhite shadow-sm ring-1 ring-inset ring-raisinblack placeholder:text-chinawhite focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
+                    className="focus:ring-primary text-light placeholder:text-light block w-full rounded-md border-0 bg-charleston px-3.5 py-2 shadow-sm ring-1 ring-inset ring-raisinblack focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6"
                     defaultValue={""}
                   />
                 </div>
@@ -89,14 +87,14 @@ export default function ContactUs() {
             <div className="mt-10">
               <button
                 type="submit"
-                className="block w-full rounded-md bg-darkjunglegreen px-3.5 py-2.5 text-center text-sm font-semibold text-white shadow-sm hover:bg-junglegreen focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-junglegreen"
+                className="bg-primary hover:bg-primarydark focus-visible:outline-primary block w-full rounded-md px-3.5 py-2.5 text-center text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
               >
                 Submit
               </button>
             </div>
             <p className="mt-4 text-sm leading-6 text-gray-500">
               By submitting this form, I agree to the{" "}
-              <a href="#" className="font-semibold text-junglegreen">
+              <a href="#" className="text-primary font-semibold">
                 privacy&nbsp;policy
               </a>
               .

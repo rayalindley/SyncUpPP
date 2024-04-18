@@ -48,15 +48,15 @@ export default function StatisticSection() {
             className="relative overflow-hidden rounded-lg bg-raisinblack px-4 pb-12 pt-5 shadow ring-1 ring-charleston sm:px-6 sm:pt-6"
           >
             <dt>
-              <div className="absolute rounded-md bg-darkjunglegreen p-3">
-                <item.icon className="h-6 w-6 text-chinawhite" aria-hidden="true" />
+              <div className="bg-primarydark absolute rounded-md p-3">
+                <item.icon className="text-light h-6 w-6" aria-hidden="true" />
               </div>
               <p className="ml-16 truncate text-sm font-medium text-gray-400">
                 {item.name}
               </p>
             </dt>
             <dd className="ml-16 flex items-baseline pb-6 sm:pb-7">
-              <p className="text-xl font-semibold text-chinawhite">{item.stat}</p>
+              <p className="text-light text-xl font-semibold">{item.stat}</p>
               <p
                 className={classNames(
                   item.changeType === "increase" ? "text-green-600" : "text-red-600",
@@ -83,7 +83,7 @@ export default function StatisticSection() {
               </p>
               <div className="absolute inset-x-0 bottom-0 bg-raisinblack px-4 py-4 sm:px-6">
                 <div className="text-sm">
-                  <a href="#" className="font-medium text-chinawhite hover:text-gray-400">
+                  <a href="#" className="text-light font-medium hover:text-gray-400">
                     View all<span className="sr-only"> {item.name} stats</span>
                   </a>
                 </div>

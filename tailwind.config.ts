@@ -12,10 +12,10 @@ const config: Config = {
       colors: {
         eerieblack: "#1C1C1C",
         raisinblack: "#232323",
-        chinawhite: "#E0E0E0",
+        light: "#E0E0E0",
         charleston: "#2A2A2A",
-        junglegreen: "#1CAE8E",
-        darkjunglegreen: "#158A70",
+        primary: "#3ecf8e",
+        primarydark: "#32805c",
       },
       fontFamily: {
         poppins: ["Poppins", "sans-serif"],
