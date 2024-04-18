@@ -1,11 +1,11 @@
-import React, { Fragment, useState } from "react";
-import { Steps, StepsProvider, useSteps } from "react-step-builder";
-import { useForm, Controller, SubmitHandler } from "react-hook-form";
-import Datepicker from "tailwind-datepicker-react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
+import { Controller, SubmitHandler, useForm } from "react-hook-form";
+import { Steps, useSteps } from "react-step-builder";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import Datepicker from "tailwind-datepicker-react";
 import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
 
 import { insertOrganization } from "@/lib/organization";
 import { useRouter } from "next/navigation";
@@ -101,8 +101,8 @@ const datepicker_options = {
   clearBtn: true,
   clearBtnText: "Clear",
   theme: {
-    background: "bg-[#242424] ",
-    todayBtn: "",
+    background: "bg-[#158A70] ", //not working when modified
+    todayBtn: "", //not working, only text color changes when modified
     clearBtn: "",
     icons: "",
     text: "text-white",
@@ -110,7 +110,7 @@ const datepicker_options = {
     input:
       "block w-full rounded-md border-0 bg-white/5 py-1.5 text-white  shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6",
     inputIcon: "",
-    selected: "",
+    selected: "bg-junglegreen", //working
   },
   // icons: {
   //   prev: () => <span>Previous</span>,
@@ -239,7 +239,7 @@ const CreateOrganizationForm = () => {
                   id="name"
                   type="text"
                   autoComplete="name"
-                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6 "
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6 "
                   {...register("name")}
                 />
                 {errors.name && <p className="text-red-500">{errors.name.message}</p>}
@@ -255,7 +255,7 @@ const CreateOrganizationForm = () => {
               </label>
               <select
                 id="organizationType"
-                className="mt-2 block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+                className="mt-2 block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
                 {...register("organizationType")}
               >
                 <option disabled selected>
@@ -281,7 +281,7 @@ const CreateOrganizationForm = () => {
               </label>
               <select
                 id="industry"
-                className="mt-2 block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+                className="mt-2 block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
                 {...register("industry")}
               >
                 <option disabled selected>
@@ -307,7 +307,7 @@ const CreateOrganizationForm = () => {
               </label>
               <select
                 id="organizationSize"
-                className="mt-2 block w-full rounded-md border-0 bg-white/5 py-1.5  text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+                className="mt-2 block w-full rounded-md border-0 bg-white/5 py-1.5  text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
                 {...register("organizationSize")}
               >
                 <option disabled selected>
@@ -335,7 +335,7 @@ const CreateOrganizationForm = () => {
                 <input
                   id="website"
                   type="text"
-                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
                   {...register("website")}
                 />
                 {errors.website && (
@@ -389,7 +389,7 @@ const CreateOrganizationForm = () => {
                   id="addressLine1"
                   type="text"
                   autoComplete="address"
-                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
                   {...register("addressLine1")}
                 />
                 {errors.addresLine1 && (
@@ -408,7 +408,7 @@ const CreateOrganizationForm = () => {
                 <input
                   id="addressLine2"
                   type="text"
-                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
                   {...register("addressLine2")}
                 />
                 {errors.addressLine2 && (
@@ -428,7 +428,7 @@ const CreateOrganizationForm = () => {
                 <input
                   id="addressLine2"
                   type="text"
-                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
                   {...register("city")}
                 />
                 {errors.city && <p className="text-red-500">{errors.city.message}</p>}
@@ -448,7 +448,7 @@ const CreateOrganizationForm = () => {
                   type="text"
                   autoComplete="stateProvince"
                   required
-                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
                   {...register("stateProvince")}
                 />
                 {errors.stateProvince && (
@@ -468,7 +468,7 @@ const CreateOrganizationForm = () => {
                   id="country"
                   type="text"
                   autoComplete="country"
-                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
                   {...register("country")}
                 />
                 {errors.country && (
@@ -492,7 +492,7 @@ const CreateOrganizationForm = () => {
                 <input
                   id="facebookLink"
                   type="text"
-                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
                   {...register("facebookLink")}
                 />
                 {errors.facebookLink && (
@@ -513,7 +513,7 @@ const CreateOrganizationForm = () => {
                   type="text"
                   autoComplete="twitterLink"
                   required
-                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
                   {...register("twitterLink")}
                 />
                 {errors.twitterLink && (
@@ -532,7 +532,7 @@ const CreateOrganizationForm = () => {
                 <input
                   id="linkedinLink"
                   type="text"
-                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
                   {...register("linkedinLink")}
                 />
                 {errors.linkedinLink && (
@@ -576,7 +576,7 @@ const CreateOrganizationForm = () => {
         {/* Navidation */}
         <div className="navigation mb-4 flex justify-between">
           <button
-            className="flex justify-center rounded-md bg-indigo-500 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+            className="flex justify-center rounded-md bg-darkjunglegreen px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-junglegreen focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-junglegreen"
             onClick={prev}
             disabled={current <= 0}
             type="button"
@@ -585,7 +585,7 @@ const CreateOrganizationForm = () => {
           </button>
           {current === total ? (
             <button
-              className="flex justify-center rounded-md bg-indigo-500 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+              className="flex justify-center rounded-md bg-darkjunglegreen px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-junglegreen focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-junglegreen"
               type="submit"
               onClick={onSubmit}
             >
@@ -593,7 +593,7 @@ const CreateOrganizationForm = () => {
             </button>
           ) : (
             <button
-              className="flex justify-center rounded-md bg-indigo-500 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+              className="flex justify-center rounded-md bg-darkjunglegreen px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-junglegreen focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-junglegreen"
               onClick={handleNext}
               type="button"
             >
