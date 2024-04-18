@@ -7,6 +7,7 @@ import { Fragment, useRef } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { convertToBase64 } from "@/lib/utils";
 
 interface EditUserDetailsProps {
   userId: string;
@@ -26,10 +27,15 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [dialogMessage, setDialogMessage] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
 
   let completeButtonRef = useRef(null);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<UserProfile>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<UserProfile>({
     resolver: zodResolver(UserProfileSchema),
   });
 
@@ -44,11 +50,13 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
   }, [userId]);
 
   const handleEdit = async (data: UserProfile) => {
+    setIsUpdating(true); // Start updating
+
     const updatedData: UserProfile = {
       ...data,
       userid: userProfile?.userid || "",
       updatedat: new Date(),
-      profilepicture: undefined
+      profilepicture: userProfile?.profilepicture? userProfile?.profilepicture : undefined,
     };
 
     const response = await updateUserProfileById(userProfile?.userid || "", updatedData);
@@ -59,6 +67,8 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
       setDialogMessage("User profile updated successfully");
     }
     setIsOpen(true);
+
+    setIsUpdating(false); // End updating
   };
 
   if (!userProfile) {
@@ -73,12 +83,36 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
           Update the details of the selected user.
         </p>
       </div>
+
       <div className="overflow-auto border-t border-gray-200 sm:h-auto">
         <form
           onSubmit={handleSubmit(handleEdit)}
           className="px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6"
         >
           <div className="col-span-3 sm:col-span-2">
+          <label className="block text-sm font-medium text-gray-700">
+              Profile Picture:
+              <img
+                src={userProfile?.profilepicture? userProfile.profilepicture : "https://via.placeholder.com/150"}
+                alt="Profile Picture"
+                className="mt-1 block h-24 w-24 rounded-full"
+              />
+            </label>
+
+            <label className="block text-sm font-medium text-gray-700">
+              Upload New Profile Picture:
+              <input
+                type="file"
+                onChange={async (event) => {
+                  const file = event.target.files?.[0];
+                  if (file) {
+                    const base64 = await convertToBase64(file);
+                    setUserProfile({ ...userProfile, profilepicture: base64 });
+                  }
+                }}
+                className="mt-1 block"
+              />
+            </label>
             <label className="block text-sm font-medium text-gray-700">
               First Name:
               <input
@@ -153,13 +187,15 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
             </label>
             <button
               type="submit"
-              className="mt-5 inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              className={`mt-5 inline-flex justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 ${isUpdating ? "cursor-not-allowed bg-gray-500" : "bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500"}`}
+              disabled={isUpdating}
             >
-              Update Profile
+              {isUpdating ? "Updating Profile" : "Update Profile"}
             </button>
           </div>
         </form>
       </div>
+
       <Transition.Root show={isOpen} as={Fragment}>
         <Dialog
           as="div"

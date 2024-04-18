@@ -12,8 +12,6 @@ export type UserProfile = {
   profilepicture: string | undefined; // Now a string to store the URL
   website: string;
   updatedat: Date;
-  // Add a new field for the File object if you plan to upload a new profile picture
-  profilepictureFile?: File;
 }
 
 // ./types/combinedUserData.ts

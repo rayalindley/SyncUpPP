@@ -45,23 +45,15 @@ export async function deleteUser(id: string) {
 
 // a function to get combined user data by id
 export async function getCombinedUserDataById(userId: string) {
-  console.log("Creating Supabase client...");
   const supabase = createClient();
-
-  console.log("Starting try block...");
   try {
-    console.log("Attempting to get combined user data...");
     const { data, error } = await supabase
       .from('combined_user_data')
       .select("*")
       .eq('id', userId);
-
-    console.log("Get operation completed. Checking for errors...");
     if (!error) {
-      console.log("No errors detected. Data:", data);
       return { data, error: null };
     } else {
-      console.log("Error detected:", error.message);
       return { data: null, error: { message: error.message } };
     }
   } catch (e: any) {
@@ -75,23 +67,17 @@ export async function getCombinedUserDataById(userId: string) {
 
 // a function to get userprofile by id
 export async function getUserProfileById(userId: string) {
-  console.log("Creating Supabase client...");
   const supabase = createClient();
 
-  console.log("Starting try block...");
   try {
-    console.log("Attempting to get user profile...");
     const { data, error } = await supabase
       .from('userprofiles')
       .select("*")
       .eq('userid', userId);
 
-    console.log("Get operation completed. Checking for errors...");
     if (!error) {
-      console.log("No errors detected. Data:", data);
       return { data, error: null };
     } else {
-      console.log("Error detected:", error.message);
       return { data: null, error: { message: error.message } };
     }
   } catch (e: any) {
@@ -105,24 +91,21 @@ export async function getUserProfileById(userId: string) {
 
 // a function to edit userprofile by id
 export async function updateUserProfileById(userId: string, updatedData: UserProfile) {
-  console.log("Creating Supabase client...");
   const supabase = createClient();
 
-  console.log("Starting try block...");
   try {
-    console.log("Attempting to update user profile...");
     const { data, error } = await supabase
       .from('userprofiles')
-      .update(updatedData)
+      .update({
+      ...updatedData,
+      dateofbirth: updatedData.dateofbirth || undefined
+      })
       .eq('userid', userId)
       .select('*');
 
-    console.log("Update operation completed. Checking for errors...");
     if (!error) {
-      console.log("No errors detected. Data:", data);
       return { data, error: null };
     } else {
-      console.log("Error detected:", error.message);
       return { data: null, error: { message: error.message } };
     }
   } catch (e: any) {
@@ -133,3 +116,4 @@ export async function updateUserProfileById(userId: string, updatedData: UserPro
     };
   }
 }
+
