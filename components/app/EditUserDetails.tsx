@@ -1,54 +1,52 @@
 "use client";
-import { useState, useEffect, FormEvent, ChangeEvent } from "react";
+import { useState, useEffect } from "react";
 import { getUserProfileById, updateUserProfileById } from "@/lib/userActions";
 import { UserProfile } from "@/lib/types";
 import { Dialog, Transition } from "@headlessui/react";
 import { Fragment, useRef } from "react";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 interface EditUserDetailsProps {
   userId: string;
 }
 
+const UserProfileSchema = z.object({
+  first_name: z.string(),
+  last_name: z.string(),
+  gender: z.string(),
+  dateofbirth: z.string(),
+  description: z.string(),
+  company: z.string(),
+  website: z.string(),
+});
+
 const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [dialogMessage, setDialogMessage] = useState("");
 
   let completeButtonRef = useRef(null);
+
+  const { register, handleSubmit, formState: { errors } } = useForm<UserProfile>({
+    resolver: zodResolver(UserProfileSchema),
+  });
 
   useEffect(() => {
     const fetchUserProfile = async () => {
       const response: any = await getUserProfileById(userId);
       const data: Array<any> = response.data;
       setUserProfile(data.length ? data[0] : null);
-
     };
 
     fetchUserProfile();
   }, [userId]);
 
-  const handleEdit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const target = event.target as typeof event.target & {
-      first_name: { value: string };
-      last_name: { value: string };
-      gender: { value: string };
-      dateofbirth: { value: string };
-      description: { value: string };
-      company: { value: string };
-      website: { value: string };
-    };
+  const handleEdit = async (data: UserProfile) => {
     const updatedData: UserProfile = {
+      ...data,
       userid: userProfile?.userid || "",
-      first_name: target.first_name.value,
-      last_name: target.last_name.value,
-      gender: target.gender.value,
-      dateofbirth:
-        target.dateofbirth.value === "" ? "00/00/0000" : target.dateofbirth.value,
-      description: target.description.value,
-      company: target.company.value,
-      website: target.website.value,
       updatedat: new Date(),
       profilepicture: undefined
     };
@@ -61,15 +59,6 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
       setDialogMessage("User profile updated successfully");
     }
     setIsOpen(true);
-  };
-
-  const convertFileToByteArray = (file: File): Promise<Uint8Array> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(new Uint8Array(reader.result as ArrayBuffer));
-      reader.onerror = reject;
-      reader.readAsArrayBuffer(file);
-    });
   };
 
   if (!userProfile) {
@@ -86,7 +75,7 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
       </div>
       <div className="overflow-auto border-t border-gray-200 sm:h-auto">
         <form
-          onSubmit={handleEdit}
+          onSubmit={handleSubmit(handleEdit)}
           className="px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6"
         >
           <div className="col-span-3 sm:col-span-2">
@@ -94,66 +83,73 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
               First Name:
               <input
                 type="text"
-                name="first_name"
+                {...register("first_name")}
                 defaultValue={userProfile.first_name}
                 className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
               />
+              {errors.first_name && <p>{errors.first_name.message}</p>}
             </label>
             <label className="block text-sm font-medium text-gray-700">
               Last Name:
               <input
                 type="text"
-                name="last_name"
+                {...register("last_name")}
                 defaultValue={userProfile.last_name}
                 className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
               />
+              {errors.last_name && <p>{errors.last_name.message}</p>}
             </label>
             <label className="block text-sm font-medium text-gray-700">
               Gender:
               <select
-                name="gender"
+                {...register("gender")}
                 defaultValue={userProfile.gender}
                 className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
               >
                 <option value="M">M</option>
                 <option value="F">F</option>
               </select>
+              {errors.gender && <p>{errors.gender.message}</p>}
             </label>
             <label className="block text-sm font-medium text-gray-700">
               Date of Birth:
               <input
                 type="date"
-                name="dateofbirth"
+                {...register("dateofbirth")}
                 defaultValue={userProfile.dateofbirth}
                 className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
               />
+              {errors.dateofbirth && <p>{errors.dateofbirth.message}</p>}
             </label>
             <label className="block text-sm font-medium text-gray-700">
               Description:
               <textarea
-                name="description"
+                {...register("description")}
                 defaultValue={userProfile.description}
                 className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
               />
+              {errors.description && <p>{errors.description.message}</p>}
             </label>
             <label className="block text-sm font-medium text-gray-700">
               Company:
               <input
                 type="text"
-                name="company"
+                {...register("company")}
                 defaultValue={userProfile.company}
                 className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
               />
+              {errors.company && <p>{errors.company.message}</p>}
             </label>
             <label className="block text-sm font-medium text-gray-700">
               Website:
               <input
                 type="text"
-                name="website"
+                {...register("website")}
                 defaultValue={userProfile.website}
                 placeholder="http://www.example.com"
                 className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
               />
+              {errors.website && <p>{errors.website.message}</p>}
             </label>
             <button
               type="submit"
