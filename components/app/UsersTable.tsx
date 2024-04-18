@@ -1,17 +1,13 @@
-import { getAllUsers } from "@/lib/supabase/server";
 import { User } from "@supabase/auth-js/dist/module/lib/types";
 import UserActionButton from "./user_action_button";
 import Swal from "sweetalert2";
+import { getAllUsers} from "@/lib/supabase/server";
+import { getUserProfileById } from "@/lib/userActions";
 
 export default async function UsersTable() {
-  // const deleteBtn = () => {
-  //   Swal.fire({
-  //     title: "Good job!",
-  //     text: "You clicked the button!",
-  //     icon: "success",
-  //   });
-  // };
   const users: User[] = (await getAllUsers()) ?? [];
+  const userProfiles = await Promise.all(users.map(user => getUserProfileById(user.id)));
+
   return (
     <div className="px-4 sm:px-6 lg:px-8">
       <div className="sm:flex sm:items-center">
@@ -22,14 +18,6 @@ export default async function UsersTable() {
             role.
           </p>
         </div>
-        {/* <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-          <button
-            type="button"
-            className="block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-          >
-            Add user
-          </button>
-        </div> */}
       </div>
       <div className="mt-8 flow-root">
         <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
@@ -75,31 +63,31 @@ export default async function UsersTable() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
-                  {users.map((user) => (
-                    <tr key={user.email}>
+                  {userProfiles.map((userProfile, index) => (
+                    <tr key={users[index].email}>
                       <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
-                        {user.user_metadata.first_name} {user.user_metadata.last_name}
+                        {userProfile.data[0].first_name} {userProfile.data[0].last_name}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {user.email}
+                        {users[index].email}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {user.role}
+                        {users[index].role}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {new Date(user.created_at).toLocaleDateString()}{" "}
-                        {new Date(user.created_at).toLocaleTimeString()}
+                        {new Date(users[index].created_at).toLocaleDateString()}{" "}
+                        {new Date(users[index].created_at).toLocaleTimeString()}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {user.last_sign_in_at && (
+                        {users[index].last_sign_in_at && (
                           <>
-                            {new Date(user.last_sign_in_at).toLocaleDateString()}{" "}
-                            {new Date(user.last_sign_in_at).toLocaleTimeString()}
+                            {new Date(users[index].last_sign_in_at).toLocaleDateString()}{" "}
+                            {new Date(users[index].last_sign_in_at).toLocaleTimeString()}
                           </>
                         )}
                       </td>
                       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                        <UserActionButton selectedUser={user} />
+                        <UserActionButton selectedUser={users[index]} />
                       </td>
                     </tr>
                   ))}
