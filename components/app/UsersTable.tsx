@@ -1,12 +1,14 @@
 import { User } from "@supabase/auth-js/dist/module/lib/types";
 import UserActionButton from "./user_action_button";
 import Swal from "sweetalert2";
-import { getAllUsers} from "@/lib/supabase/server";
+import { getAllUsers } from "@/lib/supabase/server";
 import { getUserProfileById } from "@/lib/userActions";
 
 export default async function UsersTable() {
   const users: User[] = (await getAllUsers()) ?? [];
-  const userProfiles = await Promise.all(users.map(user => getUserProfileById(user.id)));
+  const userProfiles = await Promise.all(
+    users.map((user) => getUserProfileById(user.id))
+  );
 
   return (
     <div className="px-4 sm:px-6 lg:px-8">
@@ -23,7 +25,10 @@ export default async function UsersTable() {
         <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
           <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
             <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
-              <table className="min-w-full divide-y divide-gray-300" style={{ minHeight: "60vh"}}>
+              <table
+                className="min-w-full divide-y divide-gray-300"
+                style={{ minHeight: "60vh" }}
+              >
                 <thead className="bg-gray-50">
                   <tr>
                     <th
@@ -66,7 +71,9 @@ export default async function UsersTable() {
                   {userProfiles.map((userProfile, index) => (
                     <tr key={users[index].email}>
                       <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
-                        {userProfile.data[0].first_name} {userProfile.data[0].last_name}
+                        {userProfile?.data
+                          ? `${userProfile.data[0]?.first_name} ${userProfile.data[0]?.last_name}`
+                          : "Loading..."}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                         {users[index].email}
@@ -79,12 +86,7 @@ export default async function UsersTable() {
                         {new Date(users[index].created_at).toLocaleTimeString()}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {users[index].last_sign_in_at && (
-                          <>
-                            {new Date(users[index].last_sign_in_at).toLocaleDateString()}{" "}
-                            {new Date(users[index].last_sign_in_at).toLocaleTimeString()}
-                          </>
-                        )}
+                        {users[index].last_sign_in_at ?? ""}
                       </td>
                       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                         <UserActionButton selectedUser={users[index]} />

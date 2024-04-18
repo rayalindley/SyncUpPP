@@ -12,7 +12,6 @@ const UserInfo: React.FC<UserInfoProps> = ({ userId }) => {
   useEffect(() => {
     const fetchUserData = async () => {
       const response = await getCombinedUserDataById(userId);
-      console.log(response);
       const data: CombinedUserData =
         response?.data && response.data[0] ? response.data[0] : null;
       if (!data) {

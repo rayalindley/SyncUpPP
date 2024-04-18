@@ -98,7 +98,8 @@ export async function updateUserProfileById(userId: string, updatedData: UserPro
       .from('userprofiles')
       .update({
       ...updatedData,
-      dateofbirth: updatedData.dateofbirth || undefined
+      dateofbirth: updatedData.dateofbirth? updatedData.dateofbirth : undefined,
+      profilepicture: updatedData?.profilepicture? updatedData?.profilepicture : undefined,
       })
       .eq('userid', userId)
       .select('*');

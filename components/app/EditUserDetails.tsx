@@ -56,7 +56,6 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
       ...data,
       userid: userProfile?.userid || "",
       updatedat: new Date(),
-      profilepicture: userProfile?.profilepicture? userProfile?.profilepicture : undefined,
     };
 
     const response = await updateUserProfileById(userProfile?.userid || "", updatedData);
