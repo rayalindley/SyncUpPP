@@ -11,11 +11,14 @@ const UserInfo: React.FC<UserInfoProps> = ({ userId }) => {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const data = await getCombinedUserDataById(userId);
+      const response = await getCombinedUserDataById(userId);
+      console.log(response);
+      const data: CombinedUserData =
+        response?.data && response.data[0] ? response.data[0] : null;
       if (!data) {
         return;
       }
-      setUserData(data[0]);
+      setUserData(data);
     };
 
     fetchUserData();
@@ -39,10 +42,28 @@ const UserInfo: React.FC<UserInfoProps> = ({ userId }) => {
       >
         <dl>
           {Object.entries(userData).map(([key, value]) => {
-            let formattedKey = key.replace(/_/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-            if (key === 'dateofbirth') formattedKey = 'Date of Birth';
-            if (key === 'updatedat') formattedKey = 'Updated At';
-            let formattedValue = typeof value === 'string' && value.includes('-') && value.includes(':') ? new Date(value).toLocaleString() : value;
+            // Skip the 'id' field
+            if (key === "id") {
+              return null;
+            }
+
+            let formattedKey = key
+              .replace(/_/g, " ")
+              .split(" ")
+              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(" ");
+            if (key === "dateofbirth") formattedKey = "Date of Birth";
+            if (key === "updatedat") formattedKey = "Updated At";
+
+            // Replace null values with an empty string
+            let formattedValue = value === null ? "" : value;
+            formattedValue =
+              typeof formattedValue === "string" &&
+              formattedValue.includes("-") &&
+              formattedValue.includes(":")
+                ? new Date(formattedValue).toLocaleString()
+                : formattedValue;
+
             return (
               <div
                 key={key}
@@ -51,11 +72,13 @@ const UserInfo: React.FC<UserInfoProps> = ({ userId }) => {
                 <dt className="text-sm font-medium text-gray-500">{formattedKey}</dt>
                 <dd className="mt-1 text-sm text-gray-900 sm:col-span-2 sm:mt-0">
                   <pre className="whitespace-pre-wrap">
-                    {typeof formattedValue === 'string' ? formattedValue : JSON.stringify(formattedValue, null, 2)}
+                    {typeof formattedValue === "string"
+                      ? formattedValue
+                      : JSON.stringify(formattedValue, null, 2)}
                   </pre>
                 </dd>
               </div>
-            )
+            );
           })}
         </dl>
       </div>

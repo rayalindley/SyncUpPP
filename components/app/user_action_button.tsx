@@ -9,6 +9,7 @@ import { User } from "@supabase/supabase-js";
 import { PencilIcon } from "@heroicons/react/20/solid";
 import Swal from "sweetalert2";
 import UserInfo from "./UserInfo";
+import { usePopper } from "react-popper";
 
 const jsonTheme = {
   main: "line-height:1.3;color:#383a42;background:#ffffff;overflow:hidden;word-wrap:break-word;white-space: pre-wrap;word-wrap: break-word; ",
@@ -25,10 +26,19 @@ function classNames(...classes: any[]) {
 }
 
 export default function UserActionButton({ selectedUser }: { selectedUser: User }) {
-  const handleEdit = () => {
-    localStorage.setItem('selectedUserId', selectedUser.id);
-    window.location.href = '/dashboard/edit-user-profile';
-  };  
+  const [referenceElement, setReferenceElement] = useState(null);
+  const [popperElement, setPopperElement] = useState(null);
+  const { styles, attributes } = usePopper(referenceElement, popperElement, {
+    placement: "bottom-end",
+    modifiers: [
+      {
+        name: "flip",
+        options: {
+          fallbackPlacements: ["top-end"],
+        },
+      },
+    ],
+  });
   const deleteBtn = () => {
     Swal.fire({
       title: "Are you sure?",
@@ -47,6 +57,8 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
             title: "Deleted!",
             text: "The user successfully deleted.",
             icon: "success",
+          }).then(() => {
+            location.reload(); // Reload the page
           });
         } else {
           Swal.fire({
@@ -62,7 +74,11 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Menu as="div" className="relative inline-block text-left">
+      <Menu
+        as="div"
+        className="relative inline-block text-left"
+        ref={setReferenceElement}
+      >
         <div>
           <Menu.Button className="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
             Options
@@ -79,7 +95,11 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
           leaveFrom="transform opacity-100 scale-100"
           leaveTo="transform opacity-0 scale-95"
         >
-          <Menu.Items className="fixed right-[80px] z-[100] mt-2 w-56 origin-top-left divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+          <Menu.Items
+            className="absolute right-0 z-50 mt-2 w-56 origin-top-left divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+            ref={setPopperElement}
+            style={styles.popper}
+          >
             <div className="py-1">
               <Menu.Item>
                 {({ active }) => (
@@ -101,7 +121,7 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
               <Menu.Item>
                 {({ active }) => (
                   <a
-                    onClick={handleEdit}
+                    href={`/dashboard/edit-user-profile/${selectedUser.id}`}
                     className={classNames(
                       active ? "bg-gray-100 text-gray-900" : "text-gray-700",
                       "group flex cursor-pointer items-center px-4 py-2 text-sm"

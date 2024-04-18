@@ -43,41 +43,72 @@ export async function deleteUser(id: string) {
   }
 }
 
-// a function to get user combined data by id
+// a function to get combined user data by id
 export async function getCombinedUserDataById(userId: string) {
   const supabase = createClient();
-  let { data, error } = await supabase
-  .from('combined_user_data')
-  .select("*")
-  .eq('id', userId)
-
-  return data;
+  try {
+    const { data, error } = await supabase
+      .from('combined_user_data')
+      .select("*")
+      .eq('id', userId);
+    if (!error) {
+      return { data, error: null };
+    } else {
+      return { data: null, error: { message: error.message } };
+    }
+  } catch (e: any) {
+    console.error("Unexpected error:", e);
+    return {
+      data: null,
+      error: { message: e.message || "An unexpected error occurred" },
+    };
+  }
 }
 
 // a function to get userprofile by id
 export async function getUserProfileById(userId: string) {
   const supabase = createClient();
-  let { data, error } = await supabase
-  .from('userprofiles')
-  .select("*")
-  .eq('userid', userId)
+  try {
+    const { data, error } = await supabase
+      .from('userprofiles')
+      .select("*")
+      .eq('userid', userId);
 
-  return data;
+    if (!error) {
+      return { data, error: null };
+    } else {
+      return { data: null, error: { message: error.message } };
+    }
+  } catch (e: any) {
+    console.error("Unexpected error:", e);
+    return {
+      data: null,
+      error: { message: e.message || "An unexpected error occurred" },
+    };
+  }
 }
 
 // a function to edit userprofile by id
 export async function updateUserProfileById(userId: string, updatedData: UserProfile) {
   const supabase = createClient();
-  const { data, error } = await supabase
-    .from('userprofiles')
-    .update(updatedData)
-    .eq('userid', userId)
-    .select('*');
 
-  if (error) {
-    console.error('Error updating user profile:', error);
-    return null;
+  try {
+    const { data, error } = await supabase
+      .from('userprofiles')
+      .update(updatedData)
+      .eq('userid', userId)
+      .select('*');
+
+    if (!error) {
+      return { data, error: null };
+    } else {
+      return { data: null, error: { message: error.message } };
+    }
+  } catch (e: any) {
+    console.error("Unexpected error:", e);
+    return {
+      data: null,
+      error: { message: e.message || "An unexpected error occurred" },
+    };
   }
-
-  return data;
 }

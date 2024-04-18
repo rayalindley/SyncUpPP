@@ -5,9 +5,11 @@ import { UserProfile } from "@/lib/types";
 import { Dialog, Transition } from "@headlessui/react";
 import { Fragment, useRef } from "react";
 
-interface EditUserDetailsProps {}
+interface EditUserDetailsProps {
+  userId: string;
+}
 
-const EditUserDetails: React.FC<EditUserDetailsProps> = () => {
+const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -18,33 +20,33 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = () => {
 
   useEffect(() => {
     const fetchUserProfile = async () => {
-      const userId = localStorage.getItem("selectedUserId") ?? "";
-      const data = await getUserProfileById(userId);
-      setUserProfile(data && data.length ? data[0] : null);
+      const response: any = await getUserProfileById(userId);
+      const data: Array<any> = response.data;
+      setUserProfile(data.length ? data[0] : null);
 
-      if (data && data.length && data[0].profilepicture) {
+      if (data.length && data[0].profilepicture) {
         // Remove '\\x' prefix and convert hexadecimal string to byte array
         const hexString = data[0].profilepicture.substring(2);
-        const byteArray = new Uint8Array(hexString.match(/.{1,2}/g).map((byte: string) => parseInt(byte, 16)));
-      
+        const byteArray = new Uint8Array(
+          hexString.match(/.{1,2}/g).map((byte: string) => parseInt(byte, 16))
+        );
+
         // Convert byte array to Base64 in chunks
-        let binary = '';
+        let binary = "";
         const bytes = new Uint8Array(byteArray);
         const len = bytes.byteLength;
         for (let i = 0; i < len; i++) {
           binary += String.fromCharCode(bytes[i]);
         }
         const base64String = window.btoa(binary);
-      
+
         // Set the Base64 string as the profile picture URL
         setProfilePicURL(`data:image/png;base64,${base64String}`);
       }
-      
-      
     };
 
     fetchUserProfile();
-  }, []);
+  }, [userId]);
 
   const handleEdit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -62,7 +64,8 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = () => {
       first_name: target.first_name.value,
       last_name: target.last_name.value,
       gender: target.gender.value,
-      dateofbirth: target.dateofbirth.value,
+      dateofbirth:
+        target.dateofbirth.value === "" ? "00/00/0000" : target.dateofbirth.value,
       description: target.description.value,
       company: target.company.value,
       website: target.website.value,
@@ -74,8 +77,8 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = () => {
 
     const response = await updateUserProfileById(userProfile?.userid || "", updatedData);
 
-    if (!response) {
-      setDialogMessage("Error updating user profile");
+    if (response.data === null) {
+      setDialogMessage(`Error updating user profile.`);
     } else {
       setDialogMessage("User profile updated successfully");
     }
@@ -154,12 +157,14 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = () => {
             </label>
             <label className="block text-sm font-medium text-gray-700">
               Gender:
-              <input
-                type="text"
+              <select
                 name="gender"
                 defaultValue={userProfile.gender}
                 className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-              />
+              >
+                <option value="M">M</option>
+                <option value="F">F</option>
+              </select>
             </label>
             <label className="block text-sm font-medium text-gray-700">
               Date of Birth:
@@ -188,14 +193,15 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = () => {
               />
             </label>
             <label className="block text-sm font-medium text-gray-700">
-              Website:
-              <input
-                type="text"
-                name="website"
-                defaultValue={userProfile.website}
-                className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-              />
-            </label>
+  Website:
+  <input
+    type="text"
+    name="website"
+    defaultValue={userProfile.website}
+    placeholder="http://www.example.com"
+    className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+  />
+</label>
             <button
               type="submit"
               className="mt-5 inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
