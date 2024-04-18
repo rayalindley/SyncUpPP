@@ -28,7 +28,15 @@ const organizations = [
 export default function OrganizationSection() {
   return (
     <div className="mt-10">
-      <h3 className="text-base font-semibold leading-6 text-gray-300">Organizations</h3>
+      <a
+        href="/organization/create"
+        className="border-1 rounded-md border border-junglegreen bg-darkjunglegreen p-1 px-2 text-sm text-gray-100 hover:cursor-pointer"
+      >
+        New Organization
+      </a>
+      <h3 className="mt-5 text-base font-semibold leading-6 text-gray-300">
+        Organizations
+      </h3>
       <div className="isolate mx-auto mt-5 grid max-w-md grid-cols-1 gap-8 md:max-w-2xl md:grid-cols-2 lg:max-w-4xl xl:mx-0 xl:max-w-none xl:grid-cols-4">
         {organizations.map((org, index) => (
           <a key={index} href={org.href}>
@@ -42,6 +50,5 @@ export default function OrganizationSection() {
         ))}
       </div>
     </div>
-    // <pre>{JSON.stringify(user, null, 2)}</pre>
   );
 }

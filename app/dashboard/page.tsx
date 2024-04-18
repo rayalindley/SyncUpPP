@@ -10,6 +10,7 @@ export default async function DashboardPage() {
       <StatisticsSection />
 
       <OrganizationsSection />
+      <pre>{JSON.stringify(user, null, 2)}</pre>
     </>
   );
 }
