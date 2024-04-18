@@ -7,6 +7,8 @@ import { createClient } from "@/lib/supabase/server";
 export async function insertOrganization<OrganizationFormValues>(formData: any) {
   const insertValues = {
     name: formData.name,
+    slug: formData.slug,
+    description: formData.description,
     organization_type: formData.organizationType,
     industry: formData.industry,
     organization_size: formData.organizationSize,

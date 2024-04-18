@@ -1,4 +1,3 @@
-import StatisticSection from "@/components/app/Statistics";
 import UsersTable from "@/components/app/UsersTable";
 import { getUser } from "@/lib/supabase/server";
 

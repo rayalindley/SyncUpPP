@@ -1,3 +1,4 @@
+"use client";
 import { UserGroupIcon } from "@heroicons/react/24/outline";
 
 const people = [
@@ -38,10 +39,10 @@ export default function Example() {
     <div className="bg-eerieblack py-24 sm:py-32">
       <div className="mx-auto max-w-7xl px-6 text-center lg:px-8">
         <div className="mx-auto max-w-2xl">
-          <h2 className="text-3xl font-bold tracking-tight text-chinawhite sm:text-4xl">
+          <h2 className="text-light text-3xl font-bold tracking-tight sm:text-4xl">
             Explore Our Vibrant Community
           </h2>
-          <p className="mt-4 text-lg leading-8 text-chinawhite">
+          <p className="text-light mt-4 text-lg leading-8">
             Discover subscribed organizations, their missions, events, and member
             engagement. Click to explore and connect.
           </p>
@@ -57,20 +58,20 @@ export default function Example() {
                 src={person.imageUrl}
                 alt=""
               />
-              <h3 className="mt-6 text-base font-semibold leading-7 tracking-tight text-chinawhite">
+              <h3 className="text-light mt-6 text-base font-semibold leading-7 tracking-tight">
                 {person.name}
               </h3>
               <p className="text-sm leading-6 text-gray-400">
-                <UserGroupIcon className="mx-1 -mt-1 inline-block h-5 w-5 text-junglegreen" />
+                <UserGroupIcon className="text-primary mx-1 -mt-1 inline-block h-5 w-5" />
                 {person.membercount} members
               </p>
-              <p className="mt-6 text-base font-normal text-chinawhite">
+              <p className="text-light mt-6 text-base font-normal">
                 {person.description}
               </p>
               <div className="mt-2 flex items-center justify-center gap-x-6">
                 <a
                   href="#"
-                  className="my-2 rounded-md bg-darkjunglegreen px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-junglegreen focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                  className="bg-primary hover:bg-primarydark my-2 rounded-md px-6 py-2.5 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                 >
                   View
                 </a>
