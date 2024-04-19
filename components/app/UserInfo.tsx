@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { getCombinedUserDataById } from "@/lib/userActions";
 import { CombinedUserData } from "@/lib/types";
+import { getCombinedUserDataById } from "@/lib/userActions";
+import { useEffect, useState } from "react";
 
 interface UserInfoProps {
   userId: string;
@@ -24,21 +24,18 @@ const UserInfo: React.FC<UserInfoProps> = ({ userId }) => {
   }, [userId]);
 
   if (!userData) {
-    return <div>Loading...</div>;
+    return <div className="text-light">Loading...</div>;
   }
 
   return (
-    <div className="overflow-hidden bg-white shadow sm:rounded-lg">
+    <div className="overflow-hidden bg-charleston shadow sm:rounded-lg">
       <div className="px-4 py-5 sm:px-6">
-        <h3 className="text-lg font-medium leading-6 text-gray-900">User Information</h3>
-        <p className="mt-1 max-w-2xl text-sm text-gray-500">
+        <h3 className="text-lg font-medium leading-6 text-light">User Information</h3>
+        <p className="mt-1 max-w-2xl text-sm text-light">
           Detailed information about the selected user.
         </p>
       </div>
-      <div
-        className="overflow-auto border-t border-gray-200 sm:h-auto"
-        style={{ maxHeight: "65vh" }}
-      >
+      <div className="border-t border-[#525252] sm:h-auto" style={{ maxHeight: "65vh" }}>
         <dl>
           {Object.entries(userData).map(([key, value]) => {
             // Skip the 'id' field
@@ -66,10 +63,10 @@ const UserInfo: React.FC<UserInfoProps> = ({ userId }) => {
             return (
               <div
                 key={key}
-                className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6"
+                className="bg-raisinblack px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6"
               >
                 <dt className="text-sm font-medium text-gray-500">{formattedKey}</dt>
-                <dd className="mt-1 text-sm text-gray-900 sm:col-span-2 sm:mt-0">
+                <dd className="mt-1 text-sm text-light sm:col-span-2 sm:mt-0">
                   <pre className="whitespace-pre-wrap">
                     {typeof formattedValue === "string"
                       ? formattedValue

@@ -1,15 +1,18 @@
 "use client";
+import { deleteUser, sendPasswordRecovery } from "@/lib/userActions";
 import { Dialog, Menu, Transition } from "@headlessui/react";
-import { Fragment, useState } from "react";
-import { XMarkIcon } from "@heroicons/react/24/outline";
-import { ChevronDownIcon, TrashIcon, UserIcon } from "@heroicons/react/20/solid";
-import { EnvelopeIcon } from "@heroicons/react/24/outline";
-import { sendPasswordRecovery, deleteUser } from "@/lib/userActions";
+import {
+  ChevronDownIcon,
+  PencilIcon,
+  TrashIcon,
+  UserIcon,
+} from "@heroicons/react/20/solid";
+import { EnvelopeIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { User } from "@supabase/supabase-js";
-import { PencilIcon } from "@heroicons/react/20/solid";
+import { Fragment, useState } from "react";
+import { usePopper } from "react-popper";
 import Swal from "sweetalert2";
 import UserInfo from "./UserInfo";
-import { usePopper } from "react-popper";
 
 const jsonTheme = {
   main: "line-height:1.3;color:#383a42;background:#ffffff;overflow:hidden;word-wrap:break-word;white-space: pre-wrap;word-wrap: break-word; ",
@@ -80,7 +83,7 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
         ref={setReferenceElement as unknown as React.RefObject<HTMLElement> | null}
       >
         <div>
-          <Menu.Button className="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+          <Menu.Button className="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-charleston px-3 py-2 text-sm font-semibold text-light shadow-sm ring-1 ring-inset ring-[#525252] hover:bg-raisinblack">
             Options
             <ChevronDownIcon className="-mr-1 h-5 w-5 text-gray-400" aria-hidden="true" />
           </Menu.Button>
@@ -96,7 +99,7 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
           leaveTo="transform opacity-0 scale-95"
         >
           <Menu.Items
-            className="absolute right-0 z-50 mt-2 w-56 origin-top-left divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+            className="absolute right-0 z-50 mt-2 w-56 origin-top-left divide-y divide-[#525252] rounded-md bg-charleston shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
             ref={setPopperElement as React.Ref<HTMLDivElement> | null}
             style={styles.popper}
           >
@@ -105,13 +108,13 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
                 {({ active }) => (
                   <a
                     className={classNames(
-                      active ? "bg-gray-100 text-gray-900" : "text-gray-700",
+                      active ? "bg-raisinblack text-light" : "text-light",
                       "group flex cursor-pointer items-center px-4 py-2 text-sm"
                     )}
                     onClick={() => setOpen(true)}
                   >
                     <UserIcon
-                      className="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500"
+                      className="mr-3 h-5 w-5 text-light group-hover:text-light"
                       aria-hidden="true"
                     />
                     View User Info
@@ -123,12 +126,12 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
                   <a
                     href={`/dashboard/edit-user-profile/${selectedUser.id}`}
                     className={classNames(
-                      active ? "bg-gray-100 text-gray-900" : "text-gray-700",
+                      active ? "bg-raisinblack text-light" : "text-light",
                       "group flex cursor-pointer items-center px-4 py-2 text-sm"
                     )}
                   >
                     <PencilIcon
-                      className="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500"
+                      className="mr-3 h-5 w-5 text-light group-hover:text-light"
                       aria-hidden="true"
                     />
                     Edit User Info
@@ -139,7 +142,7 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
                 {({ active }) => (
                   <button
                     className={classNames(
-                      active ? "bg-gray-100 text-gray-900" : "text-gray-700",
+                      active ? "bg-raisinblack text-light" : "text-light",
                       "group flex items-center px-4 py-2 text-sm"
                     )}
                     onClick={async () => {
@@ -150,18 +153,26 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
                           title: "Email Sent!",
                           text: "The password recovery was sent to the user's email",
                           icon: "success",
+                          customClass: {
+                            container: "bg-[red] text-light",
+                            confirmButton: "bg-primary hover:bg-primarydark",
+                          },
                         });
                       } else {
                         Swal.fire({
                           title: "Failed!",
                           text: response.error.message,
                           icon: "error",
+                          customClass: {
+                            container: "bg-raisinblack text-light",
+                            confirmButton: "bg-primary hover:bg-primarydark",
+                          },
                         });
                       }
                     }}
                   >
                     <EnvelopeIcon
-                      className="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500"
+                      className="mr-3 h-5 w-5 text-light group-hover:text-light"
                       aria-hidden="true"
                       onClick={async () => {
                         const response = await sendPasswordRecovery(selectedUser.id!);
@@ -171,12 +182,20 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
                             title: "Email Sent!",
                             text: "The password recovery was sent to the user's email",
                             icon: "success",
+                            customClass: {
+                              container: "bg-raisinblack text-light",
+                              confirmButton: "bg-primary hover:bg-primarydark",
+                            },
                           });
                         } else {
                           Swal.fire({
                             title: "Failed!",
                             text: response.error.message,
                             icon: "error",
+                            customClass: {
+                              container: "bg-raisinblack text-light",
+                              confirmButton: "bg-primary hover:bg-primarydark",
+                            },
                           });
                         }
                       }}
@@ -192,13 +211,13 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
                 {({ active }) => (
                   <a
                     className={classNames(
-                      active ? "bg-gray-100 text-gray-900" : "text-gray-700",
+                      active ? "bg-raisinblack text-light" : "text-light",
                       "group flex cursor-pointer items-center px-4 py-2 text-sm"
                     )}
                     onClick={deleteBtn}
                   >
                     <TrashIcon
-                      className="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500"
+                      className="mr-3 h-5 w-5 text-light group-hover:text-light"
                       aria-hidden="true"
                     />
                     Delete
@@ -237,16 +256,16 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
                   leaveTo="translate-x-full"
                 >
                   <Dialog.Panel className="pointer-events-auto w-screen max-w-xl">
-                    <div className="flex h-full flex-col overflow-y-scroll bg-white py-6 shadow-xl">
+                    <div className="flex h-full flex-col overflow-y-scroll bg-eerieblack py-6 shadow-xl">
                       <div className="px-4 sm:px-6">
                         <div className="flex items-start justify-between">
-                          <Dialog.Title className="text-base font-semibold leading-6 text-gray-900">
+                          <Dialog.Title className="text-base font-semibold leading-6 text-light">
                             View user info
                           </Dialog.Title>
                           <div className="ml-3 flex h-7 items-center">
                             <button
                               type="button"
-                              className="relative rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                              className="relative rounded-md text-gray-400 hover:text-light focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                               onClick={() => setOpen(false)}
                             >
                               <span className="absolute -inset-2.5" />
