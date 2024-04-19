@@ -101,7 +101,7 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
                 />
                 <div className="absolute bottom-0 right-0 mb-2 mr-2">
                   <label htmlFor="file-input" className="">
-                    <PlusIcon className="mr-2 inline-block h-8 w-8 rounded-full border-2 border-primary bg-light  text-primarydark" />
+                    <PlusIcon className="mr-2 inline-block h-8 w-8 rounded-full border-2 border-primary bg-white  text-primarydark" />
                   </label>
                   <input
                     id="file-input"

@@ -29,5 +29,15 @@ body {
 }
 
 .swal2-modal {
-  background: raisinblack;
+  background-color: theme("colors.raisinblack");
+  color: theme("colors.light");
+  .swal2-confirm {
+    background-color: theme("colors.primary");
+    &:hover {
+      background-color: theme("colors.primarydark");
+    }
+    color: theme("colors.light");
+    border-color: theme("colors.primary");
+    border-width: 1px;
+  }
 }
