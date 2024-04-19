@@ -1,11 +1,39 @@
 "use client";
 import CreateOrganizationForm from "@/components/create_organization_form";
+import { fetchOrganizationBySlug } from "@/lib/organization";
+import { createClient } from "@/lib/supabase/client";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { StepsProvider } from "react-step-builder";
 
 export default function Example() {
   const router = useRouter();
+
+  const { slug } = useParams();
+
+  const [formValues, setFormValues] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (slug) {
+      (async () => {
+        try {
+          const { data, error } = await fetchOrganizationBySlug(slug);
+          if (error) {
+            setError(error);
+            console.error(error);
+          } else {
+            setFormValues(data);
+          }
+        } catch (err) {
+          console.error("Failed to fetch organization:", err);
+          setError(err.message);
+        }
+      })();
+    }
+  }, [slug]);
+
   return (
     <>
       <div className="flex min-h-full flex-1 flex-col justify-center bg-eerieblack px-6 py-12  lg:px-8">
@@ -21,13 +49,13 @@ export default function Example() {
         <div className="sm:mx-auto sm:w-full sm:max-w-sm">
           <img className="mx-auto h-10 w-auto" src="/Symbian.png" alt="SyncUp" />
           <h2 className="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-white">
-            Create an Organization
+            Editing Organization
           </h2>
         </div>
 
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-lg">
           <StepsProvider>
-            <CreateOrganizationForm />
+            <CreateOrganizationForm formValues={formValues} />
           </StepsProvider>
 
           <p className="mt-10 text-center text-sm text-gray-400">
