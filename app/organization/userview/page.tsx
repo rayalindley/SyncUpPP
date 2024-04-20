@@ -1,6 +1,8 @@
+import Footer from "@/components/Footer";
 import Header from "@/components/Header";
+import TabsComponent from "@/components/organization/organization_view_tabs";
 import { getUser } from "@/lib/supabase/server";
-import { InboxIcon, UserGroupIcon } from "@heroicons/react/24/solid";
+import { InboxIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 import { CiFacebook, CiInstagram, CiTwitter } from "react-icons/ci";
 
 const orgdata = [
@@ -24,10 +26,10 @@ export default async function OrganizationUserView() {
     <div>
       <Header user={user} />
 
-      <main className="isolate flex justify-center sm:px-4 md:px-6 lg:px-8">
+      <main className="isolate flex justify-center sm:px-4 md:px-6 lg:px-80">
         <div className="relative">
           {/* White Rectangle */}
-          <div className="relative rounded-xl bg-white p-8 shadow-lg sm:p-16 lg:p-24">
+          <div className="relative rounded-xl bg-white p-8 shadow-lg sm:p-16 lg:p-40">
             {/* Circle */}
             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 transform">
               <div>
@@ -51,23 +53,25 @@ export default async function OrganizationUserView() {
               <InboxIcon className="mr-1 h-4 w-4 text-primary sm:h-5 sm:w-5 lg:h-6 lg:w-6" />
               <p className="text-sm text-light">Posts: {orgdata[0].posts}</p>
             </div>
-            <div className="mt-4 flex justify-center sm:mt-6 lg:mt-8">
+            <div className="mt-2 flex justify-center sm:mt-2 lg:mt-4">
               <a href={orgdata[0].facebook} className="mr-4 text-blue-500">
-                <CiFacebook className="inline-block h-8 w-8 text-light hover:text-gray-500 sm:h-10 sm:w-10 lg:h-12 lg:w-12" />
+                <CiFacebook className="inline-block h-4 w-4 text-light hover:text-primary sm:h-7 sm:w-7 lg:h-7 lg:w-7" />
               </a>
               <a href={orgdata[0].twitter} className="mr-4 text-blue-500">
-                <CiTwitter className="inline-block h-8 w-8 text-light hover:text-gray-500 sm:h-10 sm:w-10 lg:h-12 lg:w-12" />
+                <CiTwitter className="inline-block h-4 w-4 text-light hover:text-primary sm:h-7 sm:w-7 lg:h-7 lg:w-7" />
               </a>
               <a href={orgdata[0].instagram} className="text-blue-500">
-                <CiInstagram className="inline-block h-8 w-8 text-light hover:text-gray-500 sm:h-10 sm:w-10 lg:h-12 lg:w-12" />
+                <CiInstagram className="inline-block h-4 w-4 text-light hover:text-primary sm:h-7 sm:w-7 lg:h-7 lg:w-7" />
               </a>
             </div>
-            <p className="mt-6 px-4 text-center text-sm text-light sm:px-8 lg:px-10">
+            <div className="mt-4 px-4 text-center text-sm text-light sm:px-8 lg:px-10">
               {orgdata[0].description}
-            </p>
+            </div>
+            <TabsComponent />
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }
