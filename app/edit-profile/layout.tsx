@@ -18,7 +18,7 @@ export default async function DashboardLayout({
   return (
     <UserProvider>
       <div className="">
-        <div className="lg:pl-72">
+        <div className="">
           <Header user={user} />
 
           <main className="bg-gray py-10">
