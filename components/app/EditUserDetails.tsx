@@ -14,7 +14,6 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import Swal from "sweetalert2";
 import { deleteUser, sendPasswordRecovery } from "@/lib/userActions";
-import { signOut } from "@/lib/auth";
 
 interface EditUserDetailsProps {
   userId: string;
@@ -51,7 +50,7 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
 
   const deleteBtn = async () => {
     Swal.fire({
-      title: "Are you sure you want to delete your account?",
+      title: "Are you sure you want to delete this account?",
       text: "You won't be able to revert this!",
       icon: "warning",
       showCancelButton: true,
@@ -62,7 +61,7 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
       if (result.isConfirmed) {
         Swal.fire({
           title: "Are you absolutely sure?",
-          text: "This action cannot be undone. This will permanently delete your account and all its data.",
+          text: "This action cannot be undone. This will permanently delete this account and all its data.",
           icon: "warning",
           showCancelButton: true,
           confirmButtonText: "Yes, I'm sure!",
@@ -75,12 +74,11 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
             if (!response.error) {
               Swal.fire({
                 title: "Deleted!",
-                text: "Your account has been successfully deleted. Returning to sign in page.",
+                text: "Account successfully deleted.",
                 icon: "success",
               }).then(() => {
-                signOut();
-                // reload
-                location.reload();
+                // Go back to the previous page
+                window.history.back();       
               });
             } else {
               Swal.fire({
@@ -98,12 +96,12 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
   useEffect(() => {
     const fetchUserProfile = async () => {
       const response: any = await getUserProfileById(userId);
-      setUserProfile(response?.data.length ? response.data[0] : null);
+      setUserProfile(response?.data);
     };
 
     const fetchEmail = async () => {
       const response: any = await getUserEmailById(userId);
-      setEmail(response?.data[0]?.email);
+      setEmail(response?.data?.email);
     };
 
     fetchUserProfile();
@@ -117,6 +115,7 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
       ...data,
       userid: userProfile?.userid || "",
       updatedat: new Date(),
+      dateofbirth: data.dateofbirth? data.dateofbirth : undefined,
       profilepicture: userProfile?.profilepicture
         ? userProfile.profilepicture
         : undefined,
@@ -124,12 +123,14 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
 
     const response = await updateUserProfileById(userProfile?.userid || "", updatedData);
 
-    if (response.data === null) {
-      setDialogMessage(`Error updating user profile.`);
+    if (response === null) {
+      setDialogMessage("Error updating user profile.");
     } else {
       setDialogMessage("User profile updated successfully");
     }
     setIsOpen(true);
+
+    //reload the top header to show updated name and profile pic
 
     setIsUpdating(false); // End updating
   };

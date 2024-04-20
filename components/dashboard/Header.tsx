@@ -20,12 +20,8 @@ function Header({ user }: { user: User }) {
 
   useEffect(() => {
     const fetchUserProfile = async () => {
-      const { data, error } = await getUserProfileById(user?.id);
-      if (data) {
-        setUserProfile(data[0]);
-      } else {
-        console.error(error?.message);
-      }
+      const response = await getUserProfileById(user?.id);
+      setUserProfile(response.data as UserProfile);
     };
 
     fetchUserProfile();
