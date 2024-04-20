@@ -48,9 +48,9 @@ export async function getCombinedUserDataById(userId: string) {
   const supabase = createClient();
   try {
     const { data, error } = await supabase
-      .from('combined_user_data')
+      .from("combined_user_data")
       .select("*")
-      .eq('id', userId);
+      .eq("id", userId);
     if (!error) {
       return { data, error: null };
     } else {
@@ -71,9 +71,9 @@ export async function getUserProfileById(userId: string) {
 
   try {
     const { data, error } = await supabase
-      .from('userprofiles')
+      .from("userprofiles")
       .select("*")
-      .eq('userid', userId);
+      .eq("userid", userId);
 
     if (!error) {
       return { data, error: null };
@@ -95,13 +95,13 @@ export async function updateUserProfileById(userId: string, updatedData: UserPro
 
   try {
     const { data, error } = await supabase
-      .from('userprofiles')
+      .from("userprofiles")
       .update({
-      ...updatedData,
-      dateofbirth: updatedData.dateofbirth? updatedData.dateofbirth : null
+        ...updatedData,
+        dateofbirth: updatedData.dateofbirth ? updatedData.dateofbirth : null,
       })
-      .eq('userid', userId)
-      .select('*');
+      .eq("userid", userId)
+      .select("*");
 
     if (!error) {
       return { data, error: null };
@@ -117,3 +117,24 @@ export async function updateUserProfileById(userId: string, updatedData: UserPro
   }
 }
 
+// a function to get user email by id
+export async function getUserEmailById(user_id: string) {
+  const supabase = createClient();
+  try {
+    const { data, error } = await supabase
+      .from("combined_user_data")
+      .select("email")
+      .eq("id", user_id);
+    if (!error) {
+      return { data, error: null };
+    } else {
+      return { data: null, error: { message: error.message } };
+    }
+  } catch (e: any) {
+    console.error("Unexpected error:", e);
+    return {
+      data: null,
+      error: { message: e.message || "An unexpected error occurred" },
+    };
+  }
+}
