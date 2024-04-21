@@ -18,13 +18,26 @@
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb));
+  background: linear-gradient(to bottom, transparent, rgb(var(--background-end-rgb)))
+    rgb(var(--background-start-rgb));
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+}
+
+.swal2-modal {
+  background-color: theme("colors.raisinblack");
+  color: theme("colors.light");
+  .swal2-confirm {
+    background-color: theme("colors.primary");
+    &:hover {
+      background-color: theme("colors.primarydark");
+    }
+    color: theme("colors.light");
+    border-color: theme("colors.primary");
+    border-width: 1px;
   }
 }
