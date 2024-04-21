@@ -6,6 +6,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Datepicker from "tailwind-datepicker-react";
 import { z } from "zod";
+import { convertToBase64 } from "@/lib/utils";
 
 import { insertOrganization, updateOrganization } from "@/lib/organization";
 import { useRouter } from "next/navigation";
@@ -71,6 +72,7 @@ interface OrganizationFormValues {
   facebookLink?: string; // Optional
   twitterLink?: string; // Optional
   linkedinLink?: string; // Optional
+  photo?: string; // Optional field for the organization photo
 }
 
 const OrganizationSchema = z.object({
@@ -177,6 +179,9 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any }) => {
   const [formData, setFormData] = useState<OrganizationFormValues>(formValues);
   const router = useRouter();
 
+  // setphoto to allow string
+  const [photo, setPhoto] = useState<string | null>(null);
+
   const {
     register,
     handleSubmit,
@@ -219,6 +224,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any }) => {
         twitterLink: formValues.socials.twitter,
         linkedinLink: formValues.socials.linkedin,
       });
+      setPhoto(formValues.photo);
     }
   }, [formValues, reset]);
 
@@ -286,7 +292,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any }) => {
 
   const onSubmit: SubmitHandler<OrganizationFormValues> = async () => {
     setIsLoading(true);
-    const formData = getValues();
+    const formData = { ...getValues(), photo};
 
     if (formValues) {
       // then, it's an update.
@@ -366,6 +372,46 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any }) => {
           <div id="step1" className="space-y-6">
             <p className="text-xl font-bold text-white">Organization Details</p>
             <div>
+              <div className="relative mb-2 mr-2">
+                <div className="relative mx-auto block h-28 w-28">
+                  {photo ? (
+                    <img
+                      src={photo}
+                      alt="Preview"
+                      className="h-full w-full rounded-full object-cover"
+                    />
+                  ) : (
+                    <img
+                      src="https://via.placeholder.com/150"
+                      alt="Placeholder"
+                      className="h-full w-full rounded-full object-cover"
+                    />
+                  )}
+                  <label
+                    htmlFor="file-input"
+                    className="absolute bottom-0 right-0 translate-x-1/2 translate-y-1/2 transform"
+                  >
+                    <img
+                      src="https://via.placeholder.com/150"
+                      alt="Upload Icon"
+                      className="h-8 w-8 cursor-pointer rounded-full border-2 border-primary bg-white text-primarydark"
+                    />
+                  </label>
+                  <input
+                    id="file-input"
+                    type="file"
+                    onChange={async (event) => {
+                      const file = event.target.files?.[0];
+                      if (file) {
+                        const base64 = await convertToBase64(file);
+                        setPhoto(base64); // Update the type of setPhoto to allow string as a valid value
+                      }
+                    }}
+                    className="hidden"
+                  />
+                </div>
+              </div>
+
               <label
                 htmlFor="name"
                 className="block text-sm font-medium leading-6 text-white"
