@@ -1,13 +1,16 @@
-import React, { Fragment, useState } from "react";
-import { Steps, StepsProvider, useSteps } from "react-step-builder";
-import { useForm, Controller, SubmitHandler } from "react-hook-form";
-import Datepicker from "tailwind-datepicker-react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useState } from "react";
+import { Controller, SubmitHandler, useForm } from "react-hook-form";
+import { Steps, useSteps } from "react-step-builder";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import Datepicker from "tailwind-datepicker-react";
 import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
 
-import { insertOrganization } from "@/lib/organization";
+import { insertOrganization, updateOrganization } from "@/lib/organization";
+import { useRouter } from "next/navigation";
+
+import { createClient } from "@/lib/supabase/client";
 
 // Define the constants for Type of Organization
 const ORGANIZATION_TYPES = [
@@ -51,7 +54,9 @@ const ORGANIZATION_SIZES = [
 
 interface OrganizationFormValues {
   name: string;
-  organizationType: string; // Now simply a string
+  slug: string;
+  description: string;
+  organizationType: string;
   industry: string; // Now simply a string
   organizationSize: string; // Now simply a string
   website: string;
@@ -69,7 +74,9 @@ interface OrganizationFormValues {
 }
 
 const OrganizationSchema = z.object({
-  name: z.string().min(1, "Organization Name is required"),
+  name: z.string().min(3, "Organization Name is required"),
+  slug: z.string().min(3, "A valid slug is required"),
+  description: z.string().min(3, "Description is required"),
   organizationType: z.enum(ORGANIZATION_TYPES, {
     errorMap: () => ({ message: "Invalid organization type" }),
   }),
@@ -82,11 +89,11 @@ const OrganizationSchema = z.object({
   website: z.string().url("Invalid URL format").optional().or(z.literal("")),
   dateEstablished: z.date(),
 
-  addressLine1: z.string().min(1, "Address Line 1 is required"),
+  addressLine1: z.string().min(3, "Address Line 1 is required"),
   addressLine2: z.string().optional(),
-  city: z.string().min(1, "City is required"),
-  stateProvince: z.string().min(1, "State / Province is required"),
-  country: z.string().min(1, "Country is required"),
+  city: z.string().min(3, "City is required"),
+  stateProvince: z.string().min(3, "State / Province is required"),
+  country: z.string().min(3, "Country is required"),
 
   facebookLink: z.string().url("Invalid URL format").optional().or(z.literal("")),
   twitterLink: z.string().url("Invalid URL format").optional().or(z.literal("")),
@@ -100,8 +107,8 @@ const datepicker_options = {
   clearBtn: true,
   clearBtnText: "Clear",
   theme: {
-    background: "bg-[#242424] ",
-    todayBtn: "",
+    background: "bg-[#158A70] ", //not working when modified
+    todayBtn: "", //not working, only text color changes when modified
     clearBtn: "",
     icons: "",
     text: "text-white",
@@ -109,7 +116,7 @@ const datepicker_options = {
     input:
       "block w-full rounded-md border-0 bg-white/5 py-1.5 text-white  shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6",
     inputIcon: "",
-    selected: "",
+    selected: "bg-primary", //working
   },
   // icons: {
   //   prev: () => <span>Previous</span>,
@@ -130,10 +137,45 @@ const datepicker_options = {
   },
 };
 
-const CreateOrganizationForm = () => {
+function slugify(text: string) {
+  return text
+    .toString()
+    .toLowerCase()
+    .replace(/\s+/g, "-") // Replace spaces with -
+    .replace(/[^\w\-]+/g, "") // Remove all non-word chars
+    .replace(/\-\-+/g, "-") // Replace multiple - with single -
+    .replace(/^-+/, "") // Trim - from start of text
+    .replace(/-+$/, ""); // Trim - from end of text
+}
+
+async function checkSlugAvailability(slug: string) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("organizations")
+    .select("slug")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Error fetching slug:", error);
+    return {
+      isAvailable: false,
+      error: error.message,
+    };
+  }
+
+  // If data is null, no rows exist, hence the slug is available
+  return {
+    isAvailable: !data,
+    error: null,
+  };
+}
+
+const CreateOrganizationForm = ({ formValues = null }: { formValues: any }) => {
   const { prev, next, jump, total, current, progress } = useSteps();
 
-  const [formData, setFormData] = useState<OrganizationFormValues>(null);
+  const [formData, setFormData] = useState<OrganizationFormValues>(formValues);
+  const router = useRouter();
 
   const {
     register,
@@ -141,12 +183,66 @@ const CreateOrganizationForm = () => {
     control,
     reset,
     getValues,
+    setValue,
+    setError,
+    clearErrors,
+    watch,
     formState: { errors, isValid },
     trigger,
   } = useForm<OrganizationFormValues>({
     resolver: zodResolver(OrganizationSchema),
     mode: "onChange",
   });
+
+  const slugValue = watch("slug");
+  useEffect(() => {
+    if (formValues) {
+      // console.log(formValues);
+      reset({
+        name: formValues.name,
+        slug: formValues.slug,
+        description: formValues.description,
+        organizationType: formValues.organization_type,
+        industry: formValues.industry,
+        organizationSize: formValues.organization_size,
+        website: formValues.website,
+        // ! date Established has a problem.
+        // dateEstablished: formValues.date_established,
+
+        addressLine1: formValues.address.addressLine1,
+        addressLine2: formValues.address.addressLine2,
+        city: formValues.address.city,
+        stateProvince: formValues.address.stateProvince,
+        country: formValues.address.country,
+
+        facebookLink: formValues.socials.facebook,
+        twitterLink: formValues.socials.twitter,
+        linkedinLink: formValues.socials.linkedin,
+      });
+    }
+  }, [formValues, reset]);
+
+  useEffect(() => {
+    if (slugValue) {
+      const timer = setTimeout(async () => {
+        const { isAvailable, error } = await checkSlugAvailability(slugValue);
+
+        if (error) {
+          toast.error("Error checking slug availability");
+          console.error("Error fetching slug:", error);
+        } else if (!isAvailable && slugValue !== formValues.slug) {
+          setError("slug", {
+            type: "manual",
+            message: "Slug is already taken",
+          });
+        } else {
+          clearErrors("slug");
+        }
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [slugValue, setError, clearErrors]);
 
   const handleNext = async () => {
     const currentStepId = `step${current}`;
@@ -159,9 +255,30 @@ const CreateOrganizationForm = () => {
 
     const result = await trigger(fieldNames);
 
-    if (result) {
+    const { isAvailable, error } = await checkSlugAvailability(slugValue);
+
+    if (error) {
+      toast.error("Error checking slug availability");
+      console.error("Error fetching slug:", error);
+    } else if (!isAvailable) {
+      if (slugValue !== formValues.slug) {
+        setError("slug", {
+          type: "manual",
+          message: "Slug is already taken",
+        });
+      }
+    } else {
+      clearErrors("slug");
+    }
+
+    if (result && isAvailable) {
       setFormData(getValues());
       next();
+    } else {
+      if (result && slugValue == formValues.slug) {
+        setFormData(getValues());
+        next();
+      }
     }
   };
 
@@ -171,25 +288,50 @@ const CreateOrganizationForm = () => {
     setIsLoading(true);
     const formData = getValues();
 
-    const { data, error } = await insertOrganization(formData);
+    if (formValues) {
+      // then, it's an update.
+      const { data, error } = await updateOrganization(
+        formValues.organizationid,
+        formData
+      );
 
-    console.log(data);
-    console.log(error);
+      if (data) {
+        toast.success("Organization was updated successfully.", {
+          position: "bottom-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+        });
 
-    if (data) {
-      toast.success("Organization was created successfully.", {
-        position: "bottom-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: "light",
-      });
-      reset();
-    } else if (error) {
-      toast.error(error.message || "An error occurred while adding the project");
+        router.push("/dashboard");
+        reset();
+      } else if (error) {
+        toast.error(error.message || "An error occurred while adding the project");
+      }
+    } else {
+      const { data, error } = await insertOrganization(formData);
+
+      if (data) {
+        toast.success("Organization was created successfully.", {
+          position: "bottom-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+        });
+
+        router.push("/dashboard");
+        reset();
+      } else if (error) {
+        toast.error(error.message || "An error occurred while adding the project");
+      }
     }
 
     setIsLoading(false);
@@ -235,10 +377,58 @@ const CreateOrganizationForm = () => {
                   id="name"
                   type="text"
                   autoComplete="name"
-                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6 "
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6 "
                   {...register("name")}
+                  onKeyUp={(e) => {
+                    const slugValue = slugify(e.target.value);
+                    setValue("slug", slugValue); // Automatically update the slug field
+                  }}
+                  // defaultValue={formValues.name}
                 />
                 {errors.name && <p className="text-red-500">{errors.name.message}</p>}
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="slug"
+                className="block text-sm font-medium leading-6 text-white"
+              >
+                Slug
+              </label>
+              <div className="mt-2">
+                <input
+                  id="slug"
+                  type="text"
+                  autoComplete="slug"
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6 "
+                  {...register("slug")}
+                />
+                <span className="text-xs text-gray-400">
+                  Your organization address will be at http://syncup.com/jimtech
+                </span>
+                {errors.slug && <p className="text-red-500">{errors.slug.message}</p>}
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="slug"
+                className="block text-sm font-medium leading-6 text-white"
+              >
+                Description
+              </label>
+              <div className="mt-2">
+                <textarea
+                  id="description"
+                  autoComplete="description"
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6 "
+                  {...register("description")}
+                />
+
+                {errors.description && (
+                  <p className="text-red-500">{errors.description.message}</p>
+                )}
               </div>
             </div>
 
@@ -251,7 +441,7 @@ const CreateOrganizationForm = () => {
               </label>
               <select
                 id="organizationType"
-                className="mt-2 block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+                className="mt-2 block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                 {...register("organizationType")}
               >
                 <option disabled selected>
@@ -277,7 +467,7 @@ const CreateOrganizationForm = () => {
               </label>
               <select
                 id="industry"
-                className="mt-2 block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+                className="mt-2 block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                 {...register("industry")}
               >
                 <option disabled selected>
@@ -303,7 +493,7 @@ const CreateOrganizationForm = () => {
               </label>
               <select
                 id="organizationSize"
-                className="mt-2 block w-full rounded-md border-0 bg-white/5 py-1.5  text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+                className="mt-2 block w-full rounded-md border-0 bg-white/5 py-1.5  text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                 {...register("organizationSize")}
               >
                 <option disabled selected>
@@ -331,7 +521,7 @@ const CreateOrganizationForm = () => {
                 <input
                   id="website"
                   type="text"
-                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                   {...register("website")}
                 />
                 {errors.website && (
@@ -385,7 +575,7 @@ const CreateOrganizationForm = () => {
                   id="addressLine1"
                   type="text"
                   autoComplete="address"
-                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                   {...register("addressLine1")}
                 />
                 {errors.addresLine1 && (
@@ -404,7 +594,7 @@ const CreateOrganizationForm = () => {
                 <input
                   id="addressLine2"
                   type="text"
-                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                   {...register("addressLine2")}
                 />
                 {errors.addressLine2 && (
@@ -424,7 +614,7 @@ const CreateOrganizationForm = () => {
                 <input
                   id="addressLine2"
                   type="text"
-                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                   {...register("city")}
                 />
                 {errors.city && <p className="text-red-500">{errors.city.message}</p>}
@@ -444,7 +634,7 @@ const CreateOrganizationForm = () => {
                   type="text"
                   autoComplete="stateProvince"
                   required
-                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                   {...register("stateProvince")}
                 />
                 {errors.stateProvince && (
@@ -464,7 +654,7 @@ const CreateOrganizationForm = () => {
                   id="country"
                   type="text"
                   autoComplete="country"
-                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                   {...register("country")}
                 />
                 {errors.country && (
@@ -488,7 +678,7 @@ const CreateOrganizationForm = () => {
                 <input
                   id="facebookLink"
                   type="text"
-                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                   {...register("facebookLink")}
                 />
                 {errors.facebookLink && (
@@ -509,7 +699,7 @@ const CreateOrganizationForm = () => {
                   type="text"
                   autoComplete="twitterLink"
                   required
-                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                   {...register("twitterLink")}
                 />
                 {errors.twitterLink && (
@@ -528,7 +718,7 @@ const CreateOrganizationForm = () => {
                 <input
                   id="linkedinLink"
                   type="text"
-                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                   {...register("linkedinLink")}
                 />
                 {errors.linkedinLink && (
@@ -572,7 +762,7 @@ const CreateOrganizationForm = () => {
         {/* Navidation */}
         <div className="navigation mb-4 flex justify-between">
           <button
-            className="flex justify-center rounded-md bg-indigo-500 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+            className="flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             onClick={prev}
             disabled={current <= 0}
             type="button"
@@ -581,7 +771,7 @@ const CreateOrganizationForm = () => {
           </button>
           {current === total ? (
             <button
-              className="flex justify-center rounded-md bg-indigo-500 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+              className="flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               type="submit"
               onClick={onSubmit}
             >
@@ -589,7 +779,7 @@ const CreateOrganizationForm = () => {
             </button>
           ) : (
             <button
-              className="flex justify-center rounded-md bg-indigo-500 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+              className="flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               onClick={handleNext}
               type="button"
             >

@@ -6,7 +6,7 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
       <div className="flex min-h-full flex-1 flex-col justify-center bg-eerieblack py-12 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           <img className="mx-auto h-10 w-auto" src="Symbian.png" alt="SyncUp" />
-          <h2 className="mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-chinawhite">
+          <h2 className="text-light mt-6 text-center text-2xl font-bold leading-9 tracking-tight">
             Sign up to create your account.
           </h2>
         </div>
@@ -29,7 +29,7 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
                 <div>
                   <label
                     htmlFor="first_name"
-                    className="block text-sm font-medium leading-6 text-chinawhite"
+                    className="text-light block bg-charleston text-sm font-medium leading-6"
                   >
                     First Name
                   </label>
@@ -40,14 +40,14 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
                       type="text"
                       autoComplete="first_name"
                       required
-                      className="block w-full rounded-md border-0 bg-charleston py-1.5 text-chinawhite shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
+                      className="focus:ring-primary text-light placeholder:text-light autofill:text-light block w-full rounded-md border-0 bg-charleston py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 autofill:bg-charleston focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6"
                     />
                   </div>
                 </div>
                 <div>
                   <label
                     htmlFor="last_name"
-                    className="block bg-charleston text-sm font-medium leading-6 text-chinawhite"
+                    className="text-light block bg-charleston text-sm font-medium leading-6"
                   >
                     Last Name
                   </label>
@@ -58,7 +58,7 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
                       type="text"
                       autoComplete="last_name"
                       required
-                      className="block w-full rounded-md border-0 bg-charleston py-1.5 text-chinawhite shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
+                      className="focus:ring-primary text-light placeholder:text-light autofill:text-light block w-full rounded-md border-0 bg-charleston py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 autofill:bg-charleston focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6"
                     />
                   </div>
                 </div>
@@ -67,7 +67,7 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
               <div>
                 <label
                   htmlFor="email"
-                  className="block text-sm font-medium leading-6 text-chinawhite"
+                  className="text-light block text-sm font-medium leading-6"
                 >
                   Email address
                 </label>
@@ -78,7 +78,7 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
                     type="email"
                     autoComplete="email"
                     required
-                    className="block w-full rounded-md border-0 bg-charleston py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
+                    className="focus:ring-primary text-light block w-full rounded-md border-0 bg-charleston py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6"
                   />
                 </div>
               </div>
@@ -86,7 +86,7 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
               <div>
                 <label
                   htmlFor="password"
-                  className="block bg-charleston text-sm font-medium leading-6 text-chinawhite"
+                  className="text-light block bg-charleston text-sm font-medium leading-6"
                 >
                   Password
                 </label>
@@ -97,7 +97,7 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
                     type="password"
                     autoComplete="current-password"
                     required
-                    className="block w-full rounded-md border-0 bg-charleston py-1.5 text-chinawhite shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-junglegreen sm:text-sm sm:leading-6"
+                    className="focus:ring-primary text-light block w-full rounded-md border-0 bg-charleston py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6"
                   />
                 </div>
               </div>
@@ -107,11 +107,11 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
-                  className="h-4 w-4 rounded border-gray-300 text-junglegreen focus:ring-junglegreen"
+                  className="text-primary focus:ring-primary h-4 w-4 rounded border-gray-300"
                 />
                 <label
                   htmlFor="remember-me"
-                  className="ml-3 block text-sm leading-6 text-chinawhite"
+                  className="text-light ml-3 block text-sm leading-6"
                 >
                   I agree with all the <a href="#">terms and conditions</a>
                 </label>
@@ -120,7 +120,7 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
               <div>
                 <button
                   type="submit"
-                  className="flex w-full justify-center rounded-md bg-junglegreen px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-junglegreen focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-junglegreen"
+                  className="bg-primary hover:bg-primarydark focus-visible:outline-primary flex w-full justify-center rounded-md px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
                 >
                   Sign up
                 </button>
@@ -133,13 +133,11 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
                   <div className="w-full border-t border-gray-200" />
                 </div>
                 <div className="relative flex justify-center text-sm font-medium leading-6">
-                  <span className="bg-charleston px-3 text-chinawhite">
-                    Or continue with
-                  </span>
+                  <span className="text-light bg-charleston px-3">Or continue with</span>
                 </div>
               </div>
 
-              <form className="mt-6 grid grid-cols-2 gap-4">
+              <form className="mt-6 grid gap-4">
                 <button
                   type="submit"
                   formAction={async () => {
@@ -169,7 +167,7 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
                   <span className="text-sm font-semibold leading-6">Google</span>
                 </button>
 
-                <button
+                {/* <button
                   type="submit"
                   formAction={async () => {
                     "use server";
@@ -190,7 +188,7 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
                     />
                   </svg>
                   <span className="text-sm font-semibold leading-6">GitHub</span>
-                </button>
+                </button> */}
               </form>
             </div>
           </div>
@@ -199,7 +197,7 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
             Already have an account?{" "}
             <a
               href="/signin"
-              className="font-semibold leading-6 text-junglegreen hover:text-junglegreen"
+              className="text-primary hover:text-primarydark font-semibold leading-6"
             >
               Sign in
             </a>

@@ -1,6 +1,3 @@
-"use client";
-import { useState } from "react";
-
 import Community from "@/components/Community";
 import ContactUs from "@/components/ContactUs";
 import FeaturesSection from "@/components/FeaturesSection";
@@ -8,13 +5,14 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import PricingSection from "@/components/PricingSection";
+import { getUser } from "@/lib/supabase/server";
 
-export default function Home() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+export default async function Home() {
+  const { user } = await getUser();
 
   return (
     <div className="bg-eerieblack">
-      <Header />
+      <Header user={user} />
 
       <main className="isolate">
         <Hero />

@@ -1,9 +1,8 @@
 "use client";
-import React, { useEffect } from "react";
 import { signOut } from "@/lib/auth";
-import { Fragment, useState } from "react";
-import { Dialog, Menu, Transition } from "@headlessui/react";
+import { Menu, Transition } from "@headlessui/react";
 import { ChevronDownIcon, MagnifyingGlassIcon } from "@heroicons/react/20/solid";
+import { Fragment, useState } from "react";
 
 import { Bars3Icon, BellIcon } from "@heroicons/react/24/outline";
 import { type User } from "@supabase/supabase-js";
@@ -16,7 +15,7 @@ function Header({ user }: { user: User }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
+    <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-[#525252] bg-eerieblack px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
       <button
         type="button"
         className="-m-2.5 p-2.5 text-gray-700 lg:hidden"
@@ -39,7 +38,7 @@ function Header({ user }: { user: User }) {
           />
           <input
             id="search-field"
-            className="block h-full w-full border-0 py-0 pl-8 pr-0 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm"
+            className="placeholder:text-gray-400k text-light block h-full w-full border-0 bg-eerieblack py-0 pl-8 pr-0 focus:ring-0 sm:text-sm"
             placeholder="Search..."
             type="search"
             name="search"
@@ -71,7 +70,7 @@ function Header({ user }: { user: User }) {
               />
               <span className="hidden lg:flex lg:items-center">
                 <span
-                  className="ml-4 text-sm font-semibold leading-6 text-gray-900"
+                  className="text-light ml-4 text-sm font-semibold leading-6"
                   aria-hidden="true"
                 >
                   {user.user_metadata.first_name}
@@ -91,12 +90,10 @@ function Header({ user }: { user: User }) {
               leaveFrom="transform opacity-100 scale-100"
               leaveTo="transform opacity-0 scale-95"
             >
-              <Menu.Items className="absolute right-0 z-10 mt-2 w-56 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+              <Menu.Items className="ring-light absolute right-0 z-10 mt-2 w-56 origin-top-right divide-y divide-[#525252] rounded-md bg-charleston shadow-lg ring-1 ring-opacity-5 focus:outline-none">
                 <div className="px-4 py-3">
-                  <p className="text-sm">Signed in as</p>
-                  <p className="truncate text-sm font-medium text-gray-900">
-                    {user.email}
-                  </p>
+                  <p className="text-light text-sm">Signed in as</p>
+                  <p className="text-light truncate text-sm font-medium">{user.email}</p>
                 </div>
                 <div className="py-1">
                   <Menu.Item>
@@ -104,7 +101,7 @@ function Header({ user }: { user: User }) {
                       <a
                         href="#"
                         className={classNames(
-                          active ? "bg-gray-100 text-gray-900" : "text-gray-700",
+                          active ? "text-light bg-[#383838]" : "text-light",
                           "block px-4 py-2 text-sm"
                         )}
                       >
@@ -117,7 +114,7 @@ function Header({ user }: { user: User }) {
                       <a
                         href="#"
                         className={classNames(
-                          active ? "bg-gray-100 text-gray-900" : "text-gray-700",
+                          active ? "text-light bg-[#383838]" : "text-light",
                           "block px-4 py-2 text-sm"
                         )}
                       >
@@ -130,7 +127,7 @@ function Header({ user }: { user: User }) {
                       <a
                         href="#"
                         className={classNames(
-                          active ? "bg-gray-100 text-gray-900" : "text-gray-700",
+                          active ? "text-light bg-[#383838]" : "text-light",
                           "block px-4 py-2 text-sm"
                         )}
                       >
@@ -140,24 +137,21 @@ function Header({ user }: { user: User }) {
                   </Menu.Item>
                 </div>
                 <div className="py-1">
-                  <form method="POST" action="#">
-                    <Menu.Item>
-                      {({ active }) => (
-                        <button
-                          type="submit"
-                          className={classNames(
-                            active ? "bg-gray-100 text-gray-900" : "text-gray-700",
-                            "block w-full px-4 py-2 text-left text-sm"
-                          )}
-                          onClick={async () => {
-                            await signOut();
-                          }}
-                        >
-                          Sign out
-                        </button>
-                      )}
-                    </Menu.Item>
-                  </form>
+                  <Menu.Item>
+                    {({ active }) => (
+                      <button
+                        className={classNames(
+                          active ? "text-light bg-[#383838]" : "text-light",
+                          "block w-full px-4 py-2 text-left text-sm"
+                        )}
+                        onClick={async () => {
+                          await signOut();
+                        }}
+                      >
+                        Sign out
+                      </button>
+                    )}
+                  </Menu.Item>
                 </div>
               </Menu.Items>
             </Transition>

@@ -1,6 +1,7 @@
 "use client";
 import { Dialog } from "@headlessui/react";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
+import { User } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 
 const navigation = [
@@ -11,8 +12,8 @@ const navigation = [
   { name: "Contact Us", href: "#contactus" },
 ];
 
-export default function Header({ user }) {
-  const handleNavClick = (href) => {
+export default function Header({ user = null }: { user: User | null }) {
+  const handleNavClick = (href: any) => {
     const target = document.querySelector(href);
     if (target) {
       window.scrollTo({
@@ -48,7 +49,7 @@ export default function Header({ user }) {
             <span className="sr-only">SyncUp</span>
             <img className="h-8 w-auto" src="Symbian.png" alt="" />
           </a>
-          <div className="font text-l flex items-center px-2 font-semibold text-chinawhite">
+          <div className="font text-l text-light flex items-center px-2 font-semibold">
             Sync Up
           </div>
         </div>
@@ -57,25 +58,36 @@ export default function Header({ user }) {
             <a
               key={item.name}
               href={item.href}
-              className="text-sm font-semibold leading-6 text-chinawhite"
+              className="hover:text-primary text-light text-sm font-semibold leading-6"
             >
               {item.name}
             </a>
           ))}
         </div>
         <div className="flex flex-1 items-center justify-end gap-x-6">
-          <a
-            href="/signin"
-            className="hidden lg:block lg:text-sm lg:font-semibold lg:leading-6 lg:text-chinawhite"
-          >
-            Log in
-          </a>
-          <a
-            href="/signup"
-            className="rounded-md bg-junglegreen px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-junglegreen focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-          >
-            Sign up
-          </a>
+          {user ? (
+            <a
+              href="/dashboard"
+              className="bg-primary hover:bg-primarydark focus-visible:outline-primary rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+            >
+              Dashboard
+            </a>
+          ) : (
+            <>
+              <a
+                href="/signin"
+                className="hover:text-primary lg:text-light hidden lg:block lg:text-sm lg:font-semibold lg:leading-6"
+              >
+                Log in
+              </a>
+              <a
+                href="/signup"
+                className="bg-primary hover:bg-primarydark focus-visible:outline-primary rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              >
+                Sign up
+              </a>
+            </>
+          )}
         </div>
         <div className="flex lg:hidden">
           <button
@@ -107,7 +119,7 @@ export default function Header({ user }) {
             </a>
             <a
               href="#"
-              className="ml-auto rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+              className="bg-primary hover:bg-primarydark focus-visible:outline-primary ml-auto rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
             >
               Sign up
             </a>

@@ -15,6 +15,12 @@ import { Fragment, useState } from "react";
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: HomeIcon, current: true },
   { name: "Users", href: "/dashboard/users", icon: UsersIcon, current: false },
+  {
+    name: "Organizations",
+    href: "/dashboard/organizations",
+    icon: UsersIcon,
+    current: false,
+  },
   { name: "Projects", href: "#", icon: FolderIcon, current: false },
   { name: "Calendar", href: "#", icon: CalendarIcon, current: false },
   { name: "Documents", href: "#", icon: DocumentDuplicateIcon, current: false },
@@ -124,7 +130,7 @@ const SideNavMenu = () => {
                       </li>
                       <li>
                         <div className="text-xs font-semibold leading-6 text-gray-400">
-                          Your teams
+                          Your Organizations
                         </div>
                         <ul role="list" className="-mx-2 mt-2 space-y-1">
                           {teams.map((team) => (
@@ -178,10 +184,10 @@ const SideNavMenu = () => {
       {/* Static sidebar for desktop */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
         {/* Sidebar component, swap this element with another sidebar if you like */}
-        <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-eerieblack px-6 pb-4">
+        <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-[#525252] bg-eerieblack px-6 pb-4">
           <div className="flex h-16 shrink-0 items-center">
             <img className="h-8 w-auto" src="Symbian.png" alt="SyncUp" />
-            <p className="ml-2 font-semibold text-chinawhite">SyncUp</p>
+            <p className="ml-2 font-semibold text-light">SyncUp</p>
           </div>
 
           <nav className="flex flex-1 flex-col">
@@ -194,16 +200,16 @@ const SideNavMenu = () => {
                         href={item.href}
                         className={classNames(
                           item.current
-                            ? "bg-charleston text-chinawhite"
-                            : "text-gray-400 hover:bg-charleston hover:text-chinawhite",
+                            ? "bg-charleston text-light"
+                            : "text-gray-400 hover:bg-charleston hover:text-light",
                           "group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6"
                         )}
                       >
                         <item.icon
                           className={classNames(
                             item.current
-                              ? "text-chinawhite"
-                              : "text-gray-400 group-hover:text-chinawhite",
+                              ? "text-light"
+                              : "text-gray-400 group-hover:text-light",
                             "h-6 w-6 shrink-0"
                           )}
                           aria-hidden="true"
@@ -215,8 +221,8 @@ const SideNavMenu = () => {
                 </ul>
               </li>
               <li>
-                <div className="text-xs font-semibold leading-6 text-chinawhite">
-                  Your teams
+                <div className="text-xs font-semibold leading-6 text-light">
+                  Your Organizations
                 </div>
                 <ul role="list" className="-mx-2 mt-2 space-y-1">
                   {teams.map((team) => (
@@ -225,16 +231,16 @@ const SideNavMenu = () => {
                         href={team.href}
                         className={classNames(
                           team.current
-                            ? "bg-gray-50 text-junglegreen"
-                            : "text-gray-400 hover:bg-charleston hover:text-junglegreen",
+                            ? "bg-gray-50 text-primary"
+                            : "text-gray-400 hover:bg-charleston hover:text-primary",
                           "group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6"
                         )}
                       >
                         <span
                           className={classNames(
                             team.current
-                              ? "border-junglegreen text-junglegreen"
-                              : "border-gray-200 text-gray-400 group-hover:border-junglegreen group-hover:text-junglegreen",
+                              ? "border-primary text-primary"
+                              : "border-gray-200 text-gray-400 group-hover:border-primary group-hover:text-primary",
                             "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border bg-charleston text-[0.625rem] font-medium"
                           )}
                         >
@@ -249,10 +255,10 @@ const SideNavMenu = () => {
               <li className="mt-auto">
                 <a
                   href="#"
-                  className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-chinawhite hover:bg-charleston hover:text-chinawhite"
+                  className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-light hover:bg-charleston hover:text-light"
                 >
                   <Cog6ToothIcon
-                    className="h-6 w-6 shrink-0 text-chinawhite group-hover:text-chinawhite"
+                    className="h-6 w-6 shrink-0 text-light group-hover:text-light"
                     aria-hidden="true"
                   />
                   Settings
