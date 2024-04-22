@@ -25,7 +25,6 @@ const TabsComponent = () => {
     <div>
       <div className="mt-4 flex justify-center sm:mt-4 lg:mt-6">
         <a
-          href="#"
           className={`mr-4 cursor-pointer text-light ${
             activeTab === "posts" ? "font-semibold text-primary" : ""
           }`}
@@ -34,7 +33,6 @@ const TabsComponent = () => {
           Posts
         </a>
         <a
-          href="#"
           className={`mr-4 cursor-pointer text-light ${
             activeTab === "membership" ? "font-semibold text-primary" : ""
           }`}
@@ -43,7 +41,6 @@ const TabsComponent = () => {
           Membership
         </a>
         <a
-          href="#"
           className={`cursor-pointer text-light ${
             activeTab === "events" ? "font-semibold text-primary" : ""
           }`}
