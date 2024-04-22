@@ -34,7 +34,7 @@ export default function Example() {
             Not a member?{" "}
             <a
               href="#"
-              className="font-semibold leading-6 text-primarydark hover:text-primary"
+              className="text-primarydark hover:text-primary font-semibold leading-6"
             >
               Start a 14 day free trial
             </a>
