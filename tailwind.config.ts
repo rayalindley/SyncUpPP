@@ -14,7 +14,7 @@ const config: Config = {
         raisinblack: "#232323",
         light: "#E0E0E0",
         charleston: "#2A2A2A",
-        primary: "#3ecf8e",
+        primary: "#37996b",
         primarydark: "#32805c",
       },
       fontFamily: {
@@ -23,6 +23,7 @@ const config: Config = {
     },
   },
   plugins: [require("@tailwindcss/forms")],
+  mode: "jit",
 };
 
 export default config;
