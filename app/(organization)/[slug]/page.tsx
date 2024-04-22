@@ -1,8 +1,9 @@
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import TabsComponent from "@/components/organization/organization_view_tabs";
-import { getUser } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import { InboxIcon, UserGroupIcon } from "@heroicons/react/24/outline";
+import { useParams } from "next/navigation";
 import { CiFacebook, CiInstagram, CiTwitter } from "react-icons/ci";
 
 const orgdata = [
@@ -19,8 +20,28 @@ const orgdata = [
   },
 ];
 
-export default async function OrganizationUserView() {
+export default async function OrganizationUserView({
+  params,
+  searchParams,
+}: {
+  params: { slug: string };
+  searchParams?: { [key: string]: string | string[] | undefined };
+}) {
   const { user } = await getUser();
+
+  const { slug } = params;
+
+  console.log("slug:", slug);
+
+  // ! GET Request on Get Organization by Slug, then display the data, pass it to the nested components
+
+  const supabase = createClient();
+
+  let { data: org, error } = await supabase
+    .from("organizations")
+    .select("*")
+    .eq("slug", slug)
+    .single();
 
   return (
     <div>
@@ -34,8 +55,8 @@ export default async function OrganizationUserView() {
             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 transform">
               <div>
                 <img
-                  src={orgdata[0].image}
-                  alt="Profile Picture"
+                  src={org?.photo || "https://via.placeholder.com/150"}
+                  alt={`${org?.name} logo`}
                   className="block h-32 w-32 rounded-full border-8 border-primary sm:h-40 sm:w-40 lg:h-44 lg:w-44"
                   style={{ objectFit: "cover" }}
                 />
@@ -43,10 +64,9 @@ export default async function OrganizationUserView() {
             </div>
           </div>
           {/* Content */}
+
           <div className="mt-8 sm:mt-16 lg:mt-24">
-            <h1 className="text-center text-3xl font-bold text-light">
-              {orgdata[0].name}
-            </h1>
+            <h1 className="text-center text-3xl font-bold text-light">{org?.name}</h1>
             <div className="mt-2 flex items-center justify-center">
               <UserGroupIcon className="mr-1 h-4 w-4 text-primary sm:h-5 sm:w-5 lg:h-6 lg:w-6" />
               <p className="mr-4 text-sm text-light">Members: {orgdata[0].members}</p>
@@ -65,7 +85,7 @@ export default async function OrganizationUserView() {
               </a>
             </div>
             <div className="mt-4 px-4 text-center text-sm text-light sm:px-8 lg:px-10">
-              {orgdata[0].description}
+              {org.description}
             </div>
             <TabsComponent />
           </div>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import OrganizationEventsComponent from "./organization_events";
 import OrganizationMembershipsComponent from "./organization_membership";
 import OrganizationPostsComponent from "./organization_posts";
+import { useParams } from "next/navigation";
 
 const TabsComponent = () => {
   const [activeTab, setActiveTab] = useState("posts");
