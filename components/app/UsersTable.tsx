@@ -71,7 +71,7 @@ export default async function UsersTable() {
                     <tr key={users[index].email}>
                       <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-light sm:pl-6">
                         {userProfile?.data
-                          ? `${userProfile.data[0]?.first_name} ${userProfile.data[0]?.last_name}`
+                          ? `${userProfile.data?.first_name} ${userProfile.data?.last_name}`
                           : "Loading..."}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">

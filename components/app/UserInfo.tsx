@@ -12,8 +12,9 @@ const UserInfo: React.FC<UserInfoProps> = ({ userId }) => {
   useEffect(() => {
     const fetchUserData = async () => {
       const response = await getCombinedUserDataById(userId);
+      console.log("response", response);
       const data: CombinedUserData =
-        response?.data && response.data[0] ? response.data[0] : null;
+        response?.data && response.data ? response.data : null;
       if (!data) {
         return;
       }
@@ -35,7 +36,10 @@ const UserInfo: React.FC<UserInfoProps> = ({ userId }) => {
           Detailed information about the selected user.
         </p>
       </div>
-      <div className="border-t border-[#525252] sm:h-auto" style={{ maxHeight: "65vh" }}>
+      <div
+        className="overflow-auto border-t border-[#525252] sm:h-auto"
+        style={{ maxHeight: "65vh" }}
+      >
         <dl>
           {Object.entries(userData).map(([key, value]) => {
             // Skip the 'id' field
@@ -59,6 +63,20 @@ const UserInfo: React.FC<UserInfoProps> = ({ userId }) => {
               formattedValue.includes(":")
                 ? new Date(formattedValue).toLocaleString()
                 : formattedValue;
+
+            // Format gender value
+            if (key === "gender") {
+              formattedValue = value === "F" ? "Female" : value === "M" ? "Male" : value;
+            }
+
+            // Format date of birth
+            if (key === "dateofbirth") {
+              formattedValue = new Date(formattedValue).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "numeric",
+                day: "numeric",
+              });
+            }
 
             return (
               <div

@@ -6,6 +6,9 @@ import { Fragment, useState } from "react";
 
 import { Bars3Icon, BellIcon } from "@heroicons/react/24/outline";
 import { type User } from "@supabase/supabase-js";
+import { UserProfile } from "@/lib/types";
+import { getUserProfileById } from "@/lib/userActions";
+import { useEffect } from "react";
 
 function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
@@ -13,6 +16,17 @@ function classNames(...classes: any[]) {
 
 function Header({ user }: { user: User }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      const response = await getUserProfileById(user?.id);
+      setUserProfile(response.data as UserProfile);
+    };
+
+    fetchUserProfile();
+  }, [user]);
+
 
   return (
     <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-[#525252] bg-eerieblack px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
@@ -65,15 +79,15 @@ function Header({ user }: { user: User }) {
               <span className="sr-only">Open user menu</span>
               <img
                 className="h-8 w-8 rounded-full bg-gray-50"
-                src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-                alt=""
+                src={userProfile?.profilepicture? userProfile.profilepicture : "/Portrait_Placeholder.png"}
+                alt="Profile Picture"
               />
               <span className="hidden lg:flex lg:items-center">
                 <span
                   className="text-light ml-4 text-sm font-semibold leading-6"
                   aria-hidden="true"
                 >
-                  {user.user_metadata.first_name}
+                  {userProfile?.first_name}
                 </span>
                 <ChevronDownIcon
                   className="ml-2 h-5 w-5 text-gray-400"
@@ -99,13 +113,13 @@ function Header({ user }: { user: User }) {
                   <Menu.Item>
                     {({ active }) => (
                       <a
-                        href="#"
+                      href={`/edit-profile/${user?.id}`}
                         className={classNames(
                           active ? "text-light bg-[#383838]" : "text-light",
                           "block px-4 py-2 text-sm"
                         )}
                       >
-                        Account settings
+                        My Profile
                       </a>
                     )}
                   </Menu.Item>

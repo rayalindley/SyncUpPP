@@ -134,7 +134,7 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
                       className="mr-3 h-5 w-5 text-light group-hover:text-light"
                       aria-hidden="true"
                     />
-                    Edit User Info
+                    Edit User Profile
                   </a>
                 )}
               </Menu.Item>
