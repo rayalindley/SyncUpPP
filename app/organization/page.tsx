@@ -7,46 +7,73 @@ import { CiFacebook, CiInstagram, CiTwitter } from "react-icons/ci";
 
 interface Organization {
   name: string;
+  membercount: string;
+  imageUrl: string;
+  xUrl: string;
+  linkedinUrl: string;
   description: string;
-  image: string;
 }
 
 const orgdata: Organization[] = [
   {
-    name: "Lorem Ipsum",
+    name: "Organization Name",
+    membercount: "230",
+    imageUrl:
+      "https://images.unsplash.com/photo-1519345182560-3f2917c472ef?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=8&w=1024&h=1024&q=80",
+    xUrl: "#",
+    linkedinUrl: "#",
     description:
       "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-    image: "https://picsum.photos/300/200",
   },
   {
-    name: "Dolor Sit Amet",
+    name: "Organization Name",
+    membercount: "230",
+    imageUrl:
+      "https://images.unsplash.com/photo-1519345182560-3f2917c472ef?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=8&w=1024&h=1024&q=80",
+    xUrl: "#",
+    linkedinUrl: "#",
     description:
-      "Dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-    image: "https://picsum.photos/300/200",
+      "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
   },
   {
-    name: "Consectetur Adipiscing",
+    name: "Organization Name",
+    membercount: "230",
+    imageUrl:
+      "https://images.unsplash.com/photo-1519345182560-3f2917c472ef?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=8&w=1024&h=1024&q=80",
+    xUrl: "#",
+    linkedinUrl: "#",
     description:
-      "Consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. ",
-    image: "https://picsum.photos/300/200",
+      "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
   },
   {
-    name: "Consectetur Adipiscing",
+    name: "Organization Name",
+    membercount: "230",
+    imageUrl:
+      "https://images.unsplash.com/photo-1519345182560-3f2917c472ef?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=8&w=1024&h=1024&q=80",
+    xUrl: "#",
+    linkedinUrl: "#",
     description:
-      "Consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. ",
-    image: "https://picsum.photos/300/200",
+      "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
   },
   {
-    name: "Consectetur Adipiscing",
+    name: "Organization Name",
+    membercount: "230",
+    imageUrl:
+      "https://images.unsplash.com/photo-1519345182560-3f2917c472ef?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=8&w=1024&h=1024&q=80",
+    xUrl: "#",
+    linkedinUrl: "#",
     description:
-      "Consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. ",
-    image: "https://picsum.photos/300/200",
+      "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
   },
   {
-    name: "Consectetur Adipiscing",
+    name: "Organization Name",
+    membercount: "230",
+    imageUrl:
+      "https://images.unsplash.com/photo-1519345182560-3f2917c472ef?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=8&w=1024&h=1024&q=80",
+    xUrl: "#",
+    linkedinUrl: "#",
     description:
-      "Consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. ",
-    image: "https://picsum.photos/300/200",
+      "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
   },
 ];
 
@@ -108,13 +135,16 @@ export default async function OrganizationUserView() {
                 Search
               </button>
             </form>
-            <div className="mt-2 grid grid-cols-1 gap-x-4 gap-y-[-5rem] sm:grid-cols-3">
+            <div className="grid grid-cols-3">
               {orgdata.map((org, index) => (
                 <OrganizationCard
                   key={index}
                   name={org.name}
                   description={org.description}
-                  photo={org.image}
+                  imageUrl={org.imageUrl}
+                  membercount="230"
+                  xUrl="#"
+                  linkedinUrl="#"
                 />
               ))}
             </div>

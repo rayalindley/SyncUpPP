@@ -1,39 +1,44 @@
-import React from "react";
+import { UserGroupIcon } from "@heroicons/react/24/outline";
 
-export default function OrganizationCard({ name, description, photo }) {
+export default function OrganizationCard({
+  name,
+  description,
+  imageUrl,
+  membercount,
+  xUrl,
+  linkedinUrl,
+}) {
   return (
-    <div className="mt-10 max-w-72 rounded-lg border border-gray-200 bg-black shadow dark:border-gray-700 dark:bg-gray-800">
-      <a href="#">
-        <img className="rounded-t-lg" src={photo} alt={name} />
-      </a>
-      <div className="p-5">
-        <a href="#">
-          <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-            {name}
-          </h5>
-        </a>
-        <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">{description}</p>
-        <a
-          href="#"
-          className="inline-flex items-center rounded-lg bg-blue-700 px-3 py-2 text-center text-sm font-medium text-white hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
-        >
-          View Organization
-          <svg
-            className="ms-2 h-3.5 w-3.5 rtl:rotate-180"
-            aria-hidden="true"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 14 10"
+    <div className="bg-eerieblack py-12">
+      <div className="mx-auto max-w-7xl px-6 text-center lg:px-8">
+        <div className="mx-automax-w-2xl gap-6 lg:mx-0 lg:max-w-none lg:gap-8">
+          <div
+            key={name}
+            className="transform rounded-2xl px-8 py-10 transition duration-200 hover:scale-105 hover:bg-charleston"
           >
-            <path
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M1 5h12m0 0L9 1m4 4L9 9"
+            <img
+              className="mx-auto h-48 w-48 rounded-full md:h-56 md:w-56"
+              src={imageUrl}
+              alt=""
             />
-          </svg>
-        </a>
+            <h3 className="mt-6 text-base font-semibold leading-7 tracking-tight text-light">
+              {name}
+            </h3>
+            <p className="text-sm leading-6 text-gray-400">
+              <UserGroupIcon className="h-y5 mx-1 -mt-1 inline-block w-5 text-primary" />
+              {membercount} members
+            </p>
+            <p className="mt-6 text-base font-normal text-light">{description}</p>
+            <div className="mt-2 flex items-center justify-center gap-x-6">
+              <a
+                href={xUrl} // Assuming this should be the URL to view the organization
+                className="my-2 rounded-md bg-primary px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+              >
+                View
+              </a>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
