@@ -27,7 +27,6 @@ function Header({ user }: { user: User }) {
     fetchUserProfile();
   }, [user]);
 
-
   return (
     <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-[#525252] bg-eerieblack px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
       <button
@@ -52,7 +51,7 @@ function Header({ user }: { user: User }) {
           />
           <input
             id="search-field"
-            className="placeholder:text-gray-400k text-light block h-full w-full border-0 bg-eerieblack py-0 pl-8 pr-0 focus:ring-0 sm:text-sm"
+            className="placeholder:text-gray-400k block h-full w-full border-0 bg-eerieblack py-0 pl-8 pr-0 text-light focus:ring-0 sm:text-sm"
             placeholder="Search..."
             type="search"
             name="search"
@@ -79,12 +78,16 @@ function Header({ user }: { user: User }) {
               <span className="sr-only">Open user menu</span>
               <img
                 className="h-8 w-8 rounded-full bg-gray-50"
-                src={userProfile?.profilepicture? userProfile.profilepicture : "/Portrait_Placeholder.png"}
+                src={
+                  userProfile?.profilepicture
+                    ? userProfile.profilepicture
+                    : "/Portrait_Placeholder.png"
+                }
                 alt="Profile Picture"
               />
               <span className="hidden lg:flex lg:items-center">
                 <span
-                  className="text-light ml-4 text-sm font-semibold leading-6"
+                  className="ml-4 text-sm font-semibold leading-6 text-light"
                   aria-hidden="true"
                 >
                   {userProfile?.first_name}
@@ -104,18 +107,31 @@ function Header({ user }: { user: User }) {
               leaveFrom="transform opacity-100 scale-100"
               leaveTo="transform opacity-0 scale-95"
             >
-              <Menu.Items className="ring-light absolute right-0 z-10 mt-2 w-56 origin-top-right divide-y divide-[#525252] rounded-md bg-charleston shadow-lg ring-1 ring-opacity-5 focus:outline-none">
+              <Menu.Items className="absolute right-0 z-10 mt-2 w-56 origin-top-right divide-y divide-[#525252] rounded-md bg-charleston shadow-lg ring-1 ring-light ring-opacity-5 focus:outline-none">
                 <div className="px-4 py-3">
-                  <p className="text-light text-sm">Signed in as</p>
-                  <p className="text-light truncate text-sm font-medium">{user.email}</p>
+                  <p className="text-sm text-light">Signed in as</p>
+                  <p className="truncate text-sm font-medium text-light">{user.email}</p>
                 </div>
                 <div className="py-1">
                   <Menu.Item>
                     {({ active }) => (
                       <a
-                      href={`/edit-profile/${user?.id}`}
+                        href={`/dashboard`}
                         className={classNames(
-                          active ? "text-light bg-[#383838]" : "text-light",
+                          active ? "bg-[#383838] text-light" : "text-light",
+                          "block px-4 py-2 text-sm"
+                        )}
+                      >
+                        Dashboard
+                      </a>
+                    )}
+                  </Menu.Item>
+                  <Menu.Item>
+                    {({ active }) => (
+                      <a
+                        href={`/dashboard/edit-profile/${user?.id}`}
+                        className={classNames(
+                          active ? "bg-[#383838] text-light" : "text-light",
                           "block px-4 py-2 text-sm"
                         )}
                       >
@@ -128,7 +144,7 @@ function Header({ user }: { user: User }) {
                       <a
                         href="#"
                         className={classNames(
-                          active ? "text-light bg-[#383838]" : "text-light",
+                          active ? "bg-[#383838] text-light" : "text-light",
                           "block px-4 py-2 text-sm"
                         )}
                       >
@@ -141,7 +157,7 @@ function Header({ user }: { user: User }) {
                       <a
                         href="#"
                         className={classNames(
-                          active ? "text-light bg-[#383838]" : "text-light",
+                          active ? "bg-[#383838] text-light" : "text-light",
                           "block px-4 py-2 text-sm"
                         )}
                       >
@@ -155,7 +171,7 @@ function Header({ user }: { user: User }) {
                     {({ active }) => (
                       <button
                         className={classNames(
-                          active ? "text-light bg-[#383838]" : "text-light",
+                          active ? "bg-[#383838] text-light" : "text-light",
                           "block w-full px-4 py-2 text-left text-sm"
                         )}
                         onClick={async () => {
