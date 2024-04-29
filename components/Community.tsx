@@ -38,15 +38,6 @@ export default function Example() {
   return (
     <div className="bg-eerieblack py-24 sm:py-32">
       <div className="mx-auto max-w-7xl px-6 text-center lg:px-8">
-        <div className="mx-auto max-w-2xl">
-          <h2 className="text-light text-3xl font-bold tracking-tight sm:text-4xl">
-            Explore Our Vibrant Community
-          </h2>
-          <p className="text-light mt-4 text-lg leading-8">
-            Discover subscribed organizations, their missions, events, and member
-            engagement. Click to explore and connect.
-          </p>
-        </div>
         <ul className="mx-auto mt-20 grid max-w-2xl grid-cols-1 gap-6 sm:grid-cols-2 lg:mx-0 lg:max-w-none lg:grid-cols-3 lg:gap-8">
           {people.map((person) => (
             <li
@@ -58,20 +49,20 @@ export default function Example() {
                 src={person.imageUrl}
                 alt=""
               />
-              <h3 className="text-light mt-6 text-base font-semibold leading-7 tracking-tight">
+              <h3 className="mt-6 text-base font-semibold leading-7 tracking-tight text-light">
                 {person.name}
               </h3>
               <p className="text-sm leading-6 text-gray-400">
-                <UserGroupIcon className="text-primary mx-1 -mt-1 inline-block h-5 w-5" />
+                <UserGroupIcon className="h-y5 mx-1 -mt-1 inline-block w-5 text-primary" />
                 {person.membercount} members
               </p>
-              <p className="text-light mt-6 text-base font-normal">
+              <p className="mt-6 text-base font-normal text-light">
                 {person.description}
               </p>
               <div className="mt-2 flex items-center justify-center gap-x-6">
                 <a
                   href="#"
-                  className="bg-primary hover:bg-primarydark my-2 rounded-md px-6 py-2.5 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                  className="my-2 rounded-md bg-primary px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                 >
                   View
                 </a>
