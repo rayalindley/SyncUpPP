@@ -13,7 +13,6 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import Swal from "sweetalert2";
-import { deleteUser, sendPasswordRecovery } from "@/lib/userActions";
 
 interface EditUserDetailsProps {
   userId: string;
@@ -31,7 +30,7 @@ const UserProfileSchema = z.object({
   }),
 });
 
-const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
+const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId = null }) => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [dialogMessage, setDialogMessage] = useState("");
@@ -48,51 +47,6 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
     resolver: zodResolver(UserProfileSchema),
   });
 
-  const deleteBtn = async () => {
-    Swal.fire({
-      title: "Are you sure you want to delete this account?",
-      text: "You won't be able to revert this!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Yes, delete it!",
-      cancelButtonText: "No, cancel!",
-      reverseButtons: true,
-    }).then((result) => {
-      if (result.isConfirmed) {
-        Swal.fire({
-          title: "Are you absolutely sure?",
-          text: "This action cannot be undone. This will permanently delete this account and all its data.",
-          icon: "warning",
-          showCancelButton: true,
-          confirmButtonText: "Yes, I'm sure!",
-          cancelButtonText: "No, I changed my mind!",
-          reverseButtons: true,
-        }).then(async (secondResult) => {
-          if (secondResult.isConfirmed) {
-            const response = await deleteUser(userProfile?.userid ?? "");
-  
-            if (!response.error) {
-              Swal.fire({
-                title: "Deleted!",
-                text: "Account successfully deleted.",
-                icon: "success",
-              }).then(() => {
-                // Go back to the previous page
-                window.history.back();       
-              });
-            } else {
-              Swal.fire({
-                title: "Failed!",
-                text: response.error.message,
-                icon: "error",
-              });
-            }
-          }
-        });
-      }
-    });
-  };
-  
   useEffect(() => {
     const fetchUserProfile = async () => {
       const response: any = await getUserProfileById(userId);
@@ -115,7 +69,7 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
       ...data,
       userid: userProfile?.userid || "",
       updatedat: new Date(),
-      dateofbirth: data.dateofbirth? data.dateofbirth : undefined,
+      dateofbirth: data.dateofbirth ? data.dateofbirth : undefined,
       profilepicture: userProfile?.profilepicture
         ? userProfile.profilepicture
         : undefined,
@@ -216,7 +170,9 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
                   defaultValue={userProfile.gender || ""}
                   className="mt-1 block w-full rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
                 >
-                  <option value="" disabled={!!userProfile.gender}>Select a gender</option>
+                  <option value="" disabled={!!userProfile.gender}>
+                    Select a gender
+                  </option>
                   <option value="M">Male</option>
                   <option value="F">Female</option>
                 </select>
@@ -262,55 +218,14 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
                 />
                 {errors.website && <p>{errors.website.message}</p>}
               </label>
-              <div className="flex flex-col justify-end space-y-4">
-                <button
-                  type="button"
-                  className="mt-5 flex w-full items-center justify-center rounded-md border border-primary border-transparent bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primarydark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-                  onClick={async () => {
-                    const response = await sendPasswordRecovery(email);
 
-                    if (!response.error) {
-                      Swal.fire({
-                        title: "Email Sent!",
-                        text: "The password recovery was sent to the user's email",
-                        icon: "success",
-                        customClass: {
-                          container: "bg-[red] text-light",
-                          confirmButton: "bg-primary hover:bg-primarydark",
-                        },
-                      });
-                    } else {
-                      Swal.fire({
-                        title: "Failed!",
-                        text: response.error.message,
-                        icon: "error",
-                        customClass: {
-                          container: "bg-raisinblack text-light",
-                          confirmButton: "bg-primary hover:bg-primarydark",
-                        },
-                      });
-                    }
-                  }}
-                >
-                  Send Password Recovery Email
-                </button>
-                <button
-                  type="button"
-                  className="mt-5 flex w-full items-center justify-center rounded-md border border-primary border-transparent bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primarydark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-                  onClick={deleteBtn}
-                >
-                  Delete Account
-                </button>
-              </div>
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  className="mt-5 flex w-full items-center justify-center rounded-md border border-primary border-transparent bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primarydark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-                  disabled={isUpdating}
-                >
-                  {isUpdating ? "Updating Profile" : "Update Profile"}
-                </button>
-              </div>
+              <button
+                type="submit"
+                className="mt-10 flex w-full items-center justify-center rounded-md border border-primary border-transparent bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primarydark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                disabled={isUpdating}
+              >
+                {isUpdating ? "Updating Profile" : "Update Profile"}
+              </button>
             </div>
           </div>
         </form>
