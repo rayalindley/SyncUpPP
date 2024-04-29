@@ -2,7 +2,7 @@ const PostsCard = ({ post }) => {
   const { imageUrl, title, description } = post;
 
   return (
-    <div className="mb-4 overflow-hidden rounded-lg bg-raisinblack shadow-lg">
+    <div className="mb-4 w-full overflow-hidden rounded-lg bg-raisinblack shadow-lg lg:w-auto">
       {/* Check if the post has an image */}
       {imageUrl && (
         <div className="h-40 overflow-hidden">
