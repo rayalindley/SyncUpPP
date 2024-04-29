@@ -4,7 +4,7 @@ const EventsCard = ({ event }) => {
   const { imageUrl, title, description, attendees } = event;
 
   return (
-    <div className="mb-4 overflow-hidden rounded-lg bg-raisinblack shadow-lg">
+    <div className="mb-4 overflow-hidden rounded-lg bg-raisinblack shadow-lg lg:w-96">
       <div className="h-40 overflow-hidden">
         <img src={imageUrl} alt={title} className="h-full w-full object-cover" />
       </div>

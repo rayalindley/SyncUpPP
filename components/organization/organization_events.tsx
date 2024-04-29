@@ -97,13 +97,13 @@ const OrganizationEventsComponent = () => {
   const isLastPage = indexOfLastEvent >= events.length;
 
   return (
-    <div>
-      <div className="mx-auto max-w-4xl text-center">
+    <div className="mx-auto max-w-7xl px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl text-center">
         <p className="mt-2 text-2xl font-bold tracking-tight text-light sm:text-2xl">
           Our Events
         </p>
       </div>
-      <div className="isolate mx-auto mb-4 mt-8 grid max-w-md grid-cols-1 gap-x-4 gap-y-8 sm:mt-12 lg:mx-0 lg:max-w-none lg:grid-cols-3 ">
+      <div className="isolate mx-auto mt-8 grid max-w-md grid-cols-1 gap-x-8 gap-y-8 sm:mt-12 lg:mx-0 lg:max-w-none lg:grid-cols-3">
         {currentEvents.map((event, index) => (
           <EventsCard key={index} event={event} />
         ))}

@@ -1,10 +1,9 @@
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import TabsComponent from "@/components/organization/organization_view_tabs";
+import SocialIcons from "@/components/organization/social_icons";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { InboxIcon, UserGroupIcon } from "@heroicons/react/24/outline";
-import { useParams } from "next/navigation";
-import { CiFacebook, CiInstagram, CiTwitter } from "react-icons/ci";
 
 const orgdata = [
   {
@@ -43,6 +42,18 @@ export default async function OrganizationUserView({
     .eq("slug", slug)
     .single();
 
+  // Assuming `org` is an object retrieved from your database that contains the social media links object
+  const socials = org.socials || {}; // Use default empty object if `org.socials` is undefined or null
+
+  const facebookLink = socials.facebook; // Access the Facebook link
+  const twitterLink = socials.twitter; // Access the Twitter link
+  const linkedinLink = socials.linkedin; // Access the LinkedIn link
+
+  // Now you can use these links in your code as needed
+  console.log("Facebook Link:", facebookLink);
+  console.log("Twitter Link:", twitterLink);
+  console.log("LinkedIn Link:", linkedinLink);
+
   return (
     <div>
       <Header user={user} />
@@ -73,17 +84,11 @@ export default async function OrganizationUserView({
               <InboxIcon className="mr-1 h-4 w-4 text-primary sm:h-5 sm:w-5 lg:h-6 lg:w-6" />
               <p className="text-sm text-light">Posts: {orgdata[0].posts}</p>
             </div>
-            <div className="mt-2 flex justify-center sm:mt-2 lg:mt-4">
-              <a href={orgdata[0].facebook} className="mr-4 text-blue-500">
-                <CiFacebook className="inline-block h-4 w-4 text-light hover:text-primary sm:h-7 sm:w-7 lg:h-7 lg:w-7" />
-              </a>
-              <a href={orgdata[0].twitter} className="mr-4 text-blue-500">
-                <CiTwitter className="inline-block h-4 w-4 text-light hover:text-primary sm:h-7 sm:w-7 lg:h-7 lg:w-7" />
-              </a>
-              <a href={orgdata[0].instagram} className="text-blue-500">
-                <CiInstagram className="inline-block h-4 w-4 text-light hover:text-primary sm:h-7 sm:w-7 lg:h-7 lg:w-7" />
-              </a>
-            </div>
+            <SocialIcons
+              facebook={facebookLink}
+              twitter={twitterLink}
+              linkedin={linkedinLink}
+            />
             <div className="mt-4 px-4 text-center text-sm text-light sm:px-8 lg:px-10">
               {org.description}
             </div>
