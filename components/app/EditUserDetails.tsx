@@ -1,6 +1,10 @@
 "use client";
 import { UserProfile } from "@/lib/types";
-import { getUserProfileById, updateUserProfileById } from "@/lib/userActions";
+import {
+  getUserEmailById,
+  getUserProfileById,
+  updateUserProfileById,
+} from "@/lib/userActions";
 import { convertToBase64, isValidURL } from "@/lib/utils";
 import { Dialog, Transition } from "@headlessui/react";
 import { PlusIcon } from "@heroicons/react/24/solid";
@@ -8,6 +12,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Fragment, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import Swal from "sweetalert2";
 
 interface EditUserDetailsProps {
   userId: string;
@@ -25,11 +30,12 @@ const UserProfileSchema = z.object({
   }),
 });
 
-const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
+const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId = null }) => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [dialogMessage, setDialogMessage] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+  const [email, setEmail] = useState("");
 
   let completeButtonRef = useRef(null);
 
@@ -44,11 +50,16 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
   useEffect(() => {
     const fetchUserProfile = async () => {
       const response: any = await getUserProfileById(userId);
-      const data: Array<any> = response.data;
-      setUserProfile(data.length ? data[0] : null);
+      setUserProfile(response?.data);
+    };
+
+    const fetchEmail = async () => {
+      const response: any = await getUserEmailById(userId);
+      setEmail(response?.data?.email);
     };
 
     fetchUserProfile();
+    fetchEmail();
   }, [userId]);
 
   const handleEdit = async (data: UserProfile) => {
@@ -58,16 +69,22 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
       ...data,
       userid: userProfile?.userid || "",
       updatedat: new Date(),
+      dateofbirth: data.dateofbirth ? data.dateofbirth : undefined,
+      profilepicture: userProfile?.profilepicture
+        ? userProfile.profilepicture
+        : undefined,
     };
 
     const response = await updateUserProfileById(userProfile?.userid || "", updatedData);
 
-    if (response.data === null) {
-      setDialogMessage(`Error updating user profile.`);
+    if (response === null) {
+      setDialogMessage("Error updating user profile.");
     } else {
       setDialogMessage("User profile updated successfully");
     }
     setIsOpen(true);
+
+    //reload the top header to show updated name and profile pic
 
     setIsUpdating(false); // End updating
   };
@@ -79,7 +96,7 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
   return (
     <div className="overflow-hidden bg-raisinblack p-6 shadow sm:rounded-lg">
       <div className="px-4 pb-5 sm:px-6">
-        <h3 className="text-lg font-medium leading-6 text-light">Edit User Details</h3>
+        <h3 className="text-lg font-medium leading-6 text-light">Edit Profile</h3>
       </div>
       <div className="overflow-auto border-t border-[#525252] sm:h-auto">
         <form
@@ -93,7 +110,7 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
                   src={
                     userProfile?.profilepicture
                       ? userProfile.profilepicture
-                      : "https://via.placeholder.com/150"
+                      : "/Portrait_Placeholder.png"
                   }
                   alt="Profile Picture"
                   className="block h-44 w-44 rounded-full border-4 border-primary"
@@ -101,7 +118,7 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
                 />
                 <div className="absolute bottom-0 right-0 mb-2 mr-2">
                   <label htmlFor="file-input" className="">
-                    <PlusIcon className="mr-2 inline-block h-8 w-8 rounded-full border-2 border-primary bg-white  text-primarydark" />
+                    <PlusIcon className="mr-2 inline-block h-8 w-8 cursor-pointer rounded-full border-2 border-primary  bg-white text-primarydark" />
                   </label>
                   <input
                     id="file-input"
@@ -150,11 +167,14 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
                 Gender
                 <select
                   {...register("gender")}
-                  defaultValue={userProfile.gender}
+                  defaultValue={userProfile.gender || ""}
                   className="mt-1 block w-full rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
                 >
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
+                  <option value="" disabled={!!userProfile.gender}>
+                    Select a gender
+                  </option>
+                  <option value="M">Male</option>
+                  <option value="F">Female</option>
                 </select>
                 {errors.gender && <p>{errors.gender.message}</p>}
               </label>
@@ -198,15 +218,14 @@ const EditUserDetails: React.FC<EditUserDetailsProps> = ({ userId }) => {
                 />
                 {errors.website && <p>{errors.website.message}</p>}
               </label>
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  className={`mt-5 rounded-md border border-primary border-transparent px-4 py-2 text-sm font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 ${isUpdating ? "cursor-not-allowed bg-gray-500" : "bg-primary hover:bg-primarydark focus:ring-primary"}`}
-                  disabled={isUpdating}
-                >
-                  {isUpdating ? "Updating Profile" : "Update Profile"}
-                </button>
-              </div>
+
+              <button
+                type="submit"
+                className="mt-10 flex w-full items-center justify-center rounded-md border border-primary border-transparent bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primarydark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                disabled={isUpdating}
+              >
+                {isUpdating ? "Updating Profile" : "Update Profile"}
+              </button>
             </div>
           </div>
         </form>

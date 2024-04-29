@@ -1,3 +1,5 @@
+import { convertToBase64 } from "@/lib/utils";
+import { PlusIcon } from "@heroicons/react/24/outline";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
@@ -6,7 +8,6 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Datepicker from "tailwind-datepicker-react";
 import { z } from "zod";
-import { convertToBase64 } from "@/lib/utils";
 
 import { insertOrganization, updateOrganization } from "@/lib/organization";
 import { useRouter } from "next/navigation";
@@ -124,7 +125,7 @@ const datepicker_options = {
   //   prev: () => <span>Previous</span>,
   //   next: () => <span>Next</span>,
   // },
-  datepickerClassNames: "top-12",
+  datepickerClassNames: "top-50",
   // defaultDate: new Date("2022-01-01"),
   language: "en",
   disabledDates: [],
@@ -173,7 +174,7 @@ async function checkSlugAvailability(slug: string) {
   };
 }
 
-const CreateOrganizationForm = ({ formValues = null }: { formValues: any }) => {
+const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null }) => {
   const { prev, next, jump, total, current, progress } = useSteps();
 
   const [formData, setFormData] = useState<OrganizationFormValues>(formValues);
@@ -292,7 +293,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any }) => {
 
   const onSubmit: SubmitHandler<OrganizationFormValues> = async () => {
     setIsLoading(true);
-    const formData = { ...getValues(), photo};
+    const formData = { ...getValues(), photo };
 
     if (formValues) {
       // then, it's an update.
@@ -372,43 +373,31 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any }) => {
           <div id="step1" className="space-y-6">
             <p className="text-xl font-bold text-white">Organization Details</p>
             <div>
-              <div className="relative mb-2 mr-2">
-                <div className="relative mx-auto block h-28 w-28">
-                  {photo ? (
-                    <img
-                      src={photo}
-                      alt="Preview"
-                      className="h-full w-full rounded-full object-cover"
-                    />
-                  ) : (
-                    <img
-                      src="https://via.placeholder.com/150"
-                      alt="Placeholder"
-                      className="h-full w-full rounded-full object-cover"
-                    />
-                  )}
-                  <label
-                    htmlFor="file-input"
-                    className="absolute bottom-0 right-0 translate-x-1/2 translate-y-1/2 transform"
-                  >
-                    <img
-                      src="https://via.placeholder.com/150"
-                      alt="Upload Icon"
-                      className="h-8 w-8 cursor-pointer rounded-full border-2 border-primary bg-white text-primarydark"
-                    />
-                  </label>
-                  <input
-                    id="file-input"
-                    type="file"
-                    onChange={async (event) => {
-                      const file = event.target.files?.[0];
-                      if (file) {
-                        const base64 = await convertToBase64(file);
-                        setPhoto(base64); // Update the type of setPhoto to allow string as a valid value
-                      }
-                    }}
-                    className="hidden"
+              <div className="flex items-center justify-center">
+                <div className="relative">
+                  <img
+                    src={photo ? photo : "https://via.placeholder.com/150"}
+                    alt="Preview"
+                    className="block h-28 w-28 rounded-full border-4 border-primary"
+                    style={{ objectFit: "cover" }}
                   />
+                  <div className="absolute bottom-0 right-0 mb-1 mr-1">
+                    <label htmlFor="file-input" className="">
+                      <PlusIcon className="mr-2 inline-block h-6 w-6 cursor-pointer rounded-full border-2 border-primary  bg-white text-primarydark" />
+                    </label>
+                    <input
+                      id="file-input"
+                      type="file"
+                      onChange={async (event) => {
+                        const file = event.target.files?.[0];
+                        if (file) {
+                          const base64 = await convertToBase64(file);
+                          setPhoto(base64);
+                        }
+                      }}
+                      className="hidden"
+                    />
+                  </div>
                 </div>
               </div>
 

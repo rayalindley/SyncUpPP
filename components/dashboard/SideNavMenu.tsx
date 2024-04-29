@@ -10,27 +10,9 @@ import {
   UsersIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
+import Link from "next/link";
 import { Fragment, useState } from "react";
 
-const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: HomeIcon, current: true },
-  { name: "Users", href: "/dashboard/users", icon: UsersIcon, current: false },
-  {
-    name: "Organizations",
-    href: "/dashboard/organizations",
-    icon: UsersIcon,
-    current: false,
-  },
-  { name: "Projects", href: "#", icon: FolderIcon, current: false },
-  { name: "Calendar", href: "#", icon: CalendarIcon, current: false },
-  { name: "Documents", href: "#", icon: DocumentDuplicateIcon, current: false },
-  { name: "Reports", href: "#", icon: ChartPieIcon, current: false },
-];
-const teams = [
-  { id: 1, name: "Heroicons", href: "#", initial: "H", current: false },
-  { id: 2, name: "Tailwind Labs", href: "#", initial: "T", current: false },
-  { id: 3, name: "Workcation", href: "#", initial: "W", current: false },
-];
 const userNavigation = [
   { name: "Your profile", href: "#" },
   { name: "Sign out", href: "#" },
@@ -42,6 +24,30 @@ function classNames(...classes: any[]) {
 
 const SideNavMenu = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [currentItem, setCurrentItem] = useState("Dashboard");
+
+  const navigation = [
+    { name: "Dashboard", href: "/dashboard", icon: HomeIcon },
+    { name: "Users", href: "/dashboard/users", icon: UsersIcon },
+    {
+      name: "Organizations",
+      href: "/dashboard/organizations",
+      icon: UsersIcon,
+    },
+    { name: "Projects", href: "#", icon: FolderIcon },
+    { name: "Calendar", href: "#", icon: CalendarIcon },
+    { name: "Documents", href: "#", icon: DocumentDuplicateIcon },
+    { name: "Reports", href: "#", icon: ChartPieIcon },
+  ];
+  const teams = [
+    { id: 1, name: "Heroicons", href: "#", initial: "H" },
+    { id: 2, name: "Tailwind Labs", href: "#", initial: "T" },
+    { id: 3, name: "Workcation", href: "#", initial: "W" },
+  ];
+
+  const handleItemClick = (itemName) => {
+    setCurrentItem(itemName);
+  };
   return (
     <div>
       <Transition.Root show={sidebarOpen} as={Fragment}>
@@ -102,8 +108,9 @@ const SideNavMenu = () => {
                             <li key={item.name}>
                               <a
                                 href={item.href}
+                                onClick={() => handleItemClick(item.name)}
                                 className={classNames(
-                                  item.current
+                                  currentItem === item.name
                                     ? "bg-gray-50 text-indigo-600"
                                     : "text-gray-700 hover:bg-gray-50 hover:text-indigo-600",
                                   "group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6"
@@ -111,7 +118,7 @@ const SideNavMenu = () => {
                               >
                                 <item.icon
                                   className={classNames(
-                                    item.current
+                                    currentItem === item.name
                                       ? "text-indigo-600"
                                       : "text-gray-400 group-hover:text-indigo-600",
                                     "h-6 w-6 shrink-0"
@@ -129,28 +136,28 @@ const SideNavMenu = () => {
                           Your Organizations
                         </div>
                         <ul role="list" className="-mx-2 mt-2 space-y-1">
-                          {teams.map((team) => (
-                            <li key={team.name}>
+                          {navigation.map((item) => (
+                            <li key={item.name}>
                               <a
-                                href={team.href}
+                                href={item.href}
+                                onClick={() => handleItemClick(item.name)}
                                 className={classNames(
-                                  team.current
+                                  currentItem === item.name
                                     ? "bg-gray-50 text-indigo-600"
                                     : "text-gray-700 hover:bg-gray-50 hover:text-indigo-600",
                                   "group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6"
                                 )}
                               >
-                                <span
+                                <item.icon
                                   className={classNames(
-                                    team.current
-                                      ? "border-indigo-600 text-indigo-600"
-                                      : "border-gray-200 text-gray-400 group-hover:border-indigo-600 group-hover:text-indigo-600",
-                                    "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border bg-white text-[0.625rem] font-medium"
+                                    currentItem === item.name
+                                      ? "text-indigo-600"
+                                      : "text-gray-400 group-hover:text-indigo-600",
+                                    "h-6 w-6 shrink-0"
                                   )}
-                                >
-                                  {team.initial}
-                                </span>
-                                <span className="truncate">{team.name}</span>
+                                  aria-hidden="true"
+                                />
+                                {item.name}
                               </a>
                             </li>
                           ))}
@@ -182,7 +189,7 @@ const SideNavMenu = () => {
         {/* Sidebar component, swap this element with another sidebar if you like */}
         <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-[#525252] bg-eerieblack px-6 pb-4">
           <div className="flex h-16 shrink-0 items-center">
-            <img className="h-8 w-auto" src="Symbian.png" alt="SyncUp" />
+            <img className="h-8 w-auto" src="./Symbian.png" alt="SyncUp" />
             <p className="ml-2 font-semibold text-light">SyncUp</p>
           </div>
 
@@ -192,10 +199,11 @@ const SideNavMenu = () => {
                 <ul role="list" className="-mx-2 space-y-1">
                   {navigation.map((item) => (
                     <li key={item.name}>
-                      <a
+                      <Link
                         href={item.href}
+                        onClick={() => handleItemClick(item.name)}
                         className={classNames(
-                          item.current
+                          currentItem === item.name
                             ? "bg-charleston text-light"
                             : "text-gray-400 hover:bg-charleston hover:text-light",
                           "group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6"
@@ -203,7 +211,7 @@ const SideNavMenu = () => {
                       >
                         <item.icon
                           className={classNames(
-                            item.current
+                            currentItem === item.name
                               ? "text-light"
                               : "text-gray-400 group-hover:text-light",
                             "h-6 w-6 shrink-0"
@@ -211,39 +219,7 @@ const SideNavMenu = () => {
                           aria-hidden="true"
                         />
                         {item.name}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-              <li>
-                <div className="text-xs font-semibold leading-6 text-light">
-                  Your Organizations
-                </div>
-                <ul role="list" className="-mx-2 mt-2 space-y-1">
-                  {teams.map((team) => (
-                    <li key={team.name}>
-                      <a
-                        href={team.href}
-                        className={classNames(
-                          team.current
-                            ? "bg-gray-50 text-primary"
-                            : "text-gray-400 hover:bg-charleston hover:text-primary",
-                          "group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6"
-                        )}
-                      >
-                        <span
-                          className={classNames(
-                            team.current
-                              ? "border-primary text-primary"
-                              : "border-gray-200 text-gray-400 group-hover:border-primary group-hover:text-primary",
-                            "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border bg-charleston text-[0.625rem] font-medium"
-                          )}
-                        >
-                          {team.initial}
-                        </span>
-                        <span className="truncate">{team.name}</span>
-                      </a>
+                      </Link>
                     </li>
                   ))}
                 </ul>

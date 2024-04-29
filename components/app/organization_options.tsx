@@ -5,6 +5,8 @@ import { ChevronDownIcon, TrashIcon, UserIcon } from "@heroicons/react/20/solid"
 import { EnvelopeIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { Fragment, useState } from "react";
 import Swal from "sweetalert2";
+import { FaRegEdit } from "react-icons/fa";
+import JSONPretty from "react-json-pretty";
 
 const jsonTheme = {
   main: "line-height:1.3;color:#383a42;background:#ffffff;overflow:hidden;word-wrap:break-word;white-space: pre-wrap;word-wrap: break-word; ",
@@ -32,7 +34,7 @@ export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any 
       reverseButtons: true,
     }).then(async (result) => {
       if (result.isConfirmed) {
-        const response = await deleteUser(selectedUser.id);
+        const response = await deleteUser(selectedOrg.id);
 
         if (!response.error) {
           Swal.fire({
@@ -87,7 +89,7 @@ export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any 
                       className="mr-3 h-5 w-5 text-light group-hover:text-light"
                       aria-hidden="true"
                     />
-                    View User Info
+                    View Organization Info
                   </a>
                 )}
               </Menu.Item>
@@ -100,26 +102,9 @@ export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any 
                     )}
                     href={`/organization/edit/${selectedOrg.slug}`}
                   >
-                    <EnvelopeIcon
+                    <FaRegEdit
                       className="mr-3 h-5 w-5 text-light group-hover:text-light"
                       aria-hidden="true"
-                      onClick={async () => {
-                        const response = await sendPasswordRecovery(selectedUser.id!);
-
-                        if (!response.error) {
-                          Swal.fire({
-                            title: "Email Sent!",
-                            text: "The password recovery was sent to the user's email",
-                            icon: "success",
-                          });
-                        } else {
-                          Swal.fire({
-                            title: "Failed!",
-                            text: response.error.message,
-                            icon: "error",
-                          });
-                        }
-                      }}
                     />
                     Edit Organization
                   </a>
@@ -165,7 +150,7 @@ export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any 
             <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
           </Transition.Child>
 
-          <div className="fixed inset-0 overflow-hidden">
+          <div className="fixed inset-0 overflow-auto">
             <div className="absolute inset-0 overflow-hidden">
               <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
                 <Transition.Child
@@ -178,16 +163,16 @@ export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any 
                   leaveTo="translate-x-full"
                 >
                   <Dialog.Panel className="pointer-events-auto w-screen max-w-xl">
-                    <div className="flex h-full flex-col overflow-y-scroll bg-white py-6 shadow-xl">
+                    <div className="flex h-full flex-col overflow-y-scroll bg-eerieblack py-6 shadow-xl">
                       <div className="px-4 sm:px-6">
                         <div className="flex items-start justify-between">
-                          <Dialog.Title className="text-base font-semibold leading-6 text-gray-900">
-                            View user info
+                          <Dialog.Title className="text-base font-semibold leading-6 text-light">
+                            View Organization Info
                           </Dialog.Title>
                           <div className="ml-3 flex h-7 items-center">
                             <button
                               type="button"
-                              className="relative rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                              className="relative rounded-md text-gray-400 hover:text-light focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                               onClick={() => setOpen(false)}
                             >
                               <span className="absolute -inset-2.5" />
@@ -197,8 +182,97 @@ export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any 
                           </div>
                         </div>
                       </div>
-                      <div className="relative mt-6 flex-1 flex-wrap overflow-hidden px-4 sm:px-6">
-                        {/* <JSONPretty data={selectedUser} theme={jsonTheme}></JSONPretty> */}
+                      <div className="relative mt-6 flex-1 flex-wrap overflow-hidden px-4 text-light sm:px-6">
+                        {/* <JSONPretty data={selectedOrg} theme={jsonTheme}></JSONPretty> */}
+                        <table className="table-auto ">
+                          <tbody>
+                            <tr>
+                              <td className="p-2 font-bold">Name:</td>
+                              <td className="p-2">{selectedOrg.name}</td>
+                            </tr>
+                            <tr>
+                              <td className="p-2 font-bold">Description:</td>
+                              <td className="p-2">{selectedOrg.description}</td>
+                            </tr>
+                            <tr>
+                              <td className="p-2 font-bold">Admin:</td>
+                              <td className="p-2">{selectedOrg.adminid}</td>
+                            </tr>
+                            <tr>
+                              <td className="p-2 font-bold">Organization Type:</td>
+                              <td className="p-2">{selectedOrg.organization_type}</td>
+                            </tr>
+                            <tr>
+                              <td className="p-2 font-bold">Industry:</td>
+                              <td className="p-2">{selectedOrg.industry}</td>
+                            </tr>
+                            <tr>
+                              <td className="p-2 font-bold">Size:</td>
+                              <td className="p-2">{selectedOrg.organization_size}</td>
+                            </tr>
+
+                            <tr>
+                              <td className="p-2 font-bold">Website:</td>
+                              <td className="p-2">
+                                {selectedOrg.website ? (
+                                  <a
+                                    href={selectedOrg.website}
+                                    target="_blank"
+                                    className="text-primary hover:opacity-80"
+                                  >
+                                    {selectedOrg.website}
+                                  </a>
+                                ) : (
+                                  "Not specified"
+                                )}
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="p-2 font-bold">Date Established:</td>
+                              <td className="p-2">
+                                {selectedOrg.date_established || "Not specified"}
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="p-2 font-bold">Address:</td>
+                              <td className="p-2">
+                                {Object.entries(selectedOrg.address).map(
+                                  ([key, value], index, array) => (
+                                    <span key={key}>
+                                      {value}
+                                      {index < array.length - 1 ? ", " : ""}
+                                    </span>
+                                  )
+                                )}
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="p-2 font-bold">Socials:</td>
+                              <td className="p-2">
+                                {Object.entries(selectedOrg.address).map(
+                                  ([key, value], index, array) => (
+                                    <span key={key}>
+                                      {value}
+                                      {index < array.length - 1 ? ", " : ""}
+                                    </span>
+                                  )
+                                )}
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="p-2 font-bold">Page:</td>
+                              <td className="p-2">
+                                <a
+                                  href={`../${selectedOrg.slug}`}
+                                  target="_blank"
+                                  className="text-primary hover:opacity-80"
+                                >
+                                  Redirect
+                                </a>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
                       </div>
                     </div>
                   </Dialog.Panel>

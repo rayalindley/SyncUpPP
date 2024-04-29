@@ -124,7 +124,7 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
               <Menu.Item>
                 {({ active }) => (
                   <a
-                    href={`/dashboard/edit-user-profile/${selectedUser.id}`}
+                    href={`/dashboard/users/edit/${selectedUser.id}`}
                     className={classNames(
                       active ? "bg-raisinblack text-light" : "text-light",
                       "group flex cursor-pointer items-center px-4 py-2 text-sm"
@@ -134,7 +134,7 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
                       className="mr-3 h-5 w-5 text-light group-hover:text-light"
                       aria-hidden="true"
                     />
-                    Edit User Info
+                    Edit User Profile
                   </a>
                 )}
               </Menu.Item>
