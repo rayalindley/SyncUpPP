@@ -1,8 +1,11 @@
 "use client";
-import { Dialog } from "@headlessui/react";
-import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
+import { Dialog, Menu, Transition } from "@headlessui/react";
+import { Bars3Icon, ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { User } from "@supabase/supabase-js";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
+import { UserProfile } from "@/lib/types";
+import { getUserProfileById } from "@/lib/userActions";
+import { signOut } from "@/lib/auth";
 
 const navigation = [
   { name: "Home", href: "#" },
@@ -12,7 +15,22 @@ const navigation = [
   { name: "Contact Us", href: "#contactus" },
 ];
 
+function classNames(...classes: any[]) {
+  return classes.filter(Boolean).join(" ");
+}
+
 export default function Header({ user = null }: { user: User | null }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+  // useEffect(() => {
+  //   const fetchUserProfile = async () => {
+  //     const response = await getUserProfileById(user?.id);
+  //     setUserProfile(response.data as UserProfile);
+  //   };
+
+  //   fetchUserProfile();
+  // }, [user]);
   const handleNavClick = (href: any) => {
     const target = document.querySelector(href);
     if (target) {
@@ -49,7 +67,7 @@ export default function Header({ user = null }: { user: User | null }) {
             <span className="sr-only">SyncUp</span>
             <img className="h-8 w-auto" src="Symbian.png" alt="" />
           </a>
-          <div className="font text-l text-light flex items-center px-2 font-semibold">
+          <div className="font text-l flex items-center px-2 font-semibold text-light">
             Sync Up
           </div>
         </div>
@@ -58,7 +76,7 @@ export default function Header({ user = null }: { user: User | null }) {
             <a
               key={item.name}
               href={item.href}
-              className="hover:text-primary text-light text-sm font-semibold leading-6"
+              className="text-sm font-semibold leading-6 text-light hover:text-primary"
             >
               {item.name}
             </a>
@@ -66,23 +84,135 @@ export default function Header({ user = null }: { user: User | null }) {
         </div>
         <div className="flex flex-1 items-center justify-end gap-x-6">
           {user ? (
-            <a
-              href="/dashboard"
-              className="bg-primary hover:bg-primarydark focus-visible:outline-primary rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-            >
-              Dashboard
-            </a>
+            <div>
+              {/* Profile dropdown */}
+              <Menu as="div" className="relative">
+                <Menu.Button className="-m-1.5 flex items-center p-1.5">
+                  <span className="sr-only">Open user menu</span>
+                  <img
+                    className="h-8 w-8 rounded-full bg-gray-50"
+                    src={
+                      userProfile?.profilepicture
+                        ? userProfile.profilepicture
+                        : "/Portrait_Placeholder.png"
+                    }
+                    alt="Profile Picture"
+                  />
+                  <span className="hidden lg:flex lg:items-center">
+                    <span
+                      className="ml-4 text-sm font-semibold leading-6 text-light"
+                      aria-hidden="true"
+                    >
+                      {userProfile?.first_name}
+                    </span>
+                    <ChevronDownIcon
+                      className="ml-2 h-5 w-5 text-gray-400"
+                      aria-hidden="true"
+                    />
+                  </span>
+                </Menu.Button>
+                <Transition
+                  as={Fragment}
+                  enter="transition ease-out duration-100"
+                  enterFrom="transform opacity-0 scale-95"
+                  enterTo="transform opacity-100 scale-100"
+                  leave="transition ease-in duration-75"
+                  leaveFrom="transform opacity-100 scale-100"
+                  leaveTo="transform opacity-0 scale-95"
+                >
+                  <Menu.Items className="absolute right-0 z-10 mt-2 w-56 origin-top-right divide-y divide-[#525252] rounded-md bg-charleston shadow-lg ring-1 ring-light ring-opacity-5 focus:outline-none">
+                    <div className="px-4 py-3">
+                      <p className="text-sm text-light">Signed in as</p>
+                      <p className="truncate text-sm font-medium text-light">
+                        {user.email}
+                      </p>
+                    </div>
+                    <div className="py-1">
+                      <Menu.Item>
+                        {({ active }) => (
+                          <a
+                            href={`/dashboard`}
+                            className={classNames(
+                              active ? "bg-[#383838] text-light" : "text-light",
+                              "block px-4 py-2 text-sm"
+                            )}
+                          >
+                            Dashboard
+                          </a>
+                        )}
+                      </Menu.Item>
+                      <Menu.Item>
+                        {({ active }) => (
+                          <a
+                            href={`/dashboard/edit-profile/${user?.id}`}
+                            className={classNames(
+                              active ? "bg-[#383838] text-light" : "text-light",
+                              "block px-4 py-2 text-sm"
+                            )}
+                          >
+                            My Profile
+                          </a>
+                        )}
+                      </Menu.Item>
+                      <Menu.Item>
+                        {({ active }) => (
+                          <a
+                            href="#"
+                            className={classNames(
+                              active ? "bg-[#383838] text-light" : "text-light",
+                              "block px-4 py-2 text-sm"
+                            )}
+                          >
+                            Support
+                          </a>
+                        )}
+                      </Menu.Item>
+                      <Menu.Item>
+                        {({ active }) => (
+                          <a
+                            href="#"
+                            className={classNames(
+                              active ? "bg-[#383838] text-light" : "text-light",
+                              "block px-4 py-2 text-sm"
+                            )}
+                          >
+                            License
+                          </a>
+                        )}
+                      </Menu.Item>
+                    </div>
+                    <div className="py-1">
+                      <Menu.Item>
+                        {({ active }) => (
+                          <button
+                            className={classNames(
+                              active ? "bg-[#383838] text-light" : "text-light",
+                              "block w-full px-4 py-2 text-left text-sm"
+                            )}
+                            onClick={async () => {
+                              await signOut();
+                            }}
+                          >
+                            Sign out
+                          </button>
+                        )}
+                      </Menu.Item>
+                    </div>
+                  </Menu.Items>
+                </Transition>
+              </Menu>
+            </div>
           ) : (
             <>
               <a
                 href="/signin"
-                className="hover:text-primary lg:text-light hidden lg:block lg:text-sm lg:font-semibold lg:leading-6"
+                className="hidden hover:text-primary lg:block lg:text-sm lg:font-semibold lg:leading-6 lg:text-light"
               >
                 Log in
               </a>
               <a
                 href="/signup"
-                className="bg-primary hover:bg-primarydark focus-visible:outline-primary rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                className="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 Sign up
               </a>
@@ -119,7 +249,7 @@ export default function Header({ user = null }: { user: User | null }) {
             </a>
             <a
               href="#"
-              className="bg-primary hover:bg-primarydark focus-visible:outline-primary ml-auto rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              className="ml-auto rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               Sign up
             </a>
