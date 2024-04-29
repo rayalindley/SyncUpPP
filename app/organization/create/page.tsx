@@ -27,7 +27,7 @@ export default function Example() {
 
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-lg">
           <StepsProvider>
-            <CreateOrganizationForm />
+            <CreateOrganizationForm formValues={undefined} />
           </StepsProvider>
 
           <p className="mt-10 text-center text-sm text-gray-400">

@@ -124,7 +124,7 @@ const datepicker_options = {
   //   prev: () => <span>Previous</span>,
   //   next: () => <span>Next</span>,
   // },
-  datepickerClassNames: "top-12",
+  datepickerClassNames: "top-50",
   // defaultDate: new Date("2022-01-01"),
   language: "en",
   disabledDates: [],
@@ -173,7 +173,7 @@ async function checkSlugAvailability(slug: string) {
   };
 }
 
-const CreateOrganizationForm = ({ formValues = null }: { formValues: any }) => {
+const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null }) => {
   const { prev, next, jump, total, current, progress } = useSteps();
 
   const [formData, setFormData] = useState<OrganizationFormValues>(formValues);
@@ -292,7 +292,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any }) => {
 
   const onSubmit: SubmitHandler<OrganizationFormValues> = async () => {
     setIsLoading(true);
-    const formData = { ...getValues(), photo};
+    const formData = { ...getValues(), photo };
 
     if (formValues) {
       // then, it's an update.
