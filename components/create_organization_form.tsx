@@ -613,8 +613,8 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                   className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                   {...register("addressLine1")}
                 />
-                {errors.addresLine1 && (
-                  <p className="text-red-500">{errors.addresLine1.message}</p>
+                {errors.addressLine1 && (
+                  <p className="text-red-500">{errors.addressLine1.message}</p>
                 )}
               </div>
             </div>
