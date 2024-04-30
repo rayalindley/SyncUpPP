@@ -14,6 +14,8 @@ import { useRouter } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
 
+import countries from "@/lib/countries";
+
 // Define the constants for Type of Organization
 const ORGANIZATION_TYPES = [
   "Nonprofit",
@@ -53,6 +55,8 @@ const ORGANIZATION_SIZES = [
   "501-1000 employees",
   "1000+ employees",
 ] as const;
+
+const COUNTRIES = countries.map((x) => x.name);
 
 interface OrganizationFormValues {
   name: string;
@@ -96,7 +100,10 @@ const OrganizationSchema = z.object({
   addressLine2: z.string().optional(),
   city: z.string().min(3, "City is required"),
   stateProvince: z.string().min(3, "State / Province is required"),
-  country: z.string().min(3, "Country is required"),
+
+  country: z.enum(COUNTRIES, {
+    errorMap: () => ({ message: "Country  is required" }),
+  }),
 
   facebookLink: z.string().url("Invalid URL format").optional().or(z.literal("")),
   twitterLink: z.string().url("Invalid URL format").optional().or(z.literal("")),
@@ -109,13 +116,14 @@ const datepicker_options = {
   todayBtn: true,
   clearBtn: true,
   clearBtnText: "Clear",
+  maxDate: new Date(),
   theme: {
     background: "bg-[#158A70] ", //not working when modified
     todayBtn: "", //not working, only text color changes when modified
     clearBtn: "",
     icons: "",
     text: "text-white",
-    disabledText: "",
+    disabledText: "text-gray-600 hover:bg-none",
     input:
       "block w-full rounded-md border-0 bg-white/5 py-1.5 text-white  shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6",
     inputIcon: "",
@@ -126,7 +134,7 @@ const datepicker_options = {
   //   next: () => <span>Next</span>,
   // },
   datepickerClassNames: "top-50",
-  // defaultDate: new Date("2022-01-01"),
+  defaultDate: null,
   language: "en",
   disabledDates: [],
   weekDays: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
@@ -438,9 +446,22 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                   autoComplete="slug"
                   className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6 "
                   {...register("slug")}
+                  onKeyDown={(event) => {
+                    // Allow only alphanumeric, hyphen, and underscore
+                    if (
+                      !/[a-zA-Z0-9-_]/.test(event.key) &&
+                      event.key !== "Backspace" &&
+                      event.key !== "Tab" &&
+                      event.key !== "ArrowLeft" &&
+                      event.key !== "ArrowRight"
+                    ) {
+                      event.preventDefault();
+                    }
+                  }}
                 />
                 <span className="text-xs text-gray-400">
-                  Your organization address will be at http://syncup.com/jimtech
+                  Your organization address will be at https://localhost:3001/
+                  {getValues("slug")}
                 </span>
                 {errors.slug && <p className="text-red-500">{errors.slug.message}</p>}
               </div>
@@ -457,7 +478,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                 <textarea
                   id="description"
                   autoComplete="description"
-                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6 "
+                  className="block max-h-[300px] min-h-[150px] w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                   {...register("description")}
                 />
 
@@ -550,7 +571,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                 htmlFor="website"
                 className="block text-sm font-medium leading-6 text-white"
               >
-                Website URL
+                Website URL <span className="text-sm text-gray-400">(optional)</span>
               </label>
               <div className="mt-2">
                 <input
@@ -623,7 +644,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                 htmlFor="addressLine2"
                 className="block text-sm font-medium leading-6 text-white"
               >
-                Address Line 2
+                Address Line 2 <span className="text-sm text-gray-400">(optional)</span>
               </label>
               <div className="mt-2">
                 <input
@@ -685,13 +706,20 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                 Country
               </label>
               <div className="mt-2">
-                <input
+                <select
                   id="country"
-                  type="text"
-                  autoComplete="country"
-                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                  className="mt-2 block w-full rounded-md border-0 bg-white/5 py-1.5  text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                   {...register("country")}
-                />
+                >
+                  <option disabled selected>
+                    Select Country
+                  </option>
+                  {countries.map((x) => (
+                    <option key={x.name} value={x.name} className="bg-[#242424]">
+                      {x.name}
+                    </option>
+                  ))}
+                </select>
                 {errors.country && (
                   <p className="text-red-500">{errors.country.message}</p>
                 )}
@@ -707,7 +735,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                 htmlFor="facebookLink"
                 className="block text-sm font-medium leading-6 text-white"
               >
-                Facebook Link
+                Facebook Link <span className="text-sm text-gray-400">(optional)</span>
               </label>
               <div className="mt-2">
                 <input
@@ -726,7 +754,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                 htmlFor="twitterLink"
                 className="block text-sm font-medium leading-6 text-white"
               >
-                Twitter Link
+                Twitter Link <span className="text-sm text-gray-400">(optional)</span>
               </label>
               <div className="mt-2">
                 <input
@@ -747,7 +775,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                 htmlFor="linkedinLink"
                 className="block text-sm font-medium leading-6 text-white"
               >
-                LinkedIn
+                LinkedIn <span className="text-sm text-gray-400">(optional)</span>
               </label>
               <div className="mt-2">
                 <input

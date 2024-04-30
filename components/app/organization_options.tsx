@@ -7,6 +7,7 @@ import { Fragment, useState } from "react";
 import Swal from "sweetalert2";
 import { FaRegEdit } from "react-icons/fa";
 import JSONPretty from "react-json-pretty";
+import Link from "next/link";
 
 const jsonTheme = {
   main: "line-height:1.3;color:#383a42;background:#ffffff;overflow:hidden;word-wrap:break-word;white-space: pre-wrap;word-wrap: break-word; ",
@@ -187,32 +188,36 @@ export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any 
                         <table className="table-auto ">
                           <tbody>
                             <tr>
-                              <td className="p-2 font-bold">Name:</td>
+                              <td className="p-2 font-bold text-gray-400">Name:</td>
                               <td className="p-2">{selectedOrg.name}</td>
                             </tr>
                             <tr>
-                              <td className="p-2 font-bold">Description:</td>
+                              <td className="p-2 font-bold text-gray-400">
+                                Description:
+                              </td>
                               <td className="p-2">{selectedOrg.description}</td>
                             </tr>
                             <tr>
-                              <td className="p-2 font-bold">Admin:</td>
+                              <td className="p-2 font-bold text-gray-400">Admin:</td>
                               <td className="p-2">{selectedOrg.adminid}</td>
                             </tr>
                             <tr>
-                              <td className="p-2 font-bold">Organization Type:</td>
+                              <td className="p-2 font-bold text-gray-400">
+                                Organization Type:
+                              </td>
                               <td className="p-2">{selectedOrg.organization_type}</td>
                             </tr>
                             <tr>
-                              <td className="p-2 font-bold">Industry:</td>
+                              <td className="p-2 font-bold text-gray-400">Industry:</td>
                               <td className="p-2">{selectedOrg.industry}</td>
                             </tr>
                             <tr>
-                              <td className="p-2 font-bold">Size:</td>
+                              <td className="p-2 font-bold text-gray-400">Size:</td>
                               <td className="p-2">{selectedOrg.organization_size}</td>
                             </tr>
 
                             <tr>
-                              <td className="p-2 font-bold">Website:</td>
+                              <td className="p-2 font-bold text-gray-400">Website:</td>
                               <td className="p-2">
                                 {selectedOrg.website ? (
                                   <a
@@ -228,13 +233,15 @@ export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any 
                               </td>
                             </tr>
                             <tr>
-                              <td className="p-2 font-bold">Date Established:</td>
+                              <td className="p-2 font-bold text-gray-400">
+                                Date Established:
+                              </td>
                               <td className="p-2">
                                 {selectedOrg.date_established || "Not specified"}
                               </td>
                             </tr>
                             <tr>
-                              <td className="p-2 font-bold">Address:</td>
+                              <td className="p-2 font-bold text-gray-400">Address:</td>
                               <td className="p-2">
                                 {Object.entries(selectedOrg.address).map(
                                   ([key, value], index, array) => (
@@ -247,7 +254,7 @@ export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any 
                               </td>
                             </tr>
                             <tr>
-                              <td className="p-2 font-bold">Socials:</td>
+                              <td className="p-2 font-bold text-gray-400">Socials:</td>
                               <td className="p-2">
                                 {Object.entries(selectedOrg.address).map(
                                   ([key, value], index, array) => (
@@ -260,7 +267,7 @@ export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any 
                               </td>
                             </tr>
                             <tr>
-                              <td className="p-2 font-bold">Page:</td>
+                              <td className="p-2 font-bold text-gray-400">Page:</td>
                               <td className="p-2">
                                 <a
                                   href={`../${selectedOrg.slug}`}
@@ -273,6 +280,22 @@ export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any 
                             </tr>
                           </tbody>
                         </table>
+
+                        <div className="mt-5 flex gap-2">
+                          <Link
+                            className="group flex items-center rounded-md bg-blue-500 px-4 py-2 text-sm font-semibold text-light text-white shadow-sm hover:bg-opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                            href={`/organization/edit/${selectedOrg.slug}`}
+                          >
+                            Edit
+                          </Link>
+
+                          <button
+                            className="group flex items-center rounded-md bg-rose-500 px-4 py-2 text-sm font-semibold text-light text-white shadow-sm hover:bg-opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                            onClick={deleteBtn}
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </Dialog.Panel>
