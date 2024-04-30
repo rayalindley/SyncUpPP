@@ -247,7 +247,9 @@ export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any 
                                   ([key, value], index, array) => (
                                     <span key={key}>
                                       {value}
-                                      {index < array.length - 1 ? ", " : ""}
+                                      {index < array.length - 1 && value != ""
+                                        ? ", "
+                                        : ""}
                                     </span>
                                   )
                                 )}
@@ -256,11 +258,19 @@ export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any 
                             <tr>
                               <td className="p-2 font-bold text-gray-400">Socials:</td>
                               <td className="p-2">
-                                {Object.entries(selectedOrg.address).map(
+                                {Object.entries(selectedOrg.socials).map(
                                   ([key, value], index, array) => (
                                     <span key={key}>
-                                      {value}
-                                      {index < array.length - 1 ? ", " : ""}
+                                      {value != "" && (
+                                        <Link href={value} className="hover:text-primary">
+                                          {value}
+                                        </Link>
+                                      )}
+                                      {index < array.length - 1 && value != "" ? (
+                                        <br />
+                                      ) : (
+                                        ""
+                                      )}
                                     </span>
                                   )
                                 )}
