@@ -1,5 +1,5 @@
 "use client";
-import { deleteUser, sendPasswordRecovery } from "@/lib/userActions";
+import { deleteOrganization } from "@/lib/organization";
 import { Dialog, Menu, Transition } from "@headlessui/react";
 import { ChevronDownIcon, TrashIcon, UserIcon } from "@heroicons/react/20/solid";
 import { EnvelopeIcon, XMarkIcon } from "@heroicons/react/24/outline";
@@ -34,12 +34,12 @@ export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any 
       reverseButtons: true,
     }).then(async (result) => {
       if (result.isConfirmed) {
-        const response = await deleteUser(selectedOrg.id);
+        const response = await deleteOrganization(selectedOrg.organizationid);
 
         if (!response.error) {
           Swal.fire({
             title: "Deleted!",
-            text: "The user successfully deleted.",
+            text: "The organization was successfully deleted.",
             icon: "success",
           });
         } else {
