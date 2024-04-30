@@ -797,7 +797,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
         {/* Navidation */}
         <div className="navigation mb-4 flex justify-between">
           <button
-            className="flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className={`flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${current == 1 ? "opacity-0" : ""} `}
             onClick={prev}
             disabled={current <= 0}
             type="button"
