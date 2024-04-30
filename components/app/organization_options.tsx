@@ -96,7 +96,7 @@ export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any 
               </Menu.Item>
               <Menu.Item>
                 {({ active }) => (
-                  <a
+                  <Link
                     className={classNames(
                       active ? "bg-raisinblack text-light" : "text-light",
                       "group flex items-center px-4 py-2 text-sm"
@@ -108,7 +108,7 @@ export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any 
                       aria-hidden="true"
                     />
                     Edit Organization
-                  </a>
+                  </Link>
                 )}
               </Menu.Item>
             </div>
@@ -220,13 +220,13 @@ export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any 
                               <td className="p-2 font-bold text-gray-400">Website:</td>
                               <td className="p-2">
                                 {selectedOrg.website ? (
-                                  <a
+                                  <Link
                                     href={selectedOrg.website}
                                     target="_blank"
                                     className="text-primary hover:opacity-80"
                                   >
                                     {selectedOrg.website}
-                                  </a>
+                                  </Link>
                                 ) : (
                                   "Not specified"
                                 )}
@@ -276,22 +276,16 @@ export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any 
                                 )}
                               </td>
                             </tr>
-                            <tr>
-                              <td className="p-2 font-bold text-gray-400">Page:</td>
-                              <td className="p-2">
-                                <a
-                                  href={`../${selectedOrg.slug}`}
-                                  target="_blank"
-                                  className="text-primary hover:opacity-80"
-                                >
-                                  Redirect
-                                </a>
-                              </td>
-                            </tr>
                           </tbody>
                         </table>
 
                         <div className="mt-5 flex gap-2">
+                          <Link
+                            className="group flex items-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-light text-white shadow-sm hover:bg-opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                            href={`/${selectedOrg.slug}`}
+                          >
+                            Visit Page
+                          </Link>
                           <Link
                             className="group flex items-center rounded-md bg-blue-500 px-4 py-2 text-sm font-semibold text-light text-white shadow-sm hover:bg-opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                             href={`/organization/edit/${selectedOrg.slug}`}
