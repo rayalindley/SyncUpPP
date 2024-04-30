@@ -31,6 +31,7 @@ export default async function OrganizationUserView() {
                   description={org.description}
                   organization_size={org.organization_size}
                   photo={org.photo}
+                  slug={org.slug}
                 />
               ))}
             </div>

@@ -5,6 +5,7 @@ export default function OrganizationCard({
   description,
   organization_size,
   photo,
+  slug,
 }) {
   // Use the default photo if `photo` is not provided
   const photoUrl = photo || "./images/placeholder.png";
@@ -32,7 +33,7 @@ export default function OrganizationCard({
             <p className="mt-6 text-base font-normal text-light">{description}</p>
             <div className="mt-2 flex items-center justify-center gap-x-6">
               <a
-                href="#"
+                href={`./${slug}`}
                 className="my-2 rounded-md bg-primary px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
               >
                 View
