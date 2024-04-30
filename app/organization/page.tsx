@@ -23,7 +23,7 @@ export default async function OrganizationUserView() {
               <p>Browse and view organizations that fit your interests.</p>
             </div>
 
-            <div className="grid sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 ">
+            <div className="min-w-2xl mx-auto mt-20 grid w-full grid-cols-1 gap-6  sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
               {organizations.map((org) => (
                 <OrganizationCard
                   key={org.id}

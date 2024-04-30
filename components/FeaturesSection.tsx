@@ -65,10 +65,10 @@ export default function Features() {
           </p>
         </div>
         <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-4xl">
-          <dl className="grid max-w-xl grid-cols-1 gap-x-12 gap-y-10 lg:max-w-none lg:grid-cols-2 lg:gap-y-12">
+          <dl className="grid max-w-xl grid-cols-1  gap-5 lg:max-w-none lg:grid-cols-2">
             {features.map((feature) => (
               <div
-                className="transform rounded-lg p-6 transition duration-200 hover:scale-105 hover:bg-charleston"
+                className="bg-surface-100 border-overlay transform rounded-2xl  border border-[#2e2e2e] bg-[#232323] p-6 drop-shadow-sm transition duration-200 hover:bg-charleston"
                 key={feature.name}
               >
                 <div className="relative pl-16">
