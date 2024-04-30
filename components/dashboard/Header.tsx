@@ -4,10 +4,10 @@ import { Menu, Transition } from "@headlessui/react";
 import { ChevronDownIcon, MagnifyingGlassIcon } from "@heroicons/react/20/solid";
 import { Fragment, useState } from "react";
 
-import { Bars3Icon, BellIcon } from "@heroicons/react/24/outline";
-import { type User } from "@supabase/supabase-js";
 import { UserProfile } from "@/lib/types";
 import { getUserProfileById } from "@/lib/userActions";
+import { Bars3Icon, BellIcon } from "@heroicons/react/24/outline";
+import { type User } from "@supabase/supabase-js";
 import { useEffect } from "react";
 
 function classNames(...classes: any[]) {
@@ -81,7 +81,7 @@ function Header({ user }: { user: User }) {
                 src={
                   userProfile?.profilepicture
                     ? userProfile.profilepicture
-                    : "/Portrait_Placeholder.png"
+                    : "./Portrait_Placeholder.png"
                 }
                 alt="Profile Picture"
               />
