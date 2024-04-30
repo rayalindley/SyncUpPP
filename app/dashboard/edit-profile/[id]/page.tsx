@@ -55,7 +55,7 @@ export default function EditProfilePage() {
   return (
     <>
       <EditUserDetails userId={id} />
-      <div className="flex flex-col justify-end space-y-4">
+      {/* <div className="flex flex-col justify-end space-y-4">
         <button
           type="button"
           className="mt-5 flex w-full items-center justify-center rounded-md border border-primary border-transparent bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primarydark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
@@ -94,7 +94,7 @@ export default function EditProfilePage() {
         >
           Delete Account
         </button>
-      </div>
+      </div> */}
     </>
   );
 }
