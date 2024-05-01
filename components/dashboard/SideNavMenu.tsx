@@ -13,26 +13,17 @@ import {
 import Link from "next/link";
 import { Fragment, useEffect, useState } from "react";
 
-const userNavigation = [
-  { name: "Your profile", href: "#" },
-  { name: "Sign out", href: "#" },
-];
-
 function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
 }
 
 const SideNavMenu = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [currentItem, setCurrentItem] = useState(() => {
-    // Retrieve the last selected item from localStorage or set default to "Dashboard"
-    return localStorage.getItem("currentNavItem") || "Dashboard";
+  const [currentItem, setCurrentItem] = useState<string | null>(() => {
+    // Determine the default item based on the current URL path
+    const currentPath = window.location.pathname;
+    return currentPath;
   });
-
-  // Update localStorage when the current item changes
-  useEffect(() => {
-    localStorage.setItem("currentNavItem", currentItem);
-  }, [currentItem]);
 
   const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: HomeIcon },
@@ -47,15 +38,16 @@ const SideNavMenu = () => {
     { name: "Documents", href: "#", icon: DocumentDuplicateIcon },
     { name: "Reports", href: "#", icon: ChartPieIcon },
   ];
-  const teams = [
-    { id: 1, name: "Heroicons", href: "#", initial: "H" },
-    { id: 2, name: "Tailwind Labs", href: "#", initial: "T" },
-    { id: 3, name: "Workcation", href: "#", initial: "W" },
-  ];
 
-  const handleItemClick = (itemName) => {
-    setCurrentItem(itemName);
+  const handleItemClick = (itemHref: string) => {
+    setCurrentItem(itemHref);
   };
+
+  useEffect(() => {
+    const currentPath = window.location.pathname;
+    setCurrentItem(currentPath);
+  }, []);
+
   return (
     <div>
       <Transition.Root show={sidebarOpen} as={Fragment}>
@@ -194,7 +186,6 @@ const SideNavMenu = () => {
 
       {/* Static sidebar for desktop */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
-        {/* Sidebar component, swap this element with another sidebar if you like */}
         <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-[#525252] bg-eerieblack px-6 pb-4">
           <div className="flex h-16 shrink-0 items-center">
             <img className="h-8 w-auto" src="/Symbian.png" alt="SyncUp" />
@@ -209,9 +200,9 @@ const SideNavMenu = () => {
                     <li key={item.name}>
                       <Link
                         href={item.href}
-                        onClick={() => handleItemClick(item.name)}
+                        onClick={() => handleItemClick(item.href)}
                         className={classNames(
-                          currentItem === item.name
+                          currentItem === item.href
                             ? "bg-charleston text-light"
                             : "text-gray-400 hover:bg-charleston hover:text-light",
                           "group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6"
@@ -219,7 +210,7 @@ const SideNavMenu = () => {
                       >
                         <item.icon
                           className={classNames(
-                            currentItem === item.name
+                            currentItem === item.href
                               ? "text-light"
                               : "text-gray-400 group-hover:text-light",
                             "h-6 w-6 shrink-0"
