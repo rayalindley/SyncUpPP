@@ -27,7 +27,8 @@
     "react-toastify": "^10.0.5",
     "sweetalert2": "^11.6.13",
     "tailwind-datepicker-react": "^1.4.3",
-    "zod": "^3.22.4"
+    "zod": "^3.22.4",
+    "zustand": "^4.5.2"
   },
   "devDependencies": {
     "@types/node": "^20",

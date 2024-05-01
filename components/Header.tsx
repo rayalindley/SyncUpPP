@@ -1,11 +1,10 @@
 "use client";
+import { signOut } from "@/lib/auth";
+import { UserProfile } from "@/lib/types";
 import { Dialog, Menu, Transition } from "@headlessui/react";
 import { Bars3Icon, ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { User } from "@supabase/supabase-js";
 import { Fragment, useEffect, useState } from "react";
-import { UserProfile } from "@/lib/types";
-import { getUserProfileById } from "@/lib/userActions";
-import { signOut } from "@/lib/auth";
 
 const navigation = [
   { name: "Home", href: "#" },
@@ -31,14 +30,11 @@ export default function Header({ user = null }: { user: User | null }) {
 
   //   fetchUserProfile();
   // }, [user]);
-  const handleNavClick = (href: any) => {
-    const target = document.querySelector(href);
-    if (target) {
-      window.scrollTo({
-        top: target.offsetTop - 100, // Adjust scroll offset if needed
-        behavior: "smooth",
-      });
-    }
+  const handleNavClick = (href: string) => {
+    const landingPageUrl = "/"; // Update this with your landing page URL
+    const targetSection = href.substring(1); // Remove the '#' from the href
+    const redirectUrl = `${landingPageUrl}#${targetSection}`;
+    window.location.href = redirectUrl;
   };
 
   useEffect(() => {
@@ -63,11 +59,21 @@ export default function Header({ user = null }: { user: User | null }) {
         aria-label="Global"
       >
         <div className="flex lg:flex-1">
-          <a href="#" className="-m-1.5 p-1.5">
+          <a
+            href="#"
+            className="-m-1.5 p-1.5"
+            onClick={(e) => {
+              e.preventDefault();
+              handleNavClick("#");
+            }}
+          >
             <span className="sr-only">SyncUp</span>
             <img className="h-8 w-auto" src="Symbian.png" alt="" />
           </a>
-          <div className="font text-l flex items-center px-2 font-semibold text-light">
+          <div
+            className="font text-l flex items-center px-2 font-semibold text-light"
+            onClick={() => handleNavClick("#")}
+          >
             Sync Up
           </div>
         </div>
@@ -75,13 +81,18 @@ export default function Header({ user = null }: { user: User | null }) {
           {navigation.map((item) => (
             <a
               key={item.name}
-              href={item.href}
+              href={`#${item.href.substring(1)}`} // Update the href to only include the section ID
+              onClick={(e) => {
+                e.preventDefault(); // Prevent default link behavior
+                handleNavClick(item.href); // Call handleNavClick with the href
+              }}
               className="text-sm font-semibold leading-6 text-light hover:text-primary"
             >
               {item.name}
             </a>
           ))}
         </div>
+
         <div className="flex flex-1 items-center justify-end gap-x-6">
           {user ? (
             <div>
