@@ -25,6 +25,5 @@ export function isValidURL(str: string) {
 export function isDateValid(dateString: string) {
   const date = new Date(dateString);
   const today = new Date();
-  // Example: Check if the date is in the past and the user is at least 18 years old
-  return date <= today && today.getFullYear() - date.getFullYear() >= 18;
+  return date <= today && today.getFullYear() - date.getFullYear() >= 13;
 };

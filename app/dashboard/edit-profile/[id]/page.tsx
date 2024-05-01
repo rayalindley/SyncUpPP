@@ -54,6 +54,9 @@ export default function EditProfilePage() {
 
   return (
     <>
+      <div className="pb-5">
+        <h3 className="text-lg font-medium leading-6 text-light">Edit Profile</h3>
+      </div>
       <EditUserDetails userId={id} />
       {/* <div className="flex flex-col justify-end space-y-4">
         <button

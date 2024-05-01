@@ -151,15 +151,12 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
   };
 
   if (!userProfile) {
-    return <div>Loading...</div>;
+    return <div className="text-light">Loading...</div>;
   }
 
   return (
     <div className="overflow-hidden bg-raisinblack p-6 shadow sm:rounded-lg">
-      <div className="px-4 pb-5 sm:px-6">
-        <h3 className="text-lg font-medium leading-6 text-light">Edit Profile</h3>
-      </div>
-      <div className="overflow-auto border-t border-[#525252] sm:h-auto">
+      <div className="overflow-auto sm:h-auto">
         <form
           onSubmit={handleSubmit(handleEdit)}
           className="px-4 py-5 sm:grid sm:grid-cols-2 sm:gap-4 sm:px-6"
@@ -208,7 +205,7 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                       defaultValue={userProfile.first_name}
                       className=" mt-1 block w-full rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
                     />
-                    {errors.first_name && <p className="text-red-500">{errors.first_name.message}</p>}
+                    <p className="text-red-500">{errors.first_name && errors.first_name.message}</p>
                   </label>
                 </div>
                 <div className="w-full">
@@ -220,7 +217,7 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                       defaultValue={userProfile.last_name}
                       className="mt-1 block w-full rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
                     />
-                    {errors.last_name && <p className="text-red-500">{errors.last_name.message}</p>}
+                    <p className="text-red-500">{errors.last_name && errors.last_name.message}</p>
                   </label>
                 </div>
               </div>
@@ -235,7 +232,7 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                     className="mt-1 block w-full rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm sm:text-sm"
                   />
                 </label>
-                <label className="block text-sm font-medium mt-5 text-light">
+                <label className="block text-sm mt-5 font-medium text-light">
                   Role
                   <input
                     type="text"
@@ -244,7 +241,7 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                     className="mt-1 block w-full rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm sm:text-sm"
                   />
                 </label>
-                <label className="block text-sm font-medium mt-5 text-light">
+                <label className="block text-sm mt-5 font-medium text-light">
                   Created At
                   <input
                     type="text"
@@ -257,7 +254,7 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                     className="mt-1 block w-full rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm sm:text-sm"
                   />
                 </label>
-                <label className="block text-sm font-medium mt-5 text-light">
+                <label className="block text-sm mt-5 font-medium text-light">
                   Updated At
                   <input
                     type="text"
@@ -307,7 +304,7 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                   defaultValue={userProfile.description}
                   className="mt-1 block w-full rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
                 />
-                {errors.description && <p className="text-red-500">{errors.description.message}</p>}
+                <p className="text-red-500">{errors.description && errors.description.message}</p>
               </label>
               <label className="mt-2 block text-sm font-medium text-light">
                 Company
@@ -317,7 +314,7 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                   defaultValue={userProfile.company}
                   className="mt-1 block w-full rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
                 />
-                {errors.company && <p className="text-red-500">{errors.company.message}</p>}
+                <p className="text-red-500">{errors.company && errors.company.message}</p>
               </label>
               <label className="mt-2 block text-sm font-medium text-light">
                 Website
@@ -328,12 +325,12 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                   placeholder="https://www.example.com"
                   className="mt-1 block w-full rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
                 />
-                {errors.website && <p className="text-red-500">{errors.website.message}</p>}
+                <p className="text-red-500">{errors.website && errors.website.message}</p>
               </label>
-
+              <br />
               <button
                 type="submit"
-                className="mt-10 flex w-full items-center justify-center rounded-md border border-primary border-transparent bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primarydark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                className="flex w-full items-center justify-center rounded-md border border-primary border-transparent bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primarydark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
                 disabled={isUpdating}
               >
                 {isUpdating ? "Updating Profile" : "Update Profile"}
@@ -369,7 +366,7 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
         <Dialog
           as="div"
           static
-          className="fixed inset-0 z-10 overflow-y-auto"
+          className="fixed inset-0 z-50 overflow-y-auto"
           initialFocus={completeButtonRef}
           open={isOpen}
           onClose={setIsOpen}

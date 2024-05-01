@@ -12,7 +12,7 @@ import { User } from "@supabase/supabase-js";
 import { Fragment, useState } from "react";
 import { usePopper } from "react-popper";
 import Swal from "sweetalert2";
-import UserInfo from "./UserInfo";
+import EditUserDetails from "./EditUserDetails";
 
 const jsonTheme = {
   main: "line-height:1.3;color:#383a42;background:#ffffff;overflow:hidden;word-wrap:break-word;white-space: pre-wrap;word-wrap: break-word; ",
@@ -117,24 +117,7 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
                       className="mr-3 h-5 w-5 text-light group-hover:text-light"
                       aria-hidden="true"
                     />
-                    View User Info
-                  </a>
-                )}
-              </Menu.Item>
-              <Menu.Item>
-                {({ active }) => (
-                  <a
-                    href={`/dashboard/users/edit/${selectedUser.id}`}
-                    className={classNames(
-                      active ? "bg-raisinblack text-light" : "text-light",
-                      "group flex cursor-pointer items-center px-4 py-2 text-sm"
-                    )}
-                  >
-                    <PencilIcon
-                      className="mr-3 h-5 w-5 text-light group-hover:text-light"
-                      aria-hidden="true"
-                    />
-                    Edit User Profile
+                    View and Edit User Info
                   </a>
                 )}
               </Menu.Item>
@@ -260,7 +243,7 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
                       <div className="px-4 sm:px-6">
                         <div className="flex items-start justify-between">
                           <Dialog.Title className="text-base font-semibold leading-6 text-light">
-                            View user info
+                            View and edit user info
                           </Dialog.Title>
                           <div className="ml-3 flex h-7 items-center">
                             <button
@@ -275,8 +258,8 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
                           </div>
                         </div>
                       </div>
-                      <div className="relative mt-6 flex-1 flex-wrap overflow-hidden px-4 sm:px-6">
-                        <UserInfo userId={selectedUser.id} />
+                      <div className="relative mt-6 flex-1 flex-wrap overflow-auto px-4 sm:px-6">
+                        <EditUserDetails userId={selectedUser.id} />
                       </div>
                     </div>
                   </Dialog.Panel>
