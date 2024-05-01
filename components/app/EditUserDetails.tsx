@@ -155,7 +155,7 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
   }
 
   return (
-    <div className="overflow-hidden bg-raisinblack p-6 shadow sm:rounded-lg">
+    <div className="overflow-hidden bg-raisinblack p-6 shadow sm:rounded-lg" style={{ maxWidth: '700px', margin: '0 auto' }}>
       <div className="overflow-auto sm:h-auto">
         <form
           onSubmit={handleSubmit(handleEdit)}

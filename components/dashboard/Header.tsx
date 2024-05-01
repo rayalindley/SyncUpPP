@@ -129,7 +129,7 @@ function Header({ user }: { user: User }) {
                   <Menu.Item>
                     {({ active }) => (
                       <a
-                        href={`/dashboard/edit-profile/${user?.id}`}
+                        href={`/edit-profile/${user?.id}`}
                         className={classNames(
                           active ? "bg-[#383838] text-light" : "text-light",
                           "block px-4 py-2 text-sm"
