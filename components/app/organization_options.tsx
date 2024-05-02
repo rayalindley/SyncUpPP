@@ -8,6 +8,7 @@ import Swal from "sweetalert2";
 import { FaRegEdit } from "react-icons/fa";
 import JSONPretty from "react-json-pretty";
 import Link from "next/link";
+import { useOpenStore } from "@/store/useOpenStore";
 
 const jsonTheme = {
   main: "line-height:1.3;color:#383a42;background:#ffffff;overflow:hidden;word-wrap:break-word;white-space: pre-wrap;word-wrap: break-word; ",
@@ -24,6 +25,8 @@ function classNames(...classes: any[]) {
 }
 
 export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any }) {
+  const { open, toggleOpen, setOpen } = useOpenStore();
+
   const deleteBtn = () => {
     Swal.fire({
       title: "Are you sure?",
@@ -54,7 +57,6 @@ export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any 
     });
   };
 
-  const [open, setOpen] = useState(false);
   return (
     <>
       <Menu as="div" className="relative inline-block text-left">
