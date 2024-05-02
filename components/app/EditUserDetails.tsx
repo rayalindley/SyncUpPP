@@ -360,7 +360,10 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                   <button
                     type="button"
                     className="mt-3 inline-flex w-full justify-center rounded-md border border-transparent bg-primary px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-primarydark focus:outline-none focus:ring-1 focus:ring-primary focus:ring-offset-1 sm:ml-3 sm:mt-0 sm:w-auto sm:text-sm"
-                    onClick={() => setIsOpen(false)}
+                    onClick={() => {
+                      setIsOpen(false);
+                      window.history.back(); // Redirect to the previous window
+                    }}
                     ref={completeButtonRef}
                   >
                     Close
