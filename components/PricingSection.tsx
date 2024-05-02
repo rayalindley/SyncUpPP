@@ -54,15 +54,15 @@ function classNames(...classes: string[]) {
 
 const PricingSection = () => {
   return (
-    <div id="pricing" className="py-24 sm:pt-32">
+    <div id="pricing" className="py-14 sm:pt-20">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-4xl text-center">
-          <h2 className="text-primary text-base font-semibold leading-7">Pricing</h2>
-          <p className="text-light mt-2 text-4xl font-bold tracking-tight sm:text-5xl">
+          <h2 className="text-base font-semibold leading-7 text-primary">Pricing</h2>
+          <p className="mt-2 text-4xl font-bold tracking-tight text-light sm:text-5xl">
             Choose Your Plan
           </p>
         </div>
-        <p className="text-light mx-auto mt-6 max-w-2xl text-center text-lg leading-8">
+        <p className="mx-auto mt-6 max-w-2xl text-center text-lg leading-8 text-light">
           Find the perfect subscription tier for your organization&apos;s needs. Explore
           our flexible pricing options and unlock the full potential of SyncUp.
         </p>
@@ -89,25 +89,25 @@ const PricingSection = () => {
                     {tier.name}
                   </h3>
                   {tier.mostPopular ? (
-                    <p className="bg-primarydark text-light rounded-full px-2.5 py-1 text-xs font-semibold leading-5">
+                    <p className="rounded-full bg-primarydark px-2.5 py-1 text-xs font-semibold leading-5 text-light">
                       Most popular
                     </p>
                   ) : null}
                 </div>
-                <p className="text-light mt-4 text-sm leading-6">{tier.description}</p>
+                <p className="mt-4 text-sm leading-6 text-light">{tier.description}</p>
                 <p className="mt-6 flex items-baseline gap-x-1">
-                  <span className="text-light text-4xl font-bold tracking-tight">
+                  <span className="text-4xl font-bold tracking-tight text-light">
                     {tier.priceMonthly}
                   </span>
-                  <span className="text-light text-sm font-semibold leading-6">
+                  <span className="text-sm font-semibold leading-6 text-light">
                     /month
                   </span>
                 </p>
-                <ul role="list" className="text-light mt-8 space-y-3 text-sm leading-6">
+                <ul role="list" className="mt-8 space-y-3 text-sm leading-6 text-light">
                   {tier.features.map((feature) => (
                     <li key={feature} className="flex gap-x-3">
                       <CheckIcon
-                        className="text-primary h-6 w-5 flex-none"
+                        className="h-6 w-5 flex-none text-primary"
                         aria-hidden="true"
                       />
                       {feature}
@@ -120,9 +120,9 @@ const PricingSection = () => {
                 aria-describedby={tier.id}
                 className={classNames(
                   tier.mostPopular
-                    ? "bg-primary hover:bg-primarydark text-white shadow-sm"
-                    : "text-primarydark ring-primarydark hover:text-primary hover:ring-primary ring-1 ring-inset",
-                  "focus-visible:outline-primary mt-8 block rounded-md px-3 py-2 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                    ? "bg-primary text-white shadow-sm hover:bg-primarydark"
+                    : "text-primarydark ring-1 ring-inset ring-primarydark hover:text-primary hover:ring-primary",
+                  "mt-8 block rounded-md px-3 py-2 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 )}
               >
                 Buy plan

@@ -20,3 +20,10 @@ export function isValidURL(str: string) {
     '(\\#[-a-z\\d_]*)?$','i'); // fragment locator
   return !!pattern.test(str);
 }
+
+// Helper function to check if a date is within a range
+export function isDateValid(dateString: string) {
+  const date = new Date(dateString);
+  const today = new Date();
+  return date <= today && today.getFullYear() - date.getFullYear() >= 13;
+};

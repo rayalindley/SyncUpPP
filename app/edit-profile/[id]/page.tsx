@@ -3,6 +3,7 @@ import { useParams } from "next/navigation";
 import EditUserDetails from "@/components/app/EditUserDetails";
 import Swal from "sweetalert2";
 import { deleteUser, sendPasswordRecovery } from "@/lib/userActions";
+import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 
 export default function EditProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -54,8 +55,23 @@ export default function EditProfilePage() {
 
   return (
     <>
+      <div className="top-10 text-gray-100 hover:cursor-pointer">
+        <a
+          onClick={() => window.history.back()}
+          className=" flex items-center gap-2 hover:opacity-80"
+        >
+          <ArrowLeftIcon className="h-5 w-5" /> Back
+        </a>
+      </div>
+
+      <div className="mb-10 sm:mx-auto sm:w-full sm:max-w-sm">
+        <img className="mx-auto h-10 w-auto" src="/Symbian.png" alt="SyncUp" />
+        <h2 className="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-white">
+          Your Profile
+        </h2>
+      </div>
       <EditUserDetails userId={id} />
-      <div className="flex flex-col justify-end space-y-4">
+      {/* <div className="flex flex-col justify-end space-y-4">
         <button
           type="button"
           className="mt-5 flex w-full items-center justify-center rounded-md border border-primary border-transparent bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primarydark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
@@ -94,7 +110,7 @@ export default function EditProfilePage() {
         >
           Delete Account
         </button>
-      </div>
+      </div> */}
     </>
   );
 }

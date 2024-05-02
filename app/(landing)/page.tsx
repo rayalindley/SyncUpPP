@@ -5,10 +5,16 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import PricingSection from "@/components/PricingSection";
-import { getUser } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 
 export default async function Home() {
   const { user } = await getUser();
+
+  const supabase = createClient();
+  const { data: organizations, error } = await supabase
+    .from("organizations")
+    .select("*")
+    .range(0, 2);
 
   return (
     <div className="bg-eerieblack">
@@ -21,7 +27,7 @@ export default async function Home() {
         <FeaturesSection />
 
         {/* Testimonial section */}
-        <Community />
+        <Community organizations={organizations} />
 
         {/* Pricing section */}
         <PricingSection />

@@ -1,5 +1,5 @@
 "use client";
-import { deleteUser, sendPasswordRecovery } from "@/lib/userActions";
+import { deleteOrganization } from "@/lib/organization";
 import { Dialog, Menu, Transition } from "@headlessui/react";
 import { ChevronDownIcon, TrashIcon, UserIcon } from "@heroicons/react/20/solid";
 import { EnvelopeIcon, XMarkIcon } from "@heroicons/react/24/outline";
@@ -7,6 +7,8 @@ import { Fragment, useState } from "react";
 import Swal from "sweetalert2";
 import { FaRegEdit } from "react-icons/fa";
 import JSONPretty from "react-json-pretty";
+import Link from "next/link";
+import { useOpenStore } from "@/store/useOpenStore";
 
 const jsonTheme = {
   main: "line-height:1.3;color:#383a42;background:#ffffff;overflow:hidden;word-wrap:break-word;white-space: pre-wrap;word-wrap: break-word; ",
@@ -22,7 +24,15 @@ function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
 }
 
-export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any }) {
+export default function OrganizationOptions({
+  selectedOrg,
+  open,
+  setOpen,
+}: {
+  selectedOrg: any;
+  open: boolean;
+  setOpen: any;
+}) {
   const deleteBtn = () => {
     Swal.fire({
       title: "Are you sure?",
@@ -34,12 +44,12 @@ export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any 
       reverseButtons: true,
     }).then(async (result) => {
       if (result.isConfirmed) {
-        const response = await deleteUser(selectedOrg.id);
+        const response = await deleteOrganization(selectedOrg.organizationid);
 
         if (!response.error) {
           Swal.fire({
             title: "Deleted!",
-            text: "The user successfully deleted.",
+            text: "The organization was successfully deleted.",
             icon: "success",
           });
         } else {
@@ -53,7 +63,6 @@ export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any 
     });
   };
 
-  const [open, setOpen] = useState(false);
   return (
     <>
       <Menu as="div" className="relative inline-block text-left">
@@ -95,7 +104,7 @@ export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any 
               </Menu.Item>
               <Menu.Item>
                 {({ active }) => (
-                  <a
+                  <Link
                     className={classNames(
                       active ? "bg-raisinblack text-light" : "text-light",
                       "group flex items-center px-4 py-2 text-sm"
@@ -107,7 +116,7 @@ export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any 
                       aria-hidden="true"
                     />
                     Edit Organization
-                  </a>
+                  </Link>
                 )}
               </Menu.Item>
             </div>
@@ -187,92 +196,118 @@ export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any 
                         <table className="table-auto ">
                           <tbody>
                             <tr>
-                              <td className="p-2 font-bold">Name:</td>
+                              <td className="p-2 font-bold text-gray-400">Name:</td>
                               <td className="p-2">{selectedOrg.name}</td>
                             </tr>
                             <tr>
-                              <td className="p-2 font-bold">Description:</td>
+                              <td className="p-2 font-bold text-gray-400">
+                                Description:
+                              </td>
                               <td className="p-2">{selectedOrg.description}</td>
                             </tr>
                             <tr>
-                              <td className="p-2 font-bold">Admin:</td>
+                              <td className="p-2 font-bold text-gray-400">Admin:</td>
                               <td className="p-2">{selectedOrg.adminid}</td>
                             </tr>
                             <tr>
-                              <td className="p-2 font-bold">Organization Type:</td>
+                              <td className="p-2 font-bold text-gray-400">
+                                Organization Type:
+                              </td>
                               <td className="p-2">{selectedOrg.organization_type}</td>
                             </tr>
                             <tr>
-                              <td className="p-2 font-bold">Industry:</td>
+                              <td className="p-2 font-bold text-gray-400">Industry:</td>
                               <td className="p-2">{selectedOrg.industry}</td>
                             </tr>
                             <tr>
-                              <td className="p-2 font-bold">Size:</td>
+                              <td className="p-2 font-bold text-gray-400">Size:</td>
                               <td className="p-2">{selectedOrg.organization_size}</td>
                             </tr>
 
                             <tr>
-                              <td className="p-2 font-bold">Website:</td>
+                              <td className="p-2 font-bold text-gray-400">Website:</td>
                               <td className="p-2">
                                 {selectedOrg.website ? (
-                                  <a
+                                  <Link
                                     href={selectedOrg.website}
                                     target="_blank"
                                     className="text-primary hover:opacity-80"
                                   >
                                     {selectedOrg.website}
-                                  </a>
+                                  </Link>
                                 ) : (
                                   "Not specified"
                                 )}
                               </td>
                             </tr>
                             <tr>
-                              <td className="p-2 font-bold">Date Established:</td>
+                              <td className="p-2 font-bold text-gray-400">
+                                Date Established:
+                              </td>
                               <td className="p-2">
                                 {selectedOrg.date_established || "Not specified"}
                               </td>
                             </tr>
                             <tr>
-                              <td className="p-2 font-bold">Address:</td>
+                              <td className="p-2 font-bold text-gray-400">Address:</td>
                               <td className="p-2">
                                 {Object.entries(selectedOrg.address).map(
                                   ([key, value], index, array) => (
                                     <span key={key}>
                                       {value}
-                                      {index < array.length - 1 ? ", " : ""}
+                                      {index < array.length - 1 && value != ""
+                                        ? ", "
+                                        : ""}
                                     </span>
                                   )
                                 )}
                               </td>
                             </tr>
                             <tr>
-                              <td className="p-2 font-bold">Socials:</td>
+                              <td className="p-2 font-bold text-gray-400">Socials:</td>
                               <td className="p-2">
-                                {Object.entries(selectedOrg.address).map(
+                                {Object.entries(selectedOrg.socials).map(
                                   ([key, value], index, array) => (
                                     <span key={key}>
-                                      {value}
-                                      {index < array.length - 1 ? ", " : ""}
+                                      {value != "" && (
+                                        <Link href={value} className="hover:text-primary">
+                                          {value}
+                                        </Link>
+                                      )}
+                                      {index < array.length - 1 && value != "" ? (
+                                        <br />
+                                      ) : (
+                                        ""
+                                      )}
                                     </span>
                                   )
                                 )}
-                              </td>
-                            </tr>
-                            <tr>
-                              <td className="p-2 font-bold">Page:</td>
-                              <td className="p-2">
-                                <a
-                                  href={`../${selectedOrg.slug}`}
-                                  target="_blank"
-                                  className="text-primary hover:opacity-80"
-                                >
-                                  Redirect
-                                </a>
                               </td>
                             </tr>
                           </tbody>
                         </table>
+
+                        <div className="mt-5 flex gap-2">
+                          <Link
+                            className="group flex items-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-light text-white shadow-sm hover:bg-opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                            href={`/${selectedOrg.slug}`}
+                          >
+                            Visit Page
+                          </Link>
+                          <Link
+                            className="group flex items-center rounded-md bg-blue-500 px-4 py-2 text-sm font-semibold text-light text-white shadow-sm hover:bg-opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                            href={`/organization/edit/${selectedOrg.slug}`}
+                          >
+                            Edit
+                          </Link>
+
+                          <button
+                            className="group flex items-center rounded-md bg-rose-500 px-4 py-2 text-sm font-semibold text-light text-white shadow-sm hover:bg-opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                            onClick={deleteBtn}
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </Dialog.Panel>

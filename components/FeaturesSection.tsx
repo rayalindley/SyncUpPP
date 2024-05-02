@@ -49,36 +49,36 @@ const features = [
 
 export default function Features() {
   return (
-    <div id="features" className="bg-eerieblack py-20 sm:py-28">
+    <div className="bg-eerieblack py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-2xl lg:text-center">
-          <h2 className="text-primary text-base font-semibold leading-7">
+          <h2 id="features" className="text-base font-semibold leading-7 text-primary">
             Introducing SyncUp
           </h2>
-          <p className="text-light mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
+          <p className="mt-2 text-3xl font-bold tracking-tight text-light sm:text-4xl">
             Our Comprehensive Suite of Tools
           </p>
-          <p className="text-light mt-6 text-lg leading-8">
+          <p className="mt-6 text-lg leading-8 text-light">
             Explore our robust features designed to simplify membership enrollment,
             enhance communication, and provide insightful analytics, empowering you to
             drive growth and success.
           </p>
         </div>
         <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-4xl">
-          <dl className="grid max-w-xl grid-cols-1 gap-x-12 gap-y-10 lg:max-w-none lg:grid-cols-2 lg:gap-y-12">
+          <dl className="grid max-w-xl grid-cols-1  gap-5 lg:max-w-none lg:grid-cols-2">
             {features.map((feature) => (
               <div
-                className="transform rounded-lg p-6 transition duration-200 hover:scale-105 hover:bg-charleston"
+                className="bg-surface-100 border-overlay transform rounded-2xl  border border-[#2e2e2e] bg-[#232323] p-6 drop-shadow-sm transition duration-200 hover:bg-charleston"
                 key={feature.name}
               >
                 <div className="relative pl-16">
-                  <dt className="text-light text-base font-bold leading-7">
-                    <div className="bg-primary absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg">
+                  <dt className="text-base font-bold leading-7 text-light">
+                    <div className="absolute left-0 top-0 flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
                       <feature.icon className="h-6 w-6 text-white" aria-hidden="true" />
                     </div>
                     {feature.name}
                   </dt>
-                  <dd className="text-light mt-2 text-base leading-7">
+                  <dd className="mt-2 text-base leading-7 text-light">
                     {feature.description}
                   </dd>
                 </div>

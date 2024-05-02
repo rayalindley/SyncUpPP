@@ -122,3 +122,25 @@ export async function fetchOrganizationBySlug(slug: string) {
     };
   }
 }
+
+export async function deleteOrganization(id: string) {
+  const supabase = createClient();
+
+  try {
+    const { error } = await supabase
+      .from("organizations")
+      .delete()
+      .eq("organizationid", id);
+
+    if (!error) {
+      return { error: null };
+    } else {
+      return { error: { message: error.message } };
+    }
+  } catch (e: any) {
+    console.error("Unexpected error:", e);
+    return {
+      error: { message: e.message || "An unexpected error occurred" },
+    };
+  }
+}
