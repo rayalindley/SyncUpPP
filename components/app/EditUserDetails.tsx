@@ -14,7 +14,7 @@ import {
   XMarkIcon,
   PlusIcon,
 } from "@heroicons/react/24/outline";
-import { CombinedUserData, UserProfile } from "@/lib/types";
+import { UserProfile } from "@/lib/types";
 import { getUserEmailById, getUserProfileById } from "@/lib/userActions";
 import { convertToBase64, isValidURL, isDateValid } from "@/lib/utils";
 import { Fragment, useEffect, useRef, useState } from "react";
@@ -48,18 +48,8 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [email, setEmail] = useState("");
   const { user } = useUser(); // Use the useUser hook to access the logged-in user's details
-  const [combinedUserData, setCombinedUserData] = useState<CombinedUserData | null>(null);
 
   let completeButtonRef = useRef(null);
-
-  useEffect(() => {
-    const fetchCombinedUserData = async () => {
-      const response = await getCombinedUserDataById(userId);
-      setCombinedUserData(response?.data);
-    };
-
-    fetchCombinedUserData();
-  }, [userId]);
 
   const {
     register,
@@ -151,7 +141,7 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
   };
 
   if (!userProfile) {
-    return <div className="text-light">Loading...</div>;
+    return <div className="mt-10 text-light">Loading...</div>;
   }
 
   return (
@@ -221,55 +211,7 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                   </label>
                 </div>
               </div>
-              {/* Non-editable fields */}
-              <div className="col-span-3 sm:col-span-2">
-                <label className="block text-sm font-medium text-light">
-                  Email
-                  <input
-                    type="text"
-                    value={combinedUserData?.email || ""}
-                    readOnly
-                    className="mt-1 block w-full rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm sm:text-sm"
-                  />
-                </label>
-                <label className="block text-sm mt-5 font-medium text-light">
-                  Role
-                  <input
-                    type="text"
-                    value={combinedUserData?.role || ""}
-                    readOnly
-                    className="mt-1 block w-full rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm sm:text-sm"
-                  />
-                </label>
-                <label className="block text-sm mt-5 font-medium text-light">
-                  Created At
-                  <input
-                    type="text"
-                    value={
-                      combinedUserData?.created_at
-                        ? new Date(combinedUserData.created_at).toLocaleString()
-                        : ""
-                    }
-                    readOnly
-                    className="mt-1 block w-full rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm sm:text-sm"
-                  />
-                </label>
-                <label className="block text-sm mt-5 font-medium text-light">
-                  Updated At
-                  <input
-                    type="text"
-                    value={
-                      combinedUserData?.updated_at
-                        ? new Date(combinedUserData.updated_at).toLocaleString()
-                        : ""
-                    }
-                    readOnly
-                    className="mt-1 block w-full rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm sm:text-sm"
-                  />
-                </label>
-              </div>
-
-              {/* ... (rest of the form and existing code) */}
+              
               <label className="mt-2 block text-sm font-medium text-light">
                 Gender
                 <select
