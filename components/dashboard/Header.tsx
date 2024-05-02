@@ -81,7 +81,7 @@ function Header({ user }: { user: User }) {
                 src={
                   userProfile?.profilepicture
                     ? userProfile.profilepicture
-                    : "./Portrait_Placeholder.png"
+                    : "/Portrait_Placeholder.png"
                 }
                 alt="Profile Picture"
               />
