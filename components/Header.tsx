@@ -4,10 +4,9 @@ import { UserProfile } from "@/lib/types";
 import { Dialog, Menu, Transition } from "@headlessui/react";
 import { Bars3Icon, ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { User } from "@supabase/supabase-js";
-import { Fragment, useEffect, useState } from "react";
-import { getUserProfileById } from "@/lib/userActions";
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
+import { Fragment, useEffect, useState } from "react";
 
 const navigation = [
   { name: "Home", href: "#" },
@@ -61,19 +60,21 @@ export default function Header({ user = null }: { user: User | null }) {
         className="mx-auto flex max-w-7xl items-center justify-between gap-x-6 p-6 lg:px-8"
         aria-label="Global"
       >
-        <Link href="/">
-          <div className="flex lg:flex-1">
-            <div className="-m-1.5 p-1.5">
-              <span className="sr-only">SyncUp</span>
-              <img className="h-8 w-auto" src="Symbian.png" alt="" />
+        <div className="flex items-center lg:flex-1">
+          <Link href="/">
+            <div className="flex items-center">
+              <div className="-m-1.5 p-1.5">
+                <span className="sr-only">SyncUp</span>
+                <img className="h-8 w-auto" src="Symbian.png" alt="" />
+              </div>
+              <div className="font text-l flex items-center px-2 font-semibold text-light">
+                SyncUp
+              </div>
             </div>
-            <div className="font text-l flex items-center px-2 font-semibold text-light">
-              SyncUp
-            </div>
-          </div>
-        </Link>
+          </Link>
+        </div>
 
-        <div className="hidden lg:flex lg:gap-x-12">
+        <div className="hidden justify-center lg:flex lg:gap-x-12">
           {navigation.map((item) => (
             <Link
               key={item.name}

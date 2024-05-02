@@ -1,44 +1,38 @@
 "use client";
+import { useUser } from "@/context/UserContext";
+import { UserProfile } from "@/lib/types";
 import {
   deleteUser,
-  getCombinedUserDataById,
+  getUserEmailById,
+  getUserProfileById,
   sendPasswordRecovery,
   updateUserProfileById,
 } from "@/lib/userActions";
+import { convertToBase64, isDateValid } from "@/lib/utils";
 import { Dialog, Transition } from "@headlessui/react";
-import {
-  PencilIcon,
-  TrashIcon,
-  UserIcon,
-  EnvelopeIcon,
-  XMarkIcon,
-  PlusIcon,
-} from "@heroicons/react/24/outline";
-import { UserProfile } from "@/lib/types";
-import { getUserEmailById, getUserProfileById } from "@/lib/userActions";
-import { convertToBase64, isValidURL, isDateValid } from "@/lib/utils";
+import { EnvelopeIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Fragment, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import Swal from "sweetalert2";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useUser } from "@/context/UserContext";
+import { z } from "zod";
 
 // Schema for form validation
 const UserProfileSchema = z.object({
   first_name: z.string().min(1, "First name is required"),
   last_name: z.string(),
-  gender: z.string().min(1, "Gender is required").refine((val) => val === 'M' || val === 'F', {
-    message: "Gender must be 'M' or 'F'",
-  }),
+  gender: z
+    .string()
+    .min(1, "Gender is required")
+    .refine((val) => val === "M" || val === "F", {
+      message: "Gender must be 'M' or 'F'",
+    }),
   dateofbirth: z.string().refine((value) => isDateValid(value), {
     message: "Invalid or underage date of birth",
   }),
   description: z.string(),
   company: z.string(),
-  website: z.string().refine((value) => value === "" || isValidURL(value), {
-    message: "Invalid URL format",
-  }),
+  website: z.string().url("Invalid URL format").optional().or(z.literal("")),
 });
 
 const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
@@ -145,7 +139,10 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
   }
 
   return (
-    <div className="overflow-hidden bg-raisinblack p-6 shadow sm:rounded-lg" style={{ maxWidth: '700px', margin: '0 auto' }}>
+    <div
+      className="overflow-hidden bg-raisinblack p-6 shadow sm:rounded-lg"
+      style={{ maxWidth: "700px", margin: "0 auto" }}
+    >
       <div className="overflow-auto sm:h-auto">
         <form
           onSubmit={handleSubmit(handleEdit)}
@@ -195,7 +192,9 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                       defaultValue={userProfile.first_name}
                       className=" mt-1 block w-full rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
                     />
-                    <p className="text-red-500">{errors.first_name && errors.first_name.message}</p>
+                    <p className="text-red-500">
+                      {errors.first_name && errors.first_name.message}
+                    </p>
                   </label>
                 </div>
                 <div className="w-full">
@@ -207,11 +206,13 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                       defaultValue={userProfile.last_name}
                       className="mt-1 block w-full rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
                     />
-                    <p className="text-red-500">{errors.last_name && errors.last_name.message}</p>
+                    <p className="text-red-500">
+                      {errors.last_name && errors.last_name.message}
+                    </p>
                   </label>
                 </div>
               </div>
-              
+
               <label className="mt-2 block text-sm font-medium text-light">
                 Gender
                 <select
@@ -225,7 +226,7 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                   <option value="M">Male</option>
                   <option value="F">Female</option>
                 </select>
-                <p className="text-red-500">{errors.gender && (errors.gender.message)}</p>
+                <p className="text-red-500">{errors.gender && errors.gender.message}</p>
               </label>
               <label className="mt-2 block text-sm font-medium text-light">
                 Date of Birth
@@ -246,7 +247,9 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                   defaultValue={userProfile.description}
                   className="mt-1 block w-full rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
                 />
-                <p className="text-red-500">{errors.description && errors.description.message}</p>
+                <p className="text-red-500">
+                  {errors.description && errors.description.message}
+                </p>
               </label>
               <label className="mt-2 block text-sm font-medium text-light">
                 Company
