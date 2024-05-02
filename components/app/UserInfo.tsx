@@ -24,34 +24,26 @@ const UserInfo: React.FC<UserInfoProps> = ({ userId }) => {
 
   const handleEdit = () => {
     window.location.href = `/dashboard/users/edit/${userId}`;
-  };  
+  };
 
   const handleDelete = async () => {
     const result = await Swal.fire({
-      title: 'Are you sure?',
+      title: "Are you sure?",
       text: "You won't be able to revert this!",
-      icon: 'warning',
+      icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Yes, delete it!'
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, delete it!",
     });
 
     if (result.isConfirmed) {
       const deleteResponse = await deleteUser(userId);
       if (!deleteResponse.error) {
-        Swal.fire(
-          'Deleted!',
-          'The user has been deleted.',
-          'success'
-        );
+        Swal.fire("Deleted!", "The user has been deleted.", "success");
         // Redirect or update the state as needed
       } else {
-        Swal.fire(
-          'Error!',
-          'There was an issue deleting the user.',
-          'error'
-        );
+        Swal.fire("Error!", "There was an issue deleting the user.", "error");
       }
     }
   };
@@ -59,22 +51,25 @@ const UserInfo: React.FC<UserInfoProps> = ({ userId }) => {
   if (!userData) {
     return <div className="p-5 text-light">Loading...</div>;
   }
-  
+
   return (
     <div className="relative mt-6 flex-1 flex-wrap overflow-hidden px-4 text-light sm:px-6">
       <table className="table-auto">
         <tbody>
           {Object.entries(userData).map(([key, value]) => {
-            if (key === 'id' || key === 'updatedat') return null; // Exclude 'id' and 'updatedat'
-            let formattedKey = key.replace(/_/g, ' ').split(' ')
-              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-              .join(' ');
-            if (key === 'dateofbirth') formattedKey = 'Date of Birth';
-            if (key === 'updatedat') formattedKey = 'Updated At';
-            let formattedValue = value ?? '';
-            formattedValue = typeof formattedValue === 'string' &&
-              formattedValue.includes('-') &&
-              formattedValue.includes(':')
+            if (key === "id" || key === "updatedat") return null; // Exclude 'id' and 'updatedat'
+            let formattedKey = key
+              .replace(/_/g, " ")
+              .split(" ")
+              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(" ");
+            if (key === "dateofbirth") formattedKey = "Date of Birth";
+            if (key === "updatedat") formattedKey = "Updated At";
+            let formattedValue = value ?? "";
+            formattedValue =
+              typeof formattedValue === "string" &&
+              formattedValue.includes("-") &&
+              formattedValue.includes(":")
                 ? new Date(formattedValue).toLocaleString()
                 : formattedValue.toString(); // Convert formattedValue to string
             return (
@@ -102,7 +97,6 @@ const UserInfo: React.FC<UserInfoProps> = ({ userId }) => {
       </div>
     </div>
   );
-  
 };
 
 export default UserInfo;

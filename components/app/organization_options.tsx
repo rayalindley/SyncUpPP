@@ -24,9 +24,15 @@ function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
 }
 
-export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any }) {
-  const { open, toggleOpen, setOpen } = useOpenStore();
-
+export default function OrganizationOptions({
+  selectedOrg,
+  open,
+  setOpen,
+}: {
+  selectedOrg: any;
+  open: boolean;
+  setOpen: any;
+}) {
   const deleteBtn = () => {
     Swal.fire({
       title: "Are you sure?",

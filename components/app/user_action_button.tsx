@@ -17,6 +17,7 @@ import UserInfo from "./UserInfo";
 import { getUser } from "@/lib/supabase/client";
 import { redirect } from "next/navigation";
 import { useRouter } from "next/navigation";
+import { useOpenStore } from "@/store/useOpenStore";
 
 const jsonTheme = {
   main: "line-height:1.3;color:#383a42;background:#ffffff;overflow:hidden;word-wrap:break-word;white-space: pre-wrap;word-wrap: break-word; ",
@@ -32,10 +33,18 @@ function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
 }
 
-export default function UserActionButton({ selectedUser }: { selectedUser: User }) {
+export default function UserActionButton({
+  selectedUser,
+  open,
+  setOpen,
+}: {
+  selectedUser: User;
+  open: boolean;
+  setOpen: any;
+}) {
   const [referenceElement, setReferenceElement] = useState(null);
   const [popperElement, setPopperElement] = useState(null);
-  const router = useRouter();
+
   const { styles, attributes } = usePopper(referenceElement, popperElement, {
     placement: "bottom-end",
     modifiers: [
@@ -90,7 +99,6 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
     }
   };
 
-  const [open, setOpen] = useState(false);
   return (
     <>
       <Menu
