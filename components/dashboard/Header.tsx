@@ -9,6 +9,8 @@ import { getUserProfileById } from "@/lib/userActions";
 import { Bars3Icon, BellIcon } from "@heroicons/react/24/outline";
 import { type User } from "@supabase/supabase-js";
 import { useEffect } from "react";
+import Image from "next/image";
+import Link from "next/link";
 
 function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
@@ -115,20 +117,7 @@ function Header({ user }: { user: User }) {
                 <div className="py-1">
                   <Menu.Item>
                     {({ active }) => (
-                      <a
-                        href={`/dashboard`}
-                        className={classNames(
-                          active ? "bg-[#383838] text-light" : "text-light",
-                          "block px-4 py-2 text-sm"
-                        )}
-                      >
-                        Dashboard
-                      </a>
-                    )}
-                  </Menu.Item>
-                  <Menu.Item>
-                    {({ active }) => (
-                      <a
+                      <Link
                         href={`/edit-profile/${user?.id}`}
                         className={classNames(
                           active ? "bg-[#383838] text-light" : "text-light",
@@ -136,12 +125,12 @@ function Header({ user }: { user: User }) {
                         )}
                       >
                         My Profile
-                      </a>
+                      </Link>
                     )}
                   </Menu.Item>
                   <Menu.Item>
                     {({ active }) => (
-                      <a
+                      <Link
                         href="#"
                         className={classNames(
                           active ? "bg-[#383838] text-light" : "text-light",
@@ -149,12 +138,12 @@ function Header({ user }: { user: User }) {
                         )}
                       >
                         Support
-                      </a>
+                      </Link>
                     )}
                   </Menu.Item>
                   <Menu.Item>
                     {({ active }) => (
-                      <a
+                      <Link
                         href="#"
                         className={classNames(
                           active ? "bg-[#383838] text-light" : "text-light",
@@ -162,7 +151,7 @@ function Header({ user }: { user: User }) {
                         )}
                       >
                         License
-                      </a>
+                      </Link>
                     )}
                   </Menu.Item>
                 </div>

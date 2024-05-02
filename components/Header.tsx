@@ -5,6 +5,9 @@ import { Dialog, Menu, Transition } from "@headlessui/react";
 import { Bars3Icon, ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { User } from "@supabase/supabase-js";
 import { Fragment, useEffect, useState } from "react";
+import { getUserProfileById } from "@/lib/userActions";
+import Link from "next/link";
+import Image from "next/image";
 
 const navigation = [
   { name: "Home", href: "#" },
@@ -58,28 +61,21 @@ export default function Header({ user = null }: { user: User | null }) {
         className="mx-auto flex max-w-7xl items-center justify-between gap-x-6 p-6 lg:px-8"
         aria-label="Global"
       >
-        <div className="flex lg:flex-1">
-          <a
-            href="#"
-            className="-m-1.5 p-1.5"
-            onClick={(e) => {
-              e.preventDefault();
-              handleNavClick("#");
-            }}
-          >
-            <span className="sr-only">SyncUp</span>
-            <img className="h-8 w-auto" src="Symbian.png" alt="" />
-          </a>
-          <div
-            className="font text-l flex items-center px-2 font-semibold text-light"
-            onClick={() => handleNavClick("#")}
-          >
-            Sync Up
+        <Link href="/">
+          <div className="flex lg:flex-1">
+            <div className="-m-1.5 p-1.5">
+              <span className="sr-only">SyncUp</span>
+              <img className="h-8 w-auto" src="Symbian.png" alt="" />
+            </div>
+            <div className="font text-l flex items-center px-2 font-semibold text-light">
+              SyncUp
+            </div>
           </div>
-        </div>
+        </Link>
+
         <div className="hidden lg:flex lg:gap-x-12">
           {navigation.map((item) => (
-            <a
+            <Link
               key={item.name}
               href={`#${item.href.substring(1)}`} // Update the href to only include the section ID
               onClick={(e) => {
@@ -89,7 +85,7 @@ export default function Header({ user = null }: { user: User | null }) {
               className="text-sm font-semibold leading-6 text-light hover:text-primary"
             >
               {item.name}
-            </a>
+            </Link>
           ))}
         </div>
 
@@ -141,7 +137,7 @@ export default function Header({ user = null }: { user: User | null }) {
                     <div className="py-1">
                       <Menu.Item>
                         {({ active }) => (
-                          <a
+                          <Link
                             href={`/dashboard`}
                             className={classNames(
                               active ? "bg-[#383838] text-light" : "text-light",
@@ -149,12 +145,12 @@ export default function Header({ user = null }: { user: User | null }) {
                             )}
                           >
                             Dashboard
-                          </a>
+                          </Link>
                         )}
                       </Menu.Item>
                       <Menu.Item>
                         {({ active }) => (
-                          <a
+                          <Link
                             href={`/edit-profile/${user?.id}`}
                             className={classNames(
                               active ? "bg-[#383838] text-light" : "text-light",
@@ -162,12 +158,12 @@ export default function Header({ user = null }: { user: User | null }) {
                             )}
                           >
                             My Profile
-                          </a>
+                          </Link>
                         )}
                       </Menu.Item>
                       <Menu.Item>
                         {({ active }) => (
-                          <a
+                          <Link
                             href="#"
                             className={classNames(
                               active ? "bg-[#383838] text-light" : "text-light",
@@ -175,12 +171,12 @@ export default function Header({ user = null }: { user: User | null }) {
                             )}
                           >
                             Support
-                          </a>
+                          </Link>
                         )}
                       </Menu.Item>
                       <Menu.Item>
                         {({ active }) => (
-                          <a
+                          <Link
                             href="#"
                             className={classNames(
                               active ? "bg-[#383838] text-light" : "text-light",
@@ -188,7 +184,7 @@ export default function Header({ user = null }: { user: User | null }) {
                             )}
                           >
                             License
-                          </a>
+                          </Link>
                         )}
                       </Menu.Item>
                     </div>
@@ -215,18 +211,18 @@ export default function Header({ user = null }: { user: User | null }) {
             </div>
           ) : (
             <>
-              <a
+              <Link
                 href="/signin"
                 className="hidden hover:text-primary lg:block lg:text-sm lg:font-semibold lg:leading-6 lg:text-light"
               >
                 Log in
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/signup"
                 className="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               >
                 Sign up
-              </a>
+              </Link>
             </>
           )}
         </div>
@@ -250,20 +246,21 @@ export default function Header({ user = null }: { user: User | null }) {
         <div className="fixed inset-0 z-10" />
         <Dialog.Panel className="fixed inset-y-0 right-0 z-10 w-full overflow-y-auto bg-white px-6 py-6 sm:max-w-sm sm:ring-1 sm:ring-gray-900/10">
           <div className="flex items-center gap-x-6">
-            <a href="#" className="-m-1.5 p-1.5">
-              <span className="sr-only">Your Company</span>
-              <img
-                className="h-8 w-auto"
-                src="https://tailwindui.com/img/logos/mark.svg?color=indigo&shade=600"
-                alt=""
-              />
-            </a>
-            <a
-              href="#"
+            <Link href="/">
+              <div className="flex lg:flex-1 ">
+                <div className="-m-1.5 p-1.5">
+                  <span className="sr-only">SyncUp</span>
+                  <Image className="h-8 w-auto" src="Symbian.png" alt="SyncUp Logo" />
+                </div>
+                <div className="font text-lg font-semibold text-light">SyncUp</div>
+              </div>
+            </Link>
+            <Link
+              href="/signup"
               className="ml-auto rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               Sign up
-            </a>
+            </Link>
             <button
               type="button"
               className="-m-2.5 rounded-md p-2.5 text-gray-700"
@@ -277,22 +274,22 @@ export default function Header({ user = null }: { user: User | null }) {
             <div className="-my-6 divide-y divide-gray-500/10">
               <div className="space-y-2 py-6">
                 {navigation.map((item) => (
-                  <a
+                  <Link
                     key={item.name}
                     href={item.href}
                     className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
                   >
                     {item.name}
-                  </a>
+                  </Link>
                 ))}
               </div>
               <div className="py-6">
-                <a
+                <Link
                   href="/signin"
                   className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
                 >
                   Log in
-                </a>
+                </Link>
               </div>
             </div>
           </div>

@@ -10,6 +10,7 @@ import {
   UsersIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
+import Image from "next/image";
 import Link from "next/link";
 import { Fragment, useEffect, useState } from "react";
 
@@ -97,16 +98,18 @@ const SideNavMenu = () => {
                 </Transition.Child>
                 {/* Sidebar component, swap this element with another sidebar if you like */}
                 <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-4">
-                  <div className="flex h-16 shrink-0 items-center">
-                    <img className="h-8 w-auto" src="/Symbian.png" alt="SyncUp" />
-                  </div>
+                  <Link href="#">
+                    <div className="flex h-16 shrink-0 items-center">
+                      <img className="h-8 w-auto" src="/Symbian.png" alt="SyncUp" />
+                    </div>
+                  </Link>
                   <nav className="flex flex-1 flex-col">
                     <ul role="list" className="flex flex-1 flex-col gap-y-7">
                       <li>
                         <ul role="list" className="-mx-2 space-y-1">
                           {navigation.map((item) => (
                             <li key={item.name}>
-                              <a
+                              <Link
                                 href={item.href}
                                 onClick={() => handleItemClick(item.name)}
                                 className={classNames(
@@ -126,7 +129,7 @@ const SideNavMenu = () => {
                                   aria-hidden="true"
                                 />
                                 {item.name}
-                              </a>
+                              </Link>
                             </li>
                           ))}
                         </ul>
@@ -187,10 +190,12 @@ const SideNavMenu = () => {
       {/* Static sidebar for desktop */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
         <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-[#525252] bg-eerieblack px-6 pb-4">
-          <div className="flex h-16 shrink-0 items-center">
-            <img className="h-8 w-auto" src="/Symbian.png" alt="SyncUp" />
-            <p className="ml-2 font-semibold text-light">SyncUp</p>
-          </div>
+          <Link href="/">
+            <div className="flex h-16 shrink-0 items-center">
+              <img className="h-8 w-auto" src="/Symbian.png" alt="SyncUp" />
+              <p className="ml-2 font-semibold text-light">SyncUp</p>
+            </div>
+          </Link>
 
           <nav className="flex flex-1 flex-col">
             <ul role="list" className="flex flex-1 flex-col gap-y-7">
