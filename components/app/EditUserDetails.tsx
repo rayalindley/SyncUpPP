@@ -38,6 +38,7 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [email, setEmail] = useState("");
+  const [imageError, setImageError] = useState("");
   const { user } = useUser(); // Use the useUser hook to access the logged-in user's details
 
   const {
@@ -163,12 +164,21 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                   </label>
                   <input
                     id="file-input"
+                    accept="image/*"
                     type="file"
                     onChange={async (event) => {
                       const file = event.target.files?.[0];
                       if (file) {
+                        // Check if the file is an image
+                        if (!file.type.startsWith("image/")) {
+                          // Set the error message
+                          setImageError("Please upload an image file");
+                          return;
+                        }
                         const base64 = await convertToBase64(file);
                         setUserProfile({ ...userProfile, profilepicture: base64 });
+                        // Clear the error message
+                        setImageError("");
                       }
                     }}
                     className="hidden"
@@ -176,6 +186,8 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                 </div>
               </div>
             </div>
+            {/* Display the error message */}
+            <p className="text-center text-red-500">{imageError}</p>
 
             <div className="mx-auto w-full space-y-4 sm:max-w-lg">
               <div className="mt-8 flex flex-row gap-2">

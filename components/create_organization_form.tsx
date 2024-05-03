@@ -183,6 +183,8 @@ async function checkSlugAvailability(slug: string) {
 }
 
 const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null }) => {
+  const [imageError, setImageError] = useState("");
+
   const { prev, next, jump, total, current, progress } = useSteps();
 
   const [formData, setFormData] = useState<OrganizationFormValues>(formValues);
@@ -395,12 +397,21 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                     </label>
                     <input
                       id="file-input"
+                      accept="image/*"
                       type="file"
                       onChange={async (event) => {
                         const file = event.target.files?.[0];
                         if (file) {
+                          // Check if the file is an image
+                          if (!file.type.startsWith("image/")) {
+                            // Set the error message
+                            setImageError("Please upload an image file");
+                            return;
+                          }
                           const base64 = await convertToBase64(file);
                           setPhoto(base64);
+                          // Clear the error message
+                          setImageError("");
                         }
                       }}
                       className="hidden"
@@ -408,7 +419,8 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                   </div>
                 </div>
               </div>
-
+              {/* Display the error message */}
+              <p className="text-center text-red-500">{imageError}</p>
               <label
                 htmlFor="name"
                 className="block text-sm font-medium leading-6 text-white"
