@@ -9,10 +9,9 @@ import {
   updateUserProfileById,
 } from "@/lib/userActions";
 import { convertToBase64, isDateValid } from "@/lib/utils";
-import { Dialog, Transition } from "@headlessui/react";
 import { EnvelopeIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Fragment, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import Swal from "sweetalert2";
 import { z } from "zod";
@@ -37,13 +36,9 @@ const UserProfileSchema = z.object({
 
 const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [isOpen, setIsOpen] = useState(false);
-  const [dialogMessage, setDialogMessage] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [email, setEmail] = useState("");
   const { user } = useUser(); // Use the useUser hook to access the logged-in user's details
-
-  let completeButtonRef = useRef(null);
 
   const {
     register,
@@ -84,11 +79,12 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
     const response = await updateUserProfileById(userProfile?.userid || "", updatedData);
 
     if (response === null) {
-      setDialogMessage("Error updating user profile.");
+      Swal.fire("Error", "Error updating user profile.", "error");
     } else {
-      setDialogMessage("User profile updated successfully");
+      Swal.fire("Success", "User profile updated successfully", "success").then(() => {
+        window.history.back();
+      });
     }
-    setIsOpen(true);
     setIsUpdating(false);
   };
 
@@ -306,74 +302,6 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
           </div>
         </form>
       </div>
-
-      <Transition.Root show={isOpen} as={Fragment}>
-        <Dialog
-          as="div"
-          static
-          className="fixed inset-0 z-50 overflow-y-auto"
-          initialFocus={completeButtonRef}
-          open={isOpen}
-          onClose={setIsOpen}
-        >
-          <div className="flex min-h-screen items-end justify-center px-4 pb-20 pt-4 text-center sm:block sm:p-0">
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-300"
-              enterFrom="opacity-0"
-              enterTo="opacity-100"
-              leave="ease-in duration-200"
-              leaveFrom="opacity-100"
-              leaveTo="opacity-0"
-            >
-              <Dialog.Overlay className="fixed inset-0 bg-charleston bg-opacity-75 transition-opacity" />
-            </Transition.Child>
-            <span
-              className="hidden sm:inline-block sm:h-screen sm:align-middle"
-              aria-hidden="true"
-            >
-              ​
-            </span>
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-300"
-              enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-              enterTo="opacity-100 translate-y-0 sm:scale-100"
-              leave="ease-in duration-200"
-              leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-              leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-            >
-              <div className="inline-block transform overflow-hidden rounded-lg bg-raisinblack text-left align-bottom shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:align-middle">
-                <div className="bg-raisinblack px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                  <div className="sm:flex sm:items-start">
-                    <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
-                      <Dialog.Title
-                        as="h3"
-                        className="text-lg font-medium leading-6 text-light"
-                      >
-                        {dialogMessage}
-                      </Dialog.Title>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-raisinblack px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
-                  <button
-                    type="button"
-                    className="mt-3 inline-flex w-full justify-center rounded-md border border-transparent bg-primary px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-primarydark focus:outline-none focus:ring-1 focus:ring-primary focus:ring-offset-1 sm:ml-3 sm:mt-0 sm:w-auto sm:text-sm"
-                    onClick={() => {
-                      setIsOpen(false);
-                      window.history.back(); // Redirect to the previous window
-                    }}
-                    ref={completeButtonRef}
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-            </Transition.Child>
-          </div>
-        </Dialog>
-      </Transition.Root>
     </div>
   );
 };
