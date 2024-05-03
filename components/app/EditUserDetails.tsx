@@ -253,7 +253,7 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                 <textarea
                   {...register("description")}
                   defaultValue={userProfile.description}
-                  className="mt-1 block w-full rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+                  className="mt-1 block max-h-[400px] min-h-[150px] w-full rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
                 />
                 <p className="text-red-500">
                   {errors.description && errors.description.message}
