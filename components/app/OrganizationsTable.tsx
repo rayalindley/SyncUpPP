@@ -51,14 +51,15 @@ export default function OrganizationsTable({ organizations }) {
                       scope="col"
                       className="px-3 py-3.5 text-left text-sm font-semibold text-light"
                     >
-                      Created at
+                      Date Established
                     </th>
                     <th
                       scope="col"
                       className="px-3 py-3.5 text-left text-sm font-semibold text-light"
                     >
-                      Date Established
+                      Created at
                     </th>
+
                     <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                       <span className="sr-only">Edit</span>
                     </th>
@@ -98,17 +99,28 @@ function OrganizationRow({ org }) {
         {org.organization_size}
       </td>
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-        {new Date(org.created_at).toLocaleDateString()}{" "}
-        {new Date(org.created_at).toLocaleTimeString()}
+        {org.date_established
+          ? new Date(org.date_established).toLocaleString("en-US", {
+              weekday: "long", // "Monday"
+              year: "numeric", // "2024"
+              month: "long", // "April"
+              day: "numeric", // "16"
+            })
+          : ""}
       </td>
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-        {org.date_established && (
-          <>
-            {new Date(org.date_established).toLocaleDateString()}{" "}
-            {new Date(org.date_established).toLocaleTimeString()}
-          </>
-        )}
+        {org.created_at
+          ? new Date(org.created_at).toLocaleString("en-US", {
+              weekday: "long", // "Monday"
+              year: "numeric", // "2024"
+              month: "long", // "April"
+              day: "numeric", // "16"
+              hour: "numeric", // "1"
+              minute: "2-digit", // "40"
+            })
+          : ""}
       </td>
+
       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
         <OrganizationOptions selectedOrg={org} open={open} setOpen={setOpen} />
       </td>

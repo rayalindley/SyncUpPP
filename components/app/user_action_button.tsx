@@ -306,7 +306,7 @@ export default function UserActionButton({
                       <div className="relative flex-1 flex-wrap overflow-auto">
                         {/* <JSONPretty data={selectedUser} theme={jsonTheme}></JSONPretty> */}
                         <div className="relative mt-6 flex-1 flex-wrap overflow-hidden px-4 text-light sm:px-6">
-                          <table className="table-auto">
+                          <table className="w-full table-auto">
                             <tbody>
                               <tr>
                                 <td className="p-2 font-bold text-gray-400">Name:</td>
@@ -334,7 +334,13 @@ export default function UserActionButton({
                               </tr>
                               <tr>
                                 <td className="p-2 font-bold text-gray-400">Gender:</td>
-                                <td className="p-2">{userProfile.gender}</td>
+                                <td className="p-2">
+                                  {userProfile.gender == "M"
+                                    ? "Male"
+                                    : userProfile.gender == "F"
+                                      ? "Female"
+                                      : ""}
+                                </td>
                               </tr>
                               <tr>
                                 <td className="colspan-2" colSpan={2}>
@@ -349,13 +355,38 @@ export default function UserActionButton({
                                 <td className="p-2 font-bold text-gray-400">
                                   Created at:
                                 </td>
-                                <td className="p-2">{selectedUser.created_at}</td>
+                                <td className="p-2">
+                                  {new Date(selectedUser.created_at).toLocaleString(
+                                    "en-US",
+                                    {
+                                      weekday: "long", // "Monday"
+                                      year: "numeric", // "2024"
+                                      month: "long", // "April"
+                                      day: "numeric", // "16"
+                                      hour: "numeric", // "1"
+                                      minute: "2-digit", // "40"
+                                    }
+                                  )}
+                                </td>
                               </tr>
                               <tr>
                                 <td className="p-2 font-bold text-gray-400">
                                   Last sign in:
                                 </td>
-                                <td className="p-2">{selectedUser.last_sign_in_at}</td>
+                                <td className="p-2">
+                                  {selectedUser.last_sign_in_at
+                                    ? new Date(
+                                        selectedUser.last_sign_in_at
+                                      ).toLocaleString("en-US", {
+                                        weekday: "long", // "Monday"
+                                        year: "numeric", // "2024"
+                                        month: "long", // "April"
+                                        day: "numeric", // "16"
+                                        hour: "numeric", // "1"
+                                        minute: "2-digit", // "40"
+                                      })
+                                    : ""}
+                                </td>
                               </tr>
                             </tbody>
                           </table>

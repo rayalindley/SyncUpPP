@@ -97,11 +97,24 @@ function UserRow({ userProfile, user }) {
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">{user.email}</td>
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">{user.role}</td>
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-        {new Date(user.created_at).toLocaleDateString()}{" "}
-        {new Date(user.created_at).toLocaleTimeString()}
+        {new Date(user.created_at).toLocaleString("en-US", {
+          weekday: "long", // "Monday"
+          year: "numeric", // "2024"
+          month: "long", // "April"
+          day: "numeric", // "16"
+          hour: "numeric", // "1"
+          minute: "2-digit", // "40"
+        })}
       </td>
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-        {user.last_sign_in_at ?? ""}
+        {new Date(user.last_sign_in_at).toLocaleString("en-US", {
+          weekday: "long", // "Monday"
+          year: "numeric", // "2024"
+          month: "long", // "April"
+          day: "numeric", // "16"
+          hour: "numeric", // "1"
+          minute: "2-digit", // "40"
+        })}
       </td>
       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
         <UserActionButton

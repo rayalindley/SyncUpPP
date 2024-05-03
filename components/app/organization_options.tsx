@@ -193,7 +193,7 @@ export default function OrganizationOptions({
                       </div>
                       <div className="relative mt-6 flex-1 flex-wrap overflow-hidden px-4 text-light sm:px-6">
                         {/* <JSONPretty data={selectedOrg} theme={jsonTheme}></JSONPretty> */}
-                        <table className="table-auto ">
+                        <table className="w-full table-auto ">
                           <tbody>
                             <tr>
                               <td className="p-2 font-bold text-gray-400">Name:</td>
@@ -245,7 +245,17 @@ export default function OrganizationOptions({
                                 Date Established:
                               </td>
                               <td className="p-2">
-                                {selectedOrg.date_established || "Not specified"}
+                                {selectedOrg.date_established
+                                  ? new Date(selectedOrg.date_established).toLocaleString(
+                                      "en-US",
+                                      {
+                                        weekday: "long", // "Monday"
+                                        year: "numeric", // "2024"
+                                        month: "long", // "April"
+                                        day: "numeric", // "16"
+                                      }
+                                    )
+                                  : "Not specified"}
                               </td>
                             </tr>
                             <tr>
