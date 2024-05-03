@@ -4,10 +4,6 @@ import UserActionButton from "./user_action_button";
 import { useState } from "react";
 
 export default function UsersTable({ users, userProfiles }) {
-  // const {setOpen } = useOpenStore();
-
-  const [open, setOpen] = useState(false);
-
   return (
     <div className="px-4 sm:px-6 lg:px-8">
       <div className="sm:flex sm:items-center">

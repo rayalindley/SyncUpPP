@@ -51,6 +51,8 @@ export default function OrganizationOptions({
             title: "Deleted!",
             text: "The organization was successfully deleted.",
             icon: "success",
+          }).then(() => {
+            location.reload();
           });
         } else {
           Swal.fire({

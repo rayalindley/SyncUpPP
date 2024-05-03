@@ -87,7 +87,6 @@ export default function UserActionButton({
               text: "The user successfully deleted.",
               icon: "success",
             }).then(() => {
-              // redirect("./"); // Reload the page
               location.reload();
             });
           } else {
