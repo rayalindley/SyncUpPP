@@ -104,7 +104,12 @@ function UserRow({ userProfile, user }) {
         {user.last_sign_in_at ?? ""}
       </td>
       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-        <UserActionButton selectedUser={user} open={open} setOpen={setOpen} />
+        <UserActionButton
+          selectedUser={user}
+          userProfile={userProfile.data}
+          open={open}
+          setOpen={setOpen}
+        />
       </td>
     </tr>
   );
