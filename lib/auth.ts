@@ -14,10 +14,10 @@ const signUpSchema = z.object({
   password: z.string().min(8, { message: "Password must be at least 8 characters long" }),
   first_name: z
     .string()
-    .min(3, { message: "First name must be at least 3 characters long" }), // Updated minimum length requirement
+    .min(2, { message: "First name must be at least 2 characters long" }), // Updated minimum length requirement
   last_name: z
     .string()
-    .min(3, { message: "Last name must be at least 3 characters long" }), // Updated minimum length requirement
+    .min(2, { message: "Last name must be at least 2 characters long" }), // Updated minimum length requirement
 });
 
 export async function signOut() {
