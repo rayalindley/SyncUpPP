@@ -1,13 +1,12 @@
-import { getAllUsers } from "@/lib/supabase/server";
-import { getUserProfileById } from "@/lib/userActions";
-import { User } from "@supabase/auth-js/dist/module/lib/types";
+"use client";
+import { useOpenStore } from "@/store/useOpenStore";
 import UserActionButton from "./user_action_button";
+import { useState } from "react";
 
-export default async function UsersTable() {
-  const users: User[] = (await getAllUsers()) ?? [];
-  const userProfiles = await Promise.all(
-    users.map((user) => getUserProfileById(user.id))
-  );
+export default function UsersTable({ users, userProfiles }) {
+  // const {setOpen } = useOpenStore();
+
+  const [open, setOpen] = useState(false);
 
   return (
     <div className="px-4 sm:px-6 lg:px-8">
@@ -68,29 +67,7 @@ export default async function UsersTable() {
                 </thead>
                 <tbody className="divide-y divide-[#525252] bg-raisinblack">
                   {userProfiles.map((userProfile, index) => (
-                    <tr key={users[index].email}>
-                      <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-light sm:pl-6">
-                        {userProfile?.data
-                          ? `${userProfile.data?.first_name} ${userProfile.data?.last_name}`
-                          : "Loading..."}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-                        {users[index].email}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-                        {users[index].role}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-                        {new Date(users[index].created_at).toLocaleDateString()}{" "}
-                        {new Date(users[index].created_at).toLocaleTimeString()}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-                        {users[index].last_sign_in_at ?? ""}
-                      </td>
-                      <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                        <UserActionButton selectedUser={users[index]} />
-                      </td>
-                    </tr>
+                    <UserRow key={index} userProfile={userProfile} user={users[index]} />
                   ))}
                 </tbody>
               </table>
@@ -99,5 +76,36 @@ export default async function UsersTable() {
         </div>
       </div>
     </div>
+  );
+}
+
+function UserRow({ userProfile, user }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <tr>
+      <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-light sm:pl-6">
+        <span
+          className="hover:cursor-pointer hover:text-primary"
+          onClick={() => setOpen(true)}
+        >
+          {userProfile?.data
+            ? `${userProfile.data?.first_name} ${userProfile.data?.last_name}`
+            : "Loading..."}
+        </span>
+      </td>
+      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">{user.email}</td>
+      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">{user.role}</td>
+      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
+        {new Date(user.created_at).toLocaleDateString()}{" "}
+        {new Date(user.created_at).toLocaleTimeString()}
+      </td>
+      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
+        {user.last_sign_in_at ?? ""}
+      </td>
+      <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+        <UserActionButton selectedUser={user} open={open} setOpen={setOpen} />
+      </td>
+    </tr>
   );
 }

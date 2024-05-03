@@ -1,22 +1,8 @@
-import { createClient } from "@/lib/supabase/server";
-import Swal from "sweetalert2";
+"use client";
+import { useState } from "react";
 import OrganizationOptions from "./organization_options";
 
-export default async function OrganizationsTable() {
-  const deleteBtn = () => {
-    Swal.fire({
-      title: "Good job!",
-      text: "You clicked the button!",
-      icon: "success",
-    });
-  };
-  // const users: User[] = (await getAllUsers()) ?? [];
-
-  const supabase = createClient();
-
-  const { data: organizations, error } =
-    (await supabase.from("organizations").select("*")) ?? [];
-
+export default function OrganizationsTable({ organizations }) {
   return (
     <div className="px-4 sm:px-6 lg:px-8">
       <div className="sm:flex sm:items-center">
@@ -79,36 +65,8 @@ export default async function OrganizationsTable() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#525252] bg-raisinblack">
-                  {organizations.map((org) => (
-                    <tr key={org.organizationid}>
-                      <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-light sm:pl-6">
-                        {org.name}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-                        {org.organization_type}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-                        {org.industry}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-                        {org.organization_size}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-                        {new Date(org.created_at).toLocaleDateString()}{" "}
-                        {new Date(org.created_at).toLocaleTimeString()}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-                        {org.date_established && (
-                          <>
-                            {new Date(org.date_established).toLocaleDateString()}{" "}
-                            {new Date(org.date_established).toLocaleTimeString()}
-                          </>
-                        )}
-                      </td>
-                      <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                        <OrganizationOptions selectedOrg={org} />
-                      </td>
-                    </tr>
+                  {organizations.map((org, index) => (
+                    <OrganizationRow key={index} org={org} />
                   ))}
                 </tbody>
               </table>
@@ -117,5 +75,43 @@ export default async function OrganizationsTable() {
         </div>
       </div>
     </div>
+  );
+}
+
+function OrganizationRow({ org }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <tr key={org.organizationid}>
+      <td
+        className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-light sm:pl-6"
+        onClick={() => setOpen(!open)}
+      >
+        <a href="#" className="hover:text-primary" onClick={() => setOpen(!open)}>
+          {org.name}
+        </a>
+      </td>
+      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
+        {org.organization_type}
+      </td>
+      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">{org.industry}</td>
+      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
+        {org.organization_size}
+      </td>
+      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
+        {new Date(org.created_at).toLocaleDateString()}{" "}
+        {new Date(org.created_at).toLocaleTimeString()}
+      </td>
+      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
+        {org.date_established && (
+          <>
+            {new Date(org.date_established).toLocaleDateString()}{" "}
+            {new Date(org.date_established).toLocaleTimeString()}
+          </>
+        )}
+      </td>
+      <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+        <OrganizationOptions selectedOrg={org} open={open} setOpen={setOpen} />
+      </td>
+    </tr>
   );
 }
