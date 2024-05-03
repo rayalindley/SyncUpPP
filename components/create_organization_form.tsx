@@ -214,6 +214,10 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
   useEffect(() => {
     if (formValues) {
       // console.log(formValues);
+      const dateEstablished = formValues.date_established
+        ? new Date(formValues.date_established)
+        : undefined;
+
       reset({
         name: formValues.name,
         slug: formValues.slug,
@@ -222,9 +226,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
         industry: formValues.industry,
         organizationSize: formValues.organization_size,
         website: formValues.website,
-        // ! date Established has a problem.
-        // dateEstablished: formValues.date_established,
-
+        dateEstablished: dateEstablished,
         addressLine1: formValues.address.addressLine1,
         addressLine2: formValues.address.addressLine2,
         city: formValues.address.city,
