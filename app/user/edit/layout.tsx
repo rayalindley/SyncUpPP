@@ -1,6 +1,4 @@
 import { redirect } from "next/navigation";
-
-import Header from "@/components/dashboard/Header";
 import { UserProvider } from "@/context/UserContext";
 import { getUser } from "@/lib/supabase/server";
 
