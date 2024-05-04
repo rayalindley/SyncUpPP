@@ -324,9 +324,9 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
           draggable: true,
           progress: undefined,
           theme: "light",
+          onClose: () => router.push("/dashboard") // Redirect on toast close
         });
 
-        router.push("/dashboard");
         reset();
       } else if (error) {
         toast.error(error.message || "An error occurred while adding the project");

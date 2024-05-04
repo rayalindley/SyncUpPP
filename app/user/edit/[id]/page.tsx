@@ -67,7 +67,7 @@ export default function EditProfilePage() {
       <div className="mb-10 sm:mx-auto sm:w-full sm:max-w-sm">
         <img className="mx-auto h-10 w-auto" src="/Symbian.png" alt="SyncUp" />
         <h2 className="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-white">
-          Your Profile
+          Edit User Details
         </h2>
       </div>
       <EditUserDetails userId={id} />

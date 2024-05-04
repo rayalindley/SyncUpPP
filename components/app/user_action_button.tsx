@@ -151,7 +151,7 @@ export default function UserActionButton({
               <Menu.Item>
                 {({ active }) => (
                   <Link
-                    href={`/dashboard/users/edit/${selectedUser.id}`}
+                    href={`/user/edit/${selectedUser.id}`}
                     className={classNames(
                       active ? "bg-raisinblack text-light" : "text-light",
                       "group flex cursor-pointer items-center px-4 py-2 text-sm"
@@ -392,7 +392,7 @@ export default function UserActionButton({
                           <div className="mt-5 flex gap-2">
                             <Link
                               className="group flex items-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-light text-white shadow-sm hover:bg-opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                              href={`/dashboard/users/edit/${selectedUser.id}`}
+                              href={`/user/edit/${selectedUser.id}`}
                             >
                               Edit
                             </Link>

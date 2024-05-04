@@ -152,7 +152,7 @@ export default function Header({ user = null }: { user: User | null }) {
                       <Menu.Item>
                         {({ active }) => (
                           <Link
-                            href={`/edit-profile/${user?.id}`}
+                            href={`/user/edit/${user?.id}`}
                             className={classNames(
                               active ? "bg-[#383838] text-light" : "text-light",
                               "block px-4 py-2 text-sm"
