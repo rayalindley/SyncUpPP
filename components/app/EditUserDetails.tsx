@@ -200,7 +200,7 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
         theme="dark"
       />
       <div
-        className="overflow-hidden bg-raisinblack p-6 shadow sm:rounded-lg"
+        className="overflow-hidde p-6 shadow sm:rounded-lg"
         style={{ maxWidth: "700px", margin: "0 auto" }}
       >
         <div className="overflow-auto sm:h-auto">
