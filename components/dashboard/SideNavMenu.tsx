@@ -1,4 +1,5 @@
 "use client";
+import useSidebarStore from "@/store/useSidebarStore";
 import { Dialog, Transition } from "@headlessui/react";
 import {
   CalendarIcon,
@@ -12,42 +13,41 @@ import {
 } from "@heroicons/react/24/outline";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Fragment, useEffect, useState } from "react";
 
 function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
 }
 
+const navigation = [
+  { name: "Dashboard", href: "/dashboard", icon: HomeIcon },
+  { name: "Users", href: "/dashboard/users", icon: UsersIcon },
+  {
+    name: "Organizations",
+    href: "/dashboard/organizations",
+    icon: UsersIcon,
+  },
+  { name: "Projects", href: "#", icon: FolderIcon },
+  { name: "Calendar", href: "#", icon: CalendarIcon },
+  { name: "Documents", href: "#", icon: DocumentDuplicateIcon },
+  { name: "Reports", href: "#", icon: ChartPieIcon },
+];
+
 const SideNavMenu = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [currentItem, setCurrentItem] = useState<string | null>(() => {
-    // Determine the default item based on the current URL path
-    const currentPath = window.location.pathname;
-    return currentPath;
-  });
+  const { sidebarOpen, toggleSidebar, setSidebarOpen } = useSidebarStore((state) => ({
+    sidebarOpen: state.sidebarOpen,
+    toggleSidebar: state.toggleSidebar,
+    setSidebarOpen: state.setSidebarOpen,
+  }));
 
-  const navigation = [
-    { name: "Dashboard", href: "/dashboard", icon: HomeIcon },
-    { name: "Users", href: "/dashboard/users", icon: UsersIcon },
-    {
-      name: "Organizations",
-      href: "/dashboard/organizations",
-      icon: UsersIcon,
-    },
-    { name: "Projects", href: "#", icon: FolderIcon },
-    { name: "Calendar", href: "#", icon: CalendarIcon },
-    { name: "Documents", href: "#", icon: DocumentDuplicateIcon },
-    { name: "Reports", href: "#", icon: ChartPieIcon },
-  ];
-
-  const handleItemClick = (itemHref: string) => {
-    setCurrentItem(itemHref);
-  };
+  const pathname = usePathname();
+  const [currentItem, setCurrentItem] = useState(pathname);
 
   useEffect(() => {
-    const currentPath = window.location.pathname;
-    setCurrentItem(currentPath);
-  }, []);
+    setCurrentItem(pathname);
+    console.log(pathname);
+  }, [pathname]);
 
   return (
     <div>
@@ -111,7 +111,6 @@ const SideNavMenu = () => {
                             <li key={item.name}>
                               <Link
                                 href={item.href}
-                                onClick={() => handleItemClick(item.name)}
                                 className={classNames(
                                   currentItem === item.name
                                     ? "bg-gray-50 text-indigo-600"
@@ -143,7 +142,6 @@ const SideNavMenu = () => {
                             <li key={item.name}>
                               <a
                                 href={item.href}
-                                onClick={() => handleItemClick(item.name)}
                                 className={classNames(
                                   currentItem === item.name
                                     ? "bg-gray-50 text-indigo-600"
@@ -205,7 +203,6 @@ const SideNavMenu = () => {
                     <li key={item.name}>
                       <Link
                         href={item.href}
-                        onClick={() => handleItemClick(item.href)}
                         className={classNames(
                           currentItem === item.href
                             ? "bg-charleston text-light"
