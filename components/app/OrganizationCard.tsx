@@ -11,7 +11,7 @@ export default function OrganizationCard({
   const photoUrl = photo || "./images/placeholder.png";
 
   return (
-    <div className="mx-auto max-w-2xl transform gap-6 rounded-2xl rounded-2xl border border-[#2e2e2e] bg-[#232323] px-8 py-10 transition duration-200 hover:scale-[1.03] hover:bg-charleston lg:mx-0 lg:max-w-none lg:gap-8">
+    <div className="mx-auto max-w-2xl transform gap-6 rounded-2xl border border-[#2e2e2e] bg-[#232323] px-8 py-10 transition duration-200 hover:scale-[1.03] hover:bg-charleston lg:mx-0 lg:max-w-none lg:gap-8">
       <img
         className="mx-auto h-48 w-48 rounded-full md:h-56 md:w-56"
         src={photoUrl}
