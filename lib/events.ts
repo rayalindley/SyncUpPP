@@ -31,3 +31,31 @@ export async function insertEvent(formData: any, organizationId: string) {
     };
   }
 }
+
+export async function fetchEvents(
+  organizationId: string,
+  currentPage: number,
+  eventsPerPage: number
+) {
+  const supabase = createClient();
+  try {
+    const { data, error } = await supabase
+      .from("events")
+      .select("*")
+      .eq("organizationid", organizationId)
+      .range(currentPage * eventsPerPage - eventsPerPage, currentPage * eventsPerPage)
+      .order("createdat", { ascending: false });
+
+    if (!error) {
+      return { data, error: null };
+    } else {
+      return { data: null, error: { message: error.message } };
+    }
+  } catch (e: any) {
+    console.error("Unexpected error:", e);
+    return {
+      data: null,
+      error: { message: e.message || "An unexpected error occurred" },
+    };
+  }
+}

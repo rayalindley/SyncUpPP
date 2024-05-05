@@ -53,6 +53,7 @@ export default async function OrganizationUserView({
   console.log("Facebook Link:", facebookLink);
   console.log("Twitter Link:", twitterLink);
   console.log("LinkedIn Link:", linkedinLink);
+  console.log("Organization ID", org.organizationid);
 
   return (
     <div>
@@ -92,7 +93,7 @@ export default async function OrganizationUserView({
             <div className="mt-4 px-4 text-center text-sm text-light sm:px-8 lg:px-10">
               {org.description}
             </div>
-            <TabsComponent />
+            <TabsComponent organizationid={org.organizationid} />
           </div>
         </div>
       </main>

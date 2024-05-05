@@ -1,91 +1,30 @@
+import { fetchEvents } from "@/lib/events";
 import { ArrowLongLeftIcon, ArrowLongRightIcon } from "@heroicons/react/20/solid";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import EventsCard from "./events_card";
-const OrganizationEventsComponent = () => {
-  const events = [
-    {
-      imageUrl:
-        "https://th.bing.com/th/id/OIP.V76hCjYZKa70VvykQdMeugAAAA?rs=1&pid=ImgDetMain",
-      title: "Event 1",
-      description: "Description for Event 1",
-      attendees: 50,
-    },
-    {
-      imageUrl:
-        "https://th.bing.com/th/id/OIP.VqxtlWgrsfErpOTyES3jxQHaEa?rs=1&pid=ImgDetMain",
-      title: "Event 2",
-      description: "Description for Event 2",
-      attendees: 30,
-    },
-    {
-      imageUrl:
-        "https://th.bing.com/th/id/OIP.VqxtlWgrsfErpOTyES3jxQHaEa?rs=1&pid=ImgDetMain",
-      title: "Event 2",
-      description: "Description for Event 2",
-      attendees: 30,
-    },
-    {
-      imageUrl:
-        "https://th.bing.com/th/id/OIP.VqxtlWgrsfErpOTyES3jxQHaEa?rs=1&pid=ImgDetMain",
-      title: "Event 2",
-      description: "Description for Event 2",
-      attendees: 30,
-    },
-    {
-      imageUrl:
-        "https://th.bing.com/th/id/OIP.VqxtlWgrsfErpOTyES3jxQHaEa?rs=1&pid=ImgDetMain",
-      title: "Event 2",
-      description: "Description for Event 2",
-      attendees: 30,
-    },
-    {
-      imageUrl:
-        "https://th.bing.com/th/id/OIP.VqxtlWgrsfErpOTyES3jxQHaEa?rs=1&pid=ImgDetMain",
-      title: "Event 2",
-      description: "Description for Event 2",
-      attendees: 30,
-    },
-    {
-      imageUrl:
-        "https://th.bing.com/th/id/OIP.VqxtlWgrsfErpOTyES3jxQHaEa?rs=1&pid=ImgDetMain",
-      title: "Event 2",
-      description: "Description for Event 2",
-      attendees: 30,
-    },
-    {
-      imageUrl:
-        "https://th.bing.com/th/id/OIP.VqxtlWgrsfErpOTyES3jxQHaEa?rs=1&pid=ImgDetMain",
-      title: "Event 2",
-      description: "Description for Event 2",
-      attendees: 30,
-    },
-    {
-      imageUrl:
-        "https://th.bing.com/th/id/OIP.VqxtlWgrsfErpOTyES3jxQHaEa?rs=1&pid=ImgDetMain",
-      title: "Event 2",
-      description: "Description for Event 2",
-      attendees: 30,
-    },
-    {
-      imageUrl:
-        "https://th.bing.com/th/id/OIP.VqxtlWgrsfErpOTyES3jxQHaEa?rs=1&pid=ImgDetMain",
-      title: "Event 2",
-      description: "Description for Event 2",
-      attendees: 30,
-    },
-    {
-      imageUrl:
-        "https://th.bing.com/th/id/OIP.VqxtlWgrsfErpOTyES3jxQHaEa?rs=1&pid=ImgDetMain",
-      title: "Event 2",
-      description: "Description for Event 2",
-      attendees: 30,
-    },
-
-    // Add more events as needed
-  ];
+const OrganizationEventsComponent = ({ organizationid }) => {
+  const [events, setEvents] = useState([]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const eventsPerPage = 6;
+
+  useEffect(() => {
+    // Fetch events when the organizationId or currentPage changes
+    const fetchData = async () => {
+      const { data, error } = await fetchEvents(
+        organizationid,
+        currentPage,
+        eventsPerPage
+      );
+      if (!error) {
+        setEvents(data);
+      } else {
+        console.error("Error fetching events:", error);
+      }
+    };
+    fetchData();
+    console.log(organizationid);
+  }, [organizationid, currentPage]);
 
   const indexOfLastEvent = currentPage * eventsPerPage;
   const indexOfFirstEvent = indexOfLastEvent - eventsPerPage;
@@ -105,7 +44,15 @@ const OrganizationEventsComponent = () => {
       </div>
       <div className="isolate mx-auto mt-8 grid max-w-md grid-cols-1 gap-x-8 gap-y-8 sm:mt-12 lg:mx-0 lg:max-w-none lg:grid-cols-3">
         {currentEvents.map((event, index) => (
-          <EventsCard key={index} event={event} />
+          <EventsCard
+            key={index}
+            event={{
+              imageUrl: event.eventphoto, // Assuming eventphoto is the field for the event photo
+              title: event.title,
+              description: event.description,
+              attendees: event.attendees,
+            }}
+          />
         ))}
       </div>
       <nav className="flex items-center justify-between border-t border-gray-200 px-4 sm:px-0">
