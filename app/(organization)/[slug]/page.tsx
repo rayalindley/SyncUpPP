@@ -3,14 +3,19 @@ import { useState, useEffect } from "react";
 import { useUser } from "@/context/UserContext";
 import { createClient } from "@/lib/supabase/client";
 import Header from "@/components/Header";
-"use client";
-import { useState, useEffect } from "react";
-import { useUser } from "@/context/UserContext";
-import { createClient } from "@/lib/supabase/client";
-import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { UserGroupIcon } from "@heroicons/react/24/outline";
+import { UserGroupIcon } from "@heroicons/react/24/outline";
 
+export default function NewsletterPage() {
+  const [organizations, setOrganizations] = useState<any[]>([]);
+  const { user } = useUser();
+
+  useEffect(() => {
+    if (user) {
+      fetchOrganizations();
+    }
+  }, [user]);
 export default function NewsletterPage() {
   const [organizations, setOrganizations] = useState<any[]>([]);
   const { user } = useUser();
@@ -23,7 +28,30 @@ export default function NewsletterPage() {
 
   const fetchOrganizations = async () => {
     if (!user) return;
+  const fetchOrganizations = async () => {
+    if (!user) return;
 
+    const supabase = createClient();
+    try {
+      let { data: orgs, error } = await supabase
+        .from('organizations')
+        .select('organizationid, name, slug')
+        .eq('adminid', user.id);
+
+      if (error) {
+        console.error("Error fetching organizations:", error);
+        return;
+      }
+
+      setOrganizations(orgs || []);
+    } catch (e) {
+      console.error("Unexpected error fetching organizations:", e);
+    }
+  };
+
+  const handleOrganizationClick = (slug: string) => {
+    window.location.href = `/newsletter/${slug}`;
+  };
     const supabase = createClient();
     try {
       let { data: orgs, error } = await supabase
@@ -52,7 +80,7 @@ export default function NewsletterPage() {
       <main className="isolate flex justify-center sm:px-4 md:px-6 lg:px-80">
         <div className="relative">
           <div className="relative rounded-xl bg-dark p-8 shadow-lg sm:p-16 lg:p-40">
-            <h1 className="text-center text-3xl font-bold text-light">Newsletter Creation</h1>
+            <h1 className="text-center text-3xl font-bold text-light">Newsletter Management</h1>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
               {organizations.map((org) => (
                 <div
