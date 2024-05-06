@@ -1,9 +1,8 @@
 import { insertEvent } from "@/lib/events";
 import { createClient } from "@/lib/supabase/client";
-import { convertToBase64 } from "@/lib/utils";
 import { PhotoIcon } from "@heroicons/react/20/solid";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -84,11 +83,11 @@ const CreateEventForm = ({ organizationId }: { organizationId: string }) => {
 
     // Upload image to Supabase storage
     let imageUrl = null;
-    if (photo) {
+    if (photoFile) {
       const fileName = `${formData.title}_${Date.now()}-${Math.random().toString(36).substring(7)}`;
       const { data: uploadResult, error } = await supabase.storage
         .from("event-images")
-        .upload(fileName, photo, {
+        .upload(fileName, photoFile, {
           cacheControl: "3600",
           upsert: false,
         });
@@ -123,6 +122,16 @@ const CreateEventForm = ({ organizationId }: { organizationId: string }) => {
 
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    // This will clean up the preview URL when the component unmounts
+    return () => {
+      if (photo) {
+        URL.revokeObjectURL(photo);
+      }
+    };
+  }, [photo]);
+
   const [enabled, setEnabled] = useState(false);
   const [hasRegistrationFee, setHasRegistrationFee] = useState(false); // State for tracking if there's a registration fee
   const [hasCapacityLimit, setHasCapacityLimit] = useState(false); // State for tracking if there's a capacity limit
@@ -148,11 +157,12 @@ const CreateEventForm = ({ organizationId }: { organizationId: string }) => {
                 <input
                   id="file-input"
                   type="file"
-                  onChange={async (event) => {
-                    const file = event.target.files?.[0];
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] || null;
+                    setPhotoFile(file);
                     if (file) {
-                      const base64 = await convertToBase64(file);
-                      setPhoto(base64);
+                      const previewUrl = URL.createObjectURL(file);
+                      setPhoto(previewUrl); // This will update the photo state with the preview URL
                     }
                   }}
                   className="hidden"
