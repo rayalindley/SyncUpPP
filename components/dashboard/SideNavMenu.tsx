@@ -100,7 +100,7 @@ const SideNavMenu = () => {
                 <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-4">
                   <Link href="#">
                     <div className="flex h-16 shrink-0 items-center">
-                      <img className="h-8 w-auto" src="/Symbian.png" alt="SyncUp" />
+                      <img className="h-10 w-auto" src="/syncup.png" alt="SyncUp" />
                     </div>
                   </Link>
                   <nav className="flex flex-1 flex-col">
@@ -190,7 +190,7 @@ const SideNavMenu = () => {
         <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-[#525252] bg-eerieblack px-6 pb-4">
           <Link href="/">
             <div className="flex h-16 shrink-0 items-center">
-              <img className="h-8 w-auto" src="/Symbian.png" alt="SyncUp" />
+              <img className="h-10 w-auto" src="/syncup.png" alt="SyncUp" />
               <p className="ml-2 font-semibold text-light">SyncUp</p>
             </div>
           </Link>
