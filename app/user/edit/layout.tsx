@@ -1,6 +1,4 @@
 import { redirect } from "next/navigation";
-
-import Header from "@/components/dashboard/Header";
 import { UserProvider } from "@/context/UserContext";
 import { getUser } from "@/lib/supabase/server";
 
@@ -17,15 +15,9 @@ export default async function EditProfileLayout({
 
   return (
     <UserProvider>
-      <div className="">
-        <div>
-          <Header user={user} />
-
-          <main className="bg-gray py-10">
-            <div className="px-4 sm:px-6 lg:px-8">{children}</div>
-          </main>
-        </div>
-      </div>
+      <main className="bg-gray py-10">
+        <div className="px-4 sm:px-6 lg:px-8">{children}</div>
+      </main>
     </UserProvider>
   );
 }

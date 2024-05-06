@@ -8,6 +8,7 @@ import Swal from "sweetalert2";
 import { FaRegEdit } from "react-icons/fa";
 import JSONPretty from "react-json-pretty";
 import Link from "next/link";
+import { useOpenStore } from "@/store/useOpenStore";
 
 const jsonTheme = {
   main: "line-height:1.3;color:#383a42;background:#ffffff;overflow:hidden;word-wrap:break-word;white-space: pre-wrap;word-wrap: break-word; ",
@@ -23,7 +24,15 @@ function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
 }
 
-export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any }) {
+export default function OrganizationOptions({
+  selectedOrg,
+  open,
+  setOpen,
+}: {
+  selectedOrg: any;
+  open: boolean;
+  setOpen: any;
+}) {
   const deleteBtn = () => {
     Swal.fire({
       title: "Are you sure?",
@@ -42,6 +51,8 @@ export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any 
             title: "Deleted!",
             text: "The organization was successfully deleted.",
             icon: "success",
+          }).then(() => {
+            location.reload();
           });
         } else {
           Swal.fire({
@@ -54,7 +65,6 @@ export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any 
     });
   };
 
-  const [open, setOpen] = useState(false);
   return (
     <>
       <Menu as="div" className="relative inline-block text-left">
@@ -185,7 +195,7 @@ export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any 
                       </div>
                       <div className="relative mt-6 flex-1 flex-wrap overflow-hidden px-4 text-light sm:px-6">
                         {/* <JSONPretty data={selectedOrg} theme={jsonTheme}></JSONPretty> */}
-                        <table className="table-auto ">
+                        <table className="w-full table-auto ">
                           <tbody>
                             <tr>
                               <td className="p-2 font-bold text-gray-400">Name:</td>
@@ -237,7 +247,17 @@ export default function OrganizationOptions({ selectedOrg }: { selectedOrg: any 
                                 Date Established:
                               </td>
                               <td className="p-2">
-                                {selectedOrg.date_established || "Not specified"}
+                                {selectedOrg.date_established
+                                  ? new Date(selectedOrg.date_established).toLocaleString(
+                                      "en-US",
+                                      {
+                                        weekday: "long", // "Monday"
+                                        year: "numeric", // "2024"
+                                        month: "long", // "April"
+                                        day: "numeric", // "16"
+                                      }
+                                    )
+                                  : "Not specified"}
                               </td>
                             </tr>
                             <tr>

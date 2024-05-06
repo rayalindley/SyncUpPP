@@ -183,6 +183,8 @@ async function checkSlugAvailability(slug: string) {
 }
 
 const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null }) => {
+  const [imageError, setImageError] = useState("");
+
   const { prev, next, jump, total, current, progress } = useSteps();
 
   const [formData, setFormData] = useState<OrganizationFormValues>(formValues);
@@ -212,6 +214,10 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
   useEffect(() => {
     if (formValues) {
       // console.log(formValues);
+      const dateEstablished = formValues.date_established
+        ? new Date(formValues.date_established)
+        : undefined;
+
       reset({
         name: formValues.name,
         slug: formValues.slug,
@@ -220,9 +226,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
         industry: formValues.industry,
         organizationSize: formValues.organization_size,
         website: formValues.website,
-        // ! date Established has a problem.
-        // dateEstablished: formValues.date_established,
-
+        dateEstablished: dateEstablished,
         addressLine1: formValues.address.addressLine1,
         addressLine2: formValues.address.addressLine2,
         city: formValues.address.city,
@@ -320,9 +324,9 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
           draggable: true,
           progress: undefined,
           theme: "light",
+          onClose: () => router.push("/dashboard") // Redirect on toast close
         });
 
-        router.push("/dashboard");
         reset();
       } else if (error) {
         toast.error(error.message || "An error occurred while adding the project");
@@ -395,12 +399,21 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                     </label>
                     <input
                       id="file-input"
+                      accept="image/*"
                       type="file"
                       onChange={async (event) => {
                         const file = event.target.files?.[0];
                         if (file) {
+                          // Check if the file is an image
+                          if (!file.type.startsWith("image/")) {
+                            // Set the error message
+                            setImageError("Please upload an image file");
+                            return;
+                          }
                           const base64 = await convertToBase64(file);
                           setPhoto(base64);
+                          // Clear the error message
+                          setImageError("");
                         }
                       }}
                       className="hidden"
@@ -408,7 +421,8 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                   </div>
                 </div>
               </div>
-
+              {/* Display the error message */}
+              <p className="text-center text-red-500">{imageError}</p>
               <label
                 htmlFor="name"
                 className="block text-sm font-medium leading-6 text-white"
@@ -423,8 +437,10 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                   className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6 "
                   {...register("name")}
                   onKeyUp={(e) => {
-                    const slugValue = slugify(e.target.value);
-                    setValue("slug", slugValue); // Automatically update the slug field
+                    if (!formValues) {
+                      const slugValue = slugify(e.target.value);
+                      setValue("slug", slugValue); // Automatically update the slug field
+                    }
                   }}
                   // defaultValue={formValues.name}
                 />

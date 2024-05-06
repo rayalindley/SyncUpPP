@@ -6,7 +6,7 @@ export default function SignIn({ searchParams }: { searchParams: any }) {
       <div className="flex min-h-full flex-1 flex-col justify-center bg-eerieblack py-12 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           <img className="mx-auto h-10 w-auto" src="Symbian.png" alt="SyncUp" />
-          <h2 className="text-light mt-6 text-center text-2xl font-bold leading-9 tracking-tight">
+          <h2 className="mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-light">
             Sign in to your account
           </h2>
         </div>
@@ -28,7 +28,7 @@ export default function SignIn({ searchParams }: { searchParams: any }) {
               <div>
                 <label
                   htmlFor="email"
-                  className="text-light block text-sm font-medium leading-6"
+                  className="block text-sm font-medium leading-6 text-light"
                 >
                   Email address
                 </label>
@@ -39,7 +39,7 @@ export default function SignIn({ searchParams }: { searchParams: any }) {
                     type="email"
                     autoComplete="email"
                     required
-                    className="focus:ring-primary text-light ring-light block w-full rounded-md border-0 bg-charleston py-1.5 shadow-sm ring-1 ring-inset placeholder:text-gray-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6"
+                    className="block w-full rounded-md border-0 bg-charleston py-1.5 text-light shadow-sm ring-1 ring-inset ring-light placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                   />
                 </div>
               </div>
@@ -47,7 +47,7 @@ export default function SignIn({ searchParams }: { searchParams: any }) {
               <div>
                 <label
                   htmlFor="password"
-                  className="text-light block text-sm font-medium leading-6"
+                  className="block text-sm font-medium leading-6 text-light"
                 >
                   Password
                 </label>
@@ -58,7 +58,7 @@ export default function SignIn({ searchParams }: { searchParams: any }) {
                     type="password"
                     autoComplete="current-password"
                     required
-                    className="focus:ring-primary text-light ring-light block w-full rounded-md border-0 bg-charleston py-1.5 shadow-sm ring-1 ring-inset placeholder:text-gray-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6"
+                    className="block w-full rounded-md border-0 bg-charleston py-1.5 text-light shadow-sm ring-1 ring-inset ring-light placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                   />
                 </div>
               </div>
@@ -69,11 +69,11 @@ export default function SignIn({ searchParams }: { searchParams: any }) {
                     id="remember-me"
                     name="remember-me"
                     type="checkbox"
-                    className="focus:primary text-primary h-4 w-4 rounded border-gray-300"
+                    className="focus:primary h-4 w-4 rounded border-gray-300 text-primary"
                   />
                   <label
                     htmlFor="remember-me"
-                    className="text-light ml-3 block text-sm leading-6"
+                    className="ml-3 block text-sm leading-6 text-light"
                   >
                     Remember me
                   </label>
@@ -82,7 +82,7 @@ export default function SignIn({ searchParams }: { searchParams: any }) {
                 <div className="text-sm leading-6">
                   <a
                     href="forgot-password"
-                    className="text-primarydark hover:text-primary font-semibold"
+                    className="font-semibold text-primarydark hover:text-primary"
                   >
                     Forgot password?
                   </a>
@@ -92,7 +92,7 @@ export default function SignIn({ searchParams }: { searchParams: any }) {
               <div>
                 <button
                   type="submit"
-                  className="bg-primary hover:bg-primarydark focus-visible:outline-primary text-light flex w-full justify-center rounded-md px-3 py-1.5 text-sm font-semibold leading-6 *:shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                  className="flex w-full justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-light *:shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 >
                   Sign in
                 </button>
@@ -105,7 +105,7 @@ export default function SignIn({ searchParams }: { searchParams: any }) {
                   <div className="w-full border-t border-gray-200" />
                 </div>
                 <div className="relative flex justify-center text-sm font-medium leading-6">
-                  <span className="text-light bg-charleston px-6">Or continue with</span>
+                  <span className="bg-charleston px-6 text-light">Or continue with</span>
                 </div>
               </div>
 
@@ -169,7 +169,7 @@ export default function SignIn({ searchParams }: { searchParams: any }) {
             Don&apos;t have an account?{" "}
             <a
               href="/signup"
-              className="text-primarydark hover:text-primary font-semibold leading-6"
+              className="font-semibold leading-6 text-primarydark hover:text-primary"
             >
               Sign up
             </a>

@@ -13,10 +13,12 @@ import { Fragment, useState } from "react";
 import { usePopper } from "react-popper";
 import Swal from "sweetalert2";
 import EditUserDetails from "./EditUserDetails";
-import UserInfo from "./UserInfo";
 import { getUser } from "@/lib/supabase/client";
 import { redirect } from "next/navigation";
 import { useRouter } from "next/navigation";
+import { useOpenStore } from "@/store/useOpenStore";
+import Link from "next/link";
+import JSONPretty from "react-json-pretty";
 
 const jsonTheme = {
   main: "line-height:1.3;color:#383a42;background:#ffffff;overflow:hidden;word-wrap:break-word;white-space: pre-wrap;word-wrap: break-word; ",
@@ -32,10 +34,20 @@ function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
 }
 
-export default function UserActionButton({ selectedUser }: { selectedUser: User }) {
+export default function UserActionButton({
+  selectedUser,
+  userProfile,
+  open,
+  setOpen,
+}: {
+  selectedUser: User;
+  userProfile: any;
+  open: boolean;
+  setOpen: any;
+}) {
   const [referenceElement, setReferenceElement] = useState(null);
   const [popperElement, setPopperElement] = useState(null);
-  const router = useRouter();
+
   const { styles, attributes } = usePopper(referenceElement, popperElement, {
     placement: "bottom-end",
     modifiers: [
@@ -75,7 +87,6 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
               text: "The user successfully deleted.",
               icon: "success",
             }).then(() => {
-              // redirect("./"); // Reload the page
               location.reload();
             });
           } else {
@@ -90,7 +101,6 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
     }
   };
 
-  const [open, setOpen] = useState(false);
   return (
     <>
       <Menu
@@ -122,11 +132,12 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
             <div className="py-1">
               <Menu.Item>
                 {({ active }) => (
-                  <a
+                  <Link
                     className={classNames(
                       active ? "bg-raisinblack text-light" : "text-light",
                       "group flex cursor-pointer items-center px-4 py-2 text-sm"
                     )}
+                    href="#"
                     onClick={() => setOpen(true)}
                   >
                     <UserIcon
@@ -134,13 +145,13 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
                       aria-hidden="true"
                     />
                     View User Info
-                  </a>
+                  </Link>
                 )}
               </Menu.Item>
               <Menu.Item>
                 {({ active }) => (
-                  <a
-                    href={`/dashboard/users/edit/${selectedUser.id}`}
+                  <Link
+                    href={`/user/edit/${selectedUser.id}`}
                     className={classNames(
                       active ? "bg-raisinblack text-light" : "text-light",
                       "group flex cursor-pointer items-center px-4 py-2 text-sm"
@@ -151,7 +162,7 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
                       aria-hidden="true"
                     />
                     Edit User Profile
-                  </a>
+                  </Link>
                 )}
               </Menu.Item>
               <Menu.Item>
@@ -292,7 +303,139 @@ export default function UserActionButton({ selectedUser }: { selectedUser: User 
                         </div>
                       </div>
                       <div className="relative flex-1 flex-wrap overflow-auto">
-                        <UserInfo userId={selectedUser.id} />
+                        {/* <JSONPretty data={selectedUser} theme={jsonTheme}></JSONPretty> */}
+                        <div className="relative mt-6 flex-1 flex-wrap overflow-hidden px-4 text-light sm:px-6">
+                          <table className="w-full table-auto">
+                            <tbody>
+                              <tr>
+                                <td className="p-2 font-bold text-gray-400">Name:</td>
+                                <td className="p-2">
+                                  {userProfile.first_name} {userProfile.last_name}
+                                </td>
+                              </tr>
+                              <tr>
+                                <td className="p-2 font-bold text-gray-400">
+                                  Description:
+                                </td>
+                                <td className="p-2">{userProfile.description}</td>
+                              </tr>
+                              <tr>
+                                <td className="p-2 font-bold text-gray-400">Company:</td>
+                                <td className="p-2">{userProfile?.company}</td>
+                              </tr>
+                              <tr>
+                                <td className="p-2 font-bold text-gray-400">Website:</td>
+                                <td className="p-2">{userProfile.website}</td>
+                              </tr>
+                              <tr>
+                                <td className="p-2 font-bold text-gray-400">Email:</td>
+                                <td className="p-2">{selectedUser.email}</td>
+                              </tr>
+                              <tr>
+                                <td className="p-2 font-bold text-gray-400">Gender:</td>
+                                <td className="p-2">
+                                  {userProfile.gender == "M"
+                                    ? "Male"
+                                    : userProfile.gender == "F"
+                                      ? "Female"
+                                      : ""}
+                                </td>
+                              </tr>
+                              <tr>
+                                <td className="colspan-2" colSpan={2}>
+                                  <hr className="my-5 w-full border-charleston text-charleston" />
+                                </td>
+                              </tr>
+                              <tr>
+                                <td className="p-2 font-bold text-gray-400">Role:</td>
+                                <td className="p-2">{selectedUser.role}</td>
+                              </tr>
+                              <tr>
+                                <td className="p-2 font-bold text-gray-400">
+                                  Created at:
+                                </td>
+                                <td className="p-2">
+                                  {new Date(selectedUser.created_at).toLocaleString(
+                                    "en-US",
+                                    {
+                                      weekday: "long", // "Monday"
+                                      year: "numeric", // "2024"
+                                      month: "long", // "April"
+                                      day: "numeric", // "16"
+                                      hour: "numeric", // "1"
+                                      minute: "2-digit", // "40"
+                                    }
+                                  )}
+                                </td>
+                              </tr>
+                              <tr>
+                                <td className="p-2 font-bold text-gray-400">
+                                  Last sign in:
+                                </td>
+                                <td className="p-2">
+                                  {selectedUser.last_sign_in_at
+                                    ? new Date(
+                                        selectedUser.last_sign_in_at
+                                      ).toLocaleString("en-US", {
+                                        weekday: "long", // "Monday"
+                                        year: "numeric", // "2024"
+                                        month: "long", // "April"
+                                        day: "numeric", // "16"
+                                        hour: "numeric", // "1"
+                                        minute: "2-digit", // "40"
+                                      })
+                                    : ""}
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                          <div className="mt-5 flex gap-2">
+                            <Link
+                              className="group flex items-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-light text-white shadow-sm hover:bg-opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                              href={`/user/edit/${selectedUser.id}`}
+                            >
+                              Edit
+                            </Link>
+                            <button
+                              className="group flex items-center rounded-lg bg-raisinblack px-4 py-2 text-sm text-light hover:bg-opacity-50 focus-visible:outline"
+                              onClick={async () => {
+                                const response = await sendPasswordRecovery(
+                                  selectedUser.email!
+                                );
+
+                                if (!response.error) {
+                                  Swal.fire({
+                                    title: "Email Sent!",
+                                    text: "The password recovery was sent to the user's email",
+                                    icon: "success",
+                                    customClass: {
+                                      container: "bg-[red] text-light",
+                                      confirmButton: "bg-primary hover:bg-primarydark",
+                                    },
+                                  });
+                                } else {
+                                  Swal.fire({
+                                    title: "Failed!",
+                                    text: response.error.message,
+                                    icon: "error",
+                                    customClass: {
+                                      container: "bg-raisinblack text-light",
+                                      confirmButton: "bg-primary hover:bg-primarydark",
+                                    },
+                                  });
+                                }
+                              }}
+                            >
+                              Send password recovery
+                            </button>
+                            <button
+                              className="group flex items-center rounded-md bg-rose-500 px-4 py-2 text-sm font-semibold text-light text-white shadow-sm hover:bg-opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                              onClick={deleteBtn}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </Dialog.Panel>
