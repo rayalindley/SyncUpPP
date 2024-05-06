@@ -50,7 +50,8 @@ const OrganizationEventsComponent = ({ organizationid }) => {
               imageUrl: event.eventphoto, // Assuming eventphoto is the field for the event photo
               title: event.title,
               description: event.description,
-              attendees: event.attendees,
+              registrationfee: event.registrationfee,
+              location: event.location,
             }}
           />
         ))}

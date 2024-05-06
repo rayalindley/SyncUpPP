@@ -1,4 +1,5 @@
 import { insertEvent } from "@/lib/events";
+import { createClient } from "@/lib/supabase/client";
 import { convertToBase64 } from "@/lib/utils";
 import { PhotoIcon } from "@heroicons/react/20/solid";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -58,6 +59,7 @@ const CreateEventForm = ({ organizationId }: { organizationId: string }) => {
   const [capacityValue, setCapacityValue] = useState<number | null>(null); // Track capacity value separately
   const [registrationFeeValue, setRegistrationFeeValue] = useState<number | null>(null); // Track registration fee value separately
 
+  const [photoFile, setPhotoFile] = useState<File | null>(null); // Store the file instead of base64
   const [isLoading, setIsLoading] = useState(false);
 
   const onSubmit: SubmitHandler<EventFormValues> = async (formData) => {
@@ -77,12 +79,38 @@ const CreateEventForm = ({ organizationId }: { organizationId: string }) => {
     // Log the formData to the console
     console.log("Form Data:", formData);
     console.log("Organization ID:", organizationId);
+
+    const supabase = createClient();
+
+    // Upload image to Supabase storage
+    let imageUrl = null;
+    if (photo) {
+      const fileName = `${formData.title}_${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      const { data: uploadResult, error } = await supabase.storage
+        .from("event-images")
+        .upload(fileName, photo, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (uploadResult) {
+        imageUrl = uploadResult.fullPath; // Store the image URL/path from the upload result
+      } else {
+        console.error("Error uploading image:", error);
+        toast.error("Error uploading image. Please try again.");
+        setIsLoading(false);
+        return; // Exit if image upload fails
+      }
+    }
+
+    // Update form data with image URL
     const completeFormData = {
       ...formData,
-      photo,
+      photo: imageUrl, // Assign the image URL to the photo field
       capacity: finalCapacityValue,
       registrationFee: finalRegistrationFeeValue,
     };
+    console.log(completeFormData);
 
     const { data, error } = await insertEvent(completeFormData, organizationId); // Pass organizationId to insertEvent
 
@@ -95,7 +123,6 @@ const CreateEventForm = ({ organizationId }: { organizationId: string }) => {
 
     setIsLoading(false);
   };
-
   const [enabled, setEnabled] = useState(false);
   const [hasRegistrationFee, setHasRegistrationFee] = useState(false); // State for tracking if there's a registration fee
   const [hasCapacityLimit, setHasCapacityLimit] = useState(false); // State for tracking if there's a capacity limit
