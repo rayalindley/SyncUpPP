@@ -13,7 +13,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Fragment, useEffect, useState } from "react";
-import { FolderIcon } from "@heroicons/react/20/solid";
+import { EnvelopeIcon } from "@heroicons/react/24/outline"; // Import the icon
 
 function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
@@ -27,6 +27,7 @@ const navigation = [
     href: "/dashboard/organizations",
     icon: UsersIcon,
   },
+  { name: "Newsletter", href: "/dashboard/newsletter", icon: EnvelopeIcon }, // Add the newsletter option
   { name: "Projects", href: "#", icon: FolderIcon },
   { name: "Memberships", href: "/dashboard/memberships", icon: CalendarIcon },
   { name: "Documents", href: "#", icon: DocumentDuplicateIcon },
