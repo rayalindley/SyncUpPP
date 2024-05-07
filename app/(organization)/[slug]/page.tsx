@@ -2,8 +2,9 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import TabsComponent from "@/components/organization/organization_view_tabs";
 import SocialIcons from "@/components/organization/social_icons";
-import { createClient, getMemberships, getUser } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import { InboxIcon, UserGroupIcon } from "@heroicons/react/24/outline";
+import { getMemberships } from "@/lib/memberships";
 
 
 const orgdata = [
