@@ -113,7 +113,7 @@ export default function MembershipOptions({
                       active ? "bg-raisinblack text-light" : "text-light",
                       "group flex items-center px-4 py-2 text-sm"
                     )}
-                    href={`#`}
+                    href={``}
                   >
                     <FaRegEdit
                       className="mr-3 h-5 w-5 text-light group-hover:text-light"
