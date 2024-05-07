@@ -54,18 +54,20 @@ export default function MembershipsTable({ orgmems }: { orgmems: Membership[] })
               <table className="min-w-full divide-y divide-[#525252]">
                 <thead className="bg-charleston">
                   <tr>
+                  {selectedOrgId === "" && (
                     <th
                       scope="col"
                       className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-light sm:pl-6"
                     >
                       Organization
                     </th>
+                  )}
 
                     <th
                       scope="col"
                       className="px-3 py-3.5 text-left text-sm font-semibold text-light"
                     >
-                      Membership
+                      Type
                     </th>
                     <th
                       scope="col"
@@ -83,13 +85,13 @@ export default function MembershipsTable({ orgmems }: { orgmems: Membership[] })
                       scope="col"
                       className="px-3 py-3.5 text-left text-sm font-semibold text-light"
                     >
-                      Most Popular
+                      Features
                     </th>
                     <th
                       scope="col"
                       className="px-3 py-3.5 text-left text-sm font-semibold text-light"
                     >
-                      Features
+                      Most Popular
                     </th>
                     <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                       <span className="sr-only">Edit</span>
@@ -98,7 +100,7 @@ export default function MembershipsTable({ orgmems }: { orgmems: Membership[] })
                 </thead>
                 <tbody className="divide-y divide-[#525252] bg-raisinblack">
                   {filteredMemberships.map((mem, index) => (
-                    <MemRow key={index} mem={mem} />
+                    <MemRow key={index} mem={mem} showOrg={selectedOrgId === ""}/>
                   ))}
                 </tbody>
               </table>
@@ -110,18 +112,20 @@ export default function MembershipsTable({ orgmems }: { orgmems: Membership[] })
   );
 }
 
-function MemRow({ mem }) {
+function MemRow({ mem , showOrg }) {
   const [open, setOpen] = useState(false);
   return (
-    <tr key={mem.organizationid}>
+    <tr>
+    {showOrg && (
       <td
         className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-light sm:pl-6"
         onClick={() => setOpen(!open)}
       >
-        <a href="#" className="hover:text-primary" onClick={() => setOpen(!open)}>
+        <a href="#" className="hover:text-primary" onClick={(e) => { e.stopPropagation(); setOpen(!open); }}>
           {mem.orgname}
         </a>
       </td>
+    )}
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
         {mem.membershipname}
       </td>
@@ -132,10 +136,10 @@ function MemRow({ mem }) {
         {mem.description}
       </td>
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-        {mem.mostPopular ? "Yes" : "No"}
+        {mem.features ? mem.features.join(", ") : "None"}
       </td>
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-        {mem.features ? mem.features.join(", ") : "None"}
+        {mem.mostPopular ? "TRUE" : "FALSE"}
       </td>
 
       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
