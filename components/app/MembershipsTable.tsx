@@ -136,7 +136,7 @@ function MemRow({ mem , showOrg }) {
         {mem.description}
       </td>
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-        {mem.features ? mem.features.join(", ") : "None"}
+        {mem.features ? mem.features.join(" || ") : "None"}
       </td>
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
         {mem.mostPopular ? "TRUE" : "FALSE"}
