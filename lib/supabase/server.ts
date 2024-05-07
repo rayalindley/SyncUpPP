@@ -80,9 +80,10 @@ export async function getMemberships(id:any) {
   .select('*')
   .eq('organizationid', id)
 
-  if (!error) {
-    return memberships;
+  if (error) {
+    console.error('Failed to fetch memberships:', error.message);
+    return []; 
   }
 
-  return error;
+  return memberships || []; 
 }

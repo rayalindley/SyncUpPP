@@ -10,7 +10,7 @@ import { useParams } from "next/navigation";
 const TabsComponent: React.FC<MembershipsProps> = ({ memberships }) => {
   const [activeTab, setActiveTab] = useState("posts");
 
-  const handleTabChange = (tab) => {
+  const handleTabChange = (tab: any) => {
     setActiveTab(tab);
   };
 

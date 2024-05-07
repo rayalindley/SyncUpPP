@@ -5,6 +5,7 @@ import SocialIcons from "@/components/organization/social_icons";
 import { createClient, getMemberships, getUser } from "@/lib/supabase/server";
 import { InboxIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 
+
 const orgdata = [
   {
     name: "Lorem Ipsum",
