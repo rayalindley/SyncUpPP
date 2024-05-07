@@ -2,7 +2,7 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import TabsComponent from "@/components/organization/organization_view_tabs";
 import SocialIcons from "@/components/organization/social_icons";
-import { createClient, getUser } from "@/lib/supabase/server";
+import { createClient, getMemberships, getUser } from "@/lib/supabase/server";
 import { InboxIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 
 const orgdata = [
@@ -42,6 +42,8 @@ export default async function OrganizationUserView({
     .eq("slug", slug)
     .single();
 
+  const memberships = await getMemberships(org.organizationid)
+
   // Assuming `org` is an object retrieved from your database that contains the social media links object
   const socials = org.socials || {}; // Use default empty object if `org.socials` is undefined or null
 
@@ -53,6 +55,8 @@ export default async function OrganizationUserView({
   console.log("Facebook Link:", facebookLink);
   console.log("Twitter Link:", twitterLink);
   console.log("LinkedIn Link:", linkedinLink);
+  console.log("Org ID:", org.organizationid)
+  console.log("Memberships: ", memberships)
 
   return (
     <div>
@@ -92,7 +96,7 @@ export default async function OrganizationUserView({
             <div className="mt-4 px-4 text-center text-sm text-light sm:px-8 lg:px-10">
               {org.description}
             </div>
-            <TabsComponent />
+            <TabsComponent memberships = {memberships} />
           </div>
         </div>
       </main>

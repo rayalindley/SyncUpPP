@@ -72,3 +72,17 @@ export async function sendPasswordRecovery(email: string) {
 
   return;
 }
+
+export async function getMemberships(id:any) {
+  const supabase = createClient();
+  let { data: memberships, error } = await supabase
+  .from('memberships')
+  .select('*')
+  .eq('organizationid', id)
+
+  if (!error) {
+    return memberships;
+  }
+
+  return error;
+}

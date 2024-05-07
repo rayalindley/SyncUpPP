@@ -4,9 +4,10 @@ import { useState } from "react";
 import OrganizationEventsComponent from "./organization_events";
 import OrganizationMembershipsComponent from "./organization_membership";
 import OrganizationPostsComponent from "./organization_posts";
+import { Membership, MembershipsProps } from "@/lib/types";
 import { useParams } from "next/navigation";
 
-const TabsComponent = () => {
+const TabsComponent: React.FC<MembershipsProps> = ({ memberships }) => {
   const [activeTab, setActiveTab] = useState("posts");
 
   const handleTabChange = (tab) => {
@@ -17,7 +18,7 @@ const TabsComponent = () => {
   if (activeTab === "posts") {
     tabContent = <OrganizationPostsComponent />;
   } else if (activeTab === "membership") {
-    tabContent = <OrganizationMembershipsComponent />;
+    tabContent = <OrganizationMembershipsComponent memberships = {memberships}/>;
   } else if (activeTab === "events") {
     tabContent = <OrganizationEventsComponent />;
   }
