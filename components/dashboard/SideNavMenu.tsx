@@ -10,7 +10,6 @@ import {
   UsersIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import Image from "next/image";
 import Link from "next/link";
 import { Fragment, useEffect, useState } from "react";
 
@@ -34,7 +33,7 @@ const SideNavMenu = () => {
       href: "/dashboard/organizations",
       icon: UsersIcon,
     },
-    { name: "Projects", href: "#", icon: FolderIcon },
+    { name: "Events", href: "/dashboard/events", icon: FolderIcon },
     { name: "Calendar", href: "#", icon: CalendarIcon },
     { name: "Documents", href: "#", icon: DocumentDuplicateIcon },
     { name: "Reports", href: "#", icon: ChartPieIcon },
