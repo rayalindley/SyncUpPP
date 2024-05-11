@@ -105,7 +105,7 @@ export async function updateUserProfileById(
     });
 
     if (!error && data) {
-      console.log("User profile updated successfully");
+      // console.log("User profile updated successfully");
       return { data: data[0], error: null }; // Assuming the data returned is an array and we need the first object.
     } else {
       console.error("Error updating user profile:", error);
