@@ -25,7 +25,6 @@ const CreateMembershipForm: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log(formData); // You can handle form submission here
     // Show toast message for successful creation
     toast.success("Membership created successfully", {
       position: "bottom-right", // Change position to bottom-right
