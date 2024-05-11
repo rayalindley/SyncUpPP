@@ -108,7 +108,7 @@ function Header({ user }: { user: User }) {
                       notifications?.map((notification) => (
                         <div
                           key={notification.notificationid}
-                          className={`flex flex-col gap-y-1 px-4 py-2 ${!notification.isread ? "bg-gray" : "bg-[#1c1c1c]"} hover:bg-[#525252] rounded-lg`}
+                          className={`flex flex-col gap-y-1 px-4 py-2 bg-gray my-1" : "bg-[#232323]"} hover:bg-[#525252] rounded-lg ${!notification.isread ? "bg-gray" : "bg-[#232323]"} hover:bg-[#525252] rounded-lg my-1`}
                         >
                           <span
                             className={`text-sm leading-tight ${!notification.isread ? "font-bold text-light" : "text-light"}`}

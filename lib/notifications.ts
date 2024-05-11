@@ -9,6 +9,7 @@ export async function fetchNotifications(userId) {
       .from('notifications')
       .select('*')
       .eq('userid', userId)
+      .order('created_on', { ascending: false })
 
     if (!error) {
       // Count unread notifications
