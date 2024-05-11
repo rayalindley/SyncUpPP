@@ -9,6 +9,8 @@ import {
   getOrganizationNameBySlug,
 } from "@/lib/newsletterActions";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 import "react-quill/dist/quill.snow.css";
@@ -90,7 +92,22 @@ export default function NewsletterPage() {
           attachments: resolvedAttachments,
         };
 
-        await sendNewsletter(emailContent);
+        const { data, error } = await sendNewsletter(emailContent);
+
+        if (data) {
+          toast.success("Email(s) sent successfully.", {
+            position: "bottom-right",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+            theme: "light",
+          });
+        } else if (error) {
+          toast.error(error.message || "An error occurred. Pls try again.");
+        }
       }
     }
   };
@@ -115,8 +132,28 @@ export default function NewsletterPage() {
 
   const displayedMembers = filteredMembers.slice(0, 5);
 
+  const handleSelectAllMembers = () => {
+    setSelectedMembers(members.map((member) => member.id));
+  };
+
+  const handleDeselectAllMembers = () => {
+    setSelectedMembers([]);
+  };
+
   return (
     <>
+      <ToastContainer
+        position="bottom-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+      />
       <div className="top-10 text-gray-100 hover:cursor-pointer">
         <a
           onClick={() => window.history.back()}
@@ -126,7 +163,7 @@ export default function NewsletterPage() {
         </a>
       </div>
       <div className="px-4 font-sans text-light lg:px-96">
-      <h1 className="text-2xl font-bold mb-4 text-light">Newsletter Management</h1>
+        <h1 className="mb-4 text-2xl font-bold text-light">Newsletter Creation</h1>
 
         <div className="my-5">
           <input
@@ -196,9 +233,23 @@ export default function NewsletterPage() {
               </div>
             )}
           </div>
+          <div className="my-2 flex flex-wrap items-center gap-2">
+            <button
+              onClick={handleSelectAllMembers}
+              className="rounded-md border-none bg-primary px-2 text-white hover:bg-primarydark"
+            >
+              Select All
+            </button>
+            <button
+              onClick={handleDeselectAllMembers}
+              className="hover:bg-charlestondark rounded-md border-none bg-charleston px-2 text-white"
+            >
+              Deselect All
+            </button>
+          </div>
         </div>
 
-        <div className="my-5 mb-10">
+        <div>
           <input
             id="subject"
             type="text"
