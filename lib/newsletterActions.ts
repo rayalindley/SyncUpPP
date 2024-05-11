@@ -77,5 +77,5 @@ export async function sendNewsletter(emailContent) {
     return console.error({ error });
   }
 
-  console.log({ data });
+  // console.log("sendnewsletter", { data });
 }

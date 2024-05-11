@@ -1,6 +1,4 @@
 "use client";
-
-// NewsletterPage.js
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useUser } from "@/context/UserContext";
@@ -10,6 +8,7 @@ import {
   sendNewsletter,
   getOrganizationNameBySlug,
 } from "@/lib/newsletterActions";
+import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 import "react-quill/dist/quill.snow.css";
@@ -24,7 +23,7 @@ export default function NewsletterPage() {
   const [senderName, setSenderName] = useState("");
   const [senderEmail, setSenderEmail] = useState("onboarded@resend.dev");
   const [attachments, setAttachments] = useState([]);
-  const [previewOpen, setPreviewOpen] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const params = useParams();
 
   useEffect(() => {
@@ -47,36 +46,42 @@ export default function NewsletterPage() {
     getMembers();
   }, [params.slug]);
 
-  const handleCheckboxChange = (memberId) => {
-    setSelectedMembers((prev) =>
-      prev.includes(memberId) ? prev.filter((id) => id !== memberId) : [...prev, memberId]
-    );
+  const handleMemberSelect = (memberId) => {
+    if (selectedMembers.includes(memberId)) {
+      setSelectedMembers(selectedMembers?.filter((id) => id !== memberId));
+    } else {
+      setSelectedMembers([memberId, ...selectedMembers]);
+    }
   };
 
-  const filteredMembers = members.filter((member) =>
-    member.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const handleInputFocus = () => {
+    setIsInputFocused(true);
+  };
+
+  const filteredMembers = members?.filter(
+    (member) =>
+      member.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+      !selectedMembers.includes(member.id)
   );
 
   const handleSendNewsletter = async () => {
-    console.log("Sending newsletter to selected members:", selectedMembers);
     for (const memberId of selectedMembers) {
       const member = members.find((m) => m.id === memberId);
       if (member) {
-        const attachmentPromises = attachments.map((file) => {
+        const attachmentPromises = attachments?.map((file) => {
           return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = (e) => {
-              // Extract the base64 content from the result
-              const base64Content = e.target.result.split(',')[1];
+              const base64Content = e.target.result.split(",")[1];
               resolve({ filename: file.name, content: base64Content });
             };
             reader.onerror = (e) => reject(e);
-            reader.readAsDataURL(file); // Reads the file as a data URL (base64 encoded string)
+            reader.readAsDataURL(file);
           });
         });
-  
+
         const resolvedAttachments = await Promise.all(attachmentPromises);
-  
+
         const emailContent = {
           from: `${senderName} <${senderEmail}>`,
           to: member.email,
@@ -84,10 +89,6 @@ export default function NewsletterPage() {
           html: editorState,
           attachments: resolvedAttachments,
         };
-  
-
-        console.log("Sending newsletter to:", member.email);
-        console.log("Email content:", emailContent);
 
         await sendNewsletter(emailContent);
       }
@@ -112,130 +113,135 @@ export default function NewsletterPage() {
     setEditorState(value);
   };
 
-  const togglePreview = () => {
-    setPreviewOpen(!previewOpen);
-  };
-
-  // Only display the first 5 filtered members
   const displayedMembers = filteredMembers.slice(0, 5);
 
-  
   return (
-    <div className="bg-charleston p-5 font-sans text-light">
-      <h1 className="border-b border-[#525252] pb-2">Newsletter Creation</h1>
-
-      <div className="my-5">
-        <label htmlFor="senderName" className="mb-1 block">
-          From - Organization Name:
-        </label>
-        <input
-          id="senderName"
-          type="text"
-          placeholder="Organization Name"
-          value={senderName}
-          disabled
-          className="w-full border-none bg-[#525252] p-2 text-white"
-        />
+    <>
+      <div className="top-10 text-gray-100 hover:cursor-pointer">
+        <a
+          onClick={() => window.history.back()}
+          className=" flex items-center gap-2 hover:opacity-80"
+        >
+          <ArrowLeftIcon className="h-5 w-5" /> Back
+        </a>
       </div>
+      <div className="px-4 font-sans text-light lg:px-96">
+      <h1 className="text-2xl font-bold mb-4 text-light">Newsletter Management</h1>
 
-      <div className="my-5">
-        <input
-          id="senderEmail"
-          type="email"
-          placeholder="Organization Email"
-          value={senderEmail}
-          disabled
-          hidden
-          className="w-full border-none bg-[#525252] p-2 text-white"
-        />
-      </div>
+        <div className="my-5">
+          <input
+            id="senderName"
+            type="text"
+            placeholder="Organization Name"
+            value={senderName}
+            disabled
+            hidden
+            className="w-full border-none bg-[#525252] p-2 text-white"
+          />
+        </div>
 
-      <div id="recipients" className="my-5">
-        <h2 className="border-b border-[#525252] pb-2">Recipients:</h2>
-        <input
-          id="searchMembers"
-          type="text"
-          placeholder="Search Members..."
-          value={searchQuery}
-          onChange={handleSearchQueryChange}
-          className="my-2 w-full border-none bg-[#525252] p-2 text-white"
-        />
-        <div>
-          {displayedMembers.map((member) => (
-            <div key={member.id} className="my-2">
-              <input
-                type="checkbox"
-                checked={selectedMembers.includes(member.id)}
-                onChange={() => handleCheckboxChange(member.id)}
-                className="mr-2"
-              />
-              <span>{member.name}</span>
+        <div className="my-5">
+          <input
+            id="senderEmail"
+            type="email"
+            placeholder="Organization Email"
+            value={senderEmail}
+            disabled
+            hidden
+            className="w-full border-none bg-[#525252] p-2 text-white"
+          />
+        </div>
+
+        <div id="recipients" className="my-5">
+          <input
+            id="searchMembers"
+            type="text"
+            placeholder="To"
+            value={searchQuery}
+            onChange={handleSearchQueryChange}
+            onFocus={handleInputFocus}
+            className="my-2 w-full rounded-lg border-none bg-[#525252] p-2 text-white"
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap gap-2">
+              {selectedMembers?.map((memberId) => {
+                const member = members.find((m) => m.id === memberId);
+                return (
+                  <span
+                    key={memberId}
+                    className="mr-2 flex h-8 items-center rounded-full bg-primary px-3 py-1 text-white"
+                  >
+                    {member.name}
+                    <button
+                      onClick={() => handleMemberSelect(memberId)}
+                      className="hover:bg-primaryw ml-2 rounded-full bg-transparent text-white"
+                    >
+                      ×
+                    </button>
+                  </span>
+                );
+              })}
             </div>
-          ))}
+            {isInputFocused && (
+              <div className="flex flex-wrap gap-2">
+                {filteredMembers?.map((member) => (
+                  <button
+                    key={member.id}
+                    onClick={() => handleMemberSelect(member.id)}
+                    className="flex h-8 items-center rounded-full bg-charleston px-3 py-1 text-white"
+                  >
+                    {member.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="my-5 mb-10">
+          <input
+            id="subject"
+            type="text"
+            placeholder="Subject"
+            value={subject}
+            onChange={handleSubjectChange}
+            className="w-full rounded-lg border-none bg-[#525252] p-2 text-white"
+          />
+        </div>
+
+        <div className="my-5">
+          <ReactQuill
+            id="editor"
+            theme="snow"
+            placeholder="Compose your newsletter..."
+            value={editorState}
+            onChange={onEditorStateChange}
+            className="bg-light text-black"
+          />
+        </div>
+
+        <div className="my-5">
+          <label htmlFor="attachments" className="mb-1 block">
+            Attachments:
+          </label>
+          <input
+            id="attachments"
+            type="file"
+            multiple
+            onChange={handleAttachmentChange}
+            className="w-full rounded-lg border-none bg-[#525252] p-2 text-white"
+          />
+        </div>
+
+        <div className="my-12 flex items-center justify-between">
+          <button
+            onClick={handleSendNewsletter}
+            className="cursor-pointer rounded border-none bg-primary px-4 py-2 text-white"
+          >
+            Send Newsletter
+          </button>
         </div>
       </div>
-
-      <div className="my-5">
-        <label htmlFor="subject" className="mb-1 block">
-          Subject:
-        </label>
-        <input
-          id="subject"
-          type="text"
-          placeholder="Subject"
-          value={subject}
-          onChange={handleSubjectChange}
-          className="w-full border-none bg-[#525252] p-2 text-white"
-        />
-      </div>
-
-      <div className="my-5">
-        <label htmlFor="editor" className="mb-1 block">
-          Message:
-        </label>
-        <ReactQuill
-          id="editor"
-          theme="snow"
-          value={editorState}
-          onChange={onEditorStateChange}
-          className="bg-[#525252] text-white"
-        />
-      </div>
-
-      <div className="my-5">
-        <label htmlFor="attachments" className="mb-1 block">
-          Attachments:
-        </label>
-        <input
-          id="attachments"
-          type="file"
-          multiple
-          onChange={handleAttachmentChange}
-          className="w-full border-none bg-[#525252] p-2 text-white"
-        />
-      </div>
-
-      <div className="my-5 flex items-center justify-between">
-        <button
-          onClick={handleSendNewsletter}
-          className="cursor-pointer rounded border-none bg-primary px-4 py-2 text-white"
-        >
-          Send Newsletter
-        </button>
-        <button
-          onClick={togglePreview}
-          className="cursor-pointer rounded border-none bg-primary px-4 py-2 text-white"
-        >
-          {previewOpen ? "Close Preview" : "Preview Newsletter"}
-        </button>
-      </div>
-
-      {previewOpen && (
-        <div className="mt-5 bg-[#525252] p-5 text-white">
-          <h2>Newsletter Preview</h2>
-          <div dangerouslySetInnerHTML={{ __html: editorState }} />
-        </div>
-      )}
-    </div>
+    </>
   );
 }

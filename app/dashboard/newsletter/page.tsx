@@ -19,9 +19,9 @@ export default function NewsletterPage() {
     const supabase = createClient();
     try {
       let { data: orgs, error } = await supabase
-        .from('organizations')
-        .select('organizationid, name, slug')
-        .eq('adminid', user.id);
+        .from("organizations")
+        .select("organizationid, name, slug, description")
+        .eq("adminid", user.id);
 
       if (error) {
         console.error("Error fetching organizations:", error);
@@ -39,17 +39,25 @@ export default function NewsletterPage() {
   };
 
   return (
-    <div className="p-4 bg-dark">
-      <h1 className="text-2xl font-bold mb-4 text-light">Newsletter Management</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {organizations.map((org) => (
-          <div
-            key={org.organizationid}
-            className="cursor-pointer p-4 border rounded shadow-md text-light hover:bg-gray-700"
+    <div>
+      <h1 className="mb-4 text-2xl font-bold text-light">Newsletter</h1>
+      <p className="text-[#525252]">Select an organization to access its newsletter creation page.</p>
+      <div className="isolate mx-auto mt-5 grid max-w-md grid-cols-1 gap-8 md:max-w-2xl md:grid-cols-2 lg:max-w-4xl xl:mx-0 xl:max-w-none xl:grid-cols-4">
+        {organizations.length === 0 && (
+          <p className="text-light">No organizations found.</p>
+        )}
+        {organizations.map((org, index) => (
+          <a
+            key={index}
+            href={`/newsletter/${org.slug}`}
+            className="w-full rounded-xl bg-raisinblack p-5 ring-1 ring-charleston hover:cursor-pointer"
             onClick={() => handleOrganizationClick(org.slug)}
           >
-            <h2 className="text-xl font-semibold">{org.name}</h2>
-          </div>
+            <h2 className="text-lg font-semibold leading-8 text-gray-300">{org.name}</h2>
+            <p className="mt-2 text-sm leading-6 text-gray-400">
+              {org.description || "No description available."}
+            </p>
+          </a>
         ))}
       </div>
     </div>

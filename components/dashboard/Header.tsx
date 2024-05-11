@@ -11,14 +11,37 @@ import { type User } from "@supabase/supabase-js";
 import { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { fetchNotifications, markAllAsRead } from "@/lib/notifications";
 
 function classNames(...classes: any[]) {
-  return classes.filter(Boolean).join(" ");
+  return classes?.filter(Boolean).join(" ");
 }
 
 function Header({ user }: { user: User }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const loadNotifications = async () => {
+      const { data, unreadCount } = await fetchNotifications(user.id);
+      //console.log("Notifications:", data);
+      setNotifications(data);
+      setUnreadCount(unreadCount);
+    };
+
+    loadNotifications();
+  }, [user]);
+
+  const handleMarkAllAsRead = async () => {
+    const { success } = await markAllAsRead(user.id);
+    if (success) {
+      setUnreadCount(0);
+      // Update notifications state if needed
+    }
+  };
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -60,13 +83,60 @@ function Header({ user }: { user: User }) {
           />
         </form>
         <div className="flex items-center gap-x-4 lg:gap-x-6">
-          <button
-            type="button"
-            className="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500"
-          >
-            <span className="sr-only">View notifications</span>
-            <BellIcon className="h-6 w-6" aria-hidden="true" />
-          </button>
+          <Menu as="div" className="relative">
+            <Menu.Button className="p-3 text-gray-400 hover:text-gray-500">
+              <span className="sr-only">View notifications</span>
+              <BellIcon className="h-6 w-6" aria-hidden="true" />
+              {unreadCount > 0 && (
+                <span className="absolute right-0 top-0 inline-flex h-2 w-2 -translate-y-1/2 translate-x-1/2 transform rounded-full bg-[#32805c]"></span>
+              )}
+            </Menu.Button>
+            <Transition
+              as={Fragment}
+              enter="transition ease-out duration-200"
+              enterFrom="transform opacity-0 scale-95"
+              enterTo="transform opacity-100 scale-100"
+              leave="transition ease-in duration-150"
+              leaveFrom="transform opacity-100 scale-100"
+              leaveTo="transform opacity-0 scale-95"
+            >
+              <Menu.Items className="absolute right-0 z-10 mt-3 w-80 origin-top-right overflow-hidden rounded-md bg-charleston shadow-lg ring-1 ring-light ring-opacity-5 focus:outline-none">
+                <div className="max-h-96 overflow-y-auto">
+                  <div className="px-4 py-3">
+                    <p className="mb-2 text-sm font-medium text-light">Notifications</p>
+                    {notifications.length > 0 ? (
+                      notifications?.map((notification) => (
+                        <div
+                          key={notification.notificationid}
+                          className={`flex flex-col gap-y-1 px-4 py-2 ${!notification.isread ? "bg-gray" : "bg-[#1c1c1c]"} hover:bg-[#525252] rounded-lg`}
+                        >
+                          <span
+                            className={`text-sm leading-tight ${!notification.isread ? "font-bold text-light" : "text-light"}`}
+                          >
+                            {notification.message}
+                          </span>
+                          <span className="text-xs text-light">
+                            {/* Timestamp here */}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-light">No new notifications.</p>
+                    )}
+                  </div>
+                </div>
+                <div className="border-t border-[#525252]">
+                  <Link
+                    href="#"
+                    className="my-3 block text-center text-sm text-[#32805c] hover:text-[#285a47] focus:outline-none focus:ring-2 focus:ring-[#32805c] focus:ring-offset-2"
+                    onClick={handleMarkAllAsRead}
+                  >
+                    Mark all as read
+                  </Link>
+                </div>
+              </Menu.Items>
+            </Transition>
+          </Menu>
 
           {/* Separator */}
           <div
