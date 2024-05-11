@@ -70,12 +70,14 @@ export async function getOrganizationNameBySlug(slug: string) {
 }
 
 export async function sendNewsletter(emailContent) {
-  const resend = new Resend("re_Zba9644J_8K6Nihh9U17hWwL7qtdmApfQ");
+  const resend = new Resend(process.env.RESEND_API_KEY);
   const { data, error } = await resend.emails.send(emailContent);
 
   if (error) {
     return console.error({ error });
   }
+  
+  return { data };
 
   // console.log("sendnewsletter", { data });
 }
