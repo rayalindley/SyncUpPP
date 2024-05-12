@@ -23,7 +23,6 @@ const OrganizationEventsComponent = ({ organizationid }) => {
       }
     };
     fetchData();
-    console.log(organizationid);
   }, [organizationid, currentPage]);
 
   const indexOfLastEvent = currentPage * eventsPerPage;
@@ -35,7 +34,6 @@ const OrganizationEventsComponent = ({ organizationid }) => {
   const isFirstPage = currentPage === 1;
   const isLastPage = indexOfLastEvent >= events.length;
 
-  console.log(events);
   return (
     <div className="mx-auto max-w-7xl px-6 lg:px-8">
       <div className="mx-auto max-w-7xl text-center">
@@ -48,10 +46,12 @@ const OrganizationEventsComponent = ({ organizationid }) => {
           <EventsCard
             key={index}
             event={{
+              eventid: event.eventid,
               imageUrl: event.eventphoto, // Assuming eventphoto is the field for the event photo
               title: event.title,
               description: event.description,
               registrationfee: event.registrationfee,
+              eventdatetime: event.eventdatetime,
               location: event.location,
             }}
           />

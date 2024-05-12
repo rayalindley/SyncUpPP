@@ -5,7 +5,7 @@ export async function insertEvent(formData: any, organizationId: string) {
   const insertValues = {
     title: formData.title,
     description: formData.description,
-    eventdatetime: formData.eventDateTime, // Assuming this is a time string in HH:MM format
+    eventdatetime: formData.eventdatetime, // Assuming this is a time string in HH:MM format
     location: formData.location,
     capacity: formData.capacity,
     registrationfee: formData.registrationFee,
@@ -63,7 +63,7 @@ export async function updateEvent(eventId: string, formData: any) {
   const updateValues = {
     title: formData.title,
     description: formData.description,
-    eventdatetime: formData.eventDateTime, // Assuming this is a time string in HH:MM format
+    eventdatetime: formData.eventdatetime, // Assuming this is a time string in HH:MM format
     location: formData.location,
     capacity: formData.capacity,
     registrationfee: formData.registrationFee,
@@ -129,6 +129,30 @@ export async function deleteEvent(eventId: string) {
     console.error("Unexpected error:", e);
     return {
       data: null,
+      error: { message: e.message || "An unexpected error occurred" },
+    };
+  }
+}
+
+export async function countRegisteredUsers(eventId: string) {
+  const supabase = createClient();
+  try {
+    const { data, error, count } = await supabase
+      .from("eventregistrations")
+      .select("*", { count: "exact" }) // Request the count of rows
+      .eq("eventid", eventId)
+      .eq("status", "registered");
+
+    if (!error) {
+      // The count is returned in the count property
+      return { count, error: null };
+    } else {
+      return { count: null, error: { message: error.message } };
+    }
+  } catch (e: any) {
+    console.error("Unexpected error:", e);
+    return {
+      count: null,
       error: { message: e.message || "An unexpected error occurred" },
     };
   }

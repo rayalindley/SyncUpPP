@@ -1,17 +1,19 @@
-import { insertEvent } from "@/lib/events";
+import { insertEvent, updateEvent } from "@/lib/events"; // Ensure you have an updateEvent function
 import { createClient } from "@/lib/supabase/client";
 import { PhotoIcon } from "@heroicons/react/20/solid";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { z } from "zod";
 
-const isFutureDate = (value: Date) => {
+const isFutureDate = (value: Date, context) => {
   if (value instanceof Date) {
     const now = new Date();
-    return value > now; // Return true if value is in the future
+    // Allow the date if it's in the future or if it's the same as the initial value
+    return value > now || context?.options?.original_value?.getTime() === value.getTime();
   }
   return false; // Return false if value is not a valid Date object
 };
@@ -19,69 +21,63 @@ const isFutureDate = (value: Date) => {
 const EventSchema = z.object({
   title: z.string().min(3, "Event Title is required"),
   description: z.string().min(3, "Description is required"),
-  eventDateTime: z.date().refine(isFutureDate, {
+  eventdatetime: z.date().refine((value, context) => isFutureDate(value, context), {
     message: "Event Date & Time should be in the future",
   }),
   location: z.string().min(3, "Location is required"),
-  capacity: z
-    .number()
-    .int()
-    .min(1, "Capacity must be at least 1") // Updated capacity validation
-    .optional(), // Make capacity optional
-  registrationFee: z.number().min(0, "Registration Fee cannot be negative").optional(),
+  capacity: z.number().int().min(1, "Capacity must be at least 1").optional(),
+  registrationfee: z.number().min(0, "Registration Fee cannot be negative").optional(),
   privacy: z.enum(["public", "private"]),
 });
 
 interface EventFormValues {
   title: string;
   description: string;
-  eventDateTime: Date;
+  eventdatetime: Date;
   location: string;
   capacity: number;
-  registrationFee: number;
+  registrationfee: number;
   privacy: "public" | "private";
-  organizationId: string; // Add organizationId to EventFormValues
-  photo: string | null;
+  organizationId: string;
+  eventphoto: string | null;
 }
 
-const CreateEventForm = ({ organizationId }: { organizationId: string }) => {
+const CreateEventForm = ({
+  organizationId,
+  event = null,
+}: {
+  organizationId: string;
+  event?: EventFormValues;
+}) => {
+  const [eventphoto, setEventPhoto] = useState<string | null>(null);
+  const [capacityValue, setCapacityValue] = useState<number | null>(null);
+  const [registrationFeeValue, setRegistrationFeeValue] = useState<number | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+
+  const formOptions = event ? { defaultValues: event } : {};
   const {
     register,
     handleSubmit,
     formState: { errors, isValid },
     reset,
+    setValue,
   } = useForm<EventFormValues>({
     resolver: zodResolver(EventSchema),
     mode: "onChange",
+    ...formOptions,
   });
-  const [photo, setPhoto] = useState<string | null>(null);
-  const [capacityValue, setCapacityValue] = useState<number | null>(null); // Track capacity value separately
-  const [registrationFeeValue, setRegistrationFeeValue] = useState<number | null>(null); // Track registration fee value separately
-
-  const [photoFile, setPhotoFile] = useState<File | null>(null); // Store the file instead of base64
-  const [isLoading, setIsLoading] = useState(false);
 
   const onSubmit: SubmitHandler<EventFormValues> = async (formData) => {
     setIsLoading(true);
 
-    // Handle capacity validation here
-    if (hasCapacityLimit && formData.capacity <= 0) {
-      toast.error("Capacity must be greater than 0 for events with limited capacity.");
-      setIsLoading(false);
-      return; // Exit early if capacity is invalid
-    }
-
-    // Handle capacity and registration fee values based on user input
+    // Use null if the radio buttons are set to "No"
     const finalCapacityValue = hasCapacityLimit ? capacityValue : null;
     const finalRegistrationFeeValue = hasRegistrationFee ? registrationFeeValue : null;
 
-    // Log the formData to the console
-    console.log("Form Data:", formData);
-    console.log("Organization ID:", organizationId);
-
     const supabase = createClient();
 
-    // Upload image to Supabase storage
     let imageUrl = null;
     if (photoFile) {
       const fileName = `${formData.title}_${Date.now()}-${Math.random().toString(36).substring(7)}`;
@@ -93,48 +89,77 @@ const CreateEventForm = ({ organizationId }: { organizationId: string }) => {
         });
 
       if (uploadResult) {
-        imageUrl = uploadResult.fullPath; // Store the image URL/path from the upload result
+        imageUrl = uploadResult.fullPath;
       } else {
         console.error("Error uploading image:", error);
         toast.error("Error uploading image. Please try again.");
         setIsLoading(false);
-        return; // Exit if image upload fails
+        return;
       }
     }
 
-    // Update form data with image URL
+    const eventDateTimeWithTimezone = new Date(formData.eventdatetime).toISOString();
+
     const completeFormData = {
       ...formData,
-      photo: imageUrl, // Assign the image URL to the photo field
+      eventphoto: imageUrl,
+      eventdatetime: eventDateTimeWithTimezone,
       capacity: finalCapacityValue,
-      registrationFee: finalRegistrationFeeValue,
+      registrationfee: finalRegistrationFeeValue,
     };
-    console.log(completeFormData);
+    if (!formData.eventdatetime) {
+      toast.error("Please select a valid date and time for the event.");
+      setIsLoading(false);
+      return;
+    }
 
-    const { data, error } = await insertEvent(completeFormData, organizationId); // Pass organizationId to insertEvent
+    console.log(formData.eventdatetime);
+    const { data, error } = event
+      ? await updateEvent(event.eventid, completeFormData)
+      : await insertEvent(completeFormData, organizationId);
 
     if (data) {
-      toast.success("Event was created successfully.");
+      toast.success(
+        event ? "Event was updated successfully." : "Event was created successfully."
+      );
+      router.push("/dashboard/events");
       reset();
     } else if (error) {
-      toast.error(error.message || "An error occurred while creating the event");
+      toast.error(
+        error.message ||
+          (event
+            ? "An error occurred while updating the event"
+            : "An error occurred while creating the event")
+      );
     }
 
     setIsLoading(false);
   };
-
   useEffect(() => {
-    // This will clean up the preview URL when the component unmounts
-    return () => {
-      if (photo) {
-        URL.revokeObjectURL(photo);
-      }
-    };
-  }, [photo]);
+    // When the component mounts or the event prop changes, update the form values
+    if (event) {
+      Object.keys(event).forEach((key) => {
+        setValue(key as keyof EventFormValues, event[key]);
+      });
+    }
+  }, [event, setValue]);
+  useEffect(() => {
+    if (event && event.eventphoto) {
+      const imageUrl = `https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public/${event.eventphoto}`;
+      setEventPhoto(imageUrl);
+    }
+  }, [event]);
 
   const [enabled, setEnabled] = useState(false);
-  const [hasRegistrationFee, setHasRegistrationFee] = useState(false); // State for tracking if there's a registration fee
-  const [hasCapacityLimit, setHasCapacityLimit] = useState(false); // State for tracking if there's a capacity limit
+  // const [hasRegistrationFee, setHasRegistrationFee] = useState(false); // State for tracking if there's a registration fee
+  // const [hasCapacityLimit, setHasCapacityLimit] = useState(false); // State for tracking if there's a capacity limit
+  const [hasCapacityLimit, setHasCapacityLimit] = useState(
+    event?.capacity > 0 || event?.capacity != null
+  );
+  const [hasRegistrationFee, setHasRegistrationFee] = useState(
+    event?.registrationfee > 0 || event?.registrationfee != null
+  );
+
   return (
     <>
       <ToastContainer />
@@ -142,8 +167,12 @@ const CreateEventForm = ({ organizationId }: { organizationId: string }) => {
         <div className="flex items-center justify-center">
           <div className="relative w-full max-w-lg">
             <div className="relative h-64 w-full overflow-hidden rounded-md border-2 border-primary font-semibold">
-              {photo ? (
-                <img src={photo} alt="Preview" className="h-full w-full object-cover" />
+              {eventphoto ? (
+                <img
+                  src={eventphoto}
+                  alt="Preview"
+                  className="h-full w-full object-cover"
+                />
               ) : (
                 <div className="h-full w-full bg-charleston"></div>
               )}
@@ -162,7 +191,7 @@ const CreateEventForm = ({ organizationId }: { organizationId: string }) => {
                     setPhotoFile(file);
                     if (file) {
                       const previewUrl = URL.createObjectURL(file);
-                      setPhoto(previewUrl); // This will update the photo state with the preview URL
+                      setEventPhoto(previewUrl); // This will update the eventphoto state with the preview URL
                     }
                   }}
                   className="hidden"
@@ -200,17 +229,17 @@ const CreateEventForm = ({ organizationId }: { organizationId: string }) => {
             )}
           </div>
           <div className="space-y-1 text-light">
-            <label htmlFor="eventDateTime" className="text-sm font-medium text-white">
+            <label htmlFor="eventdatetime" className="text-sm font-medium text-white">
               Event Date & Time
             </label>
             <input
               type="datetime-local"
-              id="eventDateTime"
+              id="eventdatetime"
               className="mt-1 block w-full rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
-              {...register("eventDateTime", { valueAsDate: true })}
+              {...register("eventdatetime", { valueAsDate: true })}
             />
-            {errors.eventDateTime && (
-              <p className="text-sm text-red-500">{errors.eventDateTime.message}</p>
+            {errors.eventdatetime && (
+              <p className="text-sm text-red-500">{errors.eventdatetime.message}</p>
             )}
           </div>
           <div className="space-y-1 text-light">
@@ -316,19 +345,19 @@ const CreateEventForm = ({ organizationId }: { organizationId: string }) => {
           </div>
           {hasRegistrationFee && (
             <div className="space-y-1 text-light">
-              <label htmlFor="registrationFee" className="text-sm font-medium text-white">
+              <label htmlFor="registrationfee" className="text-sm font-medium text-white">
                 Registration Fee
               </label>
               <input
                 type="text"
-                id="registrationFee"
+                id="registrationfee"
                 defaultValue={0}
-                {...register("registrationFee", { valueAsNumber: true })}
+                {...register("registrationfee", { valueAsNumber: true })}
                 onChange={(e) => setRegistrationFeeValue(parseFloat(e.target.value))}
                 className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
               />
-              {errors.registrationFee && (
-                <p className="text-sm text-red-500">{errors.registrationFee.message}</p>
+              {errors.registrationfee && (
+                <p className="text-sm text-red-500">{errors.registrationfee.message}</p>
               )}
             </div>
           )}

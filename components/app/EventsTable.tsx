@@ -79,6 +79,21 @@ export default function EventsTable({ events }) {
 
 function EventRow({ event }) {
   const [open, setOpen] = useState(false);
+  // Convert eventdatetime to PST
+  const formattedDateTime = (utcDateString) => {
+    const date = new Date(utcDateString);
+    return date.toLocaleString("en-US", {
+      timeZone: "Asia/Manila",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  };
+
+  // Call the formattedDateTime function with the event's datetime
+  const eventDateTimePST = formattedDateTime(event.eventdatetime);
   return (
     <tr key={event.id}>
       <td
@@ -90,14 +105,7 @@ function EventRow({ event }) {
         </a>
       </td>
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-        {new Date(event.eventdatetime).toLocaleString("en-US", {
-          weekday: "long",
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-          hour: "numeric",
-          minute: "2-digit",
-        })}
+        {eventDateTimePST}
       </td>
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">{event.location}</td>
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">

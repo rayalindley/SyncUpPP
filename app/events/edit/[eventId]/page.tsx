@@ -1,5 +1,5 @@
 "use client";
-import CreateEventForm from "@/components/create_event_form_test";
+import CreateEventForm from "@/components/create_event_form";
 import { fetchEventById } from "@/lib/events";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { useParams, useRouter } from "next/navigation";
@@ -21,6 +21,7 @@ export default function EditEventPage() {
           console.error(eventResponse.error);
         } else {
           setEvent(eventResponse.data);
+          console.log(eventResponse.data);
         }
       } catch (err) {
         console.error("Failed to fetch data:", err);

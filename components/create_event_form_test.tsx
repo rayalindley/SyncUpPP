@@ -98,13 +98,22 @@ const CreateEventForm = ({
       }
     }
 
+    const eventDateTimeWithTimezone = new Date(formData.eventdatetime).toISOString();
+
     const completeFormData = {
       ...formData,
       eventphoto: imageUrl,
+      eventdatetime: eventDateTimeWithTimezone,
       capacity: finalCapacityValue,
       registrationfee: finalRegistrationFeeValue,
     };
+    if (!formData.eventdatetime) {
+      toast.error("Please select a valid date and time for the event.");
+      setIsLoading(false);
+      return;
+    }
 
+    console.log(formData.eventdatetime);
     const { data, error } = event
       ? await updateEvent(event.eventid, completeFormData)
       : await insertEvent(completeFormData, organizationId);
@@ -126,7 +135,14 @@ const CreateEventForm = ({
 
     setIsLoading(false);
   };
-
+  useEffect(() => {
+    // When the component mounts or the event prop changes, update the form values
+    if (event) {
+      Object.keys(event).forEach((key) => {
+        setValue(key as keyof EventFormValues, event[key]);
+      });
+    }
+  }, [event, setValue]);
   useEffect(() => {
     if (event && event.eventphoto) {
       const imageUrl = `https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public/${event.eventphoto}`;
