@@ -162,7 +162,7 @@ export default function NewsletterPage() {
           <ArrowLeftIcon className="h-5 w-5" /> Back
         </a>
       </div>
-      <div className="px-4 font-sans text-light lg:px-96">
+      <div className="px-4 font-sans text-light lg:px-64 md:px-36">
         <h1 className="mb-4 text-2xl font-bold text-light">Newsletter Creation</h1>
 
         <div className="my-5">
