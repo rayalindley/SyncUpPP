@@ -8,7 +8,7 @@ export async function insertEvent(formData: any, organizationId: string) {
     eventdatetime: formData.eventdatetime, // Assuming this is a time string in HH:MM format
     location: formData.location,
     capacity: formData.capacity,
-    registrationfee: formData.registrationFee,
+    registrationfee: formData.registrationfee,
     privacy: formData.privacy,
     organizationid: organizationId, // Include organizationId in the insertValues object
     eventphoto: formData.photo,
@@ -66,7 +66,7 @@ export async function updateEvent(eventId: string, formData: any) {
     eventdatetime: formData.eventdatetime, // Assuming this is a time string in HH:MM format
     location: formData.location,
     capacity: formData.capacity,
-    registrationfee: formData.registrationFee,
+    registrationfee: formData.registrationfee,
     privacy: formData.privacy,
     eventphoto: formData.photo,
   };

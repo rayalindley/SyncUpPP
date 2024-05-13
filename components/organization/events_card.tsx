@@ -62,9 +62,20 @@ const EventsCard = ({ event }) => {
       ? `Php ${registrationfee}`
       : "Free";
 
-  // Determine the content for the location tag
-  const locationTagContent =
-    location && location.startsWith("http") ? "Virtual" : "On-Site";
+  // Determine if the location is a URL and create a clickable link
+  const locationContent =
+    location && location.startsWith("http") ? (
+      <a
+        href={location}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-primary hover:underline"
+      >
+        Virtual Event
+      </a>
+    ) : (
+      location
+    );
 
   // Define the base URL for your Supabase storage bucket
   const supabaseStorageBaseUrl =
@@ -160,13 +171,15 @@ const EventsCard = ({ event }) => {
             <h3 className="text-lg font-semibold text-light">{title}</h3>
             <p className="mt-2 text-justify text-sm text-light">{truncatedDescription}</p>
           </div>
-          <div className="mt-3 flex items-center">
-            <div className="mr-2 rounded-lg bg-charleston px-2 py-1 text-sm font-semibold text-white ring-1 ring-primary">
+          <div className="mt-3 flex items-center text-light">
+            {/* <div className="mr-2 rounded-lg bg-charleston px-2 py-1 text-sm font-semibold text-white ring-1 ring-primary">
               {registrationTagContent}
             </div>
             <div className="rounded-lg bg-charleston px-2 py-1 text-sm font-semibold text-white ring-1 ring-primary">
               {locationTagContent}
-            </div>
+            </div> */}
+            <UserGroupIcon className="mr-2 h-5 w-5 text-primary" aria-hidden="true" />
+            {attendeesDisplay}
             <button
               className="ml-auto rounded bg-primary px-4 py-2 font-semibold text-white hover:bg-primarydark focus:outline-none"
               onClick={openDialog}
@@ -187,7 +200,7 @@ const EventsCard = ({ event }) => {
             leaveFrom="opacity-100"
             leaveTo="opacity-0"
           >
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+            <div className="fixed inset-0 bg-charleston bg-opacity-75 backdrop-blur-md transition-opacity" />
           </Transition.Child>
 
           <div className="fixed inset-0 z-10 overflow-y-auto">
@@ -201,7 +214,7 @@ const EventsCard = ({ event }) => {
                 leaveFrom="opacity-100 translate-y-0 sm:scale-100"
                 leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
               >
-                <Dialog.Panel className="relative w-full max-w-4xl transform overflow-hidden bg-eerieblack p-8 text-left shadow-xl transition-all">
+                <Dialog.Panel className="relative w-full max-w-4xl transform overflow-hidden rounded-lg bg-eerieblack p-8 text-left shadow-xl transition-all">
                   <div className="m-4 flex h-full flex-col justify-between">
                     <div>
                       <div className="flex justify-center">
@@ -209,7 +222,7 @@ const EventsCard = ({ event }) => {
                           <img
                             src={`${supabaseStorageBaseUrl}/${imageUrl}`}
                             alt={title}
-                            className="max-h-80 w-full object-cover object-center"
+                            className="max-h-80 w-full rounded-lg object-cover object-center"
                           />
                         ) : (
                           <div className="h-80 w-full bg-white" />
@@ -226,25 +239,25 @@ const EventsCard = ({ event }) => {
                           className="ml-4 mr-2 h-5 w-5 text-primary"
                           aria-hidden="true"
                         />
-                        {location}
+                        {locationContent}
                       </div>
                       <div className="mt-2 flex items-center text-sm text-light">
-                        <BanknotesIcon
+                        <UserGroupIcon
                           className="mr-2 h-5 w-5 text-primary"
                           aria-hidden="true"
                         />
-                        {registrationTagContent}
-                        <UserGroupIcon
-                          className="ml-10 mr-2 h-5 w-5 text-primary"
+                        {attendeesDisplay}
+                        <BanknotesIcon
+                          className="ml-14 mr-2 h-5 w-5 text-primary"
                           aria-hidden="true"
                         />
-                        {attendeesDisplay}
+                        {registrationTagContent}
                       </div>
                       <p className="mt-4 text-justify text-light">{description}</p>
                     </div>
                     <div className="mt-4 flex justify-center">
                       <button
-                        className="rounded bg-primary px-4 py-2 text-white hover:bg-primarydark"
+                        className="mt-2 rounded bg-primary px-4 py-2 text-white hover:bg-primarydark"
                         onClick={handleEventRegistration}
                       >
                         Join Event

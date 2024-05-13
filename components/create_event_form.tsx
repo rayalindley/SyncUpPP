@@ -25,8 +25,12 @@ const EventSchema = z.object({
     message: "Event Date & Time should be in the future",
   }),
   location: z.string().min(3, "Location is required"),
-  capacity: z.number().int().min(1, "Capacity must be at least 1").optional(),
-  registrationfee: z.number().min(0, "Registration Fee cannot be negative").optional(),
+  capacity: z.number().int().min(1, "Capacity must be at least 1").optional().nullable(),
+  registrationfee: z
+    .number()
+    .min(0, "Registration Fee cannot be negative")
+    .optional()
+    .nullable(),
   privacy: z.enum(["public", "private"]),
 });
 
@@ -44,7 +48,7 @@ interface EventFormValues {
 
 const CreateEventForm = ({
   organizationId,
-  event = null,
+  event,
 }: {
   organizationId: string;
   event?: EventFormValues;
@@ -72,7 +76,7 @@ const CreateEventForm = ({
   const onSubmit: SubmitHandler<EventFormValues> = async (formData) => {
     setIsLoading(true);
 
-    // Use null if the radio buttons are set to "No"
+    // // Use null if the radio buttons are set to "No"
     const finalCapacityValue = hasCapacityLimit ? capacityValue : null;
     const finalRegistrationFeeValue = hasRegistrationFee ? registrationFeeValue : null;
 
@@ -107,13 +111,8 @@ const CreateEventForm = ({
       capacity: finalCapacityValue,
       registrationfee: finalRegistrationFeeValue,
     };
-    if (!formData.eventdatetime) {
-      toast.error("Please select a valid date and time for the event.");
-      setIsLoading(false);
-      return;
-    }
 
-    console.log(formData.eventdatetime);
+    console.log(completeFormData);
     const { data, error } = event
       ? await updateEvent(event.eventid, completeFormData)
       : await insertEvent(completeFormData, organizationId);
@@ -135,14 +134,29 @@ const CreateEventForm = ({
 
     setIsLoading(false);
   };
+  const formatDateForInput = (date) => {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const day = date.getDate().toString().padStart(2, "0");
+    const hours = date.getHours().toString().padStart(2, "0");
+    const minutes = date.getMinutes().toString().padStart(2, "0");
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
   useEffect(() => {
-    // When the component mounts or the event prop changes, update the form values
     if (event) {
       Object.keys(event).forEach((key) => {
-        setValue(key as keyof EventFormValues, event[key]);
+        if (key === "eventdatetime") {
+          // Format the date string correctly before setting the value
+          const formattedDate = formatDateForInput(new Date(event[key]));
+          setValue(key as keyof EventFormValues, formattedDate);
+        } else {
+          setValue(key as keyof EventFormValues, event[key]);
+        }
       });
     }
   }, [event, setValue]);
+
   useEffect(() => {
     if (event && event.eventphoto) {
       const imageUrl = `https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public/${event.eventphoto}`;
@@ -159,6 +173,10 @@ const CreateEventForm = ({
   const [hasRegistrationFee, setHasRegistrationFee] = useState(
     event?.registrationfee > 0 || event?.registrationfee != null
   );
+
+  // Get the current date and time formatted as YYYY-MM-DDTHH:MM
+  const now = new Date();
+  const currentDateTimeLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}T${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 
   return (
     <>
@@ -235,6 +253,7 @@ const CreateEventForm = ({
             <input
               type="datetime-local"
               id="eventdatetime"
+              min={currentDateTimeLocal}
               className="mt-1 block w-full rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
               {...register("eventdatetime", { valueAsDate: true })}
             />
