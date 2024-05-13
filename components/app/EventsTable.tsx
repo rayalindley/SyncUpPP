@@ -1,11 +1,30 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import EventOptions from "./event_options"; // Assuming you have EventOptions component
 
-export default function EventsTable({ events }) {
+export default function EventsTable({ organizations, events }) {
+  const [selectedOrgId, setSelectedOrgId] = useState("");
+  const router = useRouter();
+
+  // Filter events based on the selected organization ID
+  const filteredEvents = selectedOrgId
+    ? events.filter((event) => event.organizationid === selectedOrgId)
+    : events; // If no organization is selected, show all events
+
+  // Redirect to the create event page for the selected organization
+  const handleCreateEvent = () => {
+    // Find the slug for the selected organization
+    const selectedOrgSlug = organizations.find(
+      (org) => org.organization_id === selectedOrgId
+    )?.slug;
+    if (selectedOrgSlug) {
+      router.push(`/events/create/${selectedOrgSlug}`);
+    }
+  };
   return (
     <div className="px-4 sm:px-6 lg:px-8">
-      <div className="sm:flex sm:items-center">
+      <div className="justify-between sm:flex sm:items-center">
         <div className="sm:flex-auto">
           <h1 className="text-base font-semibold leading-6 text-light">Events</h1>
           <p className="mt-2 text-sm text-light">
@@ -13,8 +32,36 @@ export default function EventsTable({ events }) {
             registration fee, capacity, and privacy.
           </p>
         </div>
-        <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none"></div>
+        <div className="mt-4 sm:flex sm:items-center sm:space-x-2">
+          {/* Dropdown for selecting organization */}
+          <select
+            value={selectedOrgId}
+            onChange={(e) => setSelectedOrgId(e.target.value)}
+            className="rounded-md bg-charleston text-sm text-light shadow-sm ring-primary hover:bg-raisinblack focus:ring-2 focus:ring-primary"
+          >
+            <option value="">All Organizations</option>
+            {organizations.map((org) => (
+              <option key={org.organization_id} value={org.organization_id}>
+                {org.name}
+              </option>
+            ))}
+          </select>
+
+          {/* Create event button */}
+          <button
+            onClick={handleCreateEvent}
+            disabled={!selectedOrgId} // Button is disabled if no organization is selected
+            className={`rounded-md px-4 py-2 text-sm text-white ${
+              selectedOrgId
+                ? "bg-primary hover:bg-primarydark"
+                : "cursor-not-allowed bg-gray-500"
+            }`}
+          >
+            Create Event
+          </button>
+        </div>
       </div>
+
       <div className="mt-8 flow-root">
         <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
           <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
@@ -64,7 +111,7 @@ export default function EventsTable({ events }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#525252] bg-raisinblack">
-                  {events.map((event, index) => (
+                  {filteredEvents.map((event, index) => (
                     <EventRow key={index} event={event} />
                   ))}
                 </tbody>
