@@ -1,17 +1,42 @@
+import { getAuthorFirstName } from "@/lib/posts";
+import { useEffect, useState } from "react";
+
 const PostsCard = ({ post }) => {
-  const { imageUrl, title, description } = post;
+  const { content, createdat, postphoto, authorid } = post;
+  const [authorFirstName, setAuthorFirstName] = useState("");
+
+  useEffect(() => {
+    async function fetchAuthorData() {
+      try {
+        const firstName = await getAuthorFirstName(authorid);
+        setAuthorFirstName(firstName || "Unknown");
+      } catch (error) {
+        console.error("Error fetching author data:", error);
+      }
+    }
+
+    fetchAuthorData();
+  }, [authorid]);
+
+  const supabaseStorageBaseUrl =
+    "https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public";
 
   return (
     <div className="mb-4 w-full overflow-hidden rounded-lg bg-raisinblack shadow-lg lg:w-auto">
-      {/* Check if the post has an image */}
-      {imageUrl && (
-        <div className="h-40 overflow-hidden">
-          <img src={imageUrl} alt={title} className="h-full w-full object-cover" />
-        </div>
-      )}
       <div className="p-4">
-        <h3 className="text-lg font-semibold text-light">{title}</h3>
-        <p className="mt-2 text-sm text-light">{description}</p>
+        {postphoto && (
+          <img
+            src={`${supabaseStorageBaseUrl}/${postphoto}`}
+            alt="Post Image"
+            className="mb-2 w-full rounded-lg object-cover"
+          />
+        )}
+        <p className="text-sm text-light">{content}</p>
+        <p className="mt-2 text-xs text-gray-500">
+          {new Date(createdat).toLocaleString()}
+        </p>
+        <p className="mt-2 text-xs text-gray-500">By: {authorFirstName}</p>{" "}
+        {/* Display author's first name */}
       </div>
     </div>
   );
