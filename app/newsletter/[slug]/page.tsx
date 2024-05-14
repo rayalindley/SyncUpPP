@@ -92,21 +92,24 @@ export default function NewsletterPage() {
           attachments: resolvedAttachments,
         };
 
-        const { data, error } = await sendNewsletter(emailContent);
+        const response = await sendNewsletter(emailContent);
+        if (response) {
+          const { data, error } = response;
 
-        if (data) {
-          toast.success("Email(s) sent successfully.", {
-            position: "bottom-right",
-            autoClose: 5000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            progress: undefined,
-            theme: "light",
-          });
-        } else if (error) {
-          toast.error(error.message || "An error occurred. Pls try again.");
+          if (data) {
+            toast.success("Email(s) sent successfully.", {
+              position: "bottom-right",
+              autoClose: 5000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+              progress: undefined,
+              theme: "light",
+            });
+          } else if (error) {
+            toast.error(error.message || "An error occurred. Pls try again.");
+          }
         }
       }
     }
@@ -162,7 +165,7 @@ export default function NewsletterPage() {
           <ArrowLeftIcon className="h-5 w-5" /> Back
         </a>
       </div>
-      <div className="px-4 font-sans text-light lg:px-64 md:px-36">
+      <div className="px-4 font-sans text-light md:px-36 lg:px-64">
         <h1 className="mb-4 text-2xl font-bold text-light">Newsletter Creation</h1>
 
         <div className="my-5">
