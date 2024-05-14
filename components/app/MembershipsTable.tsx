@@ -81,18 +81,13 @@ export default function MembershipsTable({ orgmems }: { orgmems: Membership[] })
                     >
                       Description
                     </th>
-                    <th
-                      scope="col"
-                      className="px-3 py-3.5 text-left text-sm font-semibold text-light"
-                    >
-                      Features
-                    </th>
-                    <th
+                  
+                    {/* <th
                       scope="col"
                       className="px-3 py-3.5 text-left text-sm font-semibold text-light"
                     >
                       Most Popular
-                    </th>
+                    </th> */}
                     <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                       <span className="sr-only">Edit</span>
                     </th>
@@ -135,12 +130,10 @@ function MemRow({ mem , showOrg }) {
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
         {mem.description}
       </td>
-      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-        {mem.features ? mem.features.join(" || ") : "None"}
-      </td>
-      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
+
+      {/* <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
         {mem.mostPopular ? "TRUE" : "FALSE"}
-      </td>
+      </td> */}
 
       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
         <MembershipOptions selectedTier={mem} open={open} setOpen={setOpen} />
