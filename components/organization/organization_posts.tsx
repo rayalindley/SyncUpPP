@@ -1,53 +1,39 @@
+import { fetchPosts } from "@/lib/posts"; // Import your fetchPosts function from your Supabase API file
 import { ArrowLongLeftIcon, ArrowLongRightIcon } from "@heroicons/react/20/solid";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Posts from "../app/posts";
 import PostsCard from "./posts_card";
+import PostsTextArea from "./posts_textarea";
 
-const OrganizationPostsComponent = () => {
-  const posts = [
-    {
-      imageUrl: "https://www.idoinspire.com/hubfs/FPH_9736.jpg#keepProtocol", // Replace with actual image URL
-      title: "Post 1",
-      description:
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-    },
-    {
-      title: "Post 2",
-      description:
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-    },
-    {
-      title: "Post 3",
-      description: "Description for Post 3 without image",
-    },
-    {
-      imageUrl: "https://via.placeholder.com/300", // Replace with actual image URL
-      title: "Post 4",
-      description: "Description for Post 4",
-    },
-    {
-      title: "Post 5",
-      description:
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-    },
-    // Add more posts as needed
-  ];
-
+const OrganizationPostsComponent = ({ organizationid }) => {
+  const [posts, setPosts] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const postsPerPage = 3;
-  const totalPosts = posts.length;
 
-  const indexOfLastPost = currentPage * postsPerPage;
-  const indexOfFirstPost = indexOfLastPost - postsPerPage;
-  const currentPosts = posts.slice(indexOfFirstPost, indexOfLastPost);
+  useEffect(() => {
+    const fetchData = async () => {
+      const { data, error } = await fetchPosts(organizationid, currentPage, postsPerPage);
+      if (!error) {
+        setPosts(data);
+      } else {
+        console.error("Error fetching posts:", error);
+      }
+    };
+    fetchData();
+  }, [organizationid, currentPage]);
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  const isFirstPage = currentPage === 1;
+  const isLastPage = posts.length < postsPerPage;
 
   return (
-    <div className="mx-auto max-w-7xl px-6 lg:px-8">
-      <div className="flex flex-col items-center">
+    <div className="">
+      <div className="flex flex-col">
         <h2 className="text-2xl font-semibold text-light">Organization Posts</h2>
-        <div className="isolate mx-auto mt-8 max-w-md px-96 sm:mt-12 lg:mx-0 lg:max-w-none">
-          {currentPosts.map((post, index) => (
+        <PostsTextArea />
+
+        <div className="isolate mx-auto mt-8 max-w-6xl sm:mt-12 lg:mx-0 lg:max-w-none">
+          {posts.map((post, index) => (
             <div key={index} className="mx-auto mb-4 ">
               <PostsCard post={post} />
             </div>
@@ -59,9 +45,9 @@ const OrganizationPostsComponent = () => {
             <div className="-mt-px flex w-0 flex-1">
               <button
                 onClick={() => paginate(currentPage - 1)}
-                disabled={currentPage === 1}
+                disabled={isFirstPage}
                 className={`inline-flex items-center border-t-2 border-transparent pr-1 pt-4 text-sm font-medium ${
-                  currentPage === 1
+                  isFirstPage
                     ? "cursor-not-allowed text-gray-500"
                     : "text-light hover:border-primary hover:text-primary"
                 }`}
@@ -74,7 +60,7 @@ const OrganizationPostsComponent = () => {
               </button>
             </div>
             <div className="hidden md:-mt-px md:flex">
-              {Array.from({ length: Math.ceil(totalPosts / postsPerPage) }, (_, i) => (
+              {Array.from({ length: Math.ceil(posts.length / postsPerPage) }, (_, i) => (
                 <button
                   key={i}
                   onClick={() => paginate(i + 1)}
@@ -91,9 +77,9 @@ const OrganizationPostsComponent = () => {
             <div className="-mt-px flex w-0 flex-1 justify-end">
               <button
                 onClick={() => paginate(currentPage + 1)}
-                disabled={currentPage === Math.ceil(totalPosts / postsPerPage)}
+                disabled={isLastPage}
                 className={`inline-flex items-center border-t-2 border-transparent pl-1 pt-4 text-sm font-medium ${
-                  currentPage === Math.ceil(totalPosts / postsPerPage)
+                  isLastPage
                     ? "cursor-not-allowed text-gray-500"
                     : "text-light hover:border-primary hover:text-primary"
                 }`}
