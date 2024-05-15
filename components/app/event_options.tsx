@@ -1,36 +1,43 @@
 "use client";
 import { deleteEvent } from "@/lib/events"; // Assuming you have deleteEvent function
 import { Dialog, Menu, Transition } from "@headlessui/react";
-import { ChevronDownIcon, TrashIcon, UserIcon } from "@heroicons/react/20/solid";
-import { XMarkIcon } from "@heroicons/react/24/solid"; // Changed from XMarkIcon to XIcon
+import {
+  ChevronDownIcon,
+  TrashIcon,
+  UserIcon,
+  UsersIcon,
+} from "@heroicons/react/20/solid";
+import { XMarkIcon } from "@heroicons/react/24/solid";
 import Link from "next/link";
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { FaRegEdit } from "react-icons/fa";
 import Swal from "sweetalert2";
 
 const jsonTheme = {
-  main: "line-height:1.3;color:#383a42;background:#ffffff;overflow:hidden;word-wrap:break-word;white-space: pre-wrap;word-wrap: break-word; ",
+  main: "line-height:1.3;color:#383a42;background:#ffffff;overflow:hidden;word-wrap:break-word;white-space: pre-wrap;word-wrap: break-word;",
   error:
-    "line-height:1.3;color:#e45649;background:#ffffff;overflow:hidden;word-wrap:break-word;white-space: pre-wrap;word-wrap: break-word; ",
+    "line-height:1.3;color:#e45649;background:#ffffff;overflow:hidden;word-wrap:break-word;white-space: pre-wrap;word-wrap: break-word;",
   key: "color:#a626a4;", // Purple for keys to stand out
   string: "color:#50a14f;", // Green for strings for easy readability
   value: "color:#4078f2;", // Blue for values to differentiate from strings
   boolean: "color:#986801;", // Brown for booleans for quick identification
 };
 
-function classNames(...classes: any[]) {
+function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
-export default function EventOptions({
-  selectedEvent,
-  open,
-  setOpen,
-}: {
-  selectedEvent: any;
-  open: boolean;
-  setOpen: any;
-}) {
+const dummyAttendees = [
+  { name: "John Doe" },
+  { name: "Jane Smith" },
+  { name: "Robert Brown" },
+  { name: "Emily White" },
+  { name: "Michael Johnson" },
+];
+
+export default function EventOptions({ selectedEvent, open, setOpen }) {
+  const [currentTab, setCurrentTab] = useState("Info");
+
   const deleteBtn = () => {
     Swal.fire({
       title: "Are you sure?",
@@ -63,6 +70,51 @@ export default function EventOptions({
     });
   };
 
+  // Define the base URL for your Supabase storage bucket
+  const supabaseStorageBaseUrl =
+    "https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public";
+
+  // Function to format date to Philippine Standard Time
+  const formattedDateTime = (utcDateString) => {
+    const date = new Date(utcDateString);
+    return date.toLocaleString("en-US", {
+      timeZone: "Asia/Manila",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  };
+
+  // Format the event date time and created at date
+  const eventDateTimePST = formattedDateTime(selectedEvent.eventdatetime);
+  const createdAtPST = formattedDateTime(selectedEvent.createdat);
+
+  // Function to check if the location is a URL
+  const isUrl = (string) => {
+    try {
+      new URL(string);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  };
+
+  // Render the location as a clickable link if it's a URL
+  const locationContent = isUrl(selectedEvent.location) ? (
+    <a
+      href={selectedEvent.location}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-primary hover:text-primarydark"
+    >
+      {selectedEvent.location}
+    </a>
+  ) : (
+    selectedEvent.location
+  );
+
   return (
     <>
       <Menu as="div" className="relative inline-block text-left">
@@ -92,7 +144,10 @@ export default function EventOptions({
                       active ? "bg-raisinblack text-light" : "text-light",
                       "group flex items-center px-4 py-2 text-sm"
                     )}
-                    onClick={() => setOpen(true)}
+                    onClick={() => {
+                      setCurrentTab("Info");
+                      setOpen(true);
+                    }}
                   >
                     <UserIcon
                       className="mr-3 h-5 w-5 text-light group-hover:text-light"
@@ -119,8 +174,28 @@ export default function EventOptions({
                   </Link>
                 )}
               </Menu.Item>
+              <Menu.Item>
+                {({ active }) => (
+                  <a
+                    href="#"
+                    className={classNames(
+                      active ? "bg-raisinblack text-light" : "text-light",
+                      "group flex items-center px-4 py-2 text-sm"
+                    )}
+                    onClick={() => {
+                      setCurrentTab("Attendees");
+                      setOpen(true);
+                    }}
+                  >
+                    <UsersIcon
+                      className="mr-3 h-5 w-5 text-light group-hover:text-light"
+                      aria-hidden="true"
+                    />
+                    View Attendees
+                  </a>
+                )}
+              </Menu.Item>
             </div>
-
             <div className="py-1">
               <Menu.Item>
                 {({ active }) => (
@@ -191,53 +266,115 @@ export default function EventOptions({
                           </div>
                         </div>
                       </div>
-                      <div className="relative mt-6 flex-1 flex-wrap overflow-hidden px-4 text-light sm:px-6">
-                        <table className="w-full table-auto ">
-                          <tbody>
-                            <tr>
-                              <td className="p-2 font-bold text-gray-400">Title:</td>
-                              <td className="p-2">{selectedEvent.title}</td>
-                            </tr>
-                            <tr>
-                              <td className="p-2 font-bold text-gray-400">
-                                Description:
-                              </td>
-                              <td className="p-2">{selectedEvent.description}</td>
-                            </tr>
-                            <tr>
-                              <td className="p-2 font-bold text-gray-400">Location:</td>
-                              <td className="p-2">{selectedEvent.location}</td>
-                            </tr>
-                            <tr>
-                              <td className="p-2 font-bold text-gray-400">
-                                Event Date Time:
-                              </td>
-                              <td className="p-2">{selectedEvent.eventdatetime}</td>
-                            </tr>
-                            <tr>
-                              <td className="p-2 font-bold text-gray-400">Capacity:</td>
-                              <td className="p-2">{selectedEvent.capacity}</td>
-                            </tr>
-                            <tr>
-                              <td className="p-2 font-bold text-gray-400">
-                                Registration Fee:
-                              </td>
-                              <td className="p-2">{selectedEvent.registrationfee}</td>
-                            </tr>
-                            <tr>
-                              <td className="p-2 font-bold text-gray-400">Created At:</td>
-                              <td className="p-2">{selectedEvent.createdat}</td>
-                            </tr>
-                            <tr>
-                              <td className="p-2 font-bold text-gray-400">Privacy:</td>
-                              <td className="p-2">{selectedEvent.privacy}</td>
-                            </tr>
-                          </tbody>
-                        </table>
 
-                        <div className="mt-5 flex gap-2">
-                          {/* Links for Visit Page, Edit, and Delete */}
-                        </div>
+                      {/* Tabs */}
+                      <div className="border-b border-gray-700">
+                        <nav
+                          className="-mb-px flex space-x-8 px-4 sm:px-6"
+                          aria-label="Tabs"
+                        >
+                          <button
+                            onClick={() => setCurrentTab("Info")}
+                            className={classNames(
+                              currentTab === "Info"
+                                ? "border-primary text-primary"
+                                : "border-transparent text-gray-400 hover:border-gray-300 hover:text-gray-300",
+                              "whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium"
+                            )}
+                          >
+                            Info
+                          </button>
+                          <button
+                            onClick={() => setCurrentTab("Attendees")}
+                            className={classNames(
+                              currentTab === "Attendees"
+                                ? "border-primary text-primary"
+                                : "border-transparent text-gray-400 hover:border-gray-300 hover:text-gray-300",
+                              "whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium"
+                            )}
+                          >
+                            Attendees
+                          </button>
+                        </nav>
+                      </div>
+
+                      <div className="relative mt-6 flex-1 flex-wrap overflow-hidden px-4 text-light sm:px-6">
+                        {currentTab === "Info" && (
+                          <>
+                            {/* Event Photo Display */}
+                            {selectedEvent.eventphoto ? (
+                              <img
+                                src={`${supabaseStorageBaseUrl}/${selectedEvent.eventphoto}`}
+                                alt={`${selectedEvent.title} event photo`}
+                                className="mx-auto h-60 w-full rounded-lg object-cover"
+                              />
+                            ) : (
+                              <div className="mx-auto h-60 w-full rounded-lg bg-white" />
+                            )}
+                            <table className="w-full table-auto">
+                              <tbody>
+                                <tr>
+                                  <td className="p-2 font-bold text-gray-400">Title:</td>
+                                  <td className="p-2">{selectedEvent.title}</td>
+                                </tr>
+                                <tr>
+                                  <td className="p-2 font-bold text-gray-400">
+                                    Description:
+                                  </td>
+                                  <td className="p-2">{selectedEvent.description}</td>
+                                </tr>
+                                <tr>
+                                  <td className="p-2 font-bold text-gray-400">
+                                    Location:
+                                  </td>
+                                  <td className="p-2">{locationContent}</td>
+                                </tr>
+                                <tr>
+                                  <td className="p-2 font-bold text-gray-400">
+                                    Event Date Time:
+                                  </td>
+                                  <td className="p-2">{eventDateTimePST}</td>
+                                </tr>
+                                <tr>
+                                  <td className="p-2 font-bold text-gray-400">
+                                    Capacity:
+                                  </td>
+                                  <td className="p-2">{selectedEvent.capacity}</td>
+                                </tr>
+                                <tr>
+                                  <td className="p-2 font-bold text-gray-400">
+                                    Registration Fee:
+                                  </td>
+                                  <td className="p-2">{selectedEvent.registrationfee}</td>
+                                </tr>
+                                <tr>
+                                  <td className="p-2 font-bold text-gray-400">
+                                    Created At:
+                                  </td>
+                                  <td className="p-2">{createdAtPST}</td>
+                                </tr>
+                                <tr>
+                                  <td className="p-2 font-bold text-gray-400">
+                                    Privacy:
+                                  </td>
+                                  <td className="p-2">{selectedEvent.privacy}</td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </>
+                        )}
+                        {currentTab === "Attendees" && (
+                          <div className="space-y-4">
+                            {dummyAttendees.map((attendee, index) => (
+                              <div key={index} className="flex items-center space-x-3">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-500 text-light">
+                                  {attendee.name.charAt(0)}
+                                </div>
+                                <div>{attendee.name}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </Dialog.Panel>
