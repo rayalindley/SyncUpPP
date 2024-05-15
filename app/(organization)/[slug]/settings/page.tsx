@@ -4,6 +4,7 @@ import CreateOrganizationForm from "@/components/create_organization_form";
 import { fetchOrganizationBySlug } from "@/lib/organization";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { StepsProvider } from "react-step-builder";
 
 export default function SettingsPage() {
   const { slug } = useParams();
@@ -31,7 +32,9 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-full flex-1 flex-col justify-center bg-eerieblack px-6 py-12  lg:px-8">
-      <CreateOrganizationForm formValues={formValues} />
+      <StepsProvider>
+        <CreateOrganizationForm formValues={formValues} />
+      </StepsProvider>
     </div>
   );
 }
