@@ -8,14 +8,17 @@ export default async function MembershipsPage() {
 
   const supabase = createClient();
 
-  const { data: orgmems, error } =
+  const { data: orgmems, error: orgmemsError } =
     (await supabase.from("organization_memberships").select("*")) ?? [];
+
+  const { data: allMembers, error: allMembersError  } =
+    (await supabase.from("user_membership_info").select("*")) ?? [];
 
   return (
     <>
-      <MembershipsTable orgmems = {orgmems}/>
+      <MembershipsTable orgmems={orgmems} allMembers={allMembers} />
 
-      {/* <pre>{JSON.stringify(user, null, 2)}</pre> */}
+
     </>
   );
 }

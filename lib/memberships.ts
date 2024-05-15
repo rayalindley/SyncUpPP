@@ -56,3 +56,21 @@ export async function deleteMembership(id: any) {
     };
   }
 }
+
+export async function getMembers(id:any) {
+  const supabase = createClient();
+  let { data: org_members, error } = await supabase
+  .from('user_membership_info')
+  .select('*')
+          
+  .eq('membershipid', id)
+
+  if (error) {
+    console.error('Failed to fetch members:', error.message);
+    return []; 
+  }
+
+  return org_members || []; 
+}
+
+

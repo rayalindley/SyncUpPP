@@ -6,10 +6,21 @@ import { Listbox } from "@headlessui/react";
 
 interface Membership {
   organizationid: string;
+  membershipid:string;
   orgname: string;
 }
 
-export default function MembershipsTable({ orgmems }: { orgmems: Membership[] }) {
+interface Member {
+  membershipid: string;
+  organizationid: string;
+  username: string;
+}
+
+interface MembersByMembershipId {
+  [membershipid: string]: Member[];
+}
+
+export default function MembershipsTable({ orgmems, allMembers}: { orgmems?: Membership[], allMembers: Member[]}) {
   const [selectedOrgId, setSelectedOrgId] = useState("");
 
   // Extract unique organizations
@@ -23,6 +34,21 @@ export default function MembershipsTable({ orgmems }: { orgmems: Membership[] })
   const filteredMemberships = orgmems.filter(
     (mem) => mem.organizationid === selectedOrgId || selectedOrgId === ""
   );
+
+   // Filter members based on the selected organization
+   const filteredMembers = allMembers.filter(
+    (member) => member.organizationid === selectedOrgId || selectedOrgId === ""
+  );
+
+  const membersByMembershipId: MembersByMembershipId = {};
+  filteredMembers.forEach(member => {
+    if (!membersByMembershipId[member.membershipid]) {
+      membersByMembershipId[member.membershipid] = [];
+    }
+    membersByMembershipId[member.membershipid].push(member);
+  });
+
+  // console.log(acc);
   return (
     <div className="px-4 sm:px-6 lg:px-8">
       <div className="sm:flex sm:items-center">
@@ -95,7 +121,10 @@ export default function MembershipsTable({ orgmems }: { orgmems: Membership[] })
                 </thead>
                 <tbody className="divide-y divide-[#525252] bg-raisinblack">
                   {filteredMemberships.map((mem, index) => (
-                    <MemRow key={index} mem={mem} showOrg={selectedOrgId === ""}/>
+                    <MemRow key={index} 
+                            mem={mem} 
+                            members={membersByMembershipId[mem.membershipid] || []}
+                            showOrg={selectedOrgId === ""}/>
                   ))}
                 </tbody>
               </table>
@@ -107,7 +136,7 @@ export default function MembershipsTable({ orgmems }: { orgmems: Membership[] })
   );
 }
 
-function MemRow({ mem , showOrg }) {
+function MemRow({ mem ,members, showOrg }) {
   const [open, setOpen] = useState(false);
   return (
     <tr>
@@ -136,7 +165,7 @@ function MemRow({ mem , showOrg }) {
       </td> */}
 
       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-        <MembershipOptions selectedTier={mem} open={open} setOpen={setOpen} />
+        <MembershipOptions selectedTier={mem} open={open} setOpen={setOpen}  TierMembers={members}/>
       </td>
     </tr>
   );

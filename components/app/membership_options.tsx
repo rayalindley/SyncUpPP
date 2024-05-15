@@ -28,11 +28,13 @@ export default function MembershipOptions({
   selectedTier,
   open,
   setOpen,
+  TierMembers
 }: {
   selectedTier: any;
   open: boolean;
   setOpen: any;
-}) {
+  TierMembers: any;
+}) { console.log(TierMembers)
   const deleteBtn = () => {
     Swal.fire({
       title: "Are you sure?",
@@ -266,6 +268,28 @@ export default function MembershipOptions({
                             Delete
                           </button>
                         </div>
+                        <div className="mt-5">
+                          <h2 className="text-lg font-semibold text-light mb-2">Members:</h2>
+                          <table className="mt-5 min-w-full divide-y divide-[#525252]">
+                            <thead className="bg-charleston ">
+                              <tr>
+                              <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-light sm:pl-6">First Name</th>
+                              <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-light sm:pl-6">Last Name</th>
+                              <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-light sm:pl-6">Join Date</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {TierMembers.map((member: any, index: number) => (
+                                <tr key={index}>
+                                    <td className="py-3.5 pl-4 pr-3 text-left text-sm text-light sm:pl-6">{member.first_name}</td>
+                                    <td className="py-3.5 pl-4 pr-3 text-left text-sm text-light sm:pl-6">{member.last_name}</td>
+                                    <td className="py-3.5 pl-4 pr-3 text-left text-sm text-light sm:pl-6">{member.joindate}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
                       </div>
                     </div>
                   </Dialog.Panel>
