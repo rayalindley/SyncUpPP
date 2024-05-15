@@ -19,6 +19,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Controller } from "react-hook-form";
 import Datepicker from "tailwind-datepicker-react";
+import { createClient } from "@/lib/supabase/client";
 
 // Schema for form validation
 const UserProfileSchema = z.object({
@@ -181,6 +182,44 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
     }
   };
 
+  const handleProfilePictureChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Check if the file is an image
+      if (!file.type.startsWith("image/")) {
+        setImageError("Please upload an image file");
+        return;
+      }
+
+      // Set the loading state
+      setIsUpdating(true);
+
+      // Generate a unique file name
+      const fileName = `${userProfile?.userid}_${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      const { data: uploadResult, error } = await createClient()
+        .storage.from("profile-pictures")
+        .upload(fileName, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (uploadResult) {
+        setUserProfile({
+          ...userProfile,
+          profilepicture: `https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public/${uploadResult.fullPath}`,
+        });
+      } else {
+        console.error("Error uploading image:", error);
+        toast.error("Error uploading image. Please try again.");
+      }
+
+      // Reset the loading state
+      setIsUpdating(false);
+    }
+  };
+
   if (!userProfile) {
     return <div className="mt-10 text-light">Loading...</div>;
   }
@@ -222,28 +261,14 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                     style={{ objectFit: "cover" }}
                   />
                   <div className="absolute bottom-0 right-0 mb-2 mr-2">
-                    <label htmlFor="file-input" className="">
+                    <label htmlFor="profile-picture-input" className="">
                       <PlusIcon className="mr-2 inline-block h-8 w-8 cursor-pointer rounded-full border-2 border-primary  bg-white text-primarydark" />
                     </label>
                     <input
-                      id="file-input"
+                      id="profile-picture-input"
                       accept="image/*"
                       type="file"
-                      onChange={async (event) => {
-                        const file = event.target.files?.[0];
-                        if (file) {
-                          // Check if the file is an image
-                          if (!file.type.startsWith("image/")) {
-                            // Set the error message
-                            setImageError("Please upload an image file");
-                            return;
-                          }
-                          const base64 = await convertToBase64(file);
-                          setUserProfile({ ...userProfile, profilepicture: base64 });
-                          // Clear the error message
-                          setImageError("");
-                        }
-                      }}
+                      onChange={handleProfilePictureChange}
                       className="hidden"
                     />
                   </div>
