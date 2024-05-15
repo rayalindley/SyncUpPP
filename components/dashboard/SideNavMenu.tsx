@@ -1,4 +1,5 @@
 "use client";
+import useSidebarStore from "@/store/useSidebarStore";
 import { Dialog, Transition } from "@headlessui/react";
 import {
   CalendarIcon,
@@ -10,42 +11,41 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Fragment, useEffect, useState } from "react";
 
 function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
 }
 
+const navigation = [
+  { name: "Dashboard", href: "/dashboard", icon: HomeIcon },
+  { name: "Users", href: "/dashboard/users", icon: UsersIcon },
+  {
+    name: "Organizations",
+    href: "/dashboard/organizations",
+    icon: UsersIcon,
+  },
+  { name: "Projects", href: "#", icon: FolderIcon },
+  { name: "Calendar", href: "#", icon: CalendarIcon },
+  { name: "Documents", href: "#", icon: DocumentDuplicateIcon },
+  { name: "Reports", href: "#", icon: ChartPieIcon },
+];
+
 const SideNavMenu = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [currentItem, setCurrentItem] = useState<string | null>(() => {
-    // Determine the default item based on the current URL path
-    const currentPath = window.location.pathname;
-    return currentPath;
-  });
+  const { sidebarOpen, toggleSidebar, setSidebarOpen } = useSidebarStore((state) => ({
+    sidebarOpen: state.sidebarOpen,
+    toggleSidebar: state.toggleSidebar,
+    setSidebarOpen: state.setSidebarOpen,
+  }));
 
-  const navigation = [
-    { name: "Dashboard", href: "/dashboard", icon: HomeIcon },
-    { name: "Users", href: "/dashboard/users", icon: UsersIcon },
-    {
-      name: "Organizations",
-      href: "/dashboard/organizations",
-      icon: UsersIcon,
-    },
-    { name: "Events", href: "/dashboard/events", icon: CalendarIcon },
-    { name: "Calendar", href: "#", icon: CalendarIcon },
-    { name: "Documents", href: "#", icon: DocumentDuplicateIcon },
-    { name: "Reports", href: "#", icon: ChartPieIcon },
-  ];
-
-  const handleItemClick = (itemHref: string) => {
-    setCurrentItem(itemHref);
-  };
+  const pathname = usePathname();
+  const [currentItem, setCurrentItem] = useState(pathname);
 
   useEffect(() => {
-    const currentPath = window.location.pathname;
-    setCurrentItem(currentPath);
-  }, []);
+    setCurrentItem(pathname);
+    console.log(pathname);
+  }, [pathname]);
 
   return (
     <div>
@@ -98,7 +98,7 @@ const SideNavMenu = () => {
                 <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-4">
                   <Link href="#">
                     <div className="flex h-16 shrink-0 items-center">
-                      <img className="h-8 w-auto" src="/Symbian.png" alt="SyncUp" />
+                      <img className="h-10 w-auto" src="/syncup.png" alt="SyncUp" />
                     </div>
                   </Link>
                   <nav className="flex flex-1 flex-col">
@@ -109,7 +109,6 @@ const SideNavMenu = () => {
                             <li key={item.name}>
                               <Link
                                 href={item.href}
-                                onClick={() => handleItemClick(item.name)}
                                 className={classNames(
                                   currentItem === item.name
                                     ? "bg-gray-50 text-indigo-600"
@@ -141,7 +140,6 @@ const SideNavMenu = () => {
                             <li key={item.name}>
                               <a
                                 href={item.href}
-                                onClick={() => handleItemClick(item.name)}
                                 className={classNames(
                                   currentItem === item.name
                                     ? "bg-gray-50 text-indigo-600"
@@ -190,7 +188,7 @@ const SideNavMenu = () => {
         <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-[#525252] bg-eerieblack px-6 pb-4">
           <Link href="/">
             <div className="flex h-16 shrink-0 items-center">
-              <img className="h-8 w-auto" src="/Symbian.png" alt="SyncUp" />
+              <img className="h-10 w-auto" src="/syncup.png" alt="SyncUp" />
               <p className="ml-2 font-semibold text-light">SyncUp</p>
             </div>
           </Link>
@@ -203,7 +201,6 @@ const SideNavMenu = () => {
                     <li key={item.name}>
                       <Link
                         href={item.href}
-                        onClick={() => handleItemClick(item.href)}
                         className={classNames(
                           currentItem === item.href
                             ? "bg-charleston text-light"
