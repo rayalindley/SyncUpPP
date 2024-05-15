@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "//": "this is still broken. is supposed to send emails automatically",
-    "start-listener": "node lib/supabase/realtimeListener.ts" 
+    "start-listener": "node lib/supabase/realtimeListener.ts"
   },
   "dependencies": {
     "@headlessui/react": "^1.7.18",

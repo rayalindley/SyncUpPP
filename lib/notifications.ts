@@ -52,3 +52,26 @@ export async function markAllAsRead(userId) {
     };
   }
 }
+
+// Mark a single notification as read for the user
+export async function markNotificationAsRead(notificationId) {
+  const supabase = createClient();
+  try {
+    let { error } = await supabase
+      .from('notifications')
+      .update({ isread: true })
+      .eq('notificationid', notificationId);
+
+    if (!error) {
+      return { success: true, error: null };
+    } else {
+      return { success: false, error: { message: error.message } };
+    }
+  } catch (e) {
+    console.error("Unexpected error:", e);
+    return {
+      success: false,
+      error: { message: e.message || "An unexpected error occurred" },
+    };
+  }
+}
