@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/client";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { UserGroupIcon } from "@heroicons/react/24/outline";
-import { UserGroupIcon } from "@heroicons/react/24/outline";
 
 export default function NewsletterPage() {
   const [organizations, setOrganizations] = useState<any[]>([]);
