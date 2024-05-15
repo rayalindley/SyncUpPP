@@ -1,4 +1,4 @@
-import { insertEvent, updateEvent } from "@/lib/events"; // Ensure you have an updateEvent function
+import { insertEvent, updateEvent } from "@/lib/events";
 import { createClient } from "@/lib/supabase/client";
 import { PhotoIcon } from "@heroicons/react/20/solid";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,10 +12,9 @@ import { z } from "zod";
 const isFutureDate = (value: Date, context) => {
   if (value instanceof Date) {
     const now = new Date();
-    // Allow the date if it's in the future or if it's the same as the initial value
     return value > now || context?.options?.original_value?.getTime() === value.getTime();
   }
-  return false; // Return false if value is not a valid Date object
+  return false;
 };
 
 const EventSchema = z.object({
@@ -53,11 +52,19 @@ const CreateEventForm = ({
   organizationId: string;
   event?: EventFormValues;
 }) => {
-  const [eventphoto, setEventPhoto] = useState<string | null>(null);
-  const [capacityValue, setCapacityValue] = useState<number | null>(null);
-  const [registrationFeeValue, setRegistrationFeeValue] = useState<number | null>(null);
+  const [eventphoto, setEventPhoto] = useState<string | null>(event?.eventphoto || null);
+  const [previousPhotoUrl, setPreviousPhotoUrl] = useState<string | null>(
+    event?.eventphoto || null
+  );
+  const [capacityValue, setCapacityValue] = useState<number | null>(
+    event?.capacity || null
+  );
+  const [registrationFeeValue, setRegistrationFeeValue] = useState<number | null>(
+    event?.registrationfee || null
+  );
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [removeImageFlag, setRemoveImageFlag] = useState(false);
   const router = useRouter();
 
   const formOptions = event ? { defaultValues: event } : {};
@@ -76,16 +83,29 @@ const CreateEventForm = ({
   const onSubmit: SubmitHandler<EventFormValues> = async (formData) => {
     setIsLoading(true);
 
-    // // Use null if the radio buttons are set to "No"
-    const finalCapacityValue = hasCapacityLimit ? capacityValue : null;
-    const finalRegistrationFeeValue = hasRegistrationFee ? registrationFeeValue : null;
+    const finalCapacityValue = capacityValue;
+    const finalRegistrationFeeValue = registrationFeeValue;
 
     const supabase = createClient();
 
-    let imageUrl = null;
+    let imageUrl = event?.eventphoto || null;
     if (photoFile) {
+      // Delete the previous image if it exists and is different from the current event image
+      if (previousPhotoUrl && previousPhotoUrl !== event?.eventphoto) {
+        const { error: deleteError } = await supabase.storage
+          .from("event-images")
+          .remove([previousPhotoUrl]);
+        if (deleteError) {
+          console.error("Error removing previous image:", deleteError);
+          toast.error("Error removing previous image. Please try again.");
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // Upload the new image
       const fileName = `${formData.title}_${Date.now()}-${Math.random().toString(36).substring(7)}`;
-      const { data: uploadResult, error } = await supabase.storage
+      const { data: uploadResult, error: uploadError } = await supabase.storage
         .from("event-images")
         .upload(fileName, photoFile, {
           cacheControl: "3600",
@@ -94,12 +114,27 @@ const CreateEventForm = ({
 
       if (uploadResult) {
         imageUrl = uploadResult.fullPath;
+        setPreviousPhotoUrl(imageUrl); // Update the previousPhotoUrl with the new image URL
       } else {
-        console.error("Error uploading image:", error);
+        console.error("Error uploading image:", uploadError);
         toast.error("Error uploading image. Please try again.");
         setIsLoading(false);
         return;
       }
+    } else if (removeImageFlag && previousPhotoUrl) {
+      const fileName = previousPhotoUrl.split("/").pop(); // This will get you "test_1715006261622-hip4l"
+
+      // Remove the image from storage
+      const { error } = await supabase.storage.from("event-images").remove([fileName]);
+      if (error) {
+        console.error("Error removing image:", error);
+        toast.error("Error removing image. Please try again.");
+        setIsLoading(false);
+        return;
+      }
+      imageUrl = null;
+      setPreviousPhotoUrl(null); // Reset the previousPhotoUrl since the image was removed
+      console.log(fileName);
     }
 
     const eventDateTimeWithTimezone = new Date(formData.eventdatetime).toISOString();
@@ -112,7 +147,6 @@ const CreateEventForm = ({
       registrationfee: finalRegistrationFeeValue,
     };
 
-    console.log(completeFormData);
     const { data, error } = event
       ? await updateEvent(event.eventid, completeFormData)
       : await insertEvent(completeFormData, organizationId);
@@ -133,7 +167,9 @@ const CreateEventForm = ({
     }
 
     setIsLoading(false);
+    setRemoveImageFlag(false); // Reset the flag after form submission
   };
+
   const formatDateForInput = (date) => {
     const year = date.getFullYear();
     const month = (date.getMonth() + 1).toString().padStart(2, "0");
@@ -147,13 +183,13 @@ const CreateEventForm = ({
     if (event) {
       Object.keys(event).forEach((key) => {
         if (key === "eventdatetime") {
-          // Format the date string correctly before setting the value
           const formattedDate = formatDateForInput(new Date(event[key]));
           setValue(key as keyof EventFormValues, formattedDate);
         } else {
           setValue(key as keyof EventFormValues, event[key]);
         }
       });
+      setPreviousPhotoUrl(event.eventphoto || null);
     }
   }, [event, setValue]);
 
@@ -165,8 +201,6 @@ const CreateEventForm = ({
   }, [event]);
 
   const [enabled, setEnabled] = useState(false);
-  // const [hasRegistrationFee, setHasRegistrationFee] = useState(false); // State for tracking if there's a registration fee
-  // const [hasCapacityLimit, setHasCapacityLimit] = useState(false); // State for tracking if there's a capacity limit
   const [hasCapacityLimit, setHasCapacityLimit] = useState(
     event?.capacity > 0 || event?.capacity != null
   );
@@ -174,9 +208,14 @@ const CreateEventForm = ({
     event?.registrationfee > 0 || event?.registrationfee != null
   );
 
-  // Get the current date and time formatted as YYYY-MM-DDTHH:MM
   const now = new Date();
   const currentDateTimeLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}T${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+
+  const removeImage = () => {
+    setEventPhoto(null);
+    setPhotoFile(null);
+    setRemoveImageFlag(true);
+  };
 
   return (
     <>
@@ -194,26 +233,57 @@ const CreateEventForm = ({
               ) : (
                 <div className="h-full w-full bg-charleston"></div>
               )}
-              <div className="absolute bottom-0 right-0 mb-2 mr-2 grid  grid-cols-2 items-center gap-1 rounded-lg bg-black bg-opacity-25 text-white hover:bg-gray-500 hover:bg-opacity-25">
-                <div className="flex justify-end pr-1">
-                  <PhotoIcon className="h-6 w-6 text-white" />
-                </div>
-                <label htmlFor="file-input" className="col-span-1 py-2 pr-2">
-                  Add
-                </label>
-                <input
-                  id="file-input"
-                  type="file"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0] || null;
-                    setPhotoFile(file);
-                    if (file) {
-                      const previewUrl = URL.createObjectURL(file);
-                      setEventPhoto(previewUrl); // This will update the eventphoto state with the preview URL
-                    }
-                  }}
-                  className="hidden"
-                />
+              <div className="absolute bottom-0 right-0 mb-2 mr-2 flex items-center gap-1 ">
+                {!eventphoto && (
+                  <div className="flex items-center space-x-2 rounded-lg bg-black bg-opacity-25 px-4  text-white hover:bg-gray-600 hover:bg-opacity-25">
+                    <PhotoIcon className="h-6 w-6 text-white" />
+                    <label htmlFor="file-input" className="cursor-pointer py-2 ">
+                      Add
+                    </label>
+                    <input
+                      id="file-input"
+                      type="file"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setPhotoFile(file);
+                          setEventPhoto(URL.createObjectURL(file));
+                        }
+                      }}
+                      className="hidden"
+                    />
+                  </div>
+                )}
+                {eventphoto && (
+                  <>
+                    <div className="flex items-center space-x-2 rounded-lg bg-black bg-opacity-25 px-2 pr-1 text-white hover:bg-gray-500 hover:bg-opacity-25">
+                      <PhotoIcon className="h-6 w-6 text-white" />
+                      <label htmlFor="file-input" className="cursor-pointer py-2 pr-2">
+                        Change
+                      </label>
+                      <input
+                        id="file-input"
+                        type="file"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setPhotoFile(file);
+                            setEventPhoto(URL.createObjectURL(file));
+                            setRemoveImageFlag(false); // Reset the flag when a new image is added
+                          }
+                        }}
+                        className="hidden"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={removeImage}
+                      className="cursor-pointer rounded-lg bg-red-600 bg-opacity-50 px-2 py-2 text-light hover:bg-red-700 hover:bg-opacity-25"
+                    >
+                      Remove
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>

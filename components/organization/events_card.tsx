@@ -123,6 +123,7 @@ const EventsCard = ({ event }) => {
       } else {
         console.log("Registration successful:", data);
         toast.success("You have successfully joined the event!");
+        setIsDialogOpen(false);
         // Additional logic after successful registration (e.g., close dialog, show message)
       }
     }
@@ -172,12 +173,6 @@ const EventsCard = ({ event }) => {
             <p className="mt-2 text-justify text-sm text-light">{truncatedDescription}</p>
           </div>
           <div className="mt-3 flex items-center text-light">
-            {/* <div className="mr-2 rounded-lg bg-charleston px-2 py-1 text-sm font-semibold text-white ring-1 ring-primary">
-              {registrationTagContent}
-            </div>
-            <div className="rounded-lg bg-charleston px-2 py-1 text-sm font-semibold text-white ring-1 ring-primary">
-              {locationTagContent}
-            </div> */}
             <UserGroupIcon className="mr-2 h-5 w-5 text-primary" aria-hidden="true" />
             {attendeesDisplay}
             <button
@@ -215,45 +210,54 @@ const EventsCard = ({ event }) => {
                 leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
               >
                 <Dialog.Panel className="relative w-full max-w-4xl transform overflow-hidden rounded-lg bg-eerieblack p-8 text-left shadow-xl transition-all">
-                  <div className="m-4 flex h-full flex-col justify-between">
-                    <div>
-                      <div className="flex justify-center">
-                        {hasImageUrl ? (
-                          <img
-                            src={`${supabaseStorageBaseUrl}/${imageUrl}`}
-                            alt={title}
-                            className="max-h-80 w-full rounded-lg object-cover object-center"
+                  <button className="absolute right-0 top-0 m-4" onClick={closeDialog}>
+                    <XMarkIcon className="h-6 w-6 text-light" />
+                  </button>
+                  <div className="m-4 flex h-full flex-col items-center justify-between">
+                    <div className="w-full text-center">
+                      {hasImageUrl ? (
+                        <img
+                          src={`${supabaseStorageBaseUrl}/${imageUrl}`}
+                          alt={title}
+                          className="mx-auto max-h-80 w-full rounded-lg object-cover object-center"
+                        />
+                      ) : (
+                        <div className="h-80 w-full bg-white" />
+                      )}
+                      <h2 className="my-4 text-2xl font-bold text-light">{title}</h2>
+                      <div className="mt-4 flex justify-center space-x-4">
+                        <div className="flex items-center text-sm text-light">
+                          <ClockIcon
+                            className="mr-2 h-5 w-5 text-primary"
+                            aria-hidden="true"
                           />
-                        ) : (
-                          <div className="h-80 w-full bg-white" />
-                        )}
+                          {eventDateTimePST}
+                        </div>
+                        <div className="flex items-center text-sm text-light">
+                          <MapPinIcon
+                            className="mr-2 h-5 w-5 text-primary"
+                            aria-hidden="true"
+                          />
+                          {locationContent}
+                        </div>
                       </div>
-                      <h2 className="mb-4 mt-4 text-2xl font-bold text-light">{title}</h2>
-                      <div className="flex items-center text-sm text-light">
-                        <ClockIcon
-                          className="mr-2 h-5 w-5 text-primary"
-                          aria-hidden="true"
-                        />
-                        {eventDateTimePST}
-                        <MapPinIcon
-                          className="ml-4 mr-2 h-5 w-5 text-primary"
-                          aria-hidden="true"
-                        />
-                        {locationContent}
+                      <div className="mt-2 flex justify-center space-x-4">
+                        <div className="flex items-center text-sm text-light">
+                          <UserGroupIcon
+                            className="mr-2 h-5 w-5 text-primary"
+                            aria-hidden="true"
+                          />
+                          {attendeesDisplay}
+                        </div>
+                        <div className="flex items-center text-sm text-light">
+                          <BanknotesIcon
+                            className="mr-2 h-5 w-5 text-primary"
+                            aria-hidden="true"
+                          />
+                          {registrationTagContent}
+                        </div>
                       </div>
-                      <div className="mt-2 flex items-center text-sm text-light">
-                        <UserGroupIcon
-                          className="mr-2 h-5 w-5 text-primary"
-                          aria-hidden="true"
-                        />
-                        {attendeesDisplay}
-                        <BanknotesIcon
-                          className="ml-14 mr-2 h-5 w-5 text-primary"
-                          aria-hidden="true"
-                        />
-                        {registrationTagContent}
-                      </div>
-                      <p className="mt-4 text-justify text-light">{description}</p>
+                      <p className="mt-4 text-center text-light">{description}</p>
                     </div>
                     <div className="mt-4 flex justify-center">
                       <button
@@ -263,9 +267,6 @@ const EventsCard = ({ event }) => {
                         Join Event
                       </button>
                     </div>
-                    <button className="absolute right-0 top-0 m-4" onClick={closeDialog}>
-                      <XMarkIcon className="h-6 w-6 text-light" />
-                    </button>
                   </div>
                 </Dialog.Panel>
               </Transition.Child>

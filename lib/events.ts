@@ -11,7 +11,7 @@ export async function insertEvent(formData: any, organizationId: string) {
     registrationfee: formData.registrationfee,
     privacy: formData.privacy,
     organizationid: organizationId, // Include organizationId in the insertValues object
-    eventphoto: formData.photo,
+    eventphoto: formData.eventphoto,
   };
 
   const supabase = createClient();
@@ -68,7 +68,7 @@ export async function updateEvent(eventId: string, formData: any) {
     capacity: formData.capacity,
     registrationfee: formData.registrationfee,
     privacy: formData.privacy,
-    eventphoto: formData.photo,
+    eventphoto: formData.eventphoto,
   };
 
   const supabase = createClient();
@@ -117,15 +117,51 @@ export async function fetchEventById(eventId: string) {
 
 export async function deleteEvent(eventId: string) {
   const supabase = createClient();
-  try {
-    const { data, error } = await supabase.from("events").delete().eq("eventid", eventId);
 
-    if (!error) {
-      return { data, error: null };
-    } else {
-      return { data: null, error: { message: error.message } };
+  try {
+    // Fetch the event to get the eventphoto URL
+    const { data: eventData, error: fetchError } = await supabase
+      .from("events")
+      .select("eventphoto")
+      .eq("eventid", eventId)
+      .single();
+
+    if (fetchError) {
+      return { data: null, error: { message: fetchError.message } };
     }
-  } catch (e: any) {
+
+    // Delete the event from the database
+    const { data, error: deleteError } = await supabase
+      .from("events")
+      .delete()
+      .eq("eventid", eventId);
+
+    if (deleteError) {
+      return { data: null, error: { message: deleteError.message } };
+    }
+
+    const fileName = eventData.eventphoto.split("/").pop();
+
+    // If the event had a photo, delete it from the storage
+    if (eventData.eventphoto) {
+      const { error: storageError } = await supabase.storage
+        .from("event-images")
+        .remove([fileName]);
+
+      if (storageError) {
+        console.error("Error deleting event photo:", storageError.message);
+        return {
+          data,
+          error: {
+            message:
+              "Event deleted, but failed to delete event photo: " + storageError.message,
+          },
+        };
+      }
+    }
+
+    return { data, error: null };
+  } catch (e) {
     console.error("Unexpected error:", e);
     return {
       data: null,
