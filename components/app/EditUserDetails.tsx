@@ -8,7 +8,7 @@ import {
   sendPasswordRecovery,
   updateUserProfileById,
 } from "@/lib/userActions";
-import { convertToBase64, isDateValid } from "@/lib/utils";
+import { isDateValid } from "@/lib/utils";
 import { EnvelopeIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useRef, useState } from "react";
