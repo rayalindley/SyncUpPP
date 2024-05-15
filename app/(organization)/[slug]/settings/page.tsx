@@ -30,7 +30,7 @@ export default function SettingsPage() {
   }, [slug]);
 
   return (
-    <div>
+    <div className="min-h-full flex-1 flex-col justify-center bg-eerieblack px-6 py-12  lg:px-8">
       <CreateOrganizationForm formValues={formValues} />
     </div>
   );
