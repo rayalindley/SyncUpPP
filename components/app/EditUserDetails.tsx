@@ -23,7 +23,7 @@ import Datepicker from "tailwind-datepicker-react";
 // Schema for form validation
 const UserProfileSchema = z.object({
   first_name: z.string().min(1, "First name is required"),
-  last_name: z.string(),
+  last_name: z.string().min(1, "Last name is required"),
   gender: z
     .string()
     .min(1, "Gender is required")
@@ -256,7 +256,7 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                 <div className="mt-8 flex flex-row gap-2">
                   <div className="w-full">
                     <label className="block text-sm font-medium text-light">
-                      First Name
+                      First Name*
                       <input
                         type="text"
                         {...register("first_name")}
@@ -270,7 +270,7 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                   </div>
                   <div className="w-full">
                     <label className="block text-sm font-medium text-light">
-                      Last Name
+                      Last Name*
                       <input
                         type="text"
                         {...register("last_name")}
@@ -285,7 +285,7 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                 </div>
 
                 <label className="mt-2 block text-sm font-medium text-light">
-                  Gender
+                  Gender*
                   <select
                     {...register("gender")}
                     defaultValue={userProfile.gender || ""}
@@ -300,7 +300,7 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                   <p className="text-red-500">{errors.gender && errors.gender.message}</p>
                 </label>
                 <label className="mt-2 block text-sm font-medium text-light">
-                  Date of Birth
+                  Date of Birth*
                   <Controller
                     name="dateofbirth" // The field name
                     control={control} // Pass in the control prop
