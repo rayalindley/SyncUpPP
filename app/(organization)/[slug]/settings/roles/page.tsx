@@ -1,4 +1,5 @@
 "use client";
+import { Menu } from "@headlessui/react";
 import { Switch } from "@headlessui/react";
 import {
   ArrowLeftIcon,
@@ -12,6 +13,8 @@ import { useParams } from "next/navigation";
 import { fetchOrganizationBySlug } from "@/lib/organization";
 import { FiPlus } from "react-icons/fi";
 import OrganizationCard from "@/components/app/OrganizationCard";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 interface Role {
   role_id: string;
@@ -129,6 +132,48 @@ export default function SettingsRolesPage() {
     setSelectedRole(null);
   };
 
+  const handleDeleteRole = async (role) => {
+    const supabase = createClient();
+    try {
+      const { error } = await supabase
+        .from("organization_roles")
+        .delete()
+        .eq("role_id", role.role_id);
+
+      if (error) {
+        throw error;
+      }
+
+      setRolesData((prevRolesData) =>
+        prevRolesData.filter((r) => r.role_id !== role.role_id)
+      );
+      setSelectedRole(null);
+      console.log("Role deleted");
+      toast.success("The role was delete successfully.", {
+        position: "bottom-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+      });
+    } catch (error) {
+      setSelectedRole(null);
+      toast.error(error.message, {
+        position: "bottom-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+      });
+    }
+  };
+
   const handlePermissionToggle = async (permId: string) => {
     const supabase = createClient();
 
@@ -146,14 +191,12 @@ export default function SettingsRolesPage() {
       });
 
       if (!permissionsEnabled[selectedRole.role_id]?.[permId]) {
-        // Add permission
         const { data, error } = await supabase
           .from("role_permissions")
           .insert([{ role_id: selectedRole.role_id, perm_id: permId }]);
 
         if (error) console.log(error);
       } else {
-        // Remove permission
         const { data, error } = await supabase
           .from("role_permissions")
           .delete()
@@ -178,18 +221,21 @@ export default function SettingsRolesPage() {
           deletable: true,
         },
       ])
-      .select();
+      .select()
+      .single();
 
     if (error) {
       console.log(error);
     } else {
-      // Update rolesData with the new role
-      setRolesData((prevRoles) => (prevRoles ? [...prevRoles, ...data] : data));
+      setRolesData((prevRoles) => (prevRoles ? [...prevRoles, data] : data));
+      setSelectedRole(data);
     }
   };
 
   return (
     <div className="bg-eerieblack p-6 text-white">
+      <ToastContainer />
+
       <h1 className="mb-2 text-xl font-medium">Roles</h1>
       <p className="mb-4 text-sm">Manage and configure roles for your organization.</p>
 
@@ -219,10 +265,13 @@ export default function SettingsRolesPage() {
           <tbody>
             {rolesData?.map((role) => (
               <tr
-                key={role.org_id}
+                key={role.role_id}
                 className="border-b border-t border-[#525252] hover:bg-charleston"
               >
-                <td className="px-4 py-4">
+                <td
+                  className="px-4 py-4 hover:cursor-pointer"
+                  onClick={() => handleRoleClick(role)}
+                >
                   <div className="flex items-center text-sm">
                     <UserCircleIcon
                       className="mr-2 h-6 w-6"
@@ -234,13 +283,45 @@ export default function SettingsRolesPage() {
                 <td className="px-4 py-4">
                   <div className="flex items-center">
                     <UsersIcon className="mr-2 h-6 w-6" />
-                    {role.member_count}
+                    {role.member_count || 0}
                   </div>
                 </td>
                 <td className="px-4 py-4 text-center">
-                  <button onClick={() => handleRoleClick(role)}>
-                    <EllipsisHorizontalIcon className="h-6 w-6" />
-                  </button>
+                  <Menu as="div" className="relative inline-block text-left">
+                    <Menu.Button>
+                      <EllipsisHorizontalIcon className="h-6 w-6" />
+                    </Menu.Button>
+                    <Menu.Items className="absolute right-0 mt-2 w-56 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                      <div className="px-1 py-1">
+                        <Menu.Item>
+                          {({ active }) => (
+                            <button
+                              className={`${
+                                active ? "bg-primary text-white" : "text-gray-900"
+                              } group flex w-full items-center rounded-md px-2 py-2 text-sm`}
+                              onClick={() => handleRoleClick(role)}
+                            >
+                              Edit Role
+                            </button>
+                          )}
+                        </Menu.Item>
+                        {role.deletable && (
+                          <Menu.Item>
+                            {({ active }) => (
+                              <button
+                                className={`${
+                                  active ? "bg-primary text-white" : "text-gray-900"
+                                } group flex w-full items-center rounded-md px-2 py-2 text-sm`}
+                                onClick={() => handleDeleteRole(role)}
+                              >
+                                Delete Role
+                              </button>
+                            )}
+                          </Menu.Item>
+                        )}
+                      </div>
+                    </Menu.Items>
+                  </Menu>
                 </td>
               </tr>
             ))}
@@ -261,7 +342,7 @@ export default function SettingsRolesPage() {
               </button>
               <div>
                 <button
-                  className="rounded-sm p-1 hover:bg-slate-700"
+                  className="rounded-sm p-1 hover:bg-charleston"
                   onClick={handleAddRole}
                 >
                   <FiPlus size={18} />
@@ -326,6 +407,15 @@ export default function SettingsRolesPage() {
                 ))}
               </div>
             ))}
+
+            {selectedRole?.deletable && (
+              <button
+                className="rounded-md bg-red-600 px-4 py-2 text-sm"
+                onClick={() => handleDeleteRole(selectedRole)}
+              >
+                Remove Role
+              </button>
+            )}
           </div>
         </div>
       )}
