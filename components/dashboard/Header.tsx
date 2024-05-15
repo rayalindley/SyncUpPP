@@ -11,13 +11,18 @@ import { type User } from "@supabase/supabase-js";
 import { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import useSidebarStore from "@/store/useSidebarStore";
 
 function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
 }
 
 function Header({ user }: { user: User }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { sidebarOpen, setSidebarOpen } = useSidebarStore((state) => ({
+    sidebarOpen: state.sidebarOpen,
+    setSidebarOpen: state.setSidebarOpen,
+  }));
+
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {

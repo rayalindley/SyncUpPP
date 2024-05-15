@@ -1,52 +1,44 @@
 "use client";
-import useSidebarStore from "@/store/useSidebarStore";
 import { Dialog, Transition } from "@headlessui/react";
 import {
   CalendarIcon,
   ChartPieIcon,
   Cog6ToothIcon,
-  DocumentDuplicateIcon,
   HomeIcon,
   UsersIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Fragment, useEffect, useState } from "react";
-import { FolderIcon } from "@heroicons/react/20/solid";
 
 function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
 }
 
-const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: HomeIcon },
-  { name: "Users", href: "/dashboard/users", icon: UsersIcon },
-  {
-    name: "Organizations",
-    href: "/dashboard/organizations",
-    icon: UsersIcon,
-  },
-  { name: "Projects", href: "#", icon: FolderIcon },
-  { name: "Calendar", href: "#", icon: CalendarIcon },
-  { name: "Documents", href: "#", icon: DocumentDuplicateIcon },
-  { name: "Reports", href: "#", icon: ChartPieIcon },
-];
-
 const SideNavMenu = () => {
-  const { sidebarOpen, toggleSidebar, setSidebarOpen } = useSidebarStore((state) => ({
-    sidebarOpen: state.sidebarOpen,
-    toggleSidebar: state.toggleSidebar,
-    setSidebarOpen: state.setSidebarOpen,
-  }));
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [currentItem, setCurrentItem] = useState("");
+  const router = useRouter();
+  const { slug } = useParams();
 
-  const pathname = usePathname();
-  const [currentItem, setCurrentItem] = useState(pathname);
+  const navigation = [
+    { name: "Overview", href: `/${slug}/settings`, icon: HomeIcon },
+    { name: "Roles", href: `/${slug}/settings/roles`, icon: UsersIcon },
+    { name: "Memberships", href: `/${slug}/settings/memberships`, icon: UsersIcon },
+    { name: "Newsletter", href: `/${slug}/settings/newsletter`, icon: CalendarIcon },
+    { name: "Calendar", href: `/${slug}/settings/calendar`, icon: CalendarIcon },
+    { name: "Reports", href: `/${slug}/settings/reports`, icon: ChartPieIcon },
+  ];
+
+  const handleItemClick = (itemHref: string) => {
+    setCurrentItem(itemHref);
+  };
 
   useEffect(() => {
-    setCurrentItem(pathname);
-    console.log(pathname);
-  }, [pathname]);
+    const currentPath = window.location.pathname;
+    setCurrentItem(currentPath);
+  }, []);
 
   return (
     <div>
@@ -99,7 +91,7 @@ const SideNavMenu = () => {
                 <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-4">
                   <Link href="#">
                     <div className="flex h-16 shrink-0 items-center">
-                      <img className="h-10 w-auto" src="/syncup.png" alt="SyncUp" />
+                      <img className="h-8 w-auto" src="/Symbian.png" alt="SyncUp" />
                     </div>
                   </Link>
                   <nav className="flex flex-1 flex-col">
@@ -110,6 +102,7 @@ const SideNavMenu = () => {
                             <li key={item.name}>
                               <Link
                                 href={item.href}
+                                onClick={() => handleItemClick(item.name)}
                                 className={classNames(
                                   currentItem === item.name
                                     ? "bg-gray-50 text-indigo-600"
@@ -141,6 +134,7 @@ const SideNavMenu = () => {
                             <li key={item.name}>
                               <a
                                 href={item.href}
+                                onClick={() => handleItemClick(item.name)}
                                 className={classNames(
                                   currentItem === item.name
                                     ? "bg-gray-50 text-indigo-600"
@@ -189,7 +183,7 @@ const SideNavMenu = () => {
         <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-[#525252] bg-eerieblack px-6 pb-4">
           <Link href="/">
             <div className="flex h-16 shrink-0 items-center">
-              <img className="h-10 w-auto" src="/syncup.png" alt="SyncUp" />
+              <img className="h-8 w-auto" src="/Symbian.png" alt="SyncUp" />
               <p className="ml-2 font-semibold text-light">SyncUp</p>
             </div>
           </Link>
@@ -202,6 +196,7 @@ const SideNavMenu = () => {
                     <li key={item.name}>
                       <Link
                         href={item.href}
+                        onClick={() => handleItemClick(item.href)}
                         className={classNames(
                           currentItem === item.href
                             ? "bg-charleston text-light"
