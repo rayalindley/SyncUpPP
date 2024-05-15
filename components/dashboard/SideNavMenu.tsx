@@ -13,6 +13,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Fragment, useEffect, useState } from "react";
+import { FolderIcon } from "@heroicons/react/20/solid";
 
 function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(" ");

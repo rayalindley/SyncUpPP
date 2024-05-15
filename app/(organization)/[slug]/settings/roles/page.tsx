@@ -6,78 +6,122 @@ import {
   UserCircleIcon,
   UsersIcon,
 } from "@heroicons/react/20/solid";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { useParams } from "next/navigation";
+import { fetchOrganizationBySlug } from "@/lib/organization";
+import { FiPlus } from "react-icons/fi";
+import OrganizationCard from "@/components/app/OrganizationCard";
 
-const rolesData = [
-  { id: 1, name: "Admin", memberCount: 10, color: "#ED4042" }, // Red color
-  { id: 2, name: "Moderator", memberCount: 5, color: "#57A13A" }, // Green color
-  { id: 3, name: "Member", memberCount: 100, color: "#09A9AF" }, // Blue color
-];
+interface Role {
+  role_id: string;
+  role: string;
+  color: string;
+  member_count: number;
+  org_id: string;
+}
 
-const permissionsData = [
-  {
-    name: "Create Invite",
-    category: "General Permissions",
-    description: "Allows members to invite new people to the organization.",
-  },
-  {
-    name: "Ban Members",
-    category: "General Permissions",
-    description: "Allows members to ban others from the organization.",
-  },
-  {
-    name: "Kick Members",
-    category: "General Permissions",
-    description: "Allows members to kick others from the organization.",
-  },
-  {
-    name: "Read Messages",
-    category: "General Permissions",
-    description: "Allows members to read messages in channels.",
-  },
-  {
-    name: "Create Membership",
-    category: "Membership Management",
-    description: "Allows the creation of new membership plans.",
-  },
-  {
-    name: "Edit Membership",
-    category: "Membership Management",
-    description: "Allows editing of existing membership plans.",
-  },
-  {
-    name: "Delete Membership",
-    category: "Membership Management",
-    description: "Allows deletion of membership plans.",
-  },
-  {
-    name: "Renew Membership",
-    category: "Membership Management",
-    description: "Allows renewal of membership plans.",
-  },
-  {
-    name: "Delete Membership",
-    category: "Roles Management",
-    description: "Allows deletion of membership plans.",
-  },
-  {
-    name: "Renew Membership",
-    category: "Roles Management",
-    description: "Allows renewal of membership plans.",
-  },
-  // ... (add any additional permissions here)
-];
+interface Permission {
+  perm_id: string;
+  name: string;
+  category: string;
+  description: string;
+}
+
+interface Organization {
+  roles: Role[];
+}
 
 export default function SettingsRolesPage() {
-  const [selectedRole, setSelectedRole] = useState(null);
-  const [permissionsEnabled, setPermissionsEnabled] = useState(
-    permissionsData.reduce((acc, perm) => {
-      acc[perm.name] = false;
-      return acc;
-    }, {})
+  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const [permissionsData, setPermissionsData] = useState<{ [key: string]: Permission[] }>(
+    {}
   );
+  const [permissionsEnabled, setPermissionsEnabled] = useState<{
+    [role_id: string]: { [perm_id: string]: boolean };
+  }>({});
+  const [rolesData, setRolesData] = useState<Role[] | null>(null);
 
-  const handleRoleClick = (role) => {
+  const [orgID, setOrgID] = useState(null);
+  const { slug } = useParams();
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    if (slug) {
+      (async () => {
+        try {
+          const { data: organization, error: orgError } = await supabase
+            .from("organization_roles_view")
+            .select("*")
+            .eq("slug", slug)
+            .single();
+
+          const { data: permissions, error: permissionsError } = await supabase
+            .from("permissions")
+            .select("*");
+
+          if (permissions) {
+            const groupedPermissions = permissions.reduce(
+              (acc: { [key: string]: Permission[] }, permission: Permission) => {
+                const { category } = permission;
+                if (!acc[category]) {
+                  acc[category] = [];
+                }
+                acc[category].push(permission);
+                return acc;
+              },
+              {}
+            );
+
+            setPermissionsData(groupedPermissions);
+          } else {
+            if (permissionsError) {
+              console.log(permissionsError);
+            }
+          }
+
+          if (organization) {
+            const roleIds = organization.roles.map((role: Role) => role.role_id);
+            const { data: rolePermissions, error: rolePermissionsError } = await supabase
+              .from("role_permissions")
+              .select("*")
+              .in("role_id", roleIds);
+
+            setOrgID(organization.organizationid);
+
+            if (rolePermissions) {
+              const permissionsEnabledState = rolePermissions.reduce(
+                (
+                  acc: { [role_id: string]: { [perm_id: string]: boolean } },
+                  rp: { role_id: string; perm_id: string }
+                ) => {
+                  acc[rp.role_id] = acc[rp.role_id] || {};
+                  acc[rp.role_id][rp.perm_id] = true;
+                  return acc;
+                },
+                {}
+              );
+
+              setPermissionsEnabled(permissionsEnabledState);
+            } else {
+              if (rolePermissionsError) {
+                console.log(rolePermissionsError);
+              }
+            }
+
+            setRolesData(organization.roles);
+          } else {
+            console.log("Error:", orgError);
+          }
+        } catch (xError) {
+          console.log(xError);
+        }
+      })();
+    }
+  }, [slug]);
+
+  const handleRoleClick = (role: Role) => {
     setSelectedRole(role);
   };
 
@@ -85,33 +129,80 @@ export default function SettingsRolesPage() {
     setSelectedRole(null);
   };
 
-  const groupedPermissions = permissionsData.reduce((acc, perm) => {
-    if (!acc[perm.category]) {
-      acc[perm.category] = [];
-    }
-    acc[perm.category].push(perm);
-    return acc;
-  }, {});
+  const handlePermissionToggle = async (permId: string) => {
+    const supabase = createClient();
 
-  const handlePermissionToggle = (permName) => {
-    setPermissionsEnabled((prev) => ({
-      ...prev,
-      [permName]: !prev[permName],
-    }));
+    if (selectedRole) {
+      setPermissionsEnabled((prev) => {
+        const updatedPermissions = {
+          ...prev,
+          [selectedRole.role_id]: {
+            ...prev[selectedRole.role_id],
+            [permId]: !prev[selectedRole.role_id]?.[permId],
+          },
+        };
+
+        return updatedPermissions;
+      });
+
+      if (!permissionsEnabled[selectedRole.role_id]?.[permId]) {
+        // Add permission
+        const { data, error } = await supabase
+          .from("role_permissions")
+          .insert([{ role_id: selectedRole.role_id, perm_id: permId }]);
+
+        if (error) console.log(error);
+      } else {
+        // Remove permission
+        const { data, error } = await supabase
+          .from("role_permissions")
+          .delete()
+          .eq("role_id", selectedRole.role_id)
+          .eq("perm_id", permId);
+
+        if (error) console.log(error);
+      }
+    }
+  };
+
+  const handleAddRole = async () => {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("organization_roles")
+      .insert([
+        {
+          org_id: orgID,
+          role: "new role",
+          color: "Silver",
+          editable: true,
+          deletable: true,
+        },
+      ])
+      .select();
+
+    if (error) {
+      console.log(error);
+    } else {
+      // Update rolesData with the new role
+      setRolesData((prevRoles) => (prevRoles ? [...prevRoles, ...data] : data));
+    }
   };
 
   return (
-    <div className=" bg-eerieblack p-6 text-white">
+    <div className="bg-eerieblack p-6 text-white">
       <h1 className="mb-2 text-xl font-medium">Roles</h1>
       <p className="mb-4 text-sm">Manage and configure roles for your organization.</p>
 
-      <div className="mb-4 flex">
+      <div className="mb-4 flex gap-1">
         <input
           type="text"
           placeholder="Search roles..."
-          className="flex-grow rounded-l border border-raisinblack bg-charleston p-2 text-light placeholder-opacity-50 placeholder:text-light"
+          className="flex-grow rounded-md border border-raisinblack bg-charleston p-2 text-light placeholder-opacity-50 placeholder:text-light"
         />
-        <button className="rounded-r bg-primary p-2 hover:bg-primarydark">
+        <button
+          className="rounded-md bg-primary p-2 px-4 text-sm hover:bg-primarydark"
+          onClick={handleAddRole}
+        >
           Create Role
         </button>
       </div>
@@ -126,24 +217,24 @@ export default function SettingsRolesPage() {
             </tr>
           </thead>
           <tbody>
-            {rolesData.map((role) => (
+            {rolesData?.map((role) => (
               <tr
-                key={role.id}
+                key={role.org_id}
                 className="border-b border-t border-[#525252] hover:bg-charleston"
               >
                 <td className="px-4 py-4">
-                  <div className="flex items-center text-sm ">
+                  <div className="flex items-center text-sm">
                     <UserCircleIcon
                       className="mr-2 h-6 w-6"
                       style={{ color: role.color }}
                     />
-                    {role.name}
+                    {role.role}
                   </div>
                 </td>
                 <td className="px-4 py-4">
                   <div className="flex items-center">
                     <UsersIcon className="mr-2 h-6 w-6" />
-                    {role.memberCount}
+                    {role.member_count}
                   </div>
                 </td>
                 <td className="px-4 py-4 text-center">
@@ -159,19 +250,31 @@ export default function SettingsRolesPage() {
 
       {selectedRole && (
         <div className="fixed inset-y-0 right-0 z-50 flex w-[calc(100%-18rem)] bg-eerieblack">
-          <div className="w-64 border-r border-[#525252] bg-eerieblack p-4 ">
-            <button
-              onClick={handleSidebarClose}
-              className="mb-4 mt-2 flex items-center text-white"
-            >
-              <ArrowLeftIcon className="mr-2 h-5 w-5" />
-              <span>Back</span>
-            </button>
-            {rolesData.map((role) => (
+          <div className="w-64 border-r border-[#525252] bg-eerieblack p-4">
+            <div className="flex items-center justify-between">
+              <button
+                onClick={handleSidebarClose}
+                className="mb-4 mt-2 flex items-center text-white"
+              >
+                <ArrowLeftIcon className="mr-2 h-5 w-5" />
+                <span>Back</span>
+              </button>
+              <div>
+                <button
+                  className="rounded-sm p-1 hover:bg-slate-700"
+                  onClick={handleAddRole}
+                >
+                  <FiPlus size={18} />
+                </button>
+              </div>
+            </div>
+            {rolesData?.map((role) => (
               <div
-                key={role.id}
+                key={role.role_id}
                 className={`mb-2 flex cursor-pointer items-center rounded p-2 ${
-                  selectedRole.id === role.id ? "bg-charleston" : "hover:bg-charleston"
+                  selectedRole.role_id === role.role_id
+                    ? "bg-charleston"
+                    : "hover:bg-charleston"
                 }`}
                 onClick={() => handleRoleClick(role)}
               >
@@ -179,20 +282,20 @@ export default function SettingsRolesPage() {
                   className="mr-2 inline-block h-4 w-4 rounded-full"
                   style={{ backgroundColor: role.color }}
                 />
-                <span className="text-sm">{role.name}</span>
+                <span className="text-sm">{role.role}</span>
               </div>
             ))}
           </div>
           <div className="flex-grow overflow-y-auto bg-raisinblack py-6 pl-10 pr-10">
-            <h2 className="mb-4 text-lg font-medium">EDIT ROLE - {selectedRole.name}</h2>
-            {Object.entries(groupedPermissions).map(([category, permissions]) => (
+            <h2 className="mb-4 text-lg font-medium">EDIT ROLE - {selectedRole.role}</h2>
+            {Object.entries(permissionsData).map(([category, permissions]) => (
               <div key={category}>
                 <h3 className="mb-4 mt-10 text-base font-medium">
                   {category.toUpperCase()}
                 </h3>
                 {permissions.map((perm) => (
                   <div
-                    key={perm.name}
+                    key={perm.perm_id}
                     className="mb-6 flex items-center justify-between border-b border-[#525252] pb-4"
                   >
                     <div className="flex-grow">
@@ -200,16 +303,20 @@ export default function SettingsRolesPage() {
                       <p className="text-sm text-gray-400">{perm.description}</p>
                     </div>
                     <Switch
-                      checked={permissionsEnabled[perm.name]}
-                      onChange={() => handlePermissionToggle(perm.name)}
+                      checked={
+                        permissionsEnabled[selectedRole.role_id]?.[perm.perm_id] || false
+                      }
+                      onChange={() => handlePermissionToggle(perm.perm_id)}
                       className={`${
-                        permissionsEnabled[perm.name] ? "bg-primary" : "bg-gray-200"
+                        permissionsEnabled[selectedRole.role_id]?.[perm.perm_id]
+                          ? "bg-primary"
+                          : "bg-gray-200"
                       } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2`}
                     >
                       <span className="sr-only">Use setting</span>
                       <span
                         className={`${
-                          permissionsEnabled[perm.name]
+                          permissionsEnabled[selectedRole.role_id]?.[perm.perm_id]
                             ? "translate-x-5"
                             : "translate-x-0"
                         } pointer-events-none relative inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
