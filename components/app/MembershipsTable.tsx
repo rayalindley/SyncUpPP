@@ -93,7 +93,7 @@ export default function MembershipsTable({ orgmems, allMembers}: { orgmems?: Mem
                       scope="col"
                       className="px-3 py-3.5 text-left text-sm font-semibold text-light"
                     >
-                      Type
+                      Membership
                     </th>
                     <th
                       scope="col"
@@ -105,7 +105,7 @@ export default function MembershipsTable({ orgmems, allMembers}: { orgmems?: Mem
                       scope="col"
                       className="px-3 py-3.5 text-left text-sm font-semibold text-light"
                     >
-                      Description
+                      Members
                     </th>
                   
                     {/* <th
@@ -154,10 +154,10 @@ function MemRow({ mem ,members, showOrg }) {
         {mem.membershipname}
       </td>
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-        {mem.registrationfee}
+      $ {mem.registrationfee.toFixed(2)}
       </td>
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-        {mem.description}
+        {mem.membership_count}
       </td>
 
       {/* <td className="whitespace-nowrap px-3 py-4 text-sm text-light">

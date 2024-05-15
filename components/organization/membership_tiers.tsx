@@ -60,14 +60,19 @@ const MembershipTiers: React.FC<MembershipsProps> = ({ memberships }) => {
                     /month
                   </span>
                 </p>
-                {membership.features && (
+                {membership.features && membership.features.some(feature => feature.trim() !== "") && (
                   <ul role="list" className="mt-8 space-y-3 text-sm leading-6 text-light">
-                    {membership.features.map(feature => (
-                      <li key={feature} className="flex gap-x-3">
-                        <CheckIcon className="h-6 w-5 flex-none text-primary" aria-hidden="true" />
-                        {feature}
-                      </li>
-                    ))}
+                    {membership.features.map(feature => {
+                      if (feature.trim() !== "") {
+                        return (
+                          <li key={feature} className="flex gap-x-3">
+                            <CheckIcon className="h-6 w-5 flex-none text-primary" aria-hidden="true" />
+                            {feature}
+                          </li>
+                        );
+                      }
+                      return null;
+                    })}
                   </ul>
                 )}
               </div>
