@@ -1,18 +1,17 @@
 "use client";
-import { Menu } from "@headlessui/react";
-import { Switch } from "@headlessui/react";
+import { Members } from "@/components/settings/role_members_tab";
+import { RoleOverview } from "@/components/settings/role_overview_tab";
+import { createClient } from "@/lib/supabase/client";
+import { Menu, Switch, Tab } from "@headlessui/react";
 import {
   ArrowLeftIcon,
   EllipsisHorizontalIcon,
   UserCircleIcon,
   UsersIcon,
 } from "@heroicons/react/20/solid";
-import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useParams } from "next/navigation";
-import { fetchOrganizationBySlug } from "@/lib/organization";
+import { useEffect, useState } from "react";
 import { FiPlus } from "react-icons/fi";
-import OrganizationCard from "@/components/app/OrganizationCard";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -369,53 +368,84 @@ export default function SettingsRolesPage() {
           </div>
           <div className="flex-grow overflow-y-auto bg-raisinblack py-6 pl-10 pr-10">
             <h2 className="mb-4 text-lg font-medium">EDIT ROLE - {selectedRole.role}</h2>
-            {Object.entries(permissionsData).map(([category, permissions]) => (
-              <div key={category}>
-                <h3 className="mb-4 mt-10 text-base font-medium">
-                  {category.toUpperCase()}
-                </h3>
-                {permissions.map((perm) => (
-                  <div
-                    key={perm.perm_id}
-                    className="mb-6 flex items-center justify-between border-b border-[#525252] pb-4"
-                  >
-                    <div className="flex-grow">
-                      <p className="mb-2 text-base">{perm.name}</p>
-                      <p className="text-sm text-gray-400">{perm.description}</p>
-                    </div>
-                    <Switch
-                      checked={
-                        permissionsEnabled[selectedRole.role_id]?.[perm.perm_id] || false
+            <Tab.Group>
+              <Tab.List className="border-b border-gray-700">
+                {({ selectedIndex }) =>
+                  ["Overview", "Permissions", "Members"].map((tab, index) => (
+                    <Tab
+                      key={tab}
+                      className={({ selected }) =>
+                        `inline-block cursor-pointer px-4 py-2 text-sm font-medium leading-5 ${
+                          selected
+                            ? "border-primary text-primary"
+                            : "text-white hover:text-primary"
+                        } ${selectedIndex === index ? "border-b-2" : ""}`
                       }
-                      onChange={() => handlePermissionToggle(perm.perm_id)}
-                      className={`${
-                        permissionsEnabled[selectedRole.role_id]?.[perm.perm_id]
-                          ? "bg-primary"
-                          : "bg-gray-200"
-                      } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2`}
                     >
-                      <span className="sr-only">Use setting</span>
-                      <span
-                        className={`${
-                          permissionsEnabled[selectedRole.role_id]?.[perm.perm_id]
-                            ? "translate-x-5"
-                            : "translate-x-0"
-                        } pointer-events-none relative inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
-                      />
-                    </Switch>
-                  </div>
-                ))}
-              </div>
-            ))}
+                      {tab}
+                    </Tab>
+                  ))
+                }
+              </Tab.List>
+              <Tab.Panels>
+                <Tab.Panel>
+                  <RoleOverview selectedRole={selectedRole} />
+                </Tab.Panel>
+                <Tab.Panel>
+                  {Object.entries(permissionsData).map(([category, permissions]) => (
+                    <div key={category}>
+                      <h3 className="mb-4 mt-10 text-base font-medium">
+                        {category.toUpperCase()}
+                      </h3>
+                      {permissions.map((perm) => (
+                        <div
+                          key={perm.perm_id}
+                          className="mb-6 flex items-center justify-between border-b border-[#525252] pb-4"
+                        >
+                          <div className="flex-grow">
+                            <p className="mb-2 text-base">{perm.name}</p>
+                            <p className="text-sm text-gray-400">{perm.description}</p>
+                          </div>
+                          <Switch
+                            checked={
+                              permissionsEnabled[selectedRole.role_id]?.[perm.perm_id] ||
+                              false
+                            }
+                            onChange={() => handlePermissionToggle(perm.perm_id)}
+                            className={`${
+                              permissionsEnabled[selectedRole.role_id]?.[perm.perm_id]
+                                ? "bg-primary"
+                                : "bg-gray-200"
+                            } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2`}
+                          >
+                            <span className="sr-only">Use setting</span>
+                            <span
+                              className={`${
+                                permissionsEnabled[selectedRole.role_id]?.[perm.perm_id]
+                                  ? "translate-x-5"
+                                  : "translate-x-0"
+                              } pointer-events-none relative inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+                            />
+                          </Switch>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
 
-            {selectedRole?.deletable && (
-              <button
-                className="rounded-md bg-red-600 px-4 py-2 text-sm"
-                onClick={() => handleDeleteRole(selectedRole)}
-              >
-                Remove Role
-              </button>
-            )}
+                  {selectedRole?.deletable && (
+                    <button
+                      className="rounded-md bg-red-600 px-4 py-2 text-sm"
+                      onClick={() => handleDeleteRole(selectedRole)}
+                    >
+                      Remove Role
+                    </button>
+                  )}
+                </Tab.Panel>
+                <Tab.Panel>
+                  <Members selectedRole={selectedRole} />
+                </Tab.Panel>
+              </Tab.Panels>
+            </Tab.Group>
           </div>
         </div>
       )}
