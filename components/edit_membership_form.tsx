@@ -1,66 +1,49 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { createClient } from "@/lib/supabase/client";
-import { z } from "zod";
 
 interface MembershipTier {
   name: string;
   registrationfee: number;
   description: string;
-  organizationid: string;
   features: string[];
 }
 
-const membershipSchema = z.object({
-  name: z.string(),
-  registrationfee: z.number()
-  .min(0, "Registration Fee cannot be negative")
-  .refine((value) => {
-    if (!Number.isFinite(value) || Math.abs(value) > Number.MAX_SAFE_INTEGER) {
-      throw new Error("Registration Fee is too large");
+const EditMembershipForm = ({ formValues = null }: { formValues: any | null }) => {
+  const [formData, setFormData] = useState<MembershipTier>({
+    name: "",
+    registrationfee: 0,
+    description: "",
+    features: [""],
+  });
+
+  useEffect(() => {
+    if (formValues) {
+      setFormData({
+        name: formValues.name || "",
+        registrationfee: formValues.registrationfee || 0,
+        description: formValues.description || "",
+        features: formValues.features || [""],
+      });
     }
-    return true;
-  }),
-  description: z.string(),
-  organizationid: z.string(),
-  features: z.array(z.string()).nonempty("At least one feature is required"),
-});
-
-const CreateMembershipForm = ({
-  organizationId,
-  membership,
-}: {
-  organizationId: string;
-  membership?: MembershipTier;
-}) => {
-  const initialFormData = membership
-    ? membership
-    : {
-        name: "",
-        registrationfee: 0,
-        description: "",
-        organizationid: organizationId,
-        features: [""],
-      };
-
-  const [formData, setFormData] = useState<MembershipTier>(initialFormData);
+  }, [formValues]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    const newValue = name === 'registrationfee' ? parseFloat(value) : value; // Parse registration fee as a number
     setFormData((prevData) => ({
       ...prevData,
-      [name]: newValue,
+      [name]: value,
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      const validatedData = membershipSchema.parse(formData);
       const supabase = createClient();
-      const { data, error } = await supabase.from("memberships").insert([validatedData]);
+      const { data, error } = await supabase
+        .from("memberships")
+        .insert([{ ...formData }]);
       if (error) {
         throw error;
       }
@@ -74,32 +57,23 @@ const CreateMembershipForm = ({
         draggable: true,
         progress: undefined,
       });
-      setFormData(initialFormData);
+      setFormData({
+        name: "",
+        registrationfee: 0,
+        description: "",
+        features: [],
+      });
     } catch (error) {
       console.error("Error creating membership:", error.message);
-      if (error.message === "Registration Fee is too large") {
-        // Display a specific toast message for number overflow
-        toast.error("The registration fee entered is too large", {
-          position: "bottom-right",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-        });
-      } else {
-        // Display a generic error message for other errors
-        toast.error("Failed to create membership", {
-          position: "bottom-right",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-        });
-      }
+      toast.error("Failed to create membership", {
+        position: "bottom-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
     }
   };
 
@@ -113,19 +87,11 @@ const CreateMembershipForm = ({
   };
 
   const handleAddFeature = () => {
-    if (formData.features.length === 0) {
-      setFormData((prevData) => ({
-        ...prevData,
-        features: [""], // Adding one feature field if there are no features
-      }));
-    } else {
-      setFormData((prevData) => ({
-        ...prevData,
-        features: [...prevData.features, ""], // Adding a new empty feature field
-      }));
-    }
+    setFormData((prevData) => ({
+      ...prevData,
+      features: [...prevData.features, ""],
+    }));
   };
-
 
   const handleDeleteFeature = (indexToDelete: number) => {
     setFormData((prevData) => ({
@@ -133,6 +99,7 @@ const CreateMembershipForm = ({
       features: prevData.features.filter((_, index) => index !== indexToDelete),
     }));
   };
+
   return (
     <div className="space-y-6 text-white">
       <ToastContainer />
@@ -158,29 +125,29 @@ const CreateMembershipForm = ({
           </div>
         </div>
         <div>
-            <label
-              htmlFor="registrationfee"
-              className="block text-sm font-medium leading-6 text-white"
-            >
-              Registration Fee:
-            </label>
-            <div className="relative mt-2">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-white">
-                Php
-              </span>
-              <input
-                type="number"
-                id="registrationfee"
-                name="registrationfee"
-                value={formData.registrationfee}
-                onChange={handleChange}
-                required
-                pattern="[0-9]*[.]?[0-9]*" // Allows only numeric and decimal values
-                title="Please enter a valid registration fee" // Tooltip for invalid input
-                className="block w-full rounded-md border-0 bg-white/5 py-1.5 pl-12 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-              />
-            </div>
+          <label
+            htmlFor="registrationfee"
+            className="block text-sm font-medium leading-6 text-white"
+          >
+            Registration Fee:
+          </label>
+          <div className="relative mt-2">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-white">
+              Php
+            </span>
+            <input
+              type="number"
+              id="registrationfee"
+              name="registrationfee"
+              value={formData.registrationfee}
+              onChange={handleChange}
+              required
+              step="any"
+              inputMode="numeric"
+              className="block w-full rounded-md border-0 bg-white/5 py-1.5 pl-12 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+            />
           </div>
+        </div>
         <div>
           <label
             htmlFor="description"
@@ -235,7 +202,7 @@ const CreateMembershipForm = ({
           type="submit"
           className="mt-5 w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
-          {membership ? "Update Membership" : "Create Membership"}
+          Create Membership
         </button>
       </form>
     </div>
@@ -243,4 +210,4 @@ const CreateMembershipForm = ({
 };
 
 
-export default CreateMembershipForm;
+export default EditMembershipForm;

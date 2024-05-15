@@ -34,7 +34,7 @@ export default function MembershipOptions({
   open: boolean;
   setOpen: any;
   TierMembers: any;
-}) { console.log(TierMembers)
+}) { console.log(selectedTier.membershipid)
   const deleteBtn = () => {
     Swal.fire({
       title: "Are you sure?",
@@ -115,7 +115,7 @@ export default function MembershipOptions({
                       active ? "bg-raisinblack text-light" : "text-light",
                       "group flex items-center px-4 py-2 text-sm"
                     )}
-                    href={``}
+                    href={`/dashboard/memberships/edit/${selectedTier.membershipid}`}
                   >
                     <FaRegEdit
                       className="mr-3 h-5 w-5 text-light group-hover:text-light"
@@ -256,7 +256,7 @@ export default function MembershipOptions({
                           </Link>
                           <Link
                             className="group flex items-center rounded-md bg-blue-500 px-4 py-2 text-sm font-semibold text-light text-white shadow-sm hover:bg-opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                            href={`/organization/edit/${selectedTier.slug}`}
+                            href={`/dashboard/memberships/edit/${selectedTier.membershipid}`}
                           >
                             Edit
                           </Link>

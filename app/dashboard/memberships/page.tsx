@@ -17,8 +17,6 @@ export default async function MembershipsPage() {
   return (
     <>
       <MembershipsTable orgmems={orgmems} allMembers={allMembers} />
-
-
     </>
   );
 }

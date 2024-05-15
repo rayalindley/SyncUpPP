@@ -73,4 +73,77 @@ export async function getMembers(id:any) {
   return org_members || []; 
 }
 
+export async function fetchMembershipById(membershipId: string) {
+  const supabase = createClient();
+  try {
+    const { data, error } = await supabase
+      .from("memberships")
+      .select("*")
+      .eq("membershipid", membershipId)
+      .single(); // Use .single() to return only one record
 
+    if (!error && data) {
+      return { data, error: null };
+    } else {
+      return { data: null, error: { message: error?.message || "Event not found" } };
+    }
+  } catch (e: any) {
+    console.error("Unexpected error:", e);
+    return {
+      data: null,
+      error: { message: e.message || "An unexpected error occurred" },
+    };
+  }
+}
+
+export async function insertMembership(formData: any, organizationId: string) {
+  const insertValues = {
+    name: formData.name,
+    description: formData.description,
+    registrationfee: formData.registrationfee,
+    organizationid: organizationId,
+    features: formData.features,
+  };
+
+  const supabase = createClient();
+  try {
+    const { data, error } = await supabase
+      .from('memberships')
+      .insert([insertValues])
+      .select();
+
+    if (error) {
+      return { data: null, error: { message: error.message } };
+    }
+    return { data, error: null };
+  } catch (e: any) {
+    console.error('Unexpected error:', e);
+    return { data: null, error: { message: e.message || 'An unexpected error occurred' } };
+  }
+}
+
+export async function updateMembership(membershipId: string, formData: any) {
+  const updateValues = {
+    name: formData.name,
+    description: formData.description,
+    registrationfee: formData.registrationfee,
+    features: formData.features,
+  };
+
+  const supabase = createClient();
+  try {
+    const { data, error } = await supabase
+      .from('memberships')
+      .update(updateValues)
+      .eq('membershipid', membershipId)
+      .select();
+
+    if (error) {
+      return { data: null, error: { message: error.message } };
+    }
+    return { data, error: null };
+  } catch (e: any) {
+    console.error('Unexpected error:', e);
+    return { data: null, error: { message: e.message || 'An unexpected error occurred' } };
+  }
+}
