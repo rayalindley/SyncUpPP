@@ -1,36 +1,18 @@
-import { fetchEvents } from "@/lib/events";
 import { ArrowLongLeftIcon, ArrowLongRightIcon } from "@heroicons/react/20/solid";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import EventsCard from "./events_card";
-const OrganizationEventsComponent = ({ organizationid }) => {
-  const [events, setEvents] = useState([]);
-
+const OrganizationEventsComponent = ({ events }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const eventsPerPage = 6;
 
-  useEffect(() => {
-    // Fetch events when the organizationId or currentPage changes
-    const fetchData = async () => {
-      const { data, error } = await fetchEvents(
-        organizationid,
-        currentPage,
-        eventsPerPage
-      );
-      if (!error) {
-        setEvents(data);
-      } else {
-        console.error("Error fetching events:", error);
-      }
-    };
-    fetchData();
-  }, [organizationid, currentPage]);
-
+  // Calculate the indices for the current page's events
   const indexOfLastEvent = currentPage * eventsPerPage;
   const indexOfFirstEvent = indexOfLastEvent - eventsPerPage;
   const currentEvents = events.slice(indexOfFirstEvent, indexOfLastEvent);
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
+  // Determine if the current page is the first or the last
   const isFirstPage = currentPage === 1;
   const isLastPage = indexOfLastEvent >= events.length;
 

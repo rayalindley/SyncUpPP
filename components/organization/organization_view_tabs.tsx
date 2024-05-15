@@ -5,7 +5,7 @@ import OrganizationEventsComponent from "./organization_events";
 import OrganizationMembershipsComponent from "./organization_membership";
 import OrganizationPostsComponent from "./organization_posts";
 
-const TabsComponent = ({ organizationid }) => {
+const TabsComponent = ({ organizationid, events }) => {
   const [activeTab, setActiveTab] = useState("posts");
 
   const handleTabChange = (tab) => {
@@ -18,7 +18,7 @@ const TabsComponent = ({ organizationid }) => {
   } else if (activeTab === "membership") {
     tabContent = <OrganizationMembershipsComponent />;
   } else if (activeTab === "events") {
-    tabContent = <OrganizationEventsComponent organizationid={organizationid} />;
+    tabContent = <OrganizationEventsComponent events={events} />;
   }
 
   return (
