@@ -30,3 +30,17 @@ export type CombinedUserData = {
   website?: string
   updatedat?: Date
 }
+
+export interface Membership {
+  membershipid: string;
+  organizationid: string;
+  name: string;
+  description: string;
+  registrationfee: number;
+  features?: string[];
+  mostPopular?: boolean;
+}
+
+export interface MembershipsProps {
+  memberships: Membership[];
+}

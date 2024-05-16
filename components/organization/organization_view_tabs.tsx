@@ -5,10 +5,13 @@ import OrganizationEventsComponent from "./organization_events";
 import OrganizationMembershipsComponent from "./organization_membership";
 import OrganizationPostsComponent from "./organization_posts";
 
-const TabsComponent = ({ organizationid }) => {
+import { Membership, MembershipsProps } from "@/lib/types";
+import { useParams } from "next/navigation";
+
+const TabsComponent = ({ organizationid, memberships }) => {
   const [activeTab, setActiveTab] = useState("posts");
 
-  const handleTabChange = (tab) => {
+  const handleTabChange = (tab: any) => {
     setActiveTab(tab);
   };
 
@@ -16,7 +19,7 @@ const TabsComponent = ({ organizationid }) => {
   if (activeTab === "posts") {
     tabContent = <OrganizationPostsComponent />;
   } else if (activeTab === "membership") {
-    tabContent = <OrganizationMembershipsComponent />;
+    tabContent = <OrganizationMembershipsComponent memberships = {memberships}/>;
   } else if (activeTab === "events") {
     tabContent = <OrganizationEventsComponent organizationid={organizationid} />;
   }
