@@ -1,6 +1,6 @@
 "use client";
 import { Members } from "@/components/settings/role_members_tab";
-import { RoleOverview } from "@/components/settings/role_overview_tab";
+import { RoleDisplay } from "@/components/settings/role_display_tab";
 import { createClient } from "@/lib/supabase/client";
 import { Menu, Switch, Tab } from "@headlessui/react";
 import {
@@ -131,6 +131,54 @@ export default function SettingsRolesPage() {
     setSelectedRole(null);
   };
 
+  const handleSaveChanges = async (formValues: Role) => {
+    const supabase = createClient();
+
+    try {
+      const { data, error } = await supabase
+        .from("organization_roles")
+        .update({
+          role: formValues.role,
+          color: formValues.color,
+        })
+        .eq("role_id", formValues.role_id)
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      setRolesData((prevRolesData) =>
+        prevRolesData.map((role) =>
+          role.role_id === formValues.role_id ? formValues : role
+        )
+      );
+      setSelectedRole(formValues);
+      toast.success("Changes saved successfully!", {
+        position: "bottom-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+      });
+    } catch (error) {
+      toast.error(error.message, {
+        position: "bottom-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+      });
+    }
+  };
+
   const handleDeleteRole = async (role) => {
     const supabase = createClient();
     try {
@@ -192,7 +240,9 @@ export default function SettingsRolesPage() {
       if (!permissionsEnabled[selectedRole.role_id]?.[permId]) {
         const { data, error } = await supabase
           .from("role_permissions")
-          .insert([{ role_id: selectedRole.role_id, perm_id: permId }]);
+          .insert([{ role_id: selectedRole.role_id, perm_id: permId }])
+          .select()
+          .single();
 
         if (error) console.log(error);
       } else {
@@ -200,7 +250,9 @@ export default function SettingsRolesPage() {
           .from("role_permissions")
           .delete()
           .eq("role_id", selectedRole.role_id)
-          .eq("perm_id", permId);
+          .eq("perm_id", permId)
+          .select()
+          .single();
 
         if (error) console.log(error);
       }
@@ -371,7 +423,7 @@ export default function SettingsRolesPage() {
             <Tab.Group>
               <Tab.List className="border-b border-gray-700">
                 {({ selectedIndex }) =>
-                  ["Overview", "Permissions", "Members"].map((tab, index) => (
+                  ["Display", "Permissions", "Members"].map((tab, index) => (
                     <Tab
                       key={tab}
                       className={({ selected }) =>
@@ -389,7 +441,11 @@ export default function SettingsRolesPage() {
               </Tab.List>
               <Tab.Panels>
                 <Tab.Panel>
-                  <RoleOverview selectedRole={selectedRole} />
+                  <RoleDisplay
+                    selectedRole={selectedRole}
+                    handleSaveChanges={handleSaveChanges}
+                    handleDeleteRole={handleDeleteRole}
+                  />
                 </Tab.Panel>
                 <Tab.Panel>
                   {Object.entries(permissionsData).map(([category, permissions]) => (
@@ -431,15 +487,6 @@ export default function SettingsRolesPage() {
                       ))}
                     </div>
                   ))}
-
-                  {selectedRole?.deletable && (
-                    <button
-                      className="rounded-md bg-red-600 px-4 py-2 text-sm"
-                      onClick={() => handleDeleteRole(selectedRole)}
-                    >
-                      Remove Role
-                    </button>
-                  )}
                 </Tab.Panel>
                 <Tab.Panel>
                   <Members selectedRole={selectedRole} />
