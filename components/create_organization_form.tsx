@@ -384,7 +384,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
       setIsLoading(true);
 
       // Generate a unique file name
-      const fileName = `${formValues.slug}_${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      const fileName = `orgphoto_${Date.now()}-${Math.random().toString(36).substring(7)}`;
       const { data: uploadResult, error } = await createClient()
         .storage.from("organization-photos")
         .upload(fileName, file, {
