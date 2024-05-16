@@ -489,7 +489,7 @@ export default function SettingsRolesPage() {
                   ))}
                 </Tab.Panel>
                 <Tab.Panel>
-                  <Members selectedRole={selectedRole} />
+                  <Members selectedRole={selectedRole} organizationId={orgID} />
                 </Tab.Panel>
               </Tab.Panels>
             </Tab.Group>
