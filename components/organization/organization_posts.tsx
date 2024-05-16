@@ -1,20 +1,22 @@
-import { fetchPosts } from "@/lib/posts"; // Import your fetchPosts function from your Supabase API file
-import { ArrowLongLeftIcon, ArrowLongRightIcon } from "@heroicons/react/20/solid";
 import { useEffect, useState } from "react";
-import Posts from "../app/posts";
 import PostsCard from "./posts_card";
 import PostsTextArea from "./posts_textarea";
+import { fetchPosts } from "@/lib/posts";
+import { ArrowLongLeftIcon, ArrowLongRightIcon } from "@heroicons/react/20/solid";
+import Divider from "./divider";
 
-const OrganizationPostsComponent = ({ organizationid }) => {
-  const [posts, setPosts] = useState([]);
+const OrganizationPostsComponent = ({ organizationid, posts }) => {
   const [currentPage, setCurrentPage] = useState(1);
+  const [postsData, setPostsData] = useState(posts);
+
   const postsPerPage = 3;
 
   useEffect(() => {
     const fetchData = async () => {
       const { data, error } = await fetchPosts(organizationid, currentPage, postsPerPage);
       if (!error) {
-        setPosts(data);
+        setPostsData(data);
+        console.log("Posts fetched successfully:", data);
       } else {
         console.error("Error fetching posts:", error);
       }
@@ -24,23 +26,33 @@ const OrganizationPostsComponent = ({ organizationid }) => {
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
   const isFirstPage = currentPage === 1;
-  const isLastPage = posts.length < postsPerPage;
+  const isLastPage = postsData.length < postsPerPage;
 
   return (
-    <div className="">
-      <div className="flex flex-col">
-        <h2 className="text-2xl font-semibold text-light">Organization Posts</h2>
-        <PostsTextArea />
+    <div className="mx-auto max-w-4xl">
+      <div className="flex flex-col justify-center">
+        <h2 className="mb-8 text-center text-2xl font-semibold text-light">
+          Organization Posts
+        </h2>
+        <div>
+          <PostsTextArea
+            organizationid={organizationid}
+            postsData={postsData}
+            setPostsData={setPostsData}
+          />
+        </div>
 
-        <div className="isolate mx-auto mt-8 max-w-6xl sm:mt-12 lg:mx-0 lg:max-w-none">
-          {posts.map((post, index) => (
-            <div key={index} className="mx-auto mb-4 ">
+        <div className="isolate max-w-6xl lg:max-w-none">
+          {postsData.map((post, index) => (
+            <div key={index} className="mx-auto">
               <PostsCard post={post} />
+              {index !== postsData.length - 1 && <Divider />}
             </div>
           ))}
         </div>
+
         {/* Pagination */}
-        <div className="mt-4 w-full">
+        <div className="mt-2 w-full">
           <nav className="flex items-center justify-between border-t border-gray-200 px-4 sm:px-0">
             <div className="-mt-px flex w-0 flex-1">
               <button
