@@ -155,7 +155,7 @@ const EventsCard = ({ event }) => {
 
   return (
     <>
-      <div className="mb-4 flex max-h-96 flex-col overflow-hidden rounded-lg bg-raisinblack shadow-lg transition duration-200 hover:scale-[1.03] hover:bg-charleston lg:w-96">
+      <div className="mb-4 flex max-h-96 flex-col overflow-hidden rounded-lg bg-raisinblack shadow-md transition duration-100 hover:scale-[1.01] hover:bg-charleston lg:w-96">
         <div className="h-40 overflow-hidden">
           {hasImageUrl ? (
             <img

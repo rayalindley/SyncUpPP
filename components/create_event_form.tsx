@@ -24,10 +24,17 @@ const EventSchema = z.object({
     message: "Event Date & Time should be in the future",
   }),
   location: z.string().min(3, "Location is required"),
-  capacity: z.number().int().min(1, "Capacity must be at least 1").optional().nullable(),
+  capacity: z
+    .number()
+    .int()
+    .min(1, "Capacity must be at least 1")
+    .refine((value) => value !== 0, "Capacity cannot be zero")
+    .optional()
+    .nullable(),
+
   registrationfee: z
     .number()
-    .min(0, "Registration Fee cannot be negative")
+    .nonnegative("Registration Fee cannot be negative")
     .optional()
     .nullable(),
   privacy: z.enum(["public", "private"]),
@@ -74,6 +81,7 @@ const CreateEventForm = ({
     formState: { errors, isValid },
     reset,
     setValue,
+    trigger,
   } = useForm<EventFormValues>({
     resolver: zodResolver(EventSchema),
     mode: "onChange",
@@ -207,6 +215,26 @@ const CreateEventForm = ({
   const [hasRegistrationFee, setHasRegistrationFee] = useState(
     event?.registrationfee > 0 || event?.registrationfee != null
   );
+
+  const handleRegistrationFeeChange = (hasFee) => {
+    setHasRegistrationFee(hasFee);
+    if (!hasFee) {
+      setRegistrationFeeValue(null); // Clear registration fee value when "No" is selected
+      setValue("registrationfee", null); // Reset the registration fee field in the form state
+      // Trigger validation for the registration fee field
+      trigger("registrationfee");
+    }
+  };
+
+  const handleCapacityChange = (hasLimit) => {
+    setHasCapacityLimit(hasLimit);
+    if (!hasLimit) {
+      setCapacityValue(null); // Clear capacity value when "No" is selected
+      setValue("capacity", null); // Reset the capacity field in the form state
+      // Trigger validation for the capacity field
+      trigger("capacity");
+    }
+  };
 
   const now = new Date();
   const currentDateTimeLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}T${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
@@ -355,10 +383,7 @@ const CreateEventForm = ({
                 id="noCapacityLimit"
                 value="noCapacityLimit"
                 checked={!hasCapacityLimit}
-                onChange={() => {
-                  setHasCapacityLimit(false);
-                  setCapacityValue(null); // Clear capacity value when "No" is selected
-                }}
+                onChange={() => handleCapacityChange(false)}
                 className="mr-2 border-gray-300 text-primary focus:ring-primarydark"
               />
               <label htmlFor="noCapacityLimit" className="text-sm font-medium text-white">
@@ -369,7 +394,7 @@ const CreateEventForm = ({
                 id="yesCapacityLimit"
                 value="yesCapacityLimit"
                 checked={hasCapacityLimit}
-                onChange={() => setHasCapacityLimit(true)}
+                onChange={() => handleCapacityChange(true)}
                 className="ml-4 mr-2 border-gray-300 text-primary focus:ring-primarydark"
               />
               <label
@@ -410,10 +435,7 @@ const CreateEventForm = ({
                 id="noFee"
                 value="noFee"
                 checked={!hasRegistrationFee}
-                onChange={() => {
-                  setHasRegistrationFee(false);
-                  setRegistrationFeeValue(null); // Clear registration fee value when "No" is selected
-                }}
+                onChange={() => handleRegistrationFeeChange(false)}
                 className="mr-2 border-gray-300 text-primary focus:ring-primarydark"
               />
               <label htmlFor="noFee" className="text-sm font-medium text-white">
@@ -424,7 +446,7 @@ const CreateEventForm = ({
                 id="yesFee"
                 value="yesFee"
                 checked={hasRegistrationFee}
-                onChange={() => setHasRegistrationFee(true)}
+                onChange={() => handleRegistrationFeeChange(true)}
                 className="ml-4 mr-2 border-gray-300 text-primary focus:ring-primarydark"
               />
               <label htmlFor="yesFee" className="text-sm font-medium text-white">
@@ -438,9 +460,10 @@ const CreateEventForm = ({
                 Registration Fee
               </label>
               <input
-                type="text"
+                type="number"
                 id="registrationfee"
                 defaultValue={0}
+                step="0.01" // Allows decimal values up to two decimal places
                 {...register("registrationfee", { valueAsNumber: true })}
                 onChange={(e) => setRegistrationFeeValue(parseFloat(e.target.value))}
                 className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
