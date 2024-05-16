@@ -3,28 +3,16 @@ import { createClient, getUser } from "@/lib/supabase/server";
 
 export async function insertPost(formData: any, organizationid: string) {
   const supabase = createClient();
+  // console.log("Retrieved organizationid:", organizationid); // Log the retrieved organizationid
   try {
-    const userData = await getUser(); // Get the current user's data
-
-    if (!userData) {
-      console.error("Failed to retrieve user data: User not authenticated");
-      throw new Error("User not authenticated");
-    }
-
-    const authorid = userData.user?.id; // Extract the user ID from userData
-
-    console.log("Retrieved authorid:", authorid); // Log the retrieved authorid
-
     const insertValues = {
       content: formData.content,
-      createdat: new Date().toISOString(), // Using the current date/time
       organizationid: organizationid,
-      authorid: authorid, // Use the fetched user ID
       privacylevel: formData.privacyLevel,
       postphoto: formData.postphoto,
     };
 
-    const { data, error } = await supabase.from("posts").insert([insertValues]).select();
+    const { data, error } = await supabase.from("posts").insert([insertValues]).select().single();
 
     if (!error) {
       return { data, error: null };
@@ -69,14 +57,25 @@ export async function fetchPosts(
   }
 }
 
-export async function updatePost(updatedPost: { postid: string; content: string }) {
+export async function updatePost(updatedPost: {
+  postid: string;
+  content?: string;
+  privacyLevel?: string;
+  postphoto?: string | null;
+}) {
   const supabase = createClient();
   try {
+    // Only include fields that are provided in the updatedPost object
+    const updateFields: any = {};
+    if (updatedPost.content) updateFields.content = updatedPost.content;
+    if (updatedPost.privacyLevel) updateFields.privacylevel = updatedPost.privacyLevel;
+    if (updatedPost.postphoto !== undefined) updateFields.postphoto = updatedPost.postphoto;
+
     const { data, error } = await supabase
       .from("posts")
-      .update({ content: updatedPost.content })
+      .update(updateFields)
       .eq("postid", updatedPost.postid)
-      .select();
+      .select().single();
 
     if (!error) {
       return { data, error: null };
@@ -92,21 +91,61 @@ export async function updatePost(updatedPost: { postid: string; content: string 
   }
 }
 
-
-export async function getAuthorFirstName(authorid: string) {
+export async function deletePost(postid: string, authorid: string) {
   const supabase = createClient();
   try {
-    // Assuming you have a view named 'combined_user_data' where user information is stored
-    const { data, error } = await supabase.from("combined_user_data").select("first_name").eq("id", authorid).single();
-    
-    if (error) {
-      console.error("Error fetching author's first name:", error.message);
-      return null;
+    // Check if the current user is the author of the post
+    const currentUser = await getUser();
+    if (!currentUser || currentUser.user?.id !== authorid) {
+      console.error("Unauthorized: Only the author can delete this post");
+      return { data: null, error: { message: "Unauthorized: Only the author can delete this post" } };
     }
 
-    return data?.first_name || null;
+    // Delete the post if the current user is the author
+    const { data, error } = await supabase
+      .from("posts")
+      .delete()
+      .eq("postid", postid);
+
+    if (!error) {
+      return { data, error: null };
+    } else {
+      return { data: null, error: { message: error.message } };
+    }
   } catch (e: any) {
     console.error("Unexpected error:", e);
-    return null;
+    return {
+      data: null,
+      error: { message: e.message || "An unexpected error occurred while deleting the post" },
+    };
+  }
+}
+
+export async function getAuthorDetails(authorid: string) {
+  const supabase = createClient();
+  try {
+    // Fetch the author's first name and profile picture
+    const { data, error } = await supabase.from("userprofiles")
+      .select("first_name, last_name, profilepicture")
+      .eq("userid", authorid)
+      .single();
+    
+    if (error) {
+      console.error("Error fetching author's details:", error.message);
+      return { first_name: null, last_name: null, profilepicture: null };
+    }
+
+    return {
+      first_name: data?.first_name || null,
+      last_name: data?.last_name || null,
+      profilepicture: data?.profilepicture || null
+    };
+  } catch (e: any) {
+    console.error("Unexpected error:", e);
+    return {
+      first_name: null,
+      last_name: null,
+      profilepicture: null
+    };
   }
 }
