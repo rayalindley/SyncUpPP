@@ -2,12 +2,15 @@ import { insertEvent, updateEvent } from "@/lib/events";
 import { createClient } from "@/lib/supabase/client";
 import { PhotoIcon } from "@heroicons/react/20/solid";
 import { zodResolver } from "@hookform/resolvers/zod";
+import Tagify from "@yaireo/tagify";
+import "@yaireo/tagify/dist/tagify.css";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { z } from "zod";
+import "../app/tags.css";
 
 const isFutureDate = (value: Date, context) => {
   if (value instanceof Date) {
@@ -50,6 +53,7 @@ interface EventFormValues {
   privacy: "public" | "private";
   organizationId: string;
   eventphoto: string | null;
+  tags: string[];
 }
 
 const CreateEventForm = ({
@@ -146,6 +150,7 @@ const CreateEventForm = ({
     }
 
     const eventDateTimeWithTimezone = new Date(formData.eventdatetime).toISOString();
+    const formattedTags = `{${tags.map((tag) => `"${tag}"`).join(",")}}`;
 
     const completeFormData = {
       ...formData,
@@ -153,7 +158,10 @@ const CreateEventForm = ({
       eventdatetime: eventDateTimeWithTimezone,
       capacity: finalCapacityValue,
       registrationfee: finalRegistrationFeeValue,
+      tags: formattedTags,
     };
+
+    console.log("Complete form data:", completeFormData);
 
     const { data, error } = event
       ? await updateEvent(event.eventid, completeFormData)
@@ -187,6 +195,30 @@ const CreateEventForm = ({
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
+  useEffect(() => {
+    const input = document.querySelector("input[name=tags]");
+    const tagify = new Tagify(input, {
+      originalInputValueFormat: (valuesArr) => valuesArr.map((item) => item.value),
+    });
+
+    // Update the tags state when tags change
+    tagify.on("change", (e) => {
+      // Assuming e.detail.value is the updated tags array in string format
+      const tagsArray = e.detail.value.split(",").map((tag) => tag.trim());
+      setTags(tagsArray);
+    });
+
+    // Set initial tags if editing an existing event
+    if (event?.tags) {
+      setTags(event.tags);
+      tagify.addTags(event.tags); // Add initial tags to Tagify
+    }
+
+    // Cleanup on component unmount
+    return () => {
+      tagify.destroy();
+    };
+  }, [event]);
   useEffect(() => {
     if (event) {
       Object.keys(event).forEach((key) => {
@@ -244,6 +276,21 @@ const CreateEventForm = ({
     setPhotoFile(null);
     setRemoveImageFlag(true);
   };
+
+  const [tags, setTags] = useState([]);
+
+  useEffect(() => {
+    const input = document.querySelector("input[name=tags]");
+    new Tagify(input, {
+      originalInputValueFormat: (valuesArr) =>
+        valuesArr.map((item) => item.value).join(","),
+    });
+
+    // Set initial tags if editing an existing event
+    if (event?.tags) {
+      setTags(event.tags);
+    }
+  }, [event]);
 
   return (
     <>
@@ -488,6 +535,17 @@ const CreateEventForm = ({
               <option value="public">Public</option>
               <option value="private">Private</option>
             </select>
+          </div>
+          <div className="space-y-1 text-light">
+            <label htmlFor="tags" className="text-sm font-medium text-white">
+              Tags
+            </label>
+            <input
+              name="tags"
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-charleston focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+            />
           </div>
 
           <div className="flex justify-end">

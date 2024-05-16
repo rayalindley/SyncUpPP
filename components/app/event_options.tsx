@@ -298,7 +298,7 @@ export default function EventOptions({ selectedEvent, open, setOpen }) {
                         </nav>
                       </div>
 
-                      <div className="relative mt-6 flex-1 flex-wrap overflow-hidden px-4 text-light sm:px-6">
+                      <div className="relative mt-6 flex-1 flex-wrap overflow-hidden overflow-y-auto px-4 text-light sm:px-6">
                         {currentTab === "Info" && (
                           <>
                             {/* Event Photo Display */}
@@ -339,13 +339,19 @@ export default function EventOptions({ selectedEvent, open, setOpen }) {
                                   <td className="p-2 font-bold text-gray-400">
                                     Capacity:
                                   </td>
-                                  <td className="p-2">{selectedEvent.capacity}</td>
+                                  <td className="p-2">
+                                    {selectedEvent.capacity || "None"}
+                                  </td>
                                 </tr>
                                 <tr>
                                   <td className="p-2 font-bold text-gray-400">
                                     Registration Fee:
                                   </td>
-                                  <td className="p-2">{selectedEvent.registrationfee}</td>
+                                  <td className="p-2">
+                                    {selectedEvent.registrationfee
+                                      ? `Php ${selectedEvent.registrationfee}`
+                                      : "None"}
+                                  </td>
                                 </tr>
                                 <tr>
                                   <td className="p-2 font-bold text-gray-400">
@@ -358,6 +364,22 @@ export default function EventOptions({ selectedEvent, open, setOpen }) {
                                     Privacy:
                                   </td>
                                   <td className="p-2">{selectedEvent.privacy}</td>
+                                </tr>
+                                <tr>
+                                  <td className="p-2 font-bold text-gray-400">Tags:</td>
+                                  <td className="p-2">
+                                    {/* Check if selectedEvent.tags is not null or undefined and has length before mapping */}
+                                    {selectedEvent.tags && selectedEvent.tags.length > 0
+                                      ? selectedEvent.tags.map((tag, index) => (
+                                          <span
+                                            key={index}
+                                            className="mr-2 inline-block rounded bg-gray-200 px-3 py-1 text-sm font-semibold text-gray-700 transition duration-100 hover:scale-[1.05] hover:bg-gray-200"
+                                          >
+                                            {tag}
+                                          </span>
+                                        ))
+                                      : "None"}
+                                  </td>
                                 </tr>
                               </tbody>
                             </table>

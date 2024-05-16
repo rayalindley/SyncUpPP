@@ -12,6 +12,7 @@ export async function insertEvent(formData: any, organizationId: string) {
     privacy: formData.privacy,
     organizationid: organizationId, // Include organizationId in the insertValues object
     eventphoto: formData.eventphoto,
+    tags: formData.tags,
   };
 
   const supabase = createClient();
@@ -69,6 +70,7 @@ export async function updateEvent(eventId: string, formData: any) {
     registrationfee: formData.registrationfee,
     privacy: formData.privacy,
     eventphoto: formData.eventphoto,
+    tags: formData.tags,
   };
 
   const supabase = createClient();
