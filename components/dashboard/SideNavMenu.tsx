@@ -3,6 +3,7 @@ import useSidebarStore from "@/store/useSidebarStore";
 import { Dialog, Transition } from "@headlessui/react";
 import {
   CalendarIcon,
+  FolderIcon,
   ChartPieIcon,
   Cog6ToothIcon,
   DocumentDuplicateIcon,
