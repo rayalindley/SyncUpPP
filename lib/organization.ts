@@ -7,6 +7,7 @@ export async function insertOrganization(formData: any) {
   const insertValues = {
     name: formData.name,
     photo: formData.photo,
+    banner: formData.banner,
     slug: formData.slug,
     description: formData.description,
     organization_type: formData.organizationType,
@@ -53,6 +54,7 @@ export async function updateOrganization(organizationid: string, formData: any) 
   const updateValues = {
     name: formData.name,
     photo: formData.photo,
+    banner: formData.banner,
     slug: formData.slug,
     description: formData.description,
     organization_type: formData.organizationType,

@@ -1,4 +1,3 @@
-import { convertToBase64 } from "@/lib/utils";
 import { PlusIcon } from "@heroicons/react/24/outline";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
@@ -15,6 +14,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 import countries from "@/lib/countries";
+
+import { CameraIcon } from "@heroicons/react/24/outline"; // Import the CameraIcon for the banner upload button
 
 // Define the constants for Type of Organization
 const ORGANIZATION_TYPES = [
@@ -78,6 +79,7 @@ interface OrganizationFormValues {
   twitterLink?: string; // Optional
   linkedinLink?: string; // Optional
   photo?: string; // Optional field for the organization photo
+  banner?: string; // Optional field for the organization banner
 }
 
 const OrganizationSchema = z.object({
@@ -183,6 +185,9 @@ async function checkSlugAvailability(slug: string) {
 }
 
 const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null }) => {
+  const [banner, setBanner] = useState(formValues?.banner || null);
+  const [bannerError, setBannerError] = useState("");
+
   const [imageError, setImageError] = useState("");
 
   const { prev, next, jump, total, current, progress } = useSteps();
@@ -238,6 +243,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
         linkedinLink: formValues.socials.linkedin,
       });
       setPhoto(formValues.photo);
+      setBanner(formValues.banner);
     }
   }, [formValues, reset]);
 
@@ -305,7 +311,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
 
   const onSubmit: SubmitHandler<OrganizationFormValues> = async () => {
     setIsLoading(true);
-    const formData = { ...getValues(), photo };
+    const formData = { ...getValues(), photo, banner };
 
     if (formValues) {
       // then, it's an update.
@@ -324,7 +330,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
           draggable: true,
           progress: undefined,
           theme: "light",
-          onClose: () => router.push("/dashboard") // Redirect on toast close
+          onClose: () => router.push("/dashboard"), // Redirect on toast close
         });
 
         reset();
@@ -365,6 +371,72 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
     setShow(state);
   };
 
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Check if the file is an image
+      if (!file.type.startsWith("image/")) {
+        setImageError("Please upload an image file");
+        return;
+      }
+
+      // Set the loading state
+      setIsLoading(true);
+
+      // Generate a unique file name
+      const fileName = `orgphoto_${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      const { data: uploadResult, error } = await createClient()
+        .storage.from("organization-photos")
+        .upload(fileName, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (uploadResult) {
+        setPhoto(
+          `https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public/${uploadResult.fullPath}`
+        );
+      } else {
+        console.error("Error uploading image:", error);
+        toast.error("Error uploading image. Please try again.");
+      }
+
+      // Reset the loading state
+      setIsLoading(false);
+    }
+  };
+
+  const handleBannerChange = async (event) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        setBannerError("Please upload an image file");
+        return;
+      }
+      setBannerError("");
+      // Generate a preview URL for the selected file
+      const previewUrl = URL.createObjectURL(file);
+      setBanner(previewUrl); // Update the banner state with the preview URL
+
+      // Here you would also handle the upload to your server or storage service
+      // For example, using Supabase:
+      const fileName = `banner_${Date.now()}`;
+      const { data: uploadResult, error } = await createClient()
+        .storage.from("organization-banners")
+        .upload(fileName, file);
+
+      if (uploadResult) {
+        // Update the banner state with the URL returned from the server
+        setBanner(
+          `https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public/${uploadResult.fullPath}`
+        );
+      } else {
+        console.error("Error uploading banner:", error);
+        setBannerError("Error uploading banner. Please try again.");
+      }
+    }
+  };
+
   return (
     <>
       <ToastContainer
@@ -395,27 +467,13 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                   />
                   <div className="absolute bottom-0 right-0 mb-1 mr-1">
                     <label htmlFor="file-input" className="">
-                      <PlusIcon className="mr-2 inline-block h-6 w-6 cursor-pointer rounded-full border-2 border-primary  bg-white text-primarydark" />
+                      <PlusIcon className="mr-2 inline-block h-6 w-6 cursor-pointer rounded-full border-2 border-primary bg-white text-primarydark" />
                     </label>
                     <input
                       id="file-input"
                       accept="image/*"
                       type="file"
-                      onChange={async (event) => {
-                        const file = event.target.files?.[0];
-                        if (file) {
-                          // Check if the file is an image
-                          if (!file.type.startsWith("image/")) {
-                            // Set the error message
-                            setImageError("Please upload an image file");
-                            return;
-                          }
-                          const base64 = await convertToBase64(file);
-                          setPhoto(base64);
-                          // Clear the error message
-                          setImageError("");
-                        }
-                      }}
+                      onChange={handleFileChange}
                       className="hidden"
                     />
                   </div>
@@ -423,9 +481,42 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
               </div>
               {/* Display the error message */}
               <p className="text-center text-red-500">{imageError}</p>
+              {/* New banner photo block */}
+              <div className="relative mt-4 h-20 w-full overflow-hidden rounded-md border-2 border-primary font-semibold">
+                {banner ? (
+                  <img
+                    src={banner}
+                    alt="Banner Preview"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="h-full w-full bg-charleston"></div>
+                )}
+                <div className="absolute bottom-0 right-0 mb-2 mr-2 flex justify-end">
+                  <div className="flex items-center gap-1 rounded-lg bg-black bg-opacity-25 text-white hover:cursor-pointer hover:bg-gray-500 hover:bg-opacity-25">
+                    <CameraIcon className="h-6 w-6 pl-2" />
+                    <label
+                      htmlFor="banner-input"
+                      className="py-2 pr-2 hover:cursor-pointer"
+                    >
+                      Add Banner
+                    </label>
+                    <input
+                      id="banner-input"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleBannerChange}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+              </div>
+              {bannerError && <p className="text-red-500">{bannerError}</p>}
+              {/* end of banner block */}
+
               <label
                 htmlFor="name"
-                className="block text-sm font-medium leading-6 text-white"
+                className="mt-8 block text-sm font-medium leading-6 text-white"
               >
                 Organization Name
               </label>
