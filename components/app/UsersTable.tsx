@@ -157,7 +157,7 @@ export default function UsersTable({ users, userProfiles }) {
               },
               rows: {
                 style: {
-                  minHeight: "5vh", // override the row height
+                  minHeight: "6vh", // override the row height
                   backgroundColor: "rgb(33, 33, 33)",
                   color: "rgb(255, 255, 255)",
                 },
