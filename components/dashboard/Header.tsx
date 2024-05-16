@@ -21,8 +21,8 @@ import {
   CalendarIcon,
   ExclamationCircleIcon,
   UserIcon,
-  CashIcon, // Assuming you have a cash icon for payment notifications
-  HandIcon, // Assuming you have a hand icon for welcome notifications
+  CurrencyDollarIcon,
+  HandRaisedIcon, 
 } from "@heroicons/react/24/outline";
 
 function classNames(...classes: any[]) {
@@ -92,9 +92,9 @@ function Header({ user }: { user: User }) {
       case "membership":
         return <UserIcon className="h-6 w-6 text-light" />;
       case "welcome":
-        return <HandIcon className="h-6 w-6 text-light" />; // Replace with the correct icon for welcome
+        return <HandRaisedIcon className="h-6 w-6 text-light" />; // Replace with the correct icon for welcome
       case "payment":
-        return <CashIcon className="h-6 w-6 text-light" />; // Replace with the correct icon for payment
+        return <CurrencyDollarIcon className="h-6 w-6 text-light" />; // Replace with the correct icon for payment
       default:
         return <ExclamationCircleIcon className="h-6 w-6 text-light" />; // Default icon if no specific type is matched
     }
