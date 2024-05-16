@@ -159,13 +159,15 @@ function Header({ user }: { user: User }) {
         </form>
         <div className="flex items-center gap-x-4 lg:gap-x-6">
           <Menu as="div" className="relative">
-            <Menu.Button className="p-3 text-gray-400 hover:text-gray-500">
-              <span className="sr-only">View notifications</span>
-              <BellIcon className="h-6 w-6" aria-hidden="true" />
-              {unreadCount > 0 && (
-                <span className="absolute right-0 top-0 inline-flex h-2 w-2 -translate-y-1/2 translate-x-1/2 transform rounded-full bg-[#32805c]"></span>
-              )}
-            </Menu.Button>
+          <Menu.Button className="p-3 text-gray-400 hover:text-gray-500">
+            <span className="sr-only">View notifications</span>
+            <BellIcon className="h-6 w-6" aria-hidden="true" />
+            {unreadCount > 0 && (
+              <span className="absolute bottom-0 left-0 inline-flex h-4 w-4 -translate-y-7 translate-x-7 transform rounded-full bg-[#32805c] text-xs font-semibold text-white justify-center items-center">
+                {unreadCount}
+              </span>
+            )}
+          </Menu.Button>
             <Transition
               as={Fragment}
               enter="transition ease-out duration-200"
