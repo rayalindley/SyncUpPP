@@ -35,6 +35,14 @@ const dummyAttendees = [
   { name: "Michael Johnson" },
 ];
 
+// Function to truncate text
+const truncateText = (text, maxLength) => {
+  if (text.length > maxLength) {
+    return text.substring(0, maxLength) + "...";
+  }
+  return text;
+};
+
 export default function EventOptions({ selectedEvent, open, setOpen }) {
   const [currentTab, setCurrentTab] = useState("Info");
 
@@ -321,7 +329,9 @@ export default function EventOptions({ selectedEvent, open, setOpen }) {
                                   <td className="p-2 font-bold text-gray-400">
                                     Description:
                                   </td>
-                                  <td className="p-2">{selectedEvent.description}</td>
+                                  <td className="p-2">
+                                    {truncateText(selectedEvent.description, 100)}
+                                  </td>
                                 </tr>
                                 <tr>
                                   <td className="p-2 font-bold text-gray-400">
@@ -367,7 +377,7 @@ export default function EventOptions({ selectedEvent, open, setOpen }) {
                                 </tr>
                                 <tr>
                                   <td className="p-2 font-bold text-gray-400">Tags:</td>
-                                  <td className="p-2">
+                                  <td className="flex flex-wrap gap-2 p-2 ">
                                     {/* Check if selectedEvent.tags is not null or undefined and has length before mapping */}
                                     {selectedEvent.tags && selectedEvent.tags.length > 0
                                       ? selectedEvent.tags.map((tag, index) => (
@@ -383,6 +393,27 @@ export default function EventOptions({ selectedEvent, open, setOpen }) {
                                 </tr>
                               </tbody>
                             </table>
+                            {/* Buttons */}
+                            <div className="mt-4 flex space-x-4">
+                              <Link
+                                href={`/e/${selectedEvent.eventslug}`}
+                                className="flex-1 rounded-md bg-primary px-4 py-2 text-center text-white hover:bg-primarydark"
+                              >
+                                View Event
+                              </Link>
+                              <Link
+                                href={`/events/edit/${selectedEvent.eventid}`}
+                                className="flex-1 rounded-md bg-charleston px-4 py-2 text-center text-white hover:bg-raisinblack"
+                              >
+                                Edit Event
+                              </Link>
+                              <button
+                                onClick={deleteBtn}
+                                className="flex-1 rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+                              >
+                                Delete
+                              </button>
+                            </div>
                           </>
                         )}
                         {currentTab === "Attendees" && (

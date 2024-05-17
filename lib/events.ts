@@ -13,6 +13,7 @@ export async function insertEvent(formData: any, organizationId: string) {
     organizationid: organizationId, // Include organizationId in the insertValues object
     eventphoto: formData.eventphoto,
     tags: formData.tags,
+    eventslug: formData.slug,
   };
 
   const supabase = createClient();
@@ -71,6 +72,7 @@ export async function updateEvent(eventId: string, formData: any) {
     privacy: formData.privacy,
     eventphoto: formData.eventphoto,
     tags: formData.tags,
+    eventslug: formData.slug,
   };
 
   const supabase = createClient();
@@ -191,6 +193,29 @@ export async function countRegisteredUsers(eventId: string) {
     console.error("Unexpected error:", e);
     return {
       count: null,
+      error: { message: e.message || "An unexpected error occurred" },
+    };
+  }
+}
+
+export async function getEventBySlug(slug: string) {
+  const supabase = createClient();
+  try {
+    const { data, error } = await supabase
+      .from("events")
+      .select("*")
+      .eq("slug", slug)
+      .single(); // Use .single() to return only one record
+
+    if (!error && data) {
+      return { data, error: null };
+    } else {
+      return { data: null, error: { message: error?.message || "Event not found" } };
+    }
+  } catch (e: any) {
+    console.error("Unexpected error:", e);
+    return {
+      data: null,
       error: { message: e.message || "An unexpected error occurred" },
     };
   }

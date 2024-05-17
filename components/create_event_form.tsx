@@ -54,6 +54,7 @@ interface EventFormValues {
   organizationId: string;
   eventphoto: string | null;
   tags: string[];
+  eventslug: string;
 }
 
 const CreateEventForm = ({
@@ -91,6 +92,40 @@ const CreateEventForm = ({
     mode: "onChange",
     ...formOptions,
   });
+
+  // Function to generate a random slug for the event
+  function generateRandomSlug(length = 8) {
+    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let result = "";
+    for (let i = 0; i < length; i++) {
+      result += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    return result;
+  }
+
+  // Function to check slug availability in the events table
+  async function checkSlugAvailability(slug: string) {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("events")
+      .select("eventslug")
+      .eq("eventslug", slug)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error fetching slug:", error);
+      return {
+        isAvailable: false,
+        error: error.message,
+      };
+    }
+
+    // If data is null, no rows exist, hence the slug is available
+    return {
+      isAvailable: !data,
+      error: null,
+    };
+  }
 
   const onSubmit: SubmitHandler<EventFormValues> = async (formData) => {
     setIsLoading(true);
@@ -152,6 +187,25 @@ const CreateEventForm = ({
     const eventDateTimeWithTimezone = new Date(formData.eventdatetime).toISOString();
     const formattedTags = `{${tags.map((tag) => `"${tag}"`).join(",")}}`;
 
+    let slug;
+    if (!event) {
+      // Only generate a slug if creating a new event
+      slug = generateRandomSlug();
+      let slugCheck = await checkSlugAvailability(slug);
+
+      // Ensure slug is unique by checking availability
+      while (!slugCheck.isAvailable) {
+        slug = generateRandomSlug();
+        slugCheck = await checkSlugAvailability(slug);
+      }
+
+      if (slugCheck.error) {
+        toast.error("Error checking slug availability. Please try again.");
+        setIsLoading(false);
+        return;
+      }
+    }
+
     const completeFormData = {
       ...formData,
       eventphoto: imageUrl,
@@ -159,6 +213,7 @@ const CreateEventForm = ({
       capacity: finalCapacityValue,
       registrationfee: finalRegistrationFeeValue,
       tags: formattedTags,
+      slug: event ? event.slug : slug,
     };
 
     console.log("Complete form data:", completeFormData);
@@ -171,7 +226,7 @@ const CreateEventForm = ({
       toast.success(
         event ? "Event was updated successfully." : "Event was created successfully."
       );
-      router.push("/dashboard/events");
+      router.push(`/e/${completeFormData.slug}`);
       reset();
     } else if (error) {
       toast.error(

@@ -23,7 +23,7 @@ const OrganizationEventsComponent = ({ events }) => {
           Our Events
         </p>
       </div>
-      <div className="isolate mx-auto mt-8 grid max-w-md grid-cols-1 gap-x-8 gap-y-8 sm:mt-12 lg:mx-0 lg:max-w-none lg:grid-cols-3">
+      <div className="isolate mx-auto mt-8 grid max-w-md grid-cols-1 gap-x-4 gap-y-8 sm:mt-12 lg:mx-0 lg:max-w-none lg:grid-cols-4">
         {currentEvents.map((event, index) => (
           <EventsCard
             key={index}
@@ -35,6 +35,7 @@ const OrganizationEventsComponent = ({ events }) => {
               registrationfee: event.registrationfee,
               eventdatetime: event.eventdatetime,
               location: event.location,
+              eventslug: event.eventslug,
             }}
           />
         ))}
