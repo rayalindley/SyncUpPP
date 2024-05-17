@@ -1,4 +1,3 @@
-import { convertToBase64 } from "@/lib/utils";
 import { PlusIcon } from "@heroicons/react/24/outline";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
@@ -15,6 +14,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 import countries from "@/lib/countries";
+
+import { CameraIcon } from "@heroicons/react/24/outline"; // Import the CameraIcon for the banner upload button
 
 // Define the constants for Type of Organization
 const ORGANIZATION_TYPES = [
@@ -78,6 +79,7 @@ interface OrganizationFormValues {
   twitterLink?: string; // Optional
   linkedinLink?: string; // Optional
   photo?: string; // Optional field for the organization photo
+  banner?: string; // Optional field for the organization banner
 }
 
 const OrganizationSchema = z.object({
@@ -192,6 +194,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
 
   // setphoto to allow string
   const [photo, setPhoto] = useState<string | null>(null);
+
 
   const {
     register,
@@ -324,7 +327,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
           draggable: true,
           progress: undefined,
           theme: "light",
-          onClose: () => router.push("/dashboard") // Redirect on toast close
+          onClose: () => router.push("/dashboard"), // Redirect on toast close
         });
 
         reset();
@@ -365,6 +368,39 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
     setShow(state);
   };
 
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Check if the file is an image
+      if (!file.type.startsWith("image/")) {
+        setImageError("Please upload an image file");
+        return;
+      }
+
+      // Set the loading state
+      setIsLoading(true);
+
+      // Generate a unique file name
+      const fileName = `${formData.title}_${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      const { data: uploadResult, error } = await createClient()
+        .storage.from("event-images")
+        .upload(fileName, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (uploadResult) {
+        setPhoto(uploadResult.fullPath);
+      } else {
+        console.error("Error uploading image:", error);
+        toast.error("Error uploading image. Please try again.");
+      }
+
+      // Reset the loading state
+      setIsLoading(false);
+    }
+  };
+
   return (
     <>
       <ToastContainer
@@ -395,27 +431,13 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                   />
                   <div className="absolute bottom-0 right-0 mb-1 mr-1">
                     <label htmlFor="file-input" className="">
-                      <PlusIcon className="mr-2 inline-block h-6 w-6 cursor-pointer rounded-full border-2 border-primary  bg-white text-primarydark" />
+                      <PlusIcon className="mr-2 inline-block h-6 w-6 cursor-pointer rounded-full border-2 border-primary bg-white text-primarydark" />
                     </label>
                     <input
                       id="file-input"
                       accept="image/*"
                       type="file"
-                      onChange={async (event) => {
-                        const file = event.target.files?.[0];
-                        if (file) {
-                          // Check if the file is an image
-                          if (!file.type.startsWith("image/")) {
-                            // Set the error message
-                            setImageError("Please upload an image file");
-                            return;
-                          }
-                          const base64 = await convertToBase64(file);
-                          setPhoto(base64);
-                          // Clear the error message
-                          setImageError("");
-                        }
-                      }}
+                      onChange={handleFileChange}
                       className="hidden"
                     />
                   </div>
@@ -423,6 +445,39 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
               </div>
               {/* Display the error message */}
               <p className="text-center text-red-500">{imageError}</p>
+              {/* New banner photo block */}
+      {/* <div className="relative mt-4 h-20 w-full overflow-hidden rounded-md border-2 border-primary font-semibold">
+        {bannerphoto ? (
+          <img
+            src={bannerphoto}
+            alt="Banner Preview"
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="h-full w-full bg-charleston"></div>
+        )}
+        <div className="absolute bottom-0 right-0 mb-2 mr-2 grid grid-cols-2 items-center gap-1 rounded-lg bg-black bg-opacity-25 text-white hover:bg-gray-500 hover:bg-opacity-25">
+          <div className="flex justify-end pr-1">
+            <CameraIcon className="h-6 w-6 text-white" />
+          </div>
+          <label htmlFor="banner-input" className="col-span-1 py-2 pr-2">
+            Add Banner
+          </label>
+          <input
+            id="banner-input"
+            type="file"
+            onChange={(event) => {
+              const file = event.target.files?.[0] || null;
+              setBannerFile(file);
+              if (file) {
+                const previewUrl = URL.createObjectURL(file);
+                setBannerPhoto(previewUrl); // This will update the bannerphoto state with the preview URL
+              }
+            }}
+            className="hidden"
+          />
+        </div>
+      </div> */}
               <label
                 htmlFor="name"
                 className="block text-sm font-medium leading-6 text-white"
