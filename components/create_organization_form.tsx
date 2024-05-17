@@ -15,12 +15,7 @@ import { createClient } from "@/lib/supabase/client";
 
 import countries from "@/lib/countries";
 
-
-import { CameraIcon } from "@heroicons/react/24/outline"; // Import the CameraIcon for the banner upload button
-
-
 // Define constants for types of organizations, industries, and sizes
-
 const ORGANIZATION_TYPES = [
   "Nonprofit",
   "For-Profit",
@@ -71,13 +66,11 @@ interface OrganizationFormValues {
   city: string;
   stateProvince: string;
   country: string;
-
-  facebookLink?: string; // Optional
-  twitterLink?: string; // Optional
-  linkedinLink?: string; // Optional
-  photo?: string; // Optional field for the organization photo
-  banner?: string; // Optional field for the organization banner
-
+  facebookLink?: string;
+  twitterLink?: string;
+  linkedinLink?: string;
+  photo?: string;
+  banner?: string;
 }
 
 const OrganizationSchema = z.object({
@@ -172,7 +165,6 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
   const [formData, setFormData] = useState<OrganizationFormValues>(formValues);
   const router = useRouter();
   const [photo, setPhoto] = useState<string | null>(null);
-
   const {
     register,
     handleSubmit,
@@ -268,28 +260,6 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
 
   const onSubmit: SubmitHandler<OrganizationFormValues> = async () => {
     setIsLoading(true);
-
-    const formData = { ...getValues(), photo };
-
-    if (formValues) {
-      // then, it's an update.
-      const { data, error } = await updateOrganization(
-        formValues.organizationid,
-        formData
-      );
-
-      if (data) {
-        toast.success("Organization was updated successfully.", {
-          position: "bottom-right",
-          autoClose: 5000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-          theme: "light",
-          onClose: () => router.push("/dashboard"), // Redirect on toast close
-
     const formData = { ...getValues(), photo, banner };
 
     // Upload the image to the database if a photo is selected
@@ -301,7 +271,6 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
         .upload(fileName, file, {
           cacheControl: "3600",
           upsert: false,
-
         });
 
       if (uploadResult) {
@@ -396,29 +365,6 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
         return;
       }
 
-
-      // Set the loading state
-      setIsLoading(true);
-
-      // Generate a unique file name
-      const fileName = `${formData.title}_${Date.now()}-${Math.random().toString(36).substring(7)}`;
-      const { data: uploadResult, error } = await createClient()
-        .storage.from("event-images")
-        .upload(fileName, file, {
-          cacheControl: "3600",
-          upsert: false,
-        });
-
-      if (uploadResult) {
-        setPhoto(uploadResult.fullPath);
-      } else {
-        console.error("Error uploading image:", error);
-        toast.error("Error uploading image. Please try again.");
-      }
-
-      // Reset the loading state
-      setIsLoading(false);
-
       setImageError("");
       setPhoto(URL.createObjectURL(file)); // Update the state with the preview URL
     }
@@ -451,7 +397,6 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
         console.error("Error uploading banner:", error);
         setBannerError("Error uploading banner. Please try again.");
       }
-
     }
   };
 
@@ -498,41 +443,6 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                 </div>
               </div>
               <p className="text-center text-red-500">{imageError}</p>
-
-              {/* New banner photo block */}
-      {/* <div className="relative mt-4 h-20 w-full overflow-hidden rounded-md border-2 border-primary font-semibold">
-        {bannerphoto ? (
-          <img
-            src={bannerphoto}
-            alt="Banner Preview"
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <div className="h-full w-full bg-charleston"></div>
-        )}
-        <div className="absolute bottom-0 right-0 mb-2 mr-2 grid grid-cols-2 items-center gap-1 rounded-lg bg-black bg-opacity-25 text-white hover:bg-gray-500 hover:bg-opacity-25">
-          <div className="flex justify-end pr-1">
-            <CameraIcon className="h-6 w-6 text-white" />
-          </div>
-          <label htmlFor="banner-input" className="col-span-1 py-2 pr-2">
-            Add Banner
-          </label>
-          <input
-            id="banner-input"
-            type="file"
-            onChange={(event) => {
-              const file = event.target.files?.[0] || null;
-              setBannerFile(file);
-              if (file) {
-                const previewUrl = URL.createObjectURL(file);
-                setBannerPhoto(previewUrl); // This will update the bannerphoto state with the preview URL
-              }
-            }}
-            className="hidden"
-          />
-        </div>
-      </div> */}
-
               <div className="relative mt-4 h-20 w-full overflow-hidden rounded-md border-2 border-primary font-semibold">
                 {banner ? (
                   <img
@@ -563,7 +473,6 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                 </div>
               </div>
               {bannerError && <p className="text-red-500">{bannerError}</p>}
-
               <label
                 htmlFor="name"
                 className="mt-8 block text-sm font-medium leading-6 text-white"

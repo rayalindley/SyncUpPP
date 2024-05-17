@@ -16,7 +16,6 @@ const config: Config = {
         charleston: "#2A2A2A",
         primary: "#37996b",
         primarydark: "#32805c",
-        fadedgrey: "#525252",
       },
       fontFamily: {
         poppins: ["Poppins", "sans-serif"],

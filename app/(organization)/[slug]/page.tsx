@@ -8,15 +8,8 @@ import { useState, useEffect } from "react";
 import { useUser } from "@/context/UserContext";
 import { createClient } from "@/lib/supabase/client";
 import Header from "@/components/Header";
-
-import TabsComponent from "@/components/organization/organization_view_tabs";
-import SocialIcons from "@/components/organization/social_icons";
-import { fetchEvents } from "@/lib/events";
-import { createClient, getUser } from "@/lib/supabase/server";
-import { InboxIcon, UserGroupIcon } from "@heroicons/react/24/outline";
-import { ToastContainer } from "react-toastify";
-
 import Footer from "@/components/Footer";
+import { UserGroupIcon } from "@heroicons/react/24/outline";
 import { UserGroupIcon } from "@heroicons/react/24/outline";
 
 export default function NewsletterPage() {
@@ -71,29 +64,10 @@ export default function NewsletterPage() {
         .select('organizationid, name, slug')
         .eq('adminid', user.id);
 
-
-  // Fetch events data
-  const currentPage = 1; // Set the current page
-  const eventsPerPage = 6; // Set the number of events per page
-  const { data: events, error: eventsError } = await fetchEvents(
-    org.organizationid,
-    currentPage,
-    eventsPerPage
-  );
-
-  // Handle any errors from fetching events
-  if (eventsError) {
-    console.error("Error fetching events:", eventsError);
-    return; // Optionally, handle the error in your UI
-  }
-  // Assuming `org` is an object retrieved from your database that contains the social media links object
-  const socials = org.socials || {}; // Use default empty object if `org.socials` is undefined or null
-
       if (error) {
         console.error("Error fetching organizations:", error);
         return;
       }
-
 
       setOrganizations(orgs || []);
     } catch (e) {
@@ -143,7 +117,6 @@ export default function NewsletterPage() {
                 </div>
               ))}
             </div>
-            <TabsComponent organizationid={org.organizationid} events={events} />
           </div>
         </div>
       </main>

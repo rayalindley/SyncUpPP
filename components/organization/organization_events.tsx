@@ -1,18 +1,36 @@
+import { fetchEvents } from "@/lib/events";
 import { ArrowLongLeftIcon, ArrowLongRightIcon } from "@heroicons/react/20/solid";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import EventsCard from "./events_card";
-const OrganizationEventsComponent = ({ events }) => {
+const OrganizationEventsComponent = ({ organizationid }) => {
+  const [events, setEvents] = useState([]);
+
   const [currentPage, setCurrentPage] = useState(1);
   const eventsPerPage = 6;
 
-  // Calculate the indices for the current page's events
+  useEffect(() => {
+    // Fetch events when the organizationId or currentPage changes
+    const fetchData = async () => {
+      const { data, error } = await fetchEvents(
+        organizationid,
+        currentPage,
+        eventsPerPage
+      );
+      if (!error) {
+        setEvents(data);
+      } else {
+        console.error("Error fetching events:", error);
+      }
+    };
+    fetchData();
+  }, [organizationid, currentPage]);
+
   const indexOfLastEvent = currentPage * eventsPerPage;
   const indexOfFirstEvent = indexOfLastEvent - eventsPerPage;
   const currentEvents = events.slice(indexOfFirstEvent, indexOfLastEvent);
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
-  // Determine if the current page is the first or the last
   const isFirstPage = currentPage === 1;
   const isLastPage = indexOfLastEvent >= events.length;
 
@@ -23,7 +41,7 @@ const OrganizationEventsComponent = ({ events }) => {
           Our Events
         </p>
       </div>
-      <div className="isolate mx-auto mt-8 grid max-w-md grid-cols-1 gap-x-4 gap-y-8 sm:mt-12 lg:mx-0 lg:max-w-none lg:grid-cols-4">
+      <div className="isolate mx-auto mt-8 grid max-w-md grid-cols-1 gap-x-8 gap-y-8 sm:mt-12 lg:mx-0 lg:max-w-none lg:grid-cols-3">
         {currentEvents.map((event, index) => (
           <EventsCard
             key={index}
@@ -35,7 +53,6 @@ const OrganizationEventsComponent = ({ events }) => {
               registrationfee: event.registrationfee,
               eventdatetime: event.eventdatetime,
               location: event.location,
-              eventslug: event.eventslug,
             }}
           />
         ))}
