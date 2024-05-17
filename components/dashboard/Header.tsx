@@ -3,7 +3,7 @@ import { signOut } from "@/lib/auth";
 import { Menu, Transition } from "@headlessui/react";
 import { ChevronDownIcon, MagnifyingGlassIcon } from "@heroicons/react/20/solid";
 import { Fragment, useState } from "react";
-
+import { formatDistanceToNow } from "date-fns";
 import { UserProfile } from "@/lib/types";
 import { getUserProfileById } from "@/lib/userActions";
 import { Bars3Icon, BellIcon } from "@heroicons/react/24/outline";
@@ -12,9 +12,21 @@ import { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import useSidebarStore from "@/store/useSidebarStore";
+import {
+  fetchNotifications,
+  markAllAsRead,
+  markNotificationAsRead,
+} from "@/lib/notifications";
+import {
+  CalendarIcon,
+  ExclamationCircleIcon,
+  UserIcon,
+  CurrencyDollarIcon,
+  HandRaisedIcon,
+} from "@heroicons/react/24/outline";
 
 function classNames(...classes: any[]) {
-  return classes.filter(Boolean).join(" ");
+  return classes?.filter(Boolean).join(" ");
 }
 
 function Header({ user }: { user: User }) {
@@ -24,6 +36,78 @@ function Header({ user }: { user: User }) {
   }));
 
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const loadNotifications = async () => {
+      const { data, unreadCount } = await fetchNotifications(user.id);
+
+      setNotifications(data);
+      setUnreadCount(unreadCount);
+    };
+
+    loadNotifications();
+  }, [user]);
+
+  const handleMarkAllAsRead = async () => {
+    const { success } = await markAllAsRead(user.id);
+    if (success) {
+      const updatedNotifications = notifications.map((notification) => ({
+        ...notification,
+        isread: true,
+      }));
+      setNotifications(updatedNotifications);
+      setUnreadCount(0);
+    }
+  };
+
+  function getNotificationLink(notification) {
+    switch (notification.type) {
+      case "event":
+        return "/" + `${notification.path}`;
+      case "membership":
+        return window.location.pathname;
+      case "membershipForAdmin":
+        return window.location.pathname;
+      case "welcome":
+        return "/" + `${notification.path}`;
+      case "payment":
+        return window.location.pathname;
+      default:
+        return window.location.pathname;
+    }
+  }
+
+  function getNotificationIcon(notification) {
+    switch (notification.type) {
+      case "event":
+        return <CalendarIcon className="h-6 w-6 text-light" />;
+      case "membership":
+        return <UserIcon className="h-6 w-6 text-light" />;
+      case "welcome":
+        return <HandRaisedIcon className="h-6 w-6 text-light" />;
+      case "payment":
+        return <CurrencyDollarIcon className="h-6 w-6 text-light" />;
+      default:
+        return <ExclamationCircleIcon className="h-6 w-6 text-light" />;
+    }
+  }
+
+  const handleNotificationClick = async (notificationId) => {
+    const { success } = await markNotificationAsRead(notificationId);
+    if (success) {
+      const updatedNotifications = notifications.map((notification) =>
+        notification.notificationid === notificationId
+          ? { ...notification, isread: true }
+          : notification
+      );
+      setNotifications(updatedNotifications);
+
+      setUnreadCount((prevUnreadCount) => prevUnreadCount - 1);
+    }
+  };
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -65,13 +149,69 @@ function Header({ user }: { user: User }) {
           />
         </form>
         <div className="flex items-center gap-x-4 lg:gap-x-6">
-          <button
-            type="button"
-            className="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500"
-          >
-            <span className="sr-only">View notifications</span>
-            <BellIcon className="h-6 w-6" aria-hidden="true" />
-          </button>
+          <Menu as="div" className="relative">
+            <Menu.Button className="p-3 text-gray-400 hover:text-gray-500">
+              <span className="sr-only">View notifications</span>
+              <BellIcon className="h-6 w-6" aria-hidden="true" />
+              {unreadCount > 0 && (
+                <span className="absolute bottom-0 left-0 inline-flex h-4 w-4 -translate-y-7 translate-x-7 transform items-center justify-center rounded-full bg-[#32805c] text-xs font-semibold text-white">
+                  {unreadCount}
+                </span>
+              )}
+            </Menu.Button>
+            <Transition
+              as={Fragment}
+              enter="transition ease-out duration-200"
+              enterFrom="transform opacity-0 scale-95"
+              enterTo="transform opacity-100 scale-100"
+              leave="transition ease-in duration-150"
+              leaveFrom="transform opacity-100 scale-100"
+              leaveTo="transform opacity-0 scale-95"
+            >
+              <Menu.Items className="absolute right-0 z-10 w-96 origin-top-right overflow-hidden rounded-md bg-charleston shadow-lg ring-1 ring-light ring-opacity-5 focus:outline-none">
+                <div className="max-h-[32rem] overflow-y-auto">
+                  <div className="px-4 py-3">
+                    <p className="mb-2 text-sm font-medium text-light">Notifications</p>
+                    {notifications.length > 0 ? (
+                      notifications.map((notification) => (
+                        <a
+                          key={notification.notificationid}
+                          href={getNotificationLink(notification)}
+                          className={`my-1 flex items-center gap-x-2 rounded-lg px-4 py-2 hover:bg-[#525252] ${notification.isread ? "bg-gray" : "bg-[#232323]"}`}
+                          onClick={(e) => {
+                            handleNotificationClick(notification.notificationid);
+                          }}
+                        >
+                          <span className="text-sm leading-tight">
+                            {getNotificationIcon(notification)}
+                          </span>
+                          <span
+                            className="flex-1 text-xs leading-tight text-light"
+                            dangerouslySetInnerHTML={{ __html: notification.message }}
+                          />
+                          <span className="text-xs text-light">
+                            {formatDistanceToNow(new Date(notification.created_on), {
+                              addSuffix: true,
+                            })}
+                          </span>
+                        </a>
+                      ))
+                    ) : (
+                      <p className="text-xs text-light">No new notifications.</p>
+                    )}
+                  </div>
+                </div>
+                <div className="border-t border-[#525252]">
+                  <button
+                    className="my-3 block w-full text-center text-sm text-[#32805c] hover:text-[#285a47]"
+                    onClick={handleMarkAllAsRead}
+                  >
+                    Mark all as read
+                  </button>
+                </div>
+              </Menu.Items>
+            </Transition>
+          </Menu>
 
           {/* Separator */}
           <div
