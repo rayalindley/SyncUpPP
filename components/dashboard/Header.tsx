@@ -68,15 +68,15 @@ function Header({ user }: { user: User }) {
       case "event":
         return "/" + `${notification.path}`;
       case "membership":
-        return window.location.pathname;
-      case "membershipForAdmin":
-        return window.location.pathname;
+        return "/" + `${notification.path}`;
+      case "membership_notif_for_admin":
+        return "/" + `${notification.path}`;
       case "welcome":
         return "/" + `${notification.path}`;
       case "payment":
-        return window.location.pathname;
+        return null;
       default:
-        return window.location.pathname;
+        return null;
     }
   }
 
@@ -85,6 +85,7 @@ function Header({ user }: { user: User }) {
       case "event":
         return <CalendarIcon className="h-6 w-6 text-light" />;
       case "membership":
+      case "membership_notif_for_admin":
         return <UserIcon className="h-6 w-6 text-light" />;
       case "welcome":
         return <HandRaisedIcon className="h-6 w-6 text-light" />;
@@ -190,7 +191,7 @@ function Header({ user }: { user: User }) {
                             dangerouslySetInnerHTML={{ __html: notification.message }}
                           />
                           <span className="text-xs text-light">
-                            {formatDistanceToNow(new Date(notification.created_on), {
+                            | {formatDistanceToNow(new Date(notification.created_on), {
                               addSuffix: true,
                             })}
                           </span>

@@ -176,58 +176,58 @@ const renderTable = (items, toggleSelection, setItems, formatDate, formatKey) =>
             </tr>
           </thead>
           <tbody className="bg-[#404040]">
-            {filteredItems.map((item, index) => (
-              <tr
-                key={index}
-                className={`${index % 2 === 0 ? "bg-[#505050]" : "bg-[#404040]"}`}
-              >
-                {toggleSelection !== null && (
-                  <td className="border-b border-[#404040] p-3">
-                    <input
-                      type="checkbox"
-                      checked={item.selected}
-                      onChange={() => setItems(toggleSelection(items, item.id))}
-                    />
+      {filteredItems.map((item, index) => (
+        <tr
+          key={index}
+          className={`${index % 2 === 0 ? "bg-[#505050]" : "bg-[#404040]"}`}
+        >
+          {toggleSelection !== null && (
+            <td className="border-b border-[#404040] p-3">
+              <input
+                type="checkbox"
+                checked={item.selected}
+                onChange={() => setItems(toggleSelection(items, item.id))}
+              />
+            </td>
+          )}
+          {item.name && (
+            <td className="border-b border-[#404040] p-3">{item.name || ''}</td>
+          )}
+          {item.title && (
+            <td className="border-b border-[#404040] p-3">{item.title || ''}</td>
+          )}
+          {Object.entries(item).map(([key, value]) => {
+            if (
+              key !== "name" &&
+              key !== "title" &&
+              !key.toLowerCase().includes("id")
+            ) {
+              const formattedKey = formatKey(key);
+              let displayValue = value || '';
+              if (key.toLowerCase().includes("date") && value) {
+                displayValue = formatDate(value);
+              } else if (key === "address" && value) {
+                displayValue =
+                  `${value.addressLine1 || ""} ${value.addressLine2 || ""}, ${value.city || ""}, ${value.stateProvince || ""}, ${value.country || ""}`.trim();
+              } else if (value) {
+                displayValue = String(value).substring(0, 50);
+              }
+              return (
+                formattedKey && (
+                  <td
+                    key={`${item.id}-${key}`}
+                    className="border-b border-[#404040] p-3"
+                  >
+                    {displayValue}
                   </td>
-                )}
-                {item.name && (
-                  <td className="border-b border-[#404040] p-3">{item.name}</td>
-                )}
-                {item.title && (
-                  <td className="border-b border-[#404040] p-3">{item.title}</td>
-                )}
-                {Object.entries(item).map(([key, value]) => {
-                  if (
-                    key !== "name" &&
-                    key !== "title" &&
-                    !key.toLowerCase().includes("id")
-                  ) {
-                    const formattedKey = formatKey(key);
-                    let displayValue = value;
-                    if (key.toLowerCase().includes("date")) {
-                      displayValue = formatDate(value);
-                    } else if (key === "address") {
-                      displayValue =
-                        `${value.addressLine1 || ""} ${value.addressLine2 || ""}, ${value.city || ""}, ${value.stateProvince || ""}, ${value.country || ""}`.trim();
-                    } else {
-                      displayValue = String(value).substring(0, 50);
-                    }
-                    return (
-                      formattedKey && (
-                        <td
-                          key={`${item.id}-${key}`}
-                          className="border-b border-[#404040] p-3"
-                        >
-                          {displayValue}
-                        </td>
-                      )
-                    );
-                  }
-                  return null;
-                })}
-              </tr>
-            ))}
-          </tbody>
+                )
+              );
+            }
+            return null;
+          })}
+        </tr>
+      ))}
+    </tbody>
         </table>
       </div>
       {items.length > 10 && (
