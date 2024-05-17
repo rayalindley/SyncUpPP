@@ -88,8 +88,7 @@ export async function sendNewsletter(subject, content, allUsers, attachments, fr
   const responses = await Promise.all(promises);
   return { successCount, failures, responses };
 }
-/////////////////////////////////////
-////////////////////////////////////
+
 // Function to fetch all members managed by the current admin
 export async function fetchMembersByAdmin(adminUuid) {
   // ('Fetching members by admin:', adminUuid);

@@ -159,7 +159,7 @@ export default function NewsletterPage() {
       if (allUsers.length === 0) {
         toast.error("Please select at least one recipient");
       }
-      ////////////////////
+      
       setSending(true);
       // Send the newsletter
       const { successCount, failures } = await sendNewsletter(
@@ -179,8 +179,9 @@ export default function NewsletterPage() {
           toast.error(`Failed to send to ${failure.email}: ${failure.reason}`);
         });
       }
-
-      ///////////////////////////
+      
+      setSending(false);
+      
     } catch (error) {
       if (error instanceof z.ZodError) {
         setFormErrors(error.flatten().fieldErrors);
