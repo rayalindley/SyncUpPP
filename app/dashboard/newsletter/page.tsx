@@ -142,6 +142,8 @@ export default function NewsletterPage() {
 
       if (data.length > 0) {
         toast.success("Newsletter sent successfully!");
+      } else {
+        toast.error("Sorry. Since our domain is not yet verified, we can only send emails to the testing email iammkb2002@gmail.com.");
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
