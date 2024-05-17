@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { set } from "zod";
 
 const renderTable = (items, toggleSelection, setItems, formatDate, formatKey) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [filteredItems, setFilteredItems] = useState(items);
+  const [filteredItems, setFilteredItems] = useState(items.slice(0, 10));
   const [sortColumn, setSortColumn] = useState(null);
   const [sortDirection, setSortDirection] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const [selectAll, setSelectAll] = useState(false);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     if (toggleSelection) {
@@ -17,12 +18,23 @@ const renderTable = (items, toggleSelection, setItems, formatDate, formatKey) =>
 
   useEffect(() => {
     const search = searchTerm.toLowerCase();
-    setFilteredItems(
-      items.filter((item) =>
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const filtered = items
+      .filter((item) =>
         Object.values(item).some((value) => String(value).toLowerCase().includes(search))
       )
+      .slice(startIndex, startIndex + itemsPerPage);
+    setFilteredItems(filtered);
+  }, [items, searchTerm, currentPage]);
+
+  const SortIcon = ({ direction }) => {
+    return (
+      <span style={{ marginLeft: "auto" }}>
+        <span className=" ml-5"></span>
+        {direction === "asc" ? "🡩" : direction === "desc" ? "🡣" : null}
+      </span>
     );
-  }, [items, searchTerm]);
+  };
 
   const handleSort = (column) => {
     let direction = "asc";
@@ -31,15 +43,58 @@ const renderTable = (items, toggleSelection, setItems, formatDate, formatKey) =>
     }
     setSortColumn(column);
     setSortDirection(direction);
-    const sortedItems = [...filteredItems].sort((a, b) => {
+    const sortedItems = [...items].sort((a, b) => {
       if (a[column] === null) return 1;
       if (b[column] === null) return -1;
       if (a[column] === b[column]) return 0;
       return a[column] > b[column] ? 1 : -1;
     });
     if (direction === "desc") sortedItems.reverse();
-    setItems(sortedItems);
+    setItems(sortedItems.slice(0, 10));
   };
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+  };
+
+  const renderPageNumbers = () => {
+    const pageCount = Math.ceil(items.length / itemsPerPage);
+    const prevPage = currentPage > 1 ? currentPage - 1 : null;
+    const nextPage = currentPage < pageCount ? currentPage + 1 : null;
+  
+    return (
+      <div className="flex items-center justify-center space-x-1">
+        {prevPage && (
+          <button
+            className="rounded-full bg-[#505050] p-2 text-white hover:bg-[#404040]"
+            onClick={() => handlePageChange(prevPage)}
+          >
+            {"<"}
+          </button>
+        )}
+        {Array.from({ length: pageCount }, (_, index) => index + 1).map((number) => (
+          <button
+            key={number}
+            className={`rounded-full px-3 py-2 text-white hover:bg-[#404040] ${
+              currentPage === number ? "bg-[#303030]" : "bg-[#505050]"
+            }`}
+            onClick={() => handlePageChange(number)}
+          >
+            {number}
+          </button>
+        ))}
+        {nextPage && (
+          <button
+            className="rounded-full bg-[#505050] p-2 text-white hover:bg-[#404040]"
+            onClick={() => handlePageChange(nextPage)}
+          >
+            {">"}
+          </button>
+        )}
+      </div>
+    );
+  };
+  
 
   return (
     <>
@@ -50,13 +105,13 @@ const renderTable = (items, toggleSelection, setItems, formatDate, formatKey) =>
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
       />
-      <div className="overflow-x-auto rounded-lg">
+      <div className="overflow-x-auto rounded-lg" style={{ overflow: 'auto' }}>
         <table className="w-full text-white">
           <thead className="bg-[#505050]">
             <tr>
               {items.length > 0 && (items[0].name || items[0].title) && (
                 <>
-                  <th className="border-b border-[#404040] p-3">
+                  <th className="border-b border-[#404040] p-3" style={{ whiteSpace: 'nowrap' }}>
                     {toggleSelection !== null && (
                       <input
                         type="checkbox"
@@ -69,16 +124,24 @@ const renderTable = (items, toggleSelection, setItems, formatDate, formatKey) =>
                     <th
                       className="cursor-pointer border-b border-[#404040] p-3"
                       onClick={() => handleSort("name")}
+                      style={{ whiteSpace: 'nowrap' }}
                     >
-                      Name
+                      <div className="flex justify-between items-center">
+                        <span>Name</span>
+                        {sortColumn === "name" && <SortIcon direction={sortDirection} />}
+                      </div>
                     </th>
                   )}
                   {items[0].title && (
                     <th
                       className="cursor-pointer border-b border-[#404040] p-3"
                       onClick={() => handleSort("title")}
+                      style={{ whiteSpace: 'nowrap' }}
                     >
-                      Title
+                      <div className="flex justify-between items-center">
+                        <span>Title</span>
+                        {sortColumn === "title" && <SortIcon direction={sortDirection} />}
+                      </div>
                     </th>
                   )}
                 </>
@@ -94,8 +157,12 @@ const renderTable = (items, toggleSelection, setItems, formatDate, formatKey) =>
                           key={key}
                           className="cursor-pointer border-b border-[#404040] p-3"
                           onClick={() => handleSort(key)}
+                          style={{ whiteSpace: 'nowrap' }}
                         >
-                          {formattedKey}
+                          <div className="flex justify-between items-center">
+                            <span>{formattedKey}</span>
+                            {sortColumn === key && <SortIcon direction={sortDirection} />}
+                          </div>
                         </th>
                       )
                     );
@@ -139,7 +206,6 @@ const renderTable = (items, toggleSelection, setItems, formatDate, formatKey) =>
                       displayValue =
                         `${value.addressLine1 || ""} ${value.addressLine2 || ""}, ${value.city || ""}, ${value.stateProvince || ""}, ${value.country || ""}`.trim();
                     } else {
-                      // Limit the display value to 50 characters
                       displayValue = String(value).substring(0, 50);
                     }
                     return (
@@ -160,8 +226,9 @@ const renderTable = (items, toggleSelection, setItems, formatDate, formatKey) =>
           </tbody>
         </table>
       </div>
+      <div className="my-4 flex justify-center">{renderPageNumbers()}</div>
     </>
   );
-};
+};  
 
 export default renderTable;

@@ -3,17 +3,18 @@
 import { createClient } from "@/lib/supabase/server";
 import { Resend } from "resend";
 
-// Function to fetch sent emails
-export async function fetchSentEmails() {
+// Function to fetch sent emails by admin
+export async function fetchSentEmailsByAdmin(adminUserId) {
   const supabase = createClient();
   try {
-    const { data: sentEmails, error } = await supabase.from("emails").select("*"); // Select only required fields
+    const { data: sentEmails, error } = await supabase
+      .rpc("get_emails_by_admin", { admin_user_id: adminUserId });
 
     if (error) throw error;
 
     return sentEmails;
   } catch (error) {
-    console.error("Error fetching sent emails:", error);
+    console.error('Error fetching sent emails:', error);
     return [];
   }
 }

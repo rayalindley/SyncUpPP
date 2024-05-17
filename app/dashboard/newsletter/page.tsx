@@ -10,7 +10,7 @@ import {
   fetchMembersByOrganization,
   fetchMembersByEvent,
   sendNewsletter,
-  fetchSentEmails,
+  fetchSentEmailsByAdmin,
 } from "@/lib/newsletterActions";
 // Dynamic import for ReactQuill to avoid SSR issues
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
@@ -48,14 +48,15 @@ export default function NewsletterPage() {
   const [fileError, setFileError] = useState("");
   const [sending, setSending] = useState(false);
 
+  console.log("emailsData", sentEmails);
   useEffect(() => {
     async function fetchData() {
       if (user) {
         const orgsData = await fetchOrganizationsByAdmin(user.id);
         const eventsData = await fetchEventsByAdmin(user.id);
         const usersData = await fetchMembersByAdmin(user.id);
+        const emailsData = await fetchSentEmailsByAdmin(user.id); 
 
-        // Add 'selected' property to each organization, event, and user
         const orgsWithSelected = orgsData.map((org) => ({
           ...org,
           id: org.organizationid,
@@ -67,22 +68,15 @@ export default function NewsletterPage() {
           selected: false,
         }));
         const usersWithSelected = usersData.map((user) => ({ ...user, selected: false }));
-
+  
         setOrgs(orgsWithSelected);
         setEvents(eventsWithSelected);
         setUsers(usersWithSelected);
+        setSentEmails(emailsData); // Set the state for the fetched emails
       }
     }
     fetchData();
   }, [user]);
-
-  useEffect(() => {
-    async function fetchEmails() {
-      const emails = await fetchSentEmails();
-      setSentEmails(emails);
-    }
-    fetchEmails();
-  }, []);
 
   const transformUserData = (userDataArray) => {
     return userDataArray.map(({ data }) => ({
@@ -236,6 +230,7 @@ export default function NewsletterPage() {
     if (key === "dateofbirth") return "Date of Birth";
     if (key === "eventdatetime") return "Event Date";
     const excludedKeys = [
+      "body",
       "updatedat",
       "selected",
       "slug",
@@ -272,7 +267,7 @@ export default function NewsletterPage() {
         pauseOnHover
         theme="dark"
       />
-      <div className="bg-raisin max-w-full space-y-6 rounded-lg p-10 font-sans text-white">
+      <div className="bg-raisin max-w-full space-y-6 rounded-lg p-10 font-sans text-white mb-40">
         <h1 className="border-b-2 border-primary pb-4 text-3xl">Newsletter Creation</h1>
         <div className="space-y-4">
           <select
