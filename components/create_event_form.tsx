@@ -213,7 +213,7 @@ const CreateEventForm = ({
       capacity: finalCapacityValue,
       registrationfee: finalRegistrationFeeValue,
       tags: formattedTags,
-      slug: event ? event.slug : slug,
+      eventslug: event ? event.slug : slug,
     };
 
     console.log("Complete form data:", completeFormData);
@@ -226,7 +226,7 @@ const CreateEventForm = ({
       toast.success(
         event ? "Event was updated successfully." : "Event was created successfully."
       );
-      router.push(`/e/${completeFormData.slug}`);
+      router.push(`/e/${event ? event.eventslug : completeFormData.eventslug}`);
       reset();
     } else if (error) {
       toast.error(
