@@ -7,9 +7,8 @@ import OrganizationPostsComponent from "./organization_posts";
 
 import { Membership, MembershipsProps } from "@/lib/types";
 import { useParams } from "next/navigation";
-        
+
 const TabsComponent = ({ organizationid, memberships, events }) => {
-    
   const [activeTab, setActiveTab] = useState("posts");
 
   const handleTabChange = (tab: any) => {
@@ -20,14 +19,14 @@ const TabsComponent = ({ organizationid, memberships, events }) => {
   if (activeTab === "posts") {
     tabContent = <OrganizationPostsComponent />;
   } else if (activeTab === "membership") {
-    tabContent = <OrganizationMembershipsComponent memberships = {memberships}/>;
+    tabContent = <OrganizationMembershipsComponent memberships={memberships} />;
   } else if (activeTab === "events") {
     tabContent = <OrganizationEventsComponent events={events} />;
   }
 
   return (
     <div>
-      <div className="mt-4 flex justify-center sm:mt-4 lg:mt-6">
+      <div className="mt-10 flex ">
         <a
           className={`mr-4 cursor-pointer text-light ${
             activeTab === "posts" ? "font-semibold text-primary" : ""
