@@ -1,4 +1,4 @@
-import { PlusIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, CameraIcon } from "@heroicons/react/24/outline";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
@@ -15,9 +15,12 @@ import { createClient } from "@/lib/supabase/client";
 
 import countries from "@/lib/countries";
 
+
 import { CameraIcon } from "@heroicons/react/24/outline"; // Import the CameraIcon for the banner upload button
 
-// Define the constants for Type of Organization
+
+// Define constants for types of organizations, industries, and sizes
+
 const ORGANIZATION_TYPES = [
   "Nonprofit",
   "For-Profit",
@@ -28,8 +31,6 @@ const ORGANIZATION_TYPES = [
   "Sole Proprietorship",
   "Limited Liability Company (LLC)",
 ] as const;
-
-// Define the constants for Industry/Sector
 const INDUSTRIES = [
   "Agriculture",
   "Automotive",
@@ -46,8 +47,6 @@ const INDUSTRIES = [
   "Transportation",
   "Other",
 ] as const;
-
-// Define the constants for Organization Size
 const ORGANIZATION_SIZES = [
   "1-10 employees",
   "11-50 employees",
@@ -56,7 +55,6 @@ const ORGANIZATION_SIZES = [
   "501-1000 employees",
   "1000+ employees",
 ] as const;
-
 const COUNTRIES = countries.map((x) => x.name);
 
 interface OrganizationFormValues {
@@ -64,13 +62,12 @@ interface OrganizationFormValues {
   slug: string;
   description: string;
   organizationType: string;
-  industry: string; // Now simply a string
-  organizationSize: string; // Now simply a string
+  industry: string;
+  organizationSize: string;
   website: string;
   dateEstablished: Date;
-
   addressLine1: string;
-  addressLine2?: string; // Optional
+  addressLine2?: string;
   city: string;
   stateProvince: string;
   country: string;
@@ -80,6 +77,7 @@ interface OrganizationFormValues {
   linkedinLink?: string; // Optional
   photo?: string; // Optional field for the organization photo
   banner?: string; // Optional field for the organization banner
+
 }
 
 const OrganizationSchema = z.object({
@@ -89,24 +87,17 @@ const OrganizationSchema = z.object({
   organizationType: z.enum(ORGANIZATION_TYPES, {
     errorMap: () => ({ message: "Invalid organization type" }),
   }),
-  industry: z.enum(INDUSTRIES, {
-    errorMap: () => ({ message: "Invalid industry" }),
-  }),
+  industry: z.enum(INDUSTRIES, { errorMap: () => ({ message: "Invalid industry" }) }),
   organizationSize: z.enum(ORGANIZATION_SIZES, {
     errorMap: () => ({ message: "Invalid organization size" }),
   }),
   website: z.string().url("Invalid URL format").optional().or(z.literal("")),
   dateEstablished: z.date(),
-
   addressLine1: z.string().min(3, "Address Line 1 is required"),
   addressLine2: z.string().optional(),
   city: z.string().min(3, "City is required"),
   stateProvince: z.string().min(3, "State / Province is required"),
-
-  country: z.enum(COUNTRIES, {
-    errorMap: () => ({ message: "Country  is required" }),
-  }),
-
+  country: z.enum(COUNTRIES, { errorMap: () => ({ message: "Country is required" }) }),
   facebookLink: z.string().url("Invalid URL format").optional().or(z.literal("")),
   twitterLink: z.string().url("Invalid URL format").optional().or(z.literal("")),
   linkedinLink: z.string().url("Invalid URL format").optional().or(z.literal("")),
@@ -120,21 +111,17 @@ const datepicker_options = {
   clearBtnText: "Clear",
   maxDate: new Date(),
   theme: {
-    background: "bg-[#158A70] ", //not working when modified
-    todayBtn: "", //not working, only text color changes when modified
+    background: "bg-[#158A70]",
+    todayBtn: "",
     clearBtn: "",
     icons: "",
     text: "text-white",
     disabledText: "text-gray-600 hover:bg-none",
     input:
-      "block w-full rounded-md border-0 bg-white/5 py-1.5 text-white  shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6",
+      "block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6",
     inputIcon: "",
-    selected: "bg-primary", //working
+    selected: "bg-primary",
   },
-  // icons: {
-  //   prev: () => <span>Previous</span>,
-  //   next: () => <span>Next</span>,
-  // },
   datepickerClassNames: "top-50",
   defaultDate: null,
   language: "en",
@@ -154,11 +141,11 @@ function slugify(text: string) {
   return text
     .toString()
     .toLowerCase()
-    .replace(/\s+/g, "-") // Replace spaces with -
-    .replace(/[^\w\-]+/g, "") // Remove all non-word chars
-    .replace(/\-\-+/g, "-") // Replace multiple - with single -
-    .replace(/^-+/, "") // Trim - from start of text
-    .replace(/-+$/, ""); // Trim - from end of text
+    .replace(/\s+/g, "-")
+    .replace(/[^\w\-]+/g, "")
+    .replace(/\-\-+/g, "-")
+    .replace(/^-+/, "")
+    .replace(/-+$/, "");
 }
 
 async function checkSlugAvailability(slug: string) {
@@ -171,30 +158,20 @@ async function checkSlugAvailability(slug: string) {
 
   if (error) {
     console.error("Error fetching slug:", error);
-    return {
-      isAvailable: false,
-      error: error.message,
-    };
+    return { isAvailable: false, error: error.message };
   }
 
-  // If data is null, no rows exist, hence the slug is available
-  return {
-    isAvailable: !data,
-    error: null,
-  };
+  return { isAvailable: !data, error: null };
 }
 
 const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null }) => {
+  const [banner, setBanner] = useState(formValues?.banner || null);
+  const [bannerError, setBannerError] = useState("");
   const [imageError, setImageError] = useState("");
-
   const { prev, next, jump, total, current, progress } = useSteps();
-
   const [formData, setFormData] = useState<OrganizationFormValues>(formValues);
   const router = useRouter();
-
-  // setphoto to allow string
   const [photo, setPhoto] = useState<string | null>(null);
-
 
   const {
     register,
@@ -216,7 +193,6 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
   const slugValue = watch("slug");
   useEffect(() => {
     if (formValues) {
-      // console.log(formValues);
       const dateEstablished = formValues.date_established
         ? new Date(formValues.date_established)
         : undefined;
@@ -235,12 +211,12 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
         city: formValues.address.city,
         stateProvince: formValues.address.stateProvince,
         country: formValues.address.country,
-
         facebookLink: formValues.socials.facebook,
         twitterLink: formValues.socials.twitter,
         linkedinLink: formValues.socials.linkedin,
       });
       setPhoto(formValues.photo);
+      setBanner(formValues.banner);
     }
   }, [formValues, reset]);
 
@@ -252,11 +228,8 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
         if (error) {
           toast.error("Error checking slug availability");
           console.error("Error fetching slug:", error);
-        } else if (!isAvailable && slugValue !== formValues.slug) {
-          setError("slug", {
-            type: "manual",
-            message: "Slug is already taken",
-          });
+        } else if (!isAvailable && slugValue !== formValues?.slug) {
+          setError("slug", { type: "manual", message: "Slug is already taken" });
         } else {
           clearErrors("slug");
         }
@@ -268,13 +241,10 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
 
   const handleNext = async () => {
     const currentStepId = `step${current}`;
-
     const fieldsInStep = document.querySelectorAll(`#${currentStepId} [name]`);
-
     const fieldNames = Array.from(fieldsInStep).map((field) =>
       field.getAttribute("name")
     );
-
     const result = await trigger(fieldNames);
 
     const { isAvailable, error } = await checkSlugAvailability(slugValue);
@@ -282,25 +252,15 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
     if (error) {
       toast.error("Error checking slug availability");
       console.error("Error fetching slug:", error);
-    } else if (!isAvailable) {
-      if (slugValue !== formValues.slug) {
-        setError("slug", {
-          type: "manual",
-          message: "Slug is already taken",
-        });
-      }
+    } else if (!isAvailable && slugValue !== formValues?.slug) {
+      setError("slug", { type: "manual", message: "Slug is already taken" });
     } else {
       clearErrors("slug");
     }
 
-    if (result && isAvailable) {
+    if (result && (isAvailable || slugValue === formValues?.slug)) {
       setFormData(getValues());
       next();
-    } else {
-      if (result && slugValue == formValues.slug) {
-        setFormData(getValues());
-        next();
-      }
     }
   };
 
@@ -308,6 +268,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
 
   const onSubmit: SubmitHandler<OrganizationFormValues> = async () => {
     setIsLoading(true);
+
     const formData = { ...getValues(), photo };
 
     if (formValues) {
@@ -328,31 +289,88 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
           progress: undefined,
           theme: "light",
           onClose: () => router.push("/dashboard"), // Redirect on toast close
+
+    const formData = { ...getValues(), photo, banner };
+
+    // Upload the image to the database if a photo is selected
+    if (photo) {
+      const file = new File([photo], "organization-photo.jpg", { type: "image/jpeg" });
+      const fileName = `orgphoto_${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      const { data: uploadResult, error } = await createClient()
+        .storage.from("organization-photos")
+        .upload(fileName, file, {
+          cacheControl: "3600",
+          upsert: false,
+
         });
 
-        reset();
-      } else if (error) {
-        toast.error(error.message || "An error occurred while adding the project");
+      if (uploadResult) {
+        formData.photo = uploadResult.Key; // Update the form data with the uploaded file URL or key
+      } else {
+        console.error("Error uploading image:", error);
+        toast.error("Error uploading image. Please try again.");
+        setIsLoading(false);
+        return;
       }
-    } else {
-      const { data, error } = await insertOrganization(formData);
+    }
 
-      if (data) {
-        toast.success("Organization was created successfully.", {
-          position: "bottom-right",
-          autoClose: 5000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-          theme: "light",
-        });
+    try {
+      if (formValues) {
+        const { data, error } = await updateOrganization(
+          formValues.organizationid,
+          formData
+        );
 
-        router.push("/dashboard");
-        reset();
-      } else if (error) {
-        toast.error(error.message || "An error occurred while adding the project");
+        if (data) {
+          toast.success("Organization was updated successfully.", {
+            position: "bottom-right",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+            theme: "light",
+            onClose: () => router.push("/dashboard"),
+          });
+
+          reset();
+        } else if (error) {
+          throw error;
+        }
+      } else {
+        const { data, error } = await insertOrganization(formData);
+
+        if (data) {
+          toast.success("Organization was created successfully.", {
+            position: "bottom-right",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+            theme: "light",
+          });
+
+          router.push("/dashboard");
+          reset();
+        } else if (error) {
+          throw error;
+        }
+      }
+    } catch (error) {
+      if (
+        error.message.includes(
+          'duplicate key value violates unique constraint "organizations_slug_key"'
+        )
+      ) {
+        setError("slug", { type: "manual", message: "Slug is already taken" });
+        toast.error("Slug is already taken. Please choose another.");
+      } else {
+        toast.error(
+          error.message || "An error occurred while processing the organization."
+        );
       }
     }
 
@@ -362,7 +380,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
   // Date Picker
   const [show, setShow] = useState<boolean>(false);
   const handleChange = (selectedDate: Date) => {
-    console.log(selectedDate);
+    // console.log("sendnewsletter", selectedDate);
   };
   const handleClose = (state: boolean) => {
     setShow(state);
@@ -370,12 +388,14 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+
     if (file) {
       // Check if the file is an image
       if (!file.type.startsWith("image/")) {
         setImageError("Please upload an image file");
         return;
       }
+
 
       // Set the loading state
       setIsLoading(true);
@@ -398,6 +418,40 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
 
       // Reset the loading state
       setIsLoading(false);
+
+      setImageError("");
+      setPhoto(URL.createObjectURL(file)); // Update the state with the preview URL
+    }
+  };
+
+  const handleBannerChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        setBannerError("Please upload an image file");
+        return;
+      }
+
+      setBannerError("");
+      const previewUrl = URL.createObjectURL(file);
+      setBanner(previewUrl); // Update the state with the preview URL
+
+      // Handle the upload to your server or storage service
+      const fileName = `banner_${Date.now()}`;
+      const { data: uploadResult, error } = await createClient()
+        .storage.from("organization-banners")
+        .upload(fileName, file);
+
+      if (uploadResult) {
+        setBanner(
+          `https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public/${uploadResult.fullPath}`
+        );
+      } else {
+        console.error("Error uploading banner:", error);
+        setBannerError("Error uploading banner. Please try again.");
+      }
+
     }
   };
 
@@ -415,9 +469,9 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
         pauseOnHover
         theme="dark"
       />
-      <form className="space-y-6" onSubmit={(e) => e.preventDefault()} method="POST">
+      <form className="space-y-6" onSubmit={handleSubmit(onSubmit)} method="POST">
         <Steps>
-          {/* Step 1*/}
+          {/* Step 1 */}
           <div id="step1" className="space-y-6">
             <p className="text-xl font-bold text-white">Organization Details</p>
             <div>
@@ -443,8 +497,8 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                   </div>
                 </div>
               </div>
-              {/* Display the error message */}
               <p className="text-center text-red-500">{imageError}</p>
+
               {/* New banner photo block */}
       {/* <div className="relative mt-4 h-20 w-full overflow-hidden rounded-md border-2 border-primary font-semibold">
         {bannerphoto ? (
@@ -478,9 +532,41 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
           />
         </div>
       </div> */}
+
+              <div className="relative mt-4 h-20 w-full overflow-hidden rounded-md border-2 border-primary font-semibold">
+                {banner ? (
+                  <img
+                    src={banner}
+                    alt="Banner Preview"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="h-full w-full bg-charleston"></div>
+                )}
+                <div className="absolute bottom-0 right-0 mb-2 mr-2 flex justify-end">
+                  <div className="flex items-center gap-1 rounded-lg bg-black bg-opacity-25 text-white hover:cursor-pointer hover:bg-gray-500 hover:bg-opacity-25">
+                    <CameraIcon className="h-6 w-6 pl-2" />
+                    <label
+                      htmlFor="banner-input"
+                      className="py-2 pr-2 hover:cursor-pointer"
+                    >
+                      Add Banner
+                    </label>
+                    <input
+                      id="banner-input"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleBannerChange}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+              </div>
+              {bannerError && <p className="text-red-500">{bannerError}</p>}
+
               <label
                 htmlFor="name"
-                className="block text-sm font-medium leading-6 text-white"
+                className="mt-8 block text-sm font-medium leading-6 text-white"
               >
                 Organization Name
               </label>
@@ -489,20 +575,18 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                   id="name"
                   type="text"
                   autoComplete="name"
-                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6 "
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                   {...register("name")}
                   onKeyUp={(e) => {
                     if (!formValues) {
                       const slugValue = slugify(e.target.value);
-                      setValue("slug", slugValue); // Automatically update the slug field
+                      setValue("slug", slugValue);
                     }
                   }}
-                  // defaultValue={formValues.name}
                 />
                 {errors.name && <p className="text-red-500">{errors.name.message}</p>}
               </div>
             </div>
-
             <div>
               <label
                 htmlFor="slug"
@@ -515,10 +599,9 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                   id="slug"
                   type="text"
                   autoComplete="slug"
-                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6 "
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                   {...register("slug")}
                   onKeyDown={(event) => {
-                    // Allow only alphanumeric, hyphen, and underscore
                     if (
                       !/[a-zA-Z0-9-_]/.test(event.key) &&
                       event.key !== "Backspace" &&
@@ -537,10 +620,9 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                 {errors.slug && <p className="text-red-500">{errors.slug.message}</p>}
               </div>
             </div>
-
             <div>
               <label
-                htmlFor="slug"
+                htmlFor="description"
                 className="block text-sm font-medium leading-6 text-white"
               >
                 Description
@@ -552,13 +634,11 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                   className="block max-h-[300px] min-h-[150px] w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                   {...register("description")}
                 />
-
                 {errors.description && (
                   <p className="text-red-500">{errors.description.message}</p>
                 )}
               </div>
             </div>
-
             <div>
               <label
                 htmlFor="organizationType"
@@ -584,7 +664,6 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                 <p className="text-red-500">{errors.organizationType.message}</p>
               )}
             </div>
-
             <div>
               <label
                 htmlFor="industry"
@@ -610,7 +689,6 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                 <p className="text-red-500">{errors.industry.message}</p>
               )}
             </div>
-
             <div>
               <label
                 htmlFor="organizationSize"
@@ -620,7 +698,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
               </label>
               <select
                 id="organizationSize"
-                className="mt-2 block w-full rounded-md border-0 bg-white/5 py-1.5  text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                className="mt-2 block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                 {...register("organizationSize")}
               >
                 <option disabled selected>
@@ -636,7 +714,6 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                 <p className="text-red-500">{errors.organizationSize.message}</p>
               )}
             </div>
-
             <div>
               <label
                 htmlFor="website"
@@ -656,7 +733,6 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                 )}
               </div>
             </div>
-
             <div>
               <label
                 htmlFor="location"
@@ -666,8 +742,8 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
               </label>
               <div className="mt-2">
                 <Controller
-                  name="dateEstablished" // The field name
-                  control={control} // Pass in the control prop
+                  name="dateEstablished"
+                  control={control}
                   rules={{ required: "Date Established is required" }}
                   render={({ field }) => (
                     <Datepicker
@@ -729,7 +805,6 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                 )}
               </div>
             </div>
-
             <div>
               <label
                 htmlFor="city"
@@ -747,7 +822,6 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                 {errors.city && <p className="text-red-500">{errors.city.message}</p>}
               </div>
             </div>
-
             <div>
               <label
                 htmlFor="stateProvince"
@@ -779,7 +853,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
               <div className="mt-2">
                 <select
                   id="country"
-                  className="mt-2 block w-full rounded-md border-0 bg-white/5 py-1.5  text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                  className="mt-2 block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                   {...register("country")}
                 >
                   <option disabled selected>
@@ -797,8 +871,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
               </div>
             </div>
           </div>
-
-          {/* Step 3  */}
+          {/* Step 3 */}
           <div id="step3" className="space-y-6 text-white">
             <p className="text-white">Socials</p>
             <div>
@@ -861,7 +934,6 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
               </div>
             </div>
           </div>
-
           {/* Step 4 */}
           <div id="step4" className="space-y-6 text-white">
             <p className="text-xl font-bold">Confirmation and Submission</p>
@@ -869,7 +941,6 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
             {formData && (
               <div className="space-y-4">
                 {Object.entries(formData).map(([key, value]) => {
-                  // Example of custom formatting: if the value is a Date, format it
                   const displayValue =
                     value instanceof Date ? value.toLocaleDateString() : value;
                   return (
@@ -889,14 +960,9 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
             )}
           </div>
         </Steps>
-
-        {/* <Navigation onSubmit={onSubmit} trigger={trigger} isValid={isValid} />
-         */}
-
-        {/* Navidation */}
         <div className="navigation mb-4 flex justify-between">
           <button
-            className={`flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${current == 1 ? "opacity-0" : ""} `}
+            className={`flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${current == 1 ? "opacity-0" : ""}`}
             onClick={prev}
             disabled={current <= 0}
             type="button"

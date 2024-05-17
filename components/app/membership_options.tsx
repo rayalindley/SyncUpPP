@@ -1,5 +1,5 @@
 "use client";
-import { deleteOrganization } from "@/lib/organization";
+import { deleteMembership } from "@/lib/memberships";
 import { Dialog, Menu, Transition } from "@headlessui/react";
 import { ChevronDownIcon, TrashIcon, UserIcon } from "@heroicons/react/20/solid";
 import { EnvelopeIcon, XMarkIcon } from "@heroicons/react/24/outline";
@@ -24,15 +24,17 @@ function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
 }
 
-export default function OrganizationOptions({
-  selectedOrg,
+export default function MembershipOptions({
+  selectedTier,
   open,
   setOpen,
+  TierMembers
 }: {
-  selectedOrg: any;
+  selectedTier: any;
   open: boolean;
   setOpen: any;
-}) {
+  TierMembers: any;
+}) { console.log(selectedTier.membershipid)
   const deleteBtn = () => {
     Swal.fire({
       title: "Are you sure?",
@@ -44,12 +46,14 @@ export default function OrganizationOptions({
       reverseButtons: true,
     }).then(async (result) => {
       if (result.isConfirmed) {
-        const response = await deleteOrganization(selectedOrg.organizationid);
+        const response = await deleteMembership(selectedTier.membershipid);
+
+        console.log(selectedTier.membershipid)
 
         if (!response.error) {
           Swal.fire({
             title: "Deleted!",
-            text: "The organization was successfully deleted.",
+            text: "The membership was successfully deleted.",
             icon: "success",
           }).then(() => {
             location.reload();
@@ -100,7 +104,7 @@ export default function OrganizationOptions({
                       className="mr-3 h-5 w-5 text-light group-hover:text-light"
                       aria-hidden="true"
                     />
-                    View Organization Info
+                    View Membership Info
                   </a>
                 )}
               </Menu.Item>
@@ -111,13 +115,13 @@ export default function OrganizationOptions({
                       active ? "bg-raisinblack text-light" : "text-light",
                       "group flex items-center px-4 py-2 text-sm"
                     )}
-                    href={`/organization/edit/${selectedOrg.slug}`}
+                    href={`/dashboard/memberships/edit/${selectedTier.membershipid}`}
                   >
                     <FaRegEdit
                       className="mr-3 h-5 w-5 text-light group-hover:text-light"
                       aria-hidden="true"
                     />
-                    Edit Organization
+                    Edit Membership
                   </Link>
                 )}
               </Menu.Item>
@@ -178,7 +182,7 @@ export default function OrganizationOptions({
                       <div className="px-4 sm:px-6">
                         <div className="flex items-start justify-between">
                           <Dialog.Title className="text-base font-semibold leading-6 text-light">
-                            View Organization Info
+                            View Membership Info
                           </Dialog.Title>
                           <div className="ml-3 flex h-7 items-center">
                             <button
@@ -194,106 +198,50 @@ export default function OrganizationOptions({
                         </div>
                       </div>
                       <div className="relative mt-6 flex-1 flex-wrap overflow-hidden px-4 text-light sm:px-6">
-                        {/* <JSONPretty data={selectedOrg} theme={jsonTheme}></JSONPretty> */}
+                        {/* <JSONPretty data={selectedTier} theme={jsonTheme}></JSONPretty> */}
                         <table className="w-full table-auto ">
                           <tbody>
                             <tr>
-                              <td className="p-2 font-bold text-gray-400">Name:</td>
-                              <td className="p-2">{selectedOrg.name}</td>
+                              <td className="p-2 font-bold text-gray-400">Organization:</td>
+                              <td className="p-2">{selectedTier.orgname}</td>
                             </tr>
                             <tr>
                               <td className="p-2 font-bold text-gray-400">
-                                Description:
+                                Membership:
                               </td>
-                              <td className="p-2">{selectedOrg.description}</td>
+                              <td className="p-2">{selectedTier.membershipname}</td>
                             </tr>
                             <tr>
-                              <td className="p-2 font-bold text-gray-400">Admin:</td>
-                              <td className="p-2">{selectedOrg.adminid}</td>
+                              <td className="p-2 font-bold text-gray-400">Description:</td>
+                              <td className="p-2">{selectedTier.description}</td>
                             </tr>
                             <tr>
                               <td className="p-2 font-bold text-gray-400">
-                                Organization Type:
+                                Registration Fee:
                               </td>
-                              <td className="p-2">{selectedOrg.organization_type}</td>
+                              <td className="p-2">{selectedTier.registrationfee}</td>
                             </tr>
                             <tr>
-                              <td className="p-2 font-bold text-gray-400">Industry:</td>
-                              <td className="p-2">{selectedOrg.industry}</td>
+                              <td className="p-2 font-bold text-gray-400 align-top">Features:</td>
+                              <td className="p-2">
+                              <ul className="list-disc list-inside">
+                                {selectedTier.features ? (
+                                    selectedTier.features.map((feature, index) => (
+                                      <li key={index}>{feature}</li>
+                                    ))
+                                  ) : (
+                                    <a>N/A</a>
+                                  )}
+                                  </ul>
+                              </td>
                             </tr>
                             <tr>
                               <td className="p-2 font-bold text-gray-400">Size:</td>
-                              <td className="p-2">{selectedOrg.organization_size}</td>
-                            </tr>
-
-                            <tr>
-                              <td className="p-2 font-bold text-gray-400">Website:</td>
                               <td className="p-2">
-                                {selectedOrg.website ? (
-                                  <Link
-                                    href={selectedOrg.website}
-                                    target="_blank"
-                                    className="text-primary hover:opacity-80"
-                                  >
-                                    {selectedOrg.website}
-                                  </Link>
-                                ) : (
-                                  "Not specified"
-                                )}
-                              </td>
-                            </tr>
-                            <tr>
-                              <td className="p-2 font-bold text-gray-400">
-                                Date Established:
-                              </td>
-                              <td className="p-2">
-                                {selectedOrg.date_established
-                                  ? new Date(selectedOrg.date_established).toLocaleString(
-                                      "en-US",
-                                      {
-                                        weekday: "long", // "Monday"
-                                        year: "numeric", // "2024"
-                                        month: "long", // "April"
-                                        day: "numeric", // "16"
-                                      }
-                                    )
-                                  : "Not specified"}
-                              </td>
-                            </tr>
-                            <tr>
-                              <td className="p-2 font-bold text-gray-400">Address:</td>
-                              <td className="p-2">
-                                {Object.entries(selectedOrg.address).map(
-                                  ([key, value], index, array) => (
-                                    <span key={key}>
-                                      {value}
-                                      {index < array.length - 1 && value != ""
-                                        ? ", "
-                                        : ""}
-                                    </span>
-                                  )
-                                )}
-                              </td>
-                            </tr>
-                            <tr>
-                              <td className="p-2 font-bold text-gray-400">Socials:</td>
-                              <td className="p-2">
-                                {Object.entries(selectedOrg.socials).map(
-                                  ([key, value], index, array) => (
-                                    <span key={key}>
-                                      {value != "" && (
-                                        <Link href={value} className="hover:text-primary">
-                                          {value}
-                                        </Link>
-                                      )}
-                                      {index < array.length - 1 && value != "" ? (
-                                        <br />
-                                      ) : (
-                                        ""
-                                      )}
-                                    </span>
-                                  )
-                                )}
+                                {selectedTier.membership_count === 0
+                                  ? '0 members'
+                                  : `${selectedTier.membership_count} 
+                                  ${selectedTier.membership_count === 1 ? 'member' : 'members'}`}
                               </td>
                             </tr>
                           </tbody>
@@ -301,31 +249,53 @@ export default function OrganizationOptions({
 
                         <div className="mt-5 flex gap-2">
                           <Link
-                            className="font-regular text-foreground relative inline-flex h-[26px] cursor-pointer items-center justify-center space-x-2 rounded-md border-[1px] border-zinc-600 bg-zinc-800 px-3 py-1 text-center text-xs hover:bg-opacity-60"
-                            href={`/${selectedOrg.slug}`}
+                            className="group flex items-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-light text-white shadow-sm hover:bg-opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                            href={`/${selectedTier.slug}`}
                           >
                             Visit Page
                           </Link>
                           <Link
-                            className="font-regular text-foreground relative inline-flex h-[26px] cursor-pointer items-center justify-center space-x-2 rounded-md border-[1px] border-zinc-600 bg-zinc-800 px-3 py-1 text-center text-xs hover:bg-opacity-60"
-                            href={`/${selectedOrg.slug}/settings`}
-                          >
-                            View Settings
-                          </Link>
-                          <Link
-                            className="font-regular text-foreground relative inline-flex h-[26px] cursor-pointer items-center justify-center space-x-2 rounded-md border-[1px] border-zinc-600 bg-zinc-800 px-3 py-1 text-center text-xs hover:bg-opacity-60"
-                            href={`/organization/edit/${selectedOrg.slug}`}
+                            className="group flex items-center rounded-md bg-blue-500 px-4 py-2 text-sm font-semibold text-light text-white shadow-sm hover:bg-opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                            href={`/dashboard/memberships/edit/${selectedTier.membershipid}`}
                           >
                             Edit
                           </Link>
 
                           <button
-                            className="font-regular text-foreground relative inline-flex h-[26px] cursor-pointer items-center justify-center space-x-2 rounded-md border-[1px] border-red-300 bg-red-500 px-3 py-1 text-center text-xs hover:bg-opacity-60"
+                            className="group flex items-center rounded-md bg-rose-500 px-4 py-2 text-sm font-semibold text-light text-white shadow-sm hover:bg-opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                             onClick={deleteBtn}
                           >
                             Delete
                           </button>
                         </div>
+                        <div className="mt-5">
+                          {TierMembers.length > 0 ? (
+                            <>
+                              <h2 className="text-lg font-semibold text-light mb-2">Members:</h2>
+                              <table className="mt-5 min-w-full divide-y divide-[#525252]">
+                                <thead className="bg-charleston ">
+                                  <tr>
+                                    <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-light sm:pl-6">First Name</th>
+                                    <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-light sm:pl-6">Last Name</th>
+                                    <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-light sm:pl-6">Join Date</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {TierMembers.map((member: any, index: number) => (
+                                    <tr key={index}>
+                                      <td className="py-3.5 pl-4 pr-3 text-left text-sm text-light sm:pl-6">{member.first_name}</td>
+                                      <td className="py-3.5 pl-4 pr-3 text-left text-sm text-light sm:pl-6">{member.last_name}</td>
+                                      <td className="py-3.5 pl-4 pr-3 text-left text-sm text-light sm:pl-6">{member.joindate}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </>
+                          ) : (
+                            <p className="text-light">There are no members.</p>
+                          )}
+                        </div>
+
                       </div>
                     </div>
                   </Dialog.Panel>

@@ -12,9 +12,21 @@ import { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import useSidebarStore from "@/store/useSidebarStore";
+import {
+  fetchNotifications,
+  markAllAsRead,
+  markNotificationAsRead,
+} from "@/lib/notifications";
+import {
+  CalendarIcon,
+  ExclamationCircleIcon,
+  UserIcon,
+  CurrencyDollarIcon,
+  HandRaisedIcon, 
+} from "@heroicons/react/24/outline";
 
 function classNames(...classes: any[]) {
-  return classes.filter(Boolean).join(" ");
+  return classes?.filter(Boolean).join(" ");
 }
 
 function Header({ user }: { user: User }) {
@@ -24,6 +36,87 @@ function Header({ user }: { user: User }) {
   }));
 
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+  // notifications block starts
+
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const loadNotifications = async () => {
+      const { data, unreadCount } = await fetchNotifications(user.id);
+      //console.log("Notifications:", data);
+      setNotifications(data);
+      setUnreadCount(unreadCount);
+    };
+
+    loadNotifications();
+  }, [user]);
+
+  const handleMarkAllAsRead = async () => {
+    const { success } = await markAllAsRead(user.id);
+    if (success) {
+      // Set all notifications as read
+      const updatedNotifications = notifications.map((notification) => ({
+        ...notification,
+        isread: true,
+      }));
+      setNotifications(updatedNotifications);
+      setUnreadCount(0);
+    }
+  };
+
+  //types to be added: welcome, payment
+
+  // This function returns the appropriate link for a notification.
+  function getNotificationLink(notification) {
+    switch (notification.type) {
+      case "event":
+        return "/" + `#`;
+      case "membership":
+        return "/" + `${notification.path}`;
+      case "welcome":
+        return "/" + `${notification.path}`;
+      case "payment":
+        return "/" + `#`;
+      default:
+        return "/" + `#`; // Default link if no specific type is matched
+    }
+  }
+
+  // This function returns a Heroicon component based on the notification type.
+  function getNotificationIcon(notification) {
+    switch (notification.type) {
+      case "event":
+        return <CalendarIcon className="h-6 w-6 text-light" />;
+      case "membership":
+        return <UserIcon className="h-6 w-6 text-light" />;
+      case "welcome":
+        return <HandRaisedIcon className="h-6 w-6 text-light" />; // Replace with the correct icon for welcome
+      case "payment":
+        return <CurrencyDollarIcon className="h-6 w-6 text-light" />; // Replace with the correct icon for payment
+      default:
+        return <ExclamationCircleIcon className="h-6 w-6 text-light" />; // Default icon if no specific type is matched
+    }
+  }
+
+  const handleNotificationClick = async (notificationId) => {
+    // Call the API to mark the notification as read
+    const { success } = await markNotificationAsRead(notificationId);
+    if (success) {
+      // Update the state to reflect the change
+      const updatedNotifications = notifications.map((notification) =>
+        notification.notificationid === notificationId
+          ? { ...notification, isread: true }
+          : notification
+      );
+      setNotifications(updatedNotifications);
+      // Decrement the unread count
+      setUnreadCount((prevUnreadCount) => prevUnreadCount - 1);
+    }
+  };
+
+  // notifications block ends
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -65,13 +158,71 @@ function Header({ user }: { user: User }) {
           />
         </form>
         <div className="flex items-center gap-x-4 lg:gap-x-6">
-          <button
-            type="button"
-            className="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500"
-          >
+          <Menu as="div" className="relative">
+          <Menu.Button className="p-3 text-gray-400 hover:text-gray-500">
             <span className="sr-only">View notifications</span>
             <BellIcon className="h-6 w-6" aria-hidden="true" />
-          </button>
+            {unreadCount > 0 && (
+              <span className="absolute bottom-0 left-0 inline-flex h-4 w-4 -translate-y-7 translate-x-7 transform rounded-full bg-[#32805c] text-xs font-semibold text-white justify-center items-center">
+                {unreadCount}
+              </span>
+            )}
+          </Menu.Button>
+            <Transition
+              as={Fragment}
+              enter="transition ease-out duration-200"
+              enterFrom="transform opacity-0 scale-95"
+              enterTo="transform opacity-100 scale-100"
+              leave="transition ease-in duration-150"
+              leaveFrom="transform opacity-100 scale-100"
+              leaveTo="transform opacity-0 scale-95"
+            >
+              {/* notifications menu */}
+
+              <Menu.Items className="absolute right-0 z-10 mt-3 w-96 origin-top-right overflow-hidden rounded-md bg-charleston shadow-lg ring-1 ring-light ring-opacity-5 focus:outline-none">
+                <div className="max-h-[32rem] overflow-y-auto">
+                  <div className="px-4 py-3">
+                    <p className="mb-2 text-sm font-medium text-light">Notifications</p>
+                    {notifications.length > 0 ? (
+                      notifications.map((notification) => (
+                        <a
+                          key={notification.notificationid}
+                          href={getNotificationLink(notification)} // This should now return something like '/linkhere'
+                          className={`my-1 flex items-center gap-x-2 rounded-lg px-4 py-2 hover:bg-[#525252] ${notification.isread ? "bg-gray" : "bg-[#232323]"}`}
+                          onClick={(e) => {
+                            handleNotificationClick(notification.notificationid);
+                          }}
+                        >
+                          <span className="text-sm leading-tight">
+                            {getNotificationIcon(notification)}
+                          </span>
+                          <span
+                            className="flex-1 text-xs leading-tight text-light"
+                            dangerouslySetInnerHTML={{ __html: notification.message }}
+                          />
+                          <span className="text-xs text-light">
+                            {/* Timestamp here */}
+                          </span>
+                        </a>
+                      ))
+                    ) : (
+                      <p className="text-xs text-light">No new notifications.</p>
+                    )}
+                  </div>
+                </div>
+                <div className="border-t border-[#525252]">
+                  <button
+                    className="my-3 block w-full text-center text-sm text-[#32805c] hover:text-[#285a47]"
+                    onClick={handleMarkAllAsRead}
+                  >
+                    Mark all as read
+                  </button>
+                </div>
+              </Menu.Items>
+
+              {/* notifications block ends */}
+            </Transition>
+          </Menu>
 
           {/* Separator */}
           <div
