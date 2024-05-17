@@ -44,7 +44,7 @@ const renderTable = (items, toggleSelection, setItems, formatDate, formatKey) =>
   return (
     <>
       <input
-        className="bg-charleston p-2.5 my-2.5 border border-gray-300 rounded-full"
+        className="my-2.5 rounded-full border border-gray-300 bg-charleston p-2.5"
         type="text"
         placeholder="Search..."
         value={searchTerm}
@@ -56,7 +56,7 @@ const renderTable = (items, toggleSelection, setItems, formatDate, formatKey) =>
             <tr>
               {items.length > 0 && (items[0].name || items[0].title) && (
                 <>
-                  <th className="p-3 border-b border-[#404040]">
+                  <th className="border-b border-[#404040] p-3">
                     {toggleSelection !== null && (
                       <input
                         type="checkbox"
@@ -67,7 +67,7 @@ const renderTable = (items, toggleSelection, setItems, formatDate, formatKey) =>
                   </th>
                   {items[0].name && (
                     <th
-                      className="p-3 border-b border-[#404040] cursor-pointer"
+                      className="cursor-pointer border-b border-[#404040] p-3"
                       onClick={() => handleSort("name")}
                     >
                       Name
@@ -75,7 +75,7 @@ const renderTable = (items, toggleSelection, setItems, formatDate, formatKey) =>
                   )}
                   {items[0].title && (
                     <th
-                      className="p-3 border-b border-[#404040] cursor-pointer"
+                      className="cursor-pointer border-b border-[#404040] p-3"
                       onClick={() => handleSort("title")}
                     >
                       Title
@@ -92,7 +92,7 @@ const renderTable = (items, toggleSelection, setItems, formatDate, formatKey) =>
                       !key.toLowerCase().includes("id") && (
                         <th
                           key={key}
-                          className="p-3 border-b border-[#404040] cursor-pointer"
+                          className="cursor-pointer border-b border-[#404040] p-3"
                           onClick={() => handleSort(key)}
                         >
                           {formattedKey}
@@ -106,9 +106,12 @@ const renderTable = (items, toggleSelection, setItems, formatDate, formatKey) =>
           </thead>
           <tbody className="bg-[#404040]">
             {filteredItems.map((item, index) => (
-              <tr key={index} className={`${index % 2 === 0 ? 'bg-[#505050]' : 'bg-[#404040]'}`}>
+              <tr
+                key={index}
+                className={`${index % 2 === 0 ? "bg-[#505050]" : "bg-[#404040]"}`}
+              >
                 {toggleSelection !== null && (
-                  <td className="p-3 border-b border-[#404040]">
+                  <td className="border-b border-[#404040] p-3">
                     <input
                       type="checkbox"
                       checked={item.selected}
@@ -117,14 +120,10 @@ const renderTable = (items, toggleSelection, setItems, formatDate, formatKey) =>
                   </td>
                 )}
                 {item.name && (
-                  <td className="p-3 border-b border-[#404040]">
-                    {item.name}
-                  </td>
+                  <td className="border-b border-[#404040] p-3">{item.name}</td>
                 )}
                 {item.title && (
-                  <td className="p-3 border-b border-[#404040]">
-                    {item.title}
-                  </td>
+                  <td className="border-b border-[#404040] p-3">{item.title}</td>
                 )}
                 {Object.entries(item).map(([key, value]) => {
                   if (
@@ -147,7 +146,7 @@ const renderTable = (items, toggleSelection, setItems, formatDate, formatKey) =>
                       formattedKey && (
                         <td
                           key={`${item.id}-${key}`}
-                          className="p-3 border-b border-[#404040]"
+                          className="border-b border-[#404040] p-3"
                         >
                           {displayValue}
                         </td>
@@ -163,6 +162,6 @@ const renderTable = (items, toggleSelection, setItems, formatDate, formatKey) =>
       </div>
     </>
   );
-              }  
+};
 
 export default renderTable;

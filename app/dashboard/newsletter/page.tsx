@@ -19,6 +19,7 @@ import renderTable from "@/components/renderTable";
 import { z } from "zod";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { getCombinedUserDataById } from "@/lib/userActions";
 
 // Define the schema for newsletter form data
 const newsletterSchema = z.object({
@@ -45,6 +46,7 @@ export default function NewsletterPage() {
   // New state hooks for form errors
   const [formErrors, setFormErrors] = useState({});
   const [fileError, setFileError] = useState("");
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -82,6 +84,24 @@ export default function NewsletterPage() {
     fetchEmails();
   }, []);
 
+  const transformUserData = (userDataArray) => {
+    return userDataArray.map(({ data }) => ({
+      id: data.id,
+      email: data.email,
+      role: data.role,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+      first_name: data.first_name,
+      last_name: data.last_name,
+      gender: data.gender,
+      dateofbirth: data.dateofbirth,
+      description: data.description,
+      company: data.company,
+      website: data.website,
+      updatedat: data.updatedat,
+    }));
+  };
+
   const handleSendNewsletter = async () => {
     const selectedOrgIds = orgs
       .filter((org) => org.selected)
@@ -101,9 +121,17 @@ export default function NewsletterPage() {
       selectedEventIds.map((eventId) => fetchMembersByEvent(eventId))
     );
 
+    // Fetch members for each selected userId
+    const selectedUsers = await Promise.all(
+      selectedUserIds.map((userId) => getCombinedUserDataById(userId))
+    );
+
+    // Transform the fetched user data
+    const transformedUsers = transformUserData(selectedUsers);
+
     // Flatten and deduplicate the user IDs
     const allUsers = [
-      ...new Set([...orgMembers.flat(), ...eventMembers.flat(), ...selectedUserIds]),
+      ...new Set([...orgMembers.flat(), ...eventMembers.flat(), ...transformedUsers]),
     ];
 
     // Clear the 'from' error if an organization is selected
@@ -131,8 +159,10 @@ export default function NewsletterPage() {
       if (allUsers.length === 0) {
         toast.error("Please select at least one recipient");
       }
+      ////////////////////
+      setSending(true);
       // Send the newsletter
-      const data = await sendNewsletter(
+      const { successCount, failures } = await sendNewsletter(
         subject,
         editorState,
         allUsers,
@@ -140,11 +170,17 @@ export default function NewsletterPage() {
         selectedFromOrgName
       );
 
-      if (data.length > 0) {
-        toast.success("Newsletter sent successfully!");
-      } else {
-        toast.error("Sorry. Since our domain is not yet verified, we can only send emails to the testing email iammkb2002@gmail.com.");
+      if (successCount > 0) {
+        toast.success(`Newsletter sent successfully to ${successCount} recipients!`);
       }
+
+      if (failures.length > 0) {
+        failures.forEach((failure) => {
+          toast.error(`Failed to send to ${failure.email}: ${failure.reason}`);
+        });
+      }
+
+      ///////////////////////////
     } catch (error) {
       if (error instanceof z.ZodError) {
         setFormErrors(error.flatten().fieldErrors);
@@ -329,7 +365,7 @@ export default function NewsletterPage() {
           onClick={handleSendNewsletter}
           className="mt-6 cursor-pointer rounded bg-primary px-6 py-3 text-lg text-white"
         >
-          Send Newsletter
+          {sending ? "Sending..." : "Send Newsletter"}
         </button>
         <div className="h-24"></div>
         <h2 className="border-b-2 border-primary pb-4 text-2xl">Sent Emails</h2>
