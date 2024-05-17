@@ -1,15 +1,9 @@
 "use client";
 import { countRegisteredUsers } from "@/lib/events";
 import { createClient, getUser } from "@/lib/supabase/client";
-import { Dialog, Transition } from "@headlessui/react";
-import {
-  BanknotesIcon,
-  ClockIcon,
-  MapPinIcon,
-  UserGroupIcon,
-  XMarkIcon,
-} from "@heroicons/react/24/outline";
-import { Fragment, useEffect, useState } from "react";
+import { UserGroupIcon } from "@heroicons/react/24/outline";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Swal from "sweetalert2";
@@ -24,19 +18,13 @@ const EventsCard = ({ event }) => {
     location,
     eventdatetime,
     capacity,
+    eventslug,
   } = event;
   const hasImageUrl = !!imageUrl; // Check if imageUrl is provided
   const truncatedDescription =
     description.length > 250 ? `${description.slice(0, 245)}...` : description;
 
-  // State for managing Dialog visibility
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-
-  // Function to open the Dialog
-  const openDialog = () => setIsDialogOpen(true);
-
-  // Function to close the Dialog
-  const closeDialog = () => setIsDialogOpen(false);
+  const router = useRouter(); // Next.js router for navigation
 
   const formattedDateTime = (utcDateString) => {
     // Create a Date object from the UTC date string
@@ -141,6 +129,24 @@ const EventsCard = ({ event }) => {
       setRegisteredCount(count);
     }
   };
+
+  // Format date and time
+  const formatDate = (dateString) => {
+    const options = {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    };
+    return new Date(dateString).toLocaleDateString("en-US", options);
+  };
+
+  // Format registration fee
+  const formatFee = (fee) => {
+    return fee && fee > 0 ? `Php ${parseFloat(fee).toFixed(2)}` : "Free";
+  };
+
   // Determine the display text for the number of attendees
   const attendeesDisplay =
     event.capacity > 0
@@ -152,128 +158,42 @@ const EventsCard = ({ event }) => {
     fetchRegisteredCount();
   }, []);
 
+  const handleCardClick = () => {
+    router.push(`/e/${event.eventslug}`);
+  };
+
   return (
-    <>
-      <div className="mb-4 flex max-h-96 flex-col overflow-hidden rounded-lg bg-raisinblack shadow-lg lg:w-96">
-        <div className="h-40 overflow-hidden">
-          {hasImageUrl ? (
-            <img
-              src={`${supabaseStorageBaseUrl}/${imageUrl}`}
-              alt={title}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="h-full w-full bg-white" />
-          )}
+    <div
+      onClick={handleCardClick}
+      className="mb-4 flex max-h-96 cursor-pointer flex-col overflow-hidden rounded-md bg-eerieblack  transition duration-100 hover:scale-[1.01] hover:bg-raisinblack
+      lg:w-72"
+    >
+      <div className="h-40 overflow-hidden">
+        {imageUrl ? (
+          <img
+            src={`${supabaseStorageBaseUrl}/${imageUrl}`}
+            alt={title}
+            className="h-full w-full rounded-lg object-cover"
+          />
+        ) : (
+          <div className="h-full w-full bg-white" />
+        )}
+      </div>
+      <div className="flex flex-grow flex-col justify-between p-4">
+        <div>
+          <h3 className="text-lg font-semibold text-light">{title}</h3>
+          <p className="mt-2 text-sm text-light">{formatDate(eventdatetime)}</p>
+          <p className="text-sm text-light">{locationContent}</p>
+          <p className="mt-2 text-sm font-medium text-light">
+            {formatFee(registrationfee)}
+          </p>
         </div>
-        <div className="flex flex-grow flex-col justify-between p-4">
-          <div>
-            <h3 className="text-lg font-semibold text-light">{title}</h3>
-            <p className="mt-2 text-justify text-sm text-light">{truncatedDescription}</p>
-          </div>
-          <div className="mt-3 flex items-center text-light">
-            {/* <div className="mr-2 rounded-lg bg-charleston px-2 py-1 text-sm font-semibold text-white ring-1 ring-primary">
-              {registrationTagContent}
-            </div>
-            <div className="rounded-lg bg-charleston px-2 py-1 text-sm font-semibold text-white ring-1 ring-primary">
-              {locationTagContent}
-            </div> */}
-            <UserGroupIcon className="mr-2 h-5 w-5 text-primary" aria-hidden="true" />
-            {attendeesDisplay}
-            <button
-              className="ml-auto rounded bg-primary px-4 py-2 font-semibold text-white hover:bg-primarydark focus:outline-none"
-              onClick={openDialog}
-            >
-              View
-            </button>
-          </div>
+        <div className="mt-3 flex items-center text-sm text-light">
+          <UserGroupIcon className="mr-2 h-5 w-5 text-primary" aria-hidden="true" />
+          <span>{registeredCount} attendees</span>
         </div>
       </div>
-      <Transition.Root show={isDialogOpen} as={Fragment}>
-        <Dialog as="div" className="relative z-10" onClose={closeDialog}>
-          <Transition.Child
-            as={Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-          >
-            <div className="fixed inset-0 bg-charleston bg-opacity-75 backdrop-blur-md transition-opacity" />
-          </Transition.Child>
-
-          <div className="fixed inset-0 z-10 overflow-y-auto">
-            <div className="flex min-h-full items-center justify-center p-4 text-center sm:items-center sm:p-0">
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                enterTo="opacity-100 translate-y-0 sm:scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-              >
-                <Dialog.Panel className="relative w-full max-w-4xl transform overflow-hidden rounded-lg bg-eerieblack p-8 text-left shadow-xl transition-all">
-                  <div className="m-4 flex h-full flex-col justify-between">
-                    <div>
-                      <div className="flex justify-center">
-                        {hasImageUrl ? (
-                          <img
-                            src={`${supabaseStorageBaseUrl}/${imageUrl}`}
-                            alt={title}
-                            className="max-h-80 w-full rounded-lg object-cover object-center"
-                          />
-                        ) : (
-                          <div className="h-80 w-full bg-white" />
-                        )}
-                      </div>
-                      <h2 className="mb-4 mt-4 text-2xl font-bold text-light">{title}</h2>
-                      <div className="flex items-center text-sm text-light">
-                        <ClockIcon
-                          className="mr-2 h-5 w-5 text-primary"
-                          aria-hidden="true"
-                        />
-                        {eventDateTimePST}
-                        <MapPinIcon
-                          className="ml-4 mr-2 h-5 w-5 text-primary"
-                          aria-hidden="true"
-                        />
-                        {locationContent}
-                      </div>
-                      <div className="mt-2 flex items-center text-sm text-light">
-                        <UserGroupIcon
-                          className="mr-2 h-5 w-5 text-primary"
-                          aria-hidden="true"
-                        />
-                        {attendeesDisplay}
-                        <BanknotesIcon
-                          className="ml-14 mr-2 h-5 w-5 text-primary"
-                          aria-hidden="true"
-                        />
-                        {registrationTagContent}
-                      </div>
-                      <p className="mt-4 text-justify text-light">{description}</p>
-                    </div>
-                    <div className="mt-4 flex justify-center">
-                      <button
-                        className="mt-2 rounded bg-primary px-4 py-2 text-white hover:bg-primarydark"
-                        onClick={handleEventRegistration}
-                      >
-                        Join Event
-                      </button>
-                    </div>
-                    <button className="absolute right-0 top-0 m-4" onClick={closeDialog}>
-                      <XMarkIcon className="h-6 w-6 text-light" />
-                    </button>
-                  </div>
-                </Dialog.Panel>
-              </Transition.Child>
-            </div>
-          </div>
-        </Dialog>
-      </Transition.Root>
-    </>
+    </div>
   );
 };
 

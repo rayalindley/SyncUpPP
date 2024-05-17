@@ -14,7 +14,9 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Fragment, useEffect, useState } from "react";
+
 import { EnvelopeIcon } from "@heroicons/react/24/outline"; // Import the icon
+
 
 function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
@@ -28,9 +30,11 @@ const navigation = [
     href: "/dashboard/organizations",
     icon: UsersIcon,
   },
+  { name: "Events", href: "/dashboard/events", icon: CalendarIcon },
+  { name: "Calendar", href: "#", icon: CalendarIcon },
+  { name: "Memberships", href: "/dashboard/memberships", icon: CalendarIcon },
   { name: "Newsletter", href: "/dashboard/newsletter", icon: EnvelopeIcon }, // Add the newsletter option
   { name: "Projects", href: "#", icon: FolderIcon },
-  { name: "Memberships", href: "/dashboard/memberships", icon: CalendarIcon },
   { name: "Documents", href: "#", icon: DocumentDuplicateIcon },
   { name: "Reports", href: "#", icon: ChartPieIcon },
 ];
