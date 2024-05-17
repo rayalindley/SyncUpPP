@@ -1,8 +1,4 @@
-"use client";
-import { useState, useEffect } from "react";
-import { useUser } from "@/context/UserContext";
-import { createClient } from "@/lib/supabase/client";
-import Header from "@/components/Header";
+
 "use client";
 import { useState, useEffect } from "react";
 import { useUser } from "@/context/UserContext";
