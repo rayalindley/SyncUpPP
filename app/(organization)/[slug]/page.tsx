@@ -5,6 +5,7 @@ import SocialIcons from "@/components/organization/social_icons";
 import { fetchEvents } from "@/lib/events";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { InboxIcon, UserGroupIcon } from "@heroicons/react/24/outline";
+import { getMemberships } from "@/lib/memberships";
 import { ToastContainer } from "react-toastify";
 
 const orgdata = [
@@ -58,12 +59,18 @@ export default async function OrganizationUserView({
     console.error("Error fetching events:", eventsError);
     return; // Optionally, handle the error in your UI
   }
+
+  const memberships = await getMemberships(org.organizationid)
+
+
   // Assuming `org` is an object retrieved from your database that contains the social media links object
   const socials = org.socials || {}; // Use default empty object if `org.socials` is undefined or null
 
   const facebookLink = socials.facebook; // Access the Facebook link
   const twitterLink = socials.twitter; // Access the Twitter link
   const linkedinLink = socials.linkedin; // Access the LinkedIn link
+
+
 
   return (
     <div>
@@ -104,7 +111,7 @@ export default async function OrganizationUserView({
             <div className="mt-4 px-4 text-center text-sm text-light sm:px-8 lg:px-10">
               {org.description}
             </div>
-            <TabsComponent organizationid={org.organizationid} events={events} />
+            <TabsComponent organizationid={org.organizationid} memberships={memberships} events={events}/>
           </div>
         </div>
       </main>

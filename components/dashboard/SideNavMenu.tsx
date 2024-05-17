@@ -28,6 +28,8 @@ const navigation = [
   },
   { name: "Events", href: "/dashboard/events", icon: CalendarIcon },
   { name: "Calendar", href: "#", icon: CalendarIcon },
+  { name: "Projects", href: "#", icon: FolderIcon },
+  { name: "Memberships", href: "/dashboard/memberships", icon: CalendarIcon },
   { name: "Documents", href: "#", icon: DocumentDuplicateIcon },
   { name: "Reports", href: "#", icon: ChartPieIcon },
 ];
