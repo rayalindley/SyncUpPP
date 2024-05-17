@@ -349,7 +349,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
   // Date Picker
   const [show, setShow] = useState<boolean>(false);
   const handleChange = (selectedDate: Date) => {
-    console.log(selectedDate);
+    // console.log("sendnewsletter", selectedDate);
   };
   const handleClose = (state: boolean) => {
     setShow(state);
