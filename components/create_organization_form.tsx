@@ -1,4 +1,6 @@
+
 import { PlusIcon, CameraIcon } from "@heroicons/react/24/outline";
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
@@ -14,6 +16,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 import countries from "@/lib/countries";
+
+import { CameraIcon } from "@heroicons/react/24/outline"; // Import the CameraIcon for the banner upload button
 
 // Define constants for types of organizations, industries, and sizes
 const ORGANIZATION_TYPES = [
@@ -66,11 +70,13 @@ interface OrganizationFormValues {
   city: string;
   stateProvince: string;
   country: string;
-  facebookLink?: string;
-  twitterLink?: string;
-  linkedinLink?: string;
-  photo?: string;
-  banner?: string;
+  
+  facebookLink?: string; // Optional
+  twitterLink?: string; // Optional
+  linkedinLink?: string; // Optional
+  photo?: string; // Optional field for the organization photo
+  banner?: string; // Optional field for the organization banner
+
 }
 
 const OrganizationSchema = z.object({
@@ -165,6 +171,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
   const [formData, setFormData] = useState<OrganizationFormValues>(formValues);
   const router = useRouter();
   const [photo, setPhoto] = useState<string | null>(null);
+
   const {
     register,
     handleSubmit,
@@ -260,6 +267,28 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
 
   const onSubmit: SubmitHandler<OrganizationFormValues> = async () => {
     setIsLoading(true);
+
+    const formData = { ...getValues(), photo };
+
+    if (formValues) {
+      // then, it's an update.
+      const { data, error } = await updateOrganization(
+        formValues.organizationid,
+        formData
+      );
+
+      if (data) {
+        toast.success("Organization was updated successfully.", {
+          position: "bottom-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+          onClose: () => router.push("/dashboard"), // Redirect on toast close
+
     const formData = { ...getValues(), photo, banner };
 
     // Upload the image to the database if a photo is selected
@@ -271,6 +300,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
         .upload(fileName, file, {
           cacheControl: "3600",
           upsert: false,
+
         });
 
       if (uploadResult) {
@@ -365,6 +395,28 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
         return;
       }
 
+      // Set the loading state
+      setIsLoading(true);
+
+      // Generate a unique file name
+      const fileName = `${formData.title}_${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      const { data: uploadResult, error } = await createClient()
+        .storage.from("event-images")
+        .upload(fileName, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (uploadResult) {
+        setPhoto(uploadResult.fullPath);
+      } else {
+        console.error("Error uploading image:", error);
+        toast.error("Error uploading image. Please try again.");
+      }
+
+      // Reset the loading state
+      setIsLoading(false);
+
       setImageError("");
       setPhoto(URL.createObjectURL(file)); // Update the state with the preview URL
     }
@@ -443,6 +495,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                 </div>
               </div>
               <p className="text-center text-red-500">{imageError}</p>
+
               <div className="relative mt-4 h-20 w-full overflow-hidden rounded-md border-2 border-primary font-semibold">
                 {banner ? (
                   <img
@@ -473,6 +526,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                 </div>
               </div>
               {bannerError && <p className="text-red-500">{bannerError}</p>}
+
               <label
                 htmlFor="name"
                 className="mt-8 block text-sm font-medium leading-6 text-white"

@@ -2,6 +2,7 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import TabsComponent from "@/components/organization/organization_view_tabs";
 import SocialIcons from "@/components/organization/social_icons";
+import { fetchEvents } from "@/lib/events";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { InboxIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 import { getMemberships } from "@/lib/memberships";
@@ -44,7 +45,23 @@ export default async function OrganizationUserView({
     .eq("slug", slug)
     .single();
 
+  // Fetch events data
+  const currentPage = 1; // Set the current page
+  const eventsPerPage = 6; // Set the number of events per page
+  const { data: events, error: eventsError } = await fetchEvents(
+    org.organizationid,
+    currentPage,
+    eventsPerPage
+  );
+
+  // Handle any errors from fetching events
+  if (eventsError) {
+    console.error("Error fetching events:", eventsError);
+    return; // Optionally, handle the error in your UI
+  }
+
   const memberships = await getMemberships(org.organizationid)
+
 
   // Assuming `org` is an object retrieved from your database that contains the social media links object
   const socials = org.socials || {}; // Use default empty object if `org.socials` is undefined or null
@@ -53,12 +70,6 @@ export default async function OrganizationUserView({
   const twitterLink = socials.twitter; // Access the Twitter link
   const linkedinLink = socials.linkedin; // Access the LinkedIn link
 
-  // Now you can use these links in your code as needed
-  console.log("Facebook Link:", facebookLink);
-  console.log("Twitter Link:", twitterLink);
-  console.log("LinkedIn Link:", linkedinLink);
-  console.log("Org ID:", org.organizationid)
-  console.log("Memberships: ", memberships)
 
 
   return (
@@ -100,7 +111,7 @@ export default async function OrganizationUserView({
             <div className="mt-4 px-4 text-center text-sm text-light sm:px-8 lg:px-10">
               {org.description}
             </div>
-            <TabsComponent organizationid={org.organizationid} memberships = {memberships}/>
+            <TabsComponent organizationid={org.organizationid} memberships={memberships} events={events}/>
           </div>
         </div>
       </main>
