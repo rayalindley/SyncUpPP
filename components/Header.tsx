@@ -1,10 +1,10 @@
 "use client";
 import { signOut } from "@/lib/auth";
 import { UserProfile } from "@/lib/types";
+import { getUserProfileById } from "@/lib/userActions";
 import { Dialog, Menu, Transition } from "@headlessui/react";
 import { Bars3Icon, ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { User } from "@supabase/supabase-js";
-import Image from "next/image";
 import Link from "next/link";
 import { Fragment, useEffect, useState } from "react";
 
@@ -24,14 +24,14 @@ export default function Header({ user = null }: { user: User | null }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
-  // useEffect(() => {
-  //   const fetchUserProfile = async () => {
-  //     const response = await getUserProfileById(user?.id);
-  //     setUserProfile(response.data as UserProfile);
-  //   };
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      const response = await getUserProfileById(user?.id);
+      setUserProfile(response.data as UserProfile);
+    };
 
-  //   fetchUserProfile();
-  // }, [user]);
+    fetchUserProfile();
+  }, [user]);
   const handleNavClick = (href: string) => {
     const landingPageUrl = "/"; // Update this with your landing page URL
     const targetSection = href.substring(1); // Remove the '#' from the href
@@ -101,7 +101,7 @@ export default function Header({ user = null }: { user: User | null }) {
                     className="h-10 w-10 rounded-full bg-gray-50"
                     src={
                       userProfile?.profilepicture
-                        ? userProfile.profilepicture
+                        ? `https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public/${userProfile.profilepicture}`
                         : "/Portrait_Placeholder.png"
                     }
                     alt="Profile Picture"

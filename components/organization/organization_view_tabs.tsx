@@ -5,10 +5,15 @@ import OrganizationEventsComponent from "./organization_events";
 import OrganizationMembershipsComponent from "./organization_membership";
 import OrganizationPostsComponent from "./organization_posts";
 
-import { Membership, MembershipsProps } from "@/lib/types";
-import { useParams } from "next/navigation";
-
-const TabsComponent = ({ organizationid, memberships, events }) => {
+const TabsComponent = ({
+  organizationid,
+  memberships,
+  events,
+}: {
+  organizationid: any;
+  memberships: any;
+  events: any;
+}) => {
   const [activeTab, setActiveTab] = useState("posts");
 
   const handleTabChange = (tab: any) => {
@@ -26,34 +31,43 @@ const TabsComponent = ({ organizationid, memberships, events }) => {
 
   return (
     <div>
-      <div className="mt-10 flex ">
-        <a
-          className={`mr-4 cursor-pointer text-light ${
-            activeTab === "posts" ? "font-semibold text-primary" : ""
-          }`}
-          onClick={() => handleTabChange("posts")}
-        >
-          Posts
-        </a>
-        <a
-          className={`mr-4 cursor-pointer text-light ${
-            activeTab === "membership" ? "font-semibold text-primary" : ""
-          }`}
-          onClick={() => handleTabChange("membership")}
-        >
-          Membership
-        </a>
-        <a
-          className={`cursor-pointer text-light ${
-            activeTab === "events" ? "font-semibold text-primary" : ""
-          }`}
-          onClick={() => handleTabChange("events")}
-        >
-          Events
-        </a>
+      <div>
+        <div className="border-b border-gray-700">
+          <nav className="-mb-px flex space-x-8 px-4 sm:px-6" aria-label="Tabs">
+            <button
+              onClick={() => handleTabChange("posts")}
+              className={`whitespace-nowrap border-b-2 px-1 py-4 text-base font-medium ${
+                activeTab === "posts"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-light hover:border-gray-300 hover:text-gray-300"
+              }`}
+            >
+              Posts
+            </button>
+            <button
+              onClick={() => handleTabChange("membership")}
+              className={`whitespace-nowrap border-b-2 px-1 py-4 text-base font-medium ${
+                activeTab === "membership"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-light hover:border-gray-300 hover:text-gray-300"
+              }`}
+            >
+              Membership
+            </button>
+            <button
+              onClick={() => handleTabChange("events")}
+              className={`whitespace-nowrap border-b-2 px-1 py-4 text-base font-medium ${
+                activeTab === "events"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-light hover:border-gray-300 hover:text-gray-300"
+              }`}
+            >
+              Events
+            </button>
+          </nav>
+        </div>
+        <div className="mt-8">{tabContent}</div>
       </div>
-      <hr className="mt-2 border-t border-[#525252]" />
-      <div className="mt-8">{tabContent}</div>
     </div>
   );
 };

@@ -6,12 +6,11 @@ import { Fragment, useState } from "react";
 
 import { UserProfile } from "@/lib/types";
 import { getUserProfileById } from "@/lib/userActions";
+import useSidebarStore from "@/store/useSidebarStore";
 import { Bars3Icon, BellIcon } from "@heroicons/react/24/outline";
 import { type User } from "@supabase/supabase-js";
-import { useEffect } from "react";
-import Image from "next/image";
 import Link from "next/link";
-import useSidebarStore from "@/store/useSidebarStore";
+import { useEffect } from "react";
 
 function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
@@ -87,7 +86,7 @@ function Header({ user }: { user: User }) {
                 className="h-8 w-8 rounded-full bg-gray-50"
                 src={
                   userProfile?.profilepicture
-                    ? userProfile.profilepicture
+                    ? `https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public/${userProfile.profilepicture}`
                     : "/Portrait_Placeholder.png"
                 }
                 alt="Profile Picture"
