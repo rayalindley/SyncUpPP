@@ -7,6 +7,7 @@ import { InboxIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 import { getMemberships } from "@/lib/memberships";
 import { ToastContainer } from "react-toastify";
 
+
 const orgdata = [
   {
     name: "Lorem Ipsum",
@@ -54,11 +55,12 @@ export default async function OrganizationUserView({
   const linkedinLink = socials.linkedin; // Access the LinkedIn link
 
   // Now you can use these links in your code as needed
-  console.log("Facebook Link:", facebookLink);
-  console.log("Twitter Link:", twitterLink);
-  console.log("LinkedIn Link:", linkedinLink);
-  console.log("Org ID:", org.organizationid)
-  console.log("Memberships: ", memberships)
+  // console.log("Facebook Link:", facebookLink);
+  // console.log("Twitter Link:", twitterLink);
+  // console.log("LinkedIn Link:", linkedinLink);
+  // console.log("Org ID:", org.organizationid)
+  // console.log("Memberships: ", memberships)
+  console.log(user?.id)
 
 
   return (
@@ -100,7 +102,7 @@ export default async function OrganizationUserView({
             <div className="mt-4 px-4 text-center text-sm text-light sm:px-8 lg:px-10">
               {org.description}
             </div>
-            <TabsComponent organizationid={org.organizationid} memberships = {memberships}/>
+            <TabsComponent organizationid={org.organizationid} memberships = {memberships} id={user?.id}/>
           </div>
         </div>
       </main>

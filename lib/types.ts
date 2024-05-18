@@ -43,4 +43,5 @@ export interface Membership {
 
 export interface MembershipsProps {
   memberships: Membership[];
+  userid: string;
 }
