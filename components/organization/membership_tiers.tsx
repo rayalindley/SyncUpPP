@@ -85,7 +85,7 @@ const MembershipTiers: React.FC<MembershipsProps> = ({ memberships, userid }) =>
         } else {
           toast.success("Congratulations! You've successfully purchased the membership.");
           console.log("Data inserted successfully: ", data);
-          setUserMemberships([...userMemberships, membershipId]);
+          setUserMemberships(prevUserMemberships => [...prevUserMemberships, membershipId]);
         }
       } catch (error) {
         console.error("Error: ", error);
