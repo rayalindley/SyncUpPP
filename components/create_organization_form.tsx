@@ -1,4 +1,4 @@
-import { PlusIcon, CameraIcon } from "@heroicons/react/24/outline";
+import { CameraIcon } from "@heroicons/react/24/outline";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
@@ -165,6 +165,15 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
   const [formData, setFormData] = useState<OrganizationFormValues>(formValues);
   const router = useRouter();
   const [photo, setPhoto] = useState<string | null>(null);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+
+  const SUPABASE_URL = "https://wnvzuxgxaygkrqzvwjjd.supabase.co"; // Replace with your actual Supabase URL
+  const SUPABASE_BUCKET = "public"; // Replace with your actual bucket name
+
+  const getImageUrl = (path) => {
+    return `${SUPABASE_URL}/storage/v1/object/${SUPABASE_BUCKET}/${path}`;
+  };
   const {
     register,
     handleSubmit,
@@ -211,6 +220,16 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
       setBanner(formValues.banner);
     }
   }, [formValues, reset]);
+  useEffect(() => {
+    if (formValues?.photo) {
+      const photoUrl = getImageUrl(formValues.photo); // formValues.photo should be something like 'organization-photos/roooobooot_1715960210143-6wkzfn'
+      setPhoto(photoUrl);
+    }
+    if (formValues?.banner) {
+      const bannerUrl = getImageUrl(formValues.banner); // formValues.banner should be something like 'organization-banners/roooobooot_banner_1715960211482-e96lv5'
+      setBanner(bannerUrl);
+    }
+  }, [formValues]);
 
   useEffect(() => {
     if (slugValue) {
@@ -239,13 +258,17 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
     );
     const result = await trigger(fieldNames);
 
+    const slugValue = getValues("slug");
     const { isAvailable, error } = await checkSlugAvailability(slugValue);
 
     if (error) {
       toast.error("Error checking slug availability");
       console.error("Error fetching slug:", error);
+      return;
     } else if (!isAvailable && slugValue !== formValues?.slug) {
       setError("slug", { type: "manual", message: "Slug is already taken" });
+      toast.error("Slug is already taken. Please choose another.");
+      return;
     } else {
       clearErrors("slug");
     }
@@ -260,30 +283,71 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
 
   const onSubmit: SubmitHandler<OrganizationFormValues> = async () => {
     setIsLoading(true);
-    const formData = { ...getValues(), photo, banner };
 
-    // Upload the image to the database if a photo is selected
-    if (photo) {
-      const file = new File([photo], "organization-photo.jpg", { type: "image/jpeg" });
-      const fileName = `orgphoto_${Date.now()}-${Math.random().toString(36).substring(7)}`;
-      const { data: uploadResult, error } = await createClient()
-        .storage.from("organization-photos")
-        .upload(fileName, file, {
-          cacheControl: "3600",
-          upsert: false,
-        });
+    const formData = { ...getValues() };
+    const supabase = createClient();
 
-      if (uploadResult) {
-        formData.photo = uploadResult.Key; // Update the form data with the uploaded file URL or key
-      } else {
-        console.error("Error uploading image:", error);
-        toast.error("Error uploading image. Please try again.");
+    try {
+      // Ensure the slug is available before proceeding
+      const { isAvailable, error: slugError } = await checkSlugAvailability(
+        formData.slug
+      );
+
+      if (slugError) {
+        toast.error("Error checking slug availability");
+        console.error("Error fetching slug:", slugError);
         setIsLoading(false);
         return;
       }
-    }
 
-    try {
+      if (!isAvailable && formData.slug !== formValues?.slug) {
+        setError("slug", { type: "manual", message: "Slug is already taken" });
+        toast.error("Slug is already taken. Please choose another.");
+        setIsLoading(false);
+        return;
+      }
+
+      // Upload the photo if a file is selected
+      if (photoFile) {
+        const photoFileName = `${slugify(formData.name)}_${Date.now()}-${Math.random().toString(36).substring(7)}`;
+        const { data: photoUploadResult, error: photoError } = await supabase.storage
+          .from("organization-photos")
+          .upload(photoFileName, photoFile, {
+            cacheControl: "3600",
+            upsert: false,
+          });
+
+        if (photoUploadResult) {
+          formData.photo = photoUploadResult.fullPath;
+        } else {
+          console.error("Error uploading image:", photoError);
+          toast.error("Error uploading image. Please try again.");
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // Upload the banner if a file is selected
+      if (bannerFile) {
+        const bannerFileName = `${slugify(formData.name)}_banner_${Date.now()}-${Math.random().toString(36).substring(7)}`;
+        const { data: bannerUploadResult, error: bannerError } = await supabase.storage
+          .from("organization-banners")
+          .upload(bannerFileName, bannerFile, {
+            cacheControl: "3600",
+            upsert: false,
+          });
+
+        if (bannerUploadResult) {
+          formData.banner = bannerUploadResult.fullPath;
+        } else {
+          console.error("Error uploading banner:", bannerError);
+          toast.error("Error uploading banner. Please try again.");
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // Proceed with inserting or updating the organization
       if (formValues) {
         const { data, error } = await updateOrganization(
           formValues.organizationid,
@@ -302,7 +366,6 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
             theme: "light",
             onClose: () => router.push("/dashboard"),
           });
-
           reset();
         } else if (error) {
           throw error;
@@ -321,7 +384,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
             progress: undefined,
             theme: "light",
           });
-
+          console.log(formData);
           router.push("/dashboard");
           reset();
         } else if (error) {
@@ -355,7 +418,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
     setShow(state);
   };
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
     if (file) {
@@ -366,11 +429,12 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
       }
 
       setImageError("");
+      setPhotoFile(file);
       setPhoto(URL.createObjectURL(file)); // Update the state with the preview URL
     }
   };
 
-  const handleBannerChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBannerChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
     if (file) {
@@ -380,23 +444,8 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
       }
 
       setBannerError("");
-      const previewUrl = URL.createObjectURL(file);
-      setBanner(previewUrl); // Update the state with the preview URL
-
-      // Handle the upload to your server or storage service
-      const fileName = `banner_${Date.now()}`;
-      const { data: uploadResult, error } = await createClient()
-        .storage.from("organization-banners")
-        .upload(fileName, file);
-
-      if (uploadResult) {
-        setBanner(
-          `https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public/${uploadResult.fullPath}`
-        );
-      } else {
-        console.error("Error uploading banner:", error);
-        setBannerError("Error uploading banner. Please try again.");
-      }
+      setBannerFile(file);
+      setBanner(URL.createObjectURL(file)); // Update the state with the preview URL
     }
   };
 
@@ -420,59 +469,64 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
           <div id="step1" className="space-y-6">
             <p className="text-xl font-bold text-white">Organization Details</p>
             <div>
-              <div className="flex items-center justify-center">
-                <div className="relative">
-                  <img
-                    src={photo ? photo : "https://via.placeholder.com/150"}
-                    alt="Preview"
-                    className="block h-28 w-28 rounded-full border-4 border-primary"
-                    style={{ objectFit: "cover" }}
-                  />
-                  <div className="absolute bottom-0 right-0 mb-1 mr-1">
-                    <label htmlFor="file-input" className="">
-                      <PlusIcon className="mr-2 inline-block h-6 w-6 cursor-pointer rounded-full border-2 border-primary bg-white text-primarydark" />
-                    </label>
-                    <input
-                      id="file-input"
-                      accept="image/*"
-                      type="file"
-                      onChange={handleFileChange}
-                      className="hidden"
+              <div className="mb-16">
+                <div className="relative mt-4 h-48 w-full rounded-lg font-semibold">
+                  {banner ? (
+                    <img
+                      src={banner}
+                      alt="Banner Preview"
+                      className="h-full w-full rounded-lg object-cover "
                     />
+                  ) : (
+                    <div className="h-full w-full rounded-lg bg-charleston"></div>
+                  )}
+                  <div className="absolute bottom-0 right-0 mb-2 mr-2 flex justify-end">
+                    <div className="flex items-center gap-2 rounded-lg bg-eerieblack bg-opacity-25 text-white hover:cursor-pointer hover:bg-gray-500 hover:bg-opacity-25">
+                      <CameraIcon className="h-6 w-6 pl-2" />
+                      <label
+                        htmlFor="banner-input"
+                        className="py-2 pr-2 text-sm font-medium hover:cursor-pointer"
+                      >
+                        Add Banner
+                      </label>
+                      <input
+                        id="banner-input"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleBannerChange}
+                        className="hidden"
+                      />
+                    </div>
+                  </div>
+                  <div className="absolute bottom-0 right-2/3 -translate-x-1/2 translate-y-1/2 transform">
+                    <div className="relative">
+                      {photo ? (
+                        <img
+                          src={photo}
+                          alt="Photo Preview"
+                          className="block h-24 w-24 rounded-lg border-4 border-eerieblack object-cover"
+                        />
+                      ) : (
+                        <div className="block h-24 w-24 rounded-lg border-4 border-eerieblack bg-charleston"></div>
+                      )}
+                      <div className="absolute bottom-0 left-2/3 mb-2">
+                        <label htmlFor="file-input" className="">
+                          <CameraIcon className="mr-2 inline-block h-5 w-5 cursor-pointer text-white hover:bg-opacity-25 hover:text-gray-500" />
+                        </label>
+                        <input
+                          id="file-input"
+                          accept="image/*"
+                          type="file"
+                          onChange={handleFileChange}
+                          className="hidden"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
+                {bannerError && <p className="text-red-500">{bannerError}</p>}
               </div>
-              <p className="text-center text-red-500">{imageError}</p>
-              <div className="relative mt-4 h-20 w-full overflow-hidden rounded-md border-2 border-primary font-semibold">
-                {banner ? (
-                  <img
-                    src={banner}
-                    alt="Banner Preview"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="h-full w-full bg-charleston"></div>
-                )}
-                <div className="absolute bottom-0 right-0 mb-2 mr-2 flex justify-end">
-                  <div className="flex items-center gap-1 rounded-lg bg-black bg-opacity-25 text-white hover:cursor-pointer hover:bg-gray-500 hover:bg-opacity-25">
-                    <CameraIcon className="h-6 w-6 pl-2" />
-                    <label
-                      htmlFor="banner-input"
-                      className="py-2 pr-2 hover:cursor-pointer"
-                    >
-                      Add Banner
-                    </label>
-                    <input
-                      id="banner-input"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleBannerChange}
-                      className="hidden"
-                    />
-                  </div>
-                </div>
-              </div>
-              {bannerError && <p className="text-red-500">{bannerError}</p>}
+
               <label
                 htmlFor="name"
                 className="mt-8 block text-sm font-medium leading-6 text-white"
@@ -882,7 +936,6 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
             <button
               className="flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               type="submit"
-              onClick={onSubmit}
             >
               {isLoading ? "Submit..." : "Submit"}
             </button>
