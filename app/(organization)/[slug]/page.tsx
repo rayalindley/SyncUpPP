@@ -3,9 +3,9 @@ import Header from "@/components/Header";
 import TabsComponent from "@/components/organization/organization_view_tabs";
 import SocialIcons from "@/components/organization/social_icons";
 import { fetchEvents } from "@/lib/events";
+import { getMemberships } from "@/lib/memberships";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { InboxIcon, UserGroupIcon } from "@heroicons/react/24/outline";
-import { getMemberships } from "@/lib/memberships";
 import { ToastContainer } from "react-toastify";
 
 const orgdata = [
@@ -69,6 +69,9 @@ export default async function OrganizationUserView({
   const twitterLink = socials.twitter; // Access the Twitter link
   const linkedinLink = socials.linkedin; // Access the LinkedIn link
 
+  const supabaseStorageBaseUrl =
+    "https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public";
+
   return (
     <div>
       <Header user={user} />
@@ -76,14 +79,24 @@ export default async function OrganizationUserView({
       <main className="isolate flex justify-center sm:px-4 md:px-6 lg:px-80">
         <div className="relative">
           {/* White Rectangle */}
-          <div className="relative rounded-2xl bg-white p-8 shadow-lg sm:p-16 lg:p-40">
-            {/* Circle */}
-          </div>
+          {/* <div className="relative rounded-2xl bg-white p-8 shadow-lg sm:p-16 lg:p-40"></div> */}
+          <img
+            src={
+              `${supabaseStorageBaseUrl}/${org?.banner}` ||
+              "https://via.placeholder.com/150"
+            }
+            alt={`${org?.name} logo`}
+            className="h-80 w-full rounded-lg"
+            style={{ objectFit: "cover" }}
+          />
           <div className="absolute w-full -translate-y-1/2 transform px-5">
             <div className="flex w-full transform items-end justify-between">
-              <div className="block h-32 w-32 rounded-xl border-4 border-primary sm:h-32 sm:w-32">
+              <div className="block h-36 w-36 rounded-xl border-4 border-primary sm:h-32 sm:w-32">
                 <img
-                  src={org?.photo || "https://via.placeholder.com/150"}
+                  src={
+                    `${supabaseStorageBaseUrl}/${org?.photo}` ||
+                    "https://via.placeholder.com/150"
+                  }
                   alt={`${org?.name} logo`}
                   className="h-full w-full rounded-lg"
                   style={{ objectFit: "cover" }}
