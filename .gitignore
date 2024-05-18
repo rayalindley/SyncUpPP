@@ -41,3 +41,5 @@ next-env.d.ts
 # vscode
 .hintrc
 
+# database dump
+schema_dump.sql
