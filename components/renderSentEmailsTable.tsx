@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 const renderTable = (items, toggleSelection, setItems, formatDate, formatKey) => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -7,7 +8,38 @@ const renderTable = (items, toggleSelection, setItems, formatDate, formatKey) =>
   const [sortDirection, setSortDirection] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectAll, setSelectAll] = useState(false);
+  const [selectedRow, setSelectedRow] = useState(null);
+  const [showDetailPane, setShowDetailPane] = useState(false);
+  const [opacity, setOpacity] = useState(0);
+
+  useEffect(() => {
+    if (showDetailPane) {
+      setTimeout(() => setOpacity(1), 0);
+    } else {
+      setOpacity(0);
+    }
+  }, [showDetailPane]);
+
+  console.log(items);
+
+  const checkIfExcludedKey = (key) => {
+    const excludedKeys = ["id"];
+    return excludedKeys.includes(key) ? null : key;
+  };
+
   const itemsPerPage = 10;
+
+  const handleRowClick = (item) => {
+    if (setSelectedRow) {
+      setSelectedRow(item);
+      setShowDetailPane(true); // Show the detail pane when a row is clicked
+    }
+  };
+
+  // Function to close the detail pane
+  const closeDetailPane = () => {
+    setShowDetailPane(false);
+  };
 
   useEffect(() => {
     if (toggleSelection) {
@@ -50,8 +82,9 @@ const renderTable = (items, toggleSelection, setItems, formatDate, formatKey) =>
       return a[column] > b[column] ? 1 : -1;
     });
     if (direction === "desc") sortedItems.reverse();
-    setItems(sortedItems.slice(0, 10));
+    setItems(sortedItems); // Sort the entire dataset
   };
+  
 
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
@@ -152,8 +185,8 @@ const renderTable = (items, toggleSelection, setItems, formatDate, formatKey) =>
               )}
               {items.length > 0 &&
                 Object.keys(items[0]).map((key) => {
-                  if (key !== "name" && key !== "title") {
-                    const formattedKey = formatKey(key);
+                  if (key !== "name" && key !== "title" && key !== "body") {
+                    const formattedKey = checkIfExcludedKey(formatKey(key));
                     return (
                       formattedKey &&
                       !key.toLowerCase().includes("id") && (
@@ -179,7 +212,8 @@ const renderTable = (items, toggleSelection, setItems, formatDate, formatKey) =>
             {filteredItems.map((item, index) => (
               <tr
                 key={index}
-                className={`${index % 2 === 0 ? "bg-[#505050]" : "bg-[#404040]"}`}
+                className={`${index % 2 === 0 ? "bg-[#505050]" : "bg-[#404040]"} ${setSelectedRow ? "cursor-pointer" : ""}`}
+                onClick={() => handleRowClick(item)}
               >
                 {toggleSelection !== null && (
                   <td className="border-b border-[#404040] p-3">
@@ -208,9 +242,10 @@ const renderTable = (items, toggleSelection, setItems, formatDate, formatKey) =>
                   if (
                     key !== "name" &&
                     key !== "title" &&
+                    key !== "body" &&
                     !key.toLowerCase().includes("id")
                   ) {
-                    const formattedKey = formatKey(key);
+                    const formattedKey = checkIfExcludedKey(formatKey(key));
                     let displayValue = value || "";
                     if (key.toLowerCase().includes("date") && value) {
                       displayValue = formatDate(value);
@@ -244,6 +279,73 @@ const renderTable = (items, toggleSelection, setItems, formatDate, formatKey) =>
       {items.length > 10 && (
         <div className="my-4 flex justify-center">{renderPageNumbers()}</div>
       )}
+
+      {showDetailPane &&
+        selectedRow &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-10 flex items-center justify-center"
+            style={{
+              backgroundColor: "rgba(0, 0, 0, 0.5)",
+              transition: "opacity 0.5s",
+              opacity: opacity,
+            }}
+          >
+            <div
+              className="w-full max-w-sm space-y-4 overflow-auto rounded-lg bg-gray-900 p-4 shadow-lg md:max-w-md lg:max-w-lg xl:max-w-xl 2xl:max-w-2xl"
+              style={{ color: "white", maxHeight: "90vh" }}
+            >
+              <h3 className="text-2xl font-semibold text-white">Details</h3>
+              <table className="mt-4 space-y-4" style={{ width: "100%" }}>
+                {Object.entries(selectedRow)
+                  .filter(([key]) => key !== "id")
+                  .map(([key, value]) => (
+                    <tr key={key}>
+                      <td
+                        style={{
+                          wordWrap: "break-word",
+                          width: "30%",
+                          paddingBottom: "10px",
+                          paddingTop: "10px",
+                        }}
+                      >
+                        <strong>{formatKey(key)}</strong>
+                      </td>
+                      <td
+                        style={{
+                          wordWrap: "break-word",
+                          width: "70%",
+                          overflowWrap: "break-word",
+                          wordBreak: "break-word",
+                          paddingBottom: "10px",
+                          paddingTop: "10px",
+                        }}
+                      >
+                        {key === "body" ? (
+                          <div dangerouslySetInnerHTML={{ __html: String(value) }} />
+                        ) : (
+                          <div>{String(value)}</div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+              </table>
+              <button
+                onClick={closeDetailPane}
+                style={{
+                  color: "white",
+                  backgroundColor: "gray",
+                  borderRadius: "5px",
+                  marginTop: "10px",
+                  padding: "10px 20px",
+                }}
+              >
+                Back
+              </button>
+            </div>
+          </div>,
+          document.body // Assuming your app is mounted on document.body
+        )}
     </>
   );
 };

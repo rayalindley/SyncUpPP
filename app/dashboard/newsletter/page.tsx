@@ -20,6 +20,7 @@ import { z } from "zod";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { getCombinedUserDataById } from "@/lib/userActions";
+import renderSentEmailsTable from "@/components/renderSentEmailsTable";
 
 // Define the schema for newsletter form data
 const newsletterSchema = z.object({
@@ -163,11 +164,14 @@ export default function NewsletterPage() {
         attachments,
         selectedFromOrgName
       );
-
+    
       if (successCount > 0) {
         toast.success(`Newsletter sent successfully to ${successCount} recipients!`);
+        // Fetch the sent emails again after the newsletter has been sent
+        const emailsData = await fetchSentEmailsByAdmin(user.id);
+        setSentEmails(emailsData);
       }
-
+    
       if (failures.length > 0) {
         failures.forEach((failure) => {
           toast.error(`Failed to send to ${failure.email}: ${failure.reason}`);
@@ -230,7 +234,6 @@ export default function NewsletterPage() {
     if (key === "dateofbirth") return "Date of Birth";
     if (key === "eventdatetime") return "Event Date";
     const excludedKeys = [
-      "body",
       "updatedat",
       "selected",
       "slug",
@@ -366,7 +369,7 @@ export default function NewsletterPage() {
         <div className="h-24"></div>
         <h2 className="border-b-2 border-primary pb-4 text-2xl">Sent Emails</h2>
         <div className="overflow-x-auto rounded-lg bg-[#2a2a2a] p-6">
-          {renderTable(sentEmails, null, setSentEmails, formatDate, formatKey)}
+          {renderSentEmailsTable(sentEmails, null, setSentEmails, formatDate, formatKey)}
         </div>
       </div>
     </>
