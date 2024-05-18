@@ -24,6 +24,7 @@ import {
   CurrencyDollarIcon,
   HandRaisedIcon,
 } from "@heroicons/react/24/outline";
+import { createClient } from "@/lib/supabase/client";
 
 function classNames(...classes: any[]) {
   return classes?.filter(Boolean).join(" ");
@@ -41,25 +42,53 @@ function Header({ user }: { user: User }) {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
+    const supabase = createClient();
     const loadNotifications = async () => {
       const { data, unreadCount } = await fetchNotifications(user.id);
 
-      setNotifications(data);
+      // Sort notifications by unread status first, then alphabetically
+      const sortedData = data.sort((a, b) => {
+        if (a.isread === b.isread) {
+          return a.message.localeCompare(b.message);
+        }
+        return a.isread ? 1 : -1;
+      });
+
+      setNotifications(sortedData);
       setUnreadCount(unreadCount);
     };
 
     loadNotifications();
+
+    const channels = supabase
+      .channel("notifications")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+          filter: "userid=eq." + user.id,
+        },
+        (payload) => {
+          loadNotifications();
+        }
+      )
+      .subscribe();
   }, [user]);
 
   const handleMarkAllAsRead = async () => {
+    const updatedNotifications = notifications.map((notification) => ({
+      ...notification,
+      isread: true,
+    }));
+    setNotifications(updatedNotifications);
+    setUnreadCount(0);
+
     const { success } = await markAllAsRead(user.id);
-    if (success) {
-      const updatedNotifications = notifications.map((notification) => ({
-        ...notification,
-        isread: true,
-      }));
-      setNotifications(updatedNotifications);
-      setUnreadCount(0);
+    if (!success) {
+      // If marking as read in the database fails, revert the local changes
+      loadNotifications();
     }
   };
 
@@ -97,16 +126,18 @@ function Header({ user }: { user: User }) {
   }
 
   const handleNotificationClick = async (notificationId) => {
-    const { success } = await markNotificationAsRead(notificationId);
-    if (success) {
-      const updatedNotifications = notifications.map((notification) =>
-        notification.notificationid === notificationId
-          ? { ...notification, isread: true }
-          : notification
-      );
-      setNotifications(updatedNotifications);
+    const updatedNotifications = notifications.map((notification) =>
+      notification.notificationid === notificationId
+        ? { ...notification, isread: true }
+        : notification
+    );
+    setNotifications(updatedNotifications);
+    setUnreadCount((prevUnreadCount) => prevUnreadCount - 1);
 
-      setUnreadCount((prevUnreadCount) => prevUnreadCount - 1);
+    const { success } = await markNotificationAsRead(notificationId);
+    if (!success) {
+      // If marking as read in the database fails, revert the local changes
+      loadNotifications();
     }
   };
 
@@ -169,8 +200,15 @@ function Header({ user }: { user: User }) {
               leaveFrom="transform opacity-100 scale-100"
               leaveTo="transform opacity-0 scale-95"
             >
-              <Menu.Items className="absolute right-0 z-10 w-96 origin-top-right overflow-hidden rounded-md bg-charleston shadow-lg ring-1 ring-light ring-opacity-5 focus:outline-none">
-                <div className="max-h-[32rem] overflow-y-auto">
+              <Menu.Items
+                className="absolute right-0 z-10 w-96 origin-top-right overflow-hidden rounded-md bg-charleston shadow-lg ring-1 ring-light ring-opacity-5 focus:outline-none"
+                style={{
+                  maxHeight: "500px",
+                  scrollbarWidth: "none",
+                  msOverflowStyle: "none",
+                }}
+              >
+                <div className="overflow-y-auto">
                   <div className="px-4 py-3">
                     <p className="mb-2 text-sm font-medium text-light">Notifications</p>
                     {notifications.length > 0 ? (
@@ -179,7 +217,7 @@ function Header({ user }: { user: User }) {
                           key={notification.notificationid}
                           href={getNotificationLink(notification)}
                           className={`my-1 flex items-center gap-x-2 rounded-lg px-4 py-2 hover:bg-[#525252] ${notification.isread ? "bg-gray" : "bg-[#232323]"}`}
-                          onClick={(e) => {
+                          onClick={() => {
                             handleNotificationClick(notification.notificationid);
                           }}
                         >
@@ -190,8 +228,8 @@ function Header({ user }: { user: User }) {
                             className="flex-1 text-xs leading-tight text-light"
                             dangerouslySetInnerHTML={{ __html: notification.message }}
                           />
-                          <span className="text-xs text-light">
-                            | {formatDistanceToNow(new Date(notification.created_on), {
+                          <span className="w-1/5 flex-none text-right text-xs text-light">
+                            {formatDistanceToNow(new Date(notification.created_on), {
                               addSuffix: true,
                             })}
                           </span>

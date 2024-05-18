@@ -42,4 +42,8 @@ next-env.d.ts
 .hintrc
 
 # database dump
-schema_dump.sql
+*.sql
+*.dump
+
+# text files
+*.txt

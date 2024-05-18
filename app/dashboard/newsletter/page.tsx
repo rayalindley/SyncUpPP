@@ -1,4 +1,3 @@
-// NewsletterPage.js
 "use client";
 import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
@@ -12,7 +11,7 @@ import {
   sendNewsletter,
   fetchSentEmailsByAdmin,
 } from "@/lib/newsletterActions";
-// Dynamic import for ReactQuill to avoid SSR issues
+
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 import "react-quill/dist/quill.snow.css";
 import renderTable from "@/components/renderTable";
@@ -22,7 +21,6 @@ import "react-toastify/dist/ReactToastify.css";
 import { getCombinedUserDataById } from "@/lib/userActions";
 import renderSentEmailsTable from "@/components/renderSentEmailsTable";
 
-// Define the schema for newsletter form data
 const newsletterSchema = z.object({
   from: z
     .string()
@@ -44,19 +42,33 @@ export default function NewsletterPage() {
   const [users, setUsers] = useState([]);
   const [selectedFromOrgName, setSelectedFromOrgName] = useState(null);
   const [sentEmails, setSentEmails] = useState([]);
-  // New state hooks for form errors
+
   const [formErrors, setFormErrors] = useState({});
   const [fileError, setFileError] = useState("");
   const [sending, setSending] = useState(false);
 
-  console.log("emailsData", sentEmails);
+  useEffect(() => {
+    let timeoutId;
+    if (sending) {
+      timeoutId = setTimeout(() => {
+        toast.error(
+          "Sending the newsletter is taking longer than expected. Please check your internet connection."
+        );
+        setSending(false);
+      }, 30000);
+    } else {
+      clearTimeout(timeoutId);
+    }
+    return () => clearTimeout(timeoutId);
+  }, [sending]);
+
   useEffect(() => {
     async function fetchData() {
       if (user) {
         const orgsData = await fetchOrganizationsByAdmin(user.id);
         const eventsData = await fetchEventsByAdmin(user.id);
         const usersData = await fetchMembersByAdmin(user.id);
-        const emailsData = await fetchSentEmailsByAdmin(user.id); 
+        const emailsData = await fetchSentEmailsByAdmin(user.id);
 
         const orgsWithSelected = orgsData.map((org) => ({
           ...org,
@@ -69,11 +81,11 @@ export default function NewsletterPage() {
           selected: false,
         }));
         const usersWithSelected = usersData.map((user) => ({ ...user, selected: false }));
-  
+
         setOrgs(orgsWithSelected);
         setEvents(eventsWithSelected);
         setUsers(usersWithSelected);
-        setSentEmails(emailsData); // Set the state for the fetched emails
+        setSentEmails(emailsData);
       }
     }
     fetchData();
@@ -98,6 +110,7 @@ export default function NewsletterPage() {
   };
 
   const handleSendNewsletter = async () => {
+    setSending(true);
     const selectedOrgIds = orgs
       .filter((org) => org.selected)
       .map((org) => org.organizationid);
@@ -106,45 +119,36 @@ export default function NewsletterPage() {
       .map((event) => event.eventid);
     const selectedUserIds = users.filter((user) => user.selected).map((user) => user.id);
 
-    // Fetch members for each selected organization
     const orgMembers = await Promise.all(
       selectedOrgIds.map((orgId) => fetchMembersByOrganization(orgId))
     );
 
-    // Fetch members for each selected event
     const eventMembers = await Promise.all(
       selectedEventIds.map((eventId) => fetchMembersByEvent(eventId))
     );
 
-    // Fetch members for each selected userId
     const selectedUsers = await Promise.all(
       selectedUserIds.map((userId) => getCombinedUserDataById(userId))
     );
 
-    // Transform the fetched user data
     const transformedUsers = transformUserData(selectedUsers);
 
-    // Flatten and deduplicate the user IDs
     const allUsers = [
       ...new Set([...orgMembers.flat(), ...eventMembers.flat(), ...transformedUsers]),
     ];
 
-    // Clear the 'from' error if an organization is selected
     if (selectedFromOrgName) {
       setFormErrors((prevErrors) => ({ ...prevErrors, from: undefined }));
     }
 
-    // Clear the 'subject' error if subject is not empty
     if (subject.trim()) {
       setFormErrors((prevErrors) => ({ ...prevErrors, subject: undefined }));
     }
 
-    // Clear the 'content' error if editorState is not empty
     if (editorState.trim()) {
       setFormErrors((prevErrors) => ({ ...prevErrors, content: undefined }));
     }
 
-    // Validate form data before sending
     try {
       newsletterSchema.parse({
         from: selectedFromOrgName,
@@ -152,34 +156,51 @@ export default function NewsletterPage() {
         content: editorState,
       });
       if (allUsers.length === 0) {
-        toast.error("Please select at least one recipient");
+        setSending(false);
+        toast.error(
+          "Please select at least one recipient. The event or organization you selected may not have any members."
+        );
+        return;
       }
-      
-      setSending(true);
-      // Send the newsletter
-      const { successCount, failures } = await sendNewsletter(
+
+      const sendNewsletterPromise = sendNewsletter(
         subject,
         editorState,
         allUsers,
         attachments,
         selectedFromOrgName
       );
-    
+
+      const { successCount, failures } = await sendNewsletterPromise;
+
       if (successCount > 0) {
         toast.success(`Newsletter sent successfully to ${successCount} recipients!`);
-        // Fetch the sent emails again after the newsletter has been sent
+
         const emailsData = await fetchSentEmailsByAdmin(user.id);
         setSentEmails(emailsData);
       }
-    
+
       if (failures.length > 0) {
+        let errorCount = 0;
+        let otherFailuresCount = 0;
+
         failures.forEach((failure) => {
-          toast.error(`Failed to send to ${failure.email}: ${failure.reason}`);
+          if (errorCount < 2) {
+            toast.error(`Failed to send to ${failure.email}: ${failure.reason}`);
+            errorCount++;
+          } else {
+            otherFailuresCount++;
+          }
         });
+
+        if (otherFailuresCount > 0) {
+          toast.error(
+            `${otherFailuresCount} other emails failed to send due to similar errors.`
+          );
+        }
       }
-      
+
       setSending(false);
-      
     } catch (error) {
       if (error instanceof z.ZodError) {
         setFormErrors(error.flatten().fieldErrors);
@@ -193,8 +214,10 @@ export default function NewsletterPage() {
     const readers = [];
     let size = 0;
 
-    files.forEach((file) => {
-      if (size + file.size > 524288) {
+    for (let file of files) {
+      if (size + file.size > 600 * 1024) {
+        setFileError("Total size of attachments should not exceed 600KB");
+        return;
       }
       size += file.size;
 
@@ -202,17 +225,17 @@ export default function NewsletterPage() {
       reader.onload = () => {
         readers.push({
           filename: file.name,
-          content: reader.result, // This is now a base64 string
+          content: reader.result,
         });
-        // Check if all files have been read
+
         if (readers.length === files.length) {
           setAttachments(readers);
-          setFileError(""); // clear the error message if all files are valid
+          setFileError("");
         }
       };
       reader.onerror = (error) => console.error("Error reading file:", error);
-      reader.readAsDataURL(file); // Read the file as Data URL (base64)
-    });
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubjectChange = (event) => {
@@ -270,7 +293,7 @@ export default function NewsletterPage() {
         pauseOnHover
         theme="dark"
       />
-      <div className="bg-raisin max-w-full space-y-6 rounded-lg p-10 font-sans text-white mb-40">
+      <div className="bg-raisin mb-40 max-w-full space-y-6 rounded-lg p-10 font-sans text-white">
         <h1 className="border-b-2 border-primary pb-4 text-3xl">Newsletter Creation</h1>
         <div className="space-y-4">
           <select

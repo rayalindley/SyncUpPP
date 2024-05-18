@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 
-const renderTable = (items, toggleSelection, setItems, formatDate, formatKey) => {
+const renderSentEmailsTable = (
+  items,
+  toggleSelection,
+  setItems,
+  formatDate,
+  formatKey
+) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredItems, setFilteredItems] = useState(items.slice(0, 10));
   const [sortColumn, setSortColumn] = useState(null);
@@ -84,7 +90,6 @@ const renderTable = (items, toggleSelection, setItems, formatDate, formatKey) =>
     if (direction === "desc") sortedItems.reverse();
     setItems(sortedItems); // Sort the entire dataset
   };
-  
 
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
@@ -292,7 +297,7 @@ const renderTable = (items, toggleSelection, setItems, formatDate, formatKey) =>
             }}
           >
             <div
-              className="w-full max-w-sm space-y-4 overflow-auto rounded-lg bg-gray-900 p-4 shadow-lg md:max-w-md lg:max-w-lg xl:max-w-xl 2xl:max-w-2xl"
+              className="w-full max-w-sm space-y-4 overflow-auto rounded-lg bg-charleston p-4 shadow-lg md:max-w-md lg:max-w-lg xl:max-w-xl 2xl:max-w-2xl"
               style={{ color: "white", maxHeight: "90vh" }}
             >
               <h3 className="text-2xl font-semibold text-white">Details</h3>
@@ -332,22 +337,16 @@ const renderTable = (items, toggleSelection, setItems, formatDate, formatKey) =>
               </table>
               <button
                 onClick={closeDetailPane}
-                style={{
-                  color: "white",
-                  backgroundColor: "gray",
-                  borderRadius: "5px",
-                  marginTop: "10px",
-                  padding: "10px 20px",
-                }}
+                className="float-right mt-2 rounded bg-primary px-4 py-2 text-white"
               >
-                Back
+                Close
               </button>
             </div>
           </div>,
-          document.body // Assuming your app is mounted on document.body
+          document.body
         )}
     </>
   );
 };
 
-export default renderTable;
+export default renderSentEmailsTable;
