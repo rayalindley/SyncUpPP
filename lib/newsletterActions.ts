@@ -92,7 +92,6 @@ export async function sendNewsletter(subject, content, allUsers, attachments, fr
 
 // Function to fetch all members managed by the current admin
 export async function fetchMembersByAdmin(adminUuid) {
-  // ('Fetching members by admin:', adminUuid);
   const supabase = createClient();
   try {
     const { data: members, error } = await supabase.rpc(
@@ -102,16 +101,26 @@ export async function fetchMembersByAdmin(adminUuid) {
 
     if (error) throw error;
 
-    "Fetched members:", members;
     return members.map((member) => ({
-      ...member,
-      name: `${member.first_name} ${member.last_name}`,
+      last_name: member.last_name,
+      first_name: member.first_name,
+      id: member.id,
+      email: member.email,
+      role: member.role,
+      created_at: member.created_at,
+      updated_at: member.updated_at,
+      gender: member.gender,
+      dateofbirth: member.dateofbirth,
+      description: member.description,
+      company: member.company,
+      website: member.website,
     }));
   } catch (error) {
     console.error("Error fetching members by admin:", error.message);
     return [];
   }
 }
+
 
 // Function to fetch all organizations managed by the current admin
 export async function fetchOrganizationsByAdmin(adminUuid) {

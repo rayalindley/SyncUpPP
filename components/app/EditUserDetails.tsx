@@ -208,7 +208,7 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
       if (uploadResult) {
         setUserProfile({
           ...userProfile,
-          profilepicture: `https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public/${uploadResult.fullPath}`,
+          profilepicture: `https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public/${(uploadResult as any).fullPath}`,
         });
       } else {
         console.error("Error uploading image:", error);
@@ -270,6 +270,8 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                       type="file"
                       onChange={handleProfilePictureChange}
                       className="hidden"
+                      title="Profile Picture"
+                      placeholder="Choose an image"
                     />
                   </div>
                 </div>

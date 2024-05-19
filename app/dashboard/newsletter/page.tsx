@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useUser } from "@/context/UserContext";
+import { Email } from "@/lib/types";
 import {
   fetchMembersByAdmin,
   fetchOrganizationsByAdmin,
@@ -11,7 +12,6 @@ import {
   sendNewsletter,
   fetchSentEmailsByAdmin,
 } from "@/lib/newsletterActions";
-
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 import "react-quill/dist/quill.snow.css";
 import renderTable from "@/components/renderTable";
@@ -19,7 +19,12 @@ import { z } from "zod";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { getCombinedUserDataById } from "@/lib/userActions";
-import renderSentEmailsTable from "@/components/renderSentEmailsTable";
+import EmailsTable from "@/components/EmailsTable";
+import { createClient } from "@/lib/supabase/client";
+import OrganizationsTable from "@/components/OrganizationTable";
+import { Organization } from "@/lib/types";
+import EventsTable from "@/components/EventsTable";
+import CombinedUserDataTable from "@/components/CombinedUserDataTable";
 
 const newsletterSchema = z.object({
   from: z
@@ -33,15 +38,16 @@ const newsletterSchema = z.object({
 });
 
 export default function NewsletterPage() {
+  console.log;
   const { user } = useUser();
   const [editorState, setEditorState] = useState("");
   const [subject, setSubject] = useState("");
   const [attachments, setAttachments] = useState([]);
-  const [orgs, setOrgs] = useState([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [events, setEvents] = useState([]);
   const [users, setUsers] = useState([]);
   const [selectedFromOrgName, setSelectedFromOrgName] = useState(null);
-  const [sentEmails, setSentEmails] = useState([]);
+  const [sentEmails, setSentEmails] = useState<Email[]>([]);
 
   const [formErrors, setFormErrors] = useState({});
   const [fileError, setFileError] = useState("");
@@ -63,14 +69,30 @@ export default function NewsletterPage() {
   }, [sending]);
 
   useEffect(() => {
+    const supabase = createClient();
+    const channels = supabase
+      .channel("emails")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "emails" },
+        async (payload) => {
+          const emailsData = await fetchSentEmailsByAdmin(user.id);
+          setSentEmails(emailsData);
+        }
+      )
+      .subscribe();
+  }, [user]);
+
+  useEffect(() => {
     async function fetchData() {
       if (user) {
-        const orgsData = await fetchOrganizationsByAdmin(user.id);
+        const organizationsData = await fetchOrganizationsByAdmin(user.id);
+        console.log("organizationssssssss", organizationsData);
         const eventsData = await fetchEventsByAdmin(user.id);
         const usersData = await fetchMembersByAdmin(user.id);
         const emailsData = await fetchSentEmailsByAdmin(user.id);
 
-        const orgsWithSelected = orgsData.map((org) => ({
+        const organizationsWithSelected = organizationsData.map((org) => ({
           ...org,
           id: org.organizationid,
           selected: false,
@@ -82,7 +104,7 @@ export default function NewsletterPage() {
         }));
         const usersWithSelected = usersData.map((user) => ({ ...user, selected: false }));
 
-        setOrgs(orgsWithSelected);
+        setOrganizations(organizationsWithSelected);
         setEvents(eventsWithSelected);
         setUsers(usersWithSelected);
         setSentEmails(emailsData);
@@ -111,7 +133,7 @@ export default function NewsletterPage() {
 
   const handleSendNewsletter = async () => {
     setSending(true);
-    const selectedOrgIds = orgs
+    const selectedOrgIds = organizations
       .filter((org) => org.selected)
       .map((org) => org.organizationid);
     const selectedEventIds = events
@@ -279,6 +301,7 @@ export default function NewsletterPage() {
     const date = new Date(dateString);
     return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
   };
+
   return (
     <>
       <ToastContainer
@@ -303,7 +326,7 @@ export default function NewsletterPage() {
             onChange={(e) => setSelectedFromOrgName(e.target.value)}
           >
             <option value="">Select a sender organization</option>
-            {orgs.map((org) => (
+            {organizations.map((org) => (
               <option key={org.id} value={org.name}>
                 {org.name}
               </option>
@@ -358,7 +381,11 @@ export default function NewsletterPage() {
               its members)
             </summary>
             <div className="overflow-x-auto rounded-lg bg-[#2a2a2a] p-6">
-              {renderTable(orgs, toggleSelection, setOrgs, formatDate, formatKey)}
+              <OrganizationsTable
+                organizations={organizations}
+                setOrganizations={setOrganizations}
+                toggleSelection={toggleSelection}
+              />
             </div>
           </details>
           <hr className="my-6" />
@@ -368,7 +395,11 @@ export default function NewsletterPage() {
               registrants)
             </summary>
             <div className="overflow-x-auto rounded-lg bg-[#2a2a2a] p-6">
-              {renderTable(events, toggleSelection, setEvents, formatDate, formatKey)}
+              <EventsTable
+                events={events}
+                setEvents={setEvents}
+                toggleSelection={toggleSelection}
+              />
             </div>
           </details>
           <hr className="my-6" />
@@ -378,7 +409,11 @@ export default function NewsletterPage() {
               emails)
             </summary>
             <div className="overflow-x-auto rounded-lg bg-[#2a2a2a] p-6">
-              {renderTable(users, toggleSelection, setUsers, formatDate, formatKey)}
+              <CombinedUserDataTable
+                users={users}
+                setUsers={setUsers}
+                toggleSelection={toggleSelection}
+              />
             </div>
           </details>
         </div>
@@ -392,7 +427,7 @@ export default function NewsletterPage() {
         <div className="h-24"></div>
         <h2 className="border-b-2 border-primary pb-4 text-2xl">Sent Emails</h2>
         <div className="overflow-x-auto rounded-lg bg-[#2a2a2a] p-6">
-          {renderSentEmailsTable(sentEmails, null, setSentEmails, formatDate, formatKey)}
+          <EmailsTable emails={sentEmails} setEmails={setSentEmails} />
         </div>
       </div>
     </>
