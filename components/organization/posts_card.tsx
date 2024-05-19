@@ -1,10 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { updatePost, deletePost, getAuthorDetails } from "@/lib/posts";
 import { getUser } from "@/lib/supabase/client";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
 import { UserCircleIcon, PencilIcon, TrashIcon } from "@heroicons/react/16/solid";
-import Divider from "./divider";
+import { ChatBubbleOvalLeftIcon } from "@heroicons/react/20/solid";
+import Comment from "./comments";
+import { fetchComments } from "@/lib/comments";
+import { Transition } from "@headlessui/react";
 
 const PostsCard = ({ post, postsData, setPostsData }) => {
   const { content, createdat, postphoto, authorid, postid, privacylevel } = post;
@@ -21,6 +24,13 @@ const PostsCard = ({ post, postsData, setPostsData }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isImageVisible, setIsImageVisible] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showCommentComponent, setShowCommentComponent] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [accordionOpen, setAccordionOpen] = useState(false);
+
+  const handleCommentButtonClick = () => {
+    setShowCommentComponent(true);
+  };
 
   const handleEditClick = () => {
     setShowEditModal(true);
@@ -104,6 +114,19 @@ const PostsCard = ({ post, postsData, setPostsData }) => {
     });
 
     if (!error) {
+      // Update the postsData state with the edited post
+      const updatedPosts = postsData.map((p) =>
+        p.postid === post.postid
+          ? {
+              ...p,
+              content: editedContent,
+              postphoto: newPhotoUrl,
+              privacylevel: editedPrivacyLevel,
+            }
+          : p
+      );
+      setPostsData(updatedPosts);
+
       setIsLoading(false);
       setEditedPhoto(null);
       setShowEditModal(false);
@@ -122,6 +145,10 @@ const PostsCard = ({ post, postsData, setPostsData }) => {
     const { error } = await deletePost(postid, authorid);
 
     if (!error) {
+      // Filter out the deleted post from postsData
+      const updatedPosts = postsData.filter((p) => p.postid !== postid);
+      setPostsData(updatedPosts);
+
       setIsLoading(false);
       setShowDeleteModal(false);
     } else {
@@ -152,9 +179,27 @@ const PostsCard = ({ post, postsData, setPostsData }) => {
       }
     };
 
+    const loadComments = async () => {
+      try {
+        const { data, error } = await fetchComments(postid);
+        if (error) {
+          console.error("Error fetching comments:", error.message);
+        } else {
+          setComments(data);
+        }
+      } catch (error) {
+        console.error("Unexpected error:", error);
+      }
+    };
+
+    loadComments();
     fetchAuthorDetails();
     checkIsCurrentUserAuthor();
-  }, [authorid]);
+  }, [authorid, postid]);
+
+  const addComment = (newComment) => {
+    setComments([...comments, newComment]);
+  };
 
   const calculateTimeElapsed = () => {
     const currentTime = new Date();
@@ -230,6 +275,44 @@ const PostsCard = ({ post, postsData, setPostsData }) => {
           </div>
         </div>
       </div>
+      <div className="mb-4 ml-16 flex flex-row">
+        <button
+          onClick={() => setAccordionOpen(!accordionOpen)}
+          className="flex items-center focus:outline-none"
+        >
+          <ChatBubbleOvalLeftIcon
+            className={`mr-1 h-4 w-4 ${accordionOpen ? "text-primary" : "text-gray-500"}`}
+          />
+          <span
+            className={`mt-1 text-xs ${accordionOpen ? "text-primary" : "text-gray-500"}`}
+          >
+            Comment
+          </span>
+        </button>
+      </div>
+      <Transition
+        show={accordionOpen}
+        as={Fragment}
+        enter="transition ease-out duration-300"
+        enterFrom="transform opacity-0 scale-95"
+        enterTo="transform opacity-100 scale-100"
+        leave="transition ease-in duration-200"
+        leaveFrom="transform opacity-100 scale-100"
+        leaveTo="transform opacity-0 scale-95"
+      >
+        <div>
+          {accordionOpen && (
+            <div className="transition-all duration-300">
+              <Comment
+                postid={postid}
+                authorid={authorid}
+                // addComment={addComment}
+                // comments={comments} // Pass comments array to Comment component
+              />
+            </div>
+          )}
+        </div>
+      </Transition>
       {showEditModal && (
         <div className="fixed inset-0 z-10 overflow-y-auto">
           <div className="flex min-h-screen items-end justify-center px-4 pb-20 pt-4 text-center sm:block sm:p-0">
@@ -265,7 +348,7 @@ const PostsCard = ({ post, postsData, setPostsData }) => {
                           />
                           <button
                             onClick={handleRemoveImage}
-                            className="hover :text-red-700 absolute right-0 top-0 mr-1 mt-1 text-xs                          text-red-500 focus:outline-none"
+                            className="hover :text-red-700 absolute right-0 top-0 mr-1 mt-1 text-xs text-red-500 focus:outline-none"
                           >
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
@@ -311,7 +394,7 @@ const PostsCard = ({ post, postsData, setPostsData }) => {
                   className="inline-flex w-full justify-center rounded-md border border-transparent bg-primary px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm"
                   disabled={isLoading}
                 >
-                  {isLoading ? "Saving..." : "Save"}
+                  Save
                 </button>
                 <button
                   onClick={handleCloseEditModal}
