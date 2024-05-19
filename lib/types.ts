@@ -65,6 +65,7 @@ export interface Event {
 }
 
 export interface Organization {
+  id: string;
   organization_id: string;
   organizationid: string;
   name: string;

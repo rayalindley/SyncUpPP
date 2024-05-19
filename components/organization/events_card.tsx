@@ -47,18 +47,7 @@ const EventsCard = ({ event }: { event: Event }) => {
 
   // Determine if the location is a URL and create a clickable link
   const locationContent =
-    location && location.startsWith("http") ? (
-      <a
-        href={location}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-primary hover:underline"
-      >
-        Virtual Event
-      </a>
-    ) : (
-      location
-    );
+    location && location.startsWith("http") ? "Virtual Event" : location;
 
   // Define the base URL for your Supabase storage bucket
   const supabaseStorageBaseUrl =
@@ -174,7 +163,7 @@ const EventsCard = ({ event }: { event: Event }) => {
           <div className="h-full w-full bg-white" />
         )}
       </div>
-      <div className="flex flex-grow flex-col justify-between p-4">
+      <div className="flex flex-grow flex-col justify-between p-4 text-left">
         <div>
           <h3 className="text-lg font-semibold text-light">{title}</h3>
           <p className="mt-2 text-sm text-light">

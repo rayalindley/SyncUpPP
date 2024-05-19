@@ -431,3 +431,45 @@ export async function fetchRegisteredUsersForEvent(eventId: string) {
     };
   }
 }
+
+export async function fetchEventsForUser(userId: string) {
+  const supabase = createClient();
+
+  try {
+    // Fetch event IDs from the eventregistrations table for the given user
+    const { data: registrations, error: registrationsError } = await supabase
+      .from("eventregistrations")
+      .select("eventid")
+      .eq("userid", userId);
+
+    if (registrationsError) {
+      throw registrationsError;
+    }
+
+    // Extract event IDs from registrations
+    const eventIds = registrations.map((registration: any) => registration.eventid);
+
+    // If no event IDs are found, return an empty array
+    if (eventIds.length === 0) {
+      return { data: [], error: null };
+    }
+
+    // Fetch event details from the events table for the registered events
+    const { data: events, error: eventsError } = await supabase
+      .from("events")
+      .select("*")
+      .in("eventid", eventIds);
+
+    if (eventsError) {
+      throw eventsError;
+    }
+
+    return { data: events, error: null };
+  } catch (error: any) {
+    console.error("Error fetching events for user:", error);
+    return {
+      data: null,
+      error: { message: error.message || "An unexpected error occurred" },
+    };
+  }
+}

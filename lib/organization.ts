@@ -146,3 +146,27 @@ export async function deleteOrganization(id: string) {
     };
   }
 }
+
+export async function fetchOrganizationsForUser(userId: string) {
+  const supabase = createClient();
+
+  try {
+    const { data, error } = await supabase
+      .from("organizations")
+      .select("*")
+      .eq("adminid", userId); // Assuming 'user_id' is the field that relates organizations to users
+
+    if (!error) {
+      return { data, error: null };
+    } else {
+      console.error("Error fetching organizations for user:", error);
+      return { data: null, error: { message: error.message } };
+    }
+  } catch (e: any) {
+    console.error("Unexpected error:", e);
+    return {
+      data: null,
+      error: { message: e.message || "An unexpected error occurred" },
+    };
+  }
+}
