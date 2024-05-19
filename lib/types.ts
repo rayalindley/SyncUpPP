@@ -12,6 +12,7 @@ export type UserProfile = {
   profilepicture?: string | undefined; // Now a string to store the URL
   website?: string;
   updatedat?: Date;
+  length?: number;
 };
 
 // ./types/combinedUserData.ts
@@ -46,6 +47,7 @@ export interface MembershipsProps {
 }
 
 export interface Event {
+  id: string;
   eventid: string;
   eventphoto: string;
   title: string;
@@ -59,9 +61,11 @@ export interface Event {
   imageUrl: string;
   tags: string[];
   privacy: string;
+  createdat: Date;
 }
 
 export interface Organization {
+  organization_id: string;
   organizationid: string;
   name: string;
   description: string;

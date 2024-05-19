@@ -1,5 +1,6 @@
 "use client";
-import { deleteEvent } from "@/lib/events"; // Assuming you have deleteEvent function
+import { deleteEvent, fetchRegisteredUsersForEvent } from "@/lib/events"; // Assuming you have deleteEvent function
+import { Event, UserProfile } from "@/lib/types";
 import { Dialog, Menu, Transition } from "@headlessui/react";
 import {
   ChevronDownIcon,
@@ -9,7 +10,7 @@ import {
 } from "@heroicons/react/20/solid";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import Link from "next/link";
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { FaRegEdit } from "react-icons/fa";
 import Swal from "sweetalert2";
 
@@ -23,28 +24,30 @@ const jsonTheme = {
   boolean: "color:#986801;", // Brown for booleans for quick identification
 };
 
-function classNames(...classes) {
+function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(" ");
 }
 
-const dummyAttendees = [
-  { name: "John Doe" },
-  { name: "Jane Smith" },
-  { name: "Robert Brown" },
-  { name: "Emily White" },
-  { name: "Michael Johnson" },
-];
-
 // Function to truncate text
-const truncateText = (text, maxLength) => {
+const truncateText = (text: string, maxLength: number) => {
   if (text.length > maxLength) {
     return text.substring(0, maxLength) + "...";
   }
   return text;
 };
 
-export default function EventOptions({ selectedEvent, open, setOpen }) {
+export default function EventOptions({
+  selectedEvent,
+  open,
+  setOpen,
+}: {
+  selectedEvent: Event;
+  open: boolean;
+  setOpen: (open: boolean) => void;
+}) {
   const [currentTab, setCurrentTab] = useState("Info");
+  const [attendees, setAttendees] = useState<UserProfile | null>(null);
+  const [loadingAttendees, setLoadingAttendees] = useState(false);
 
   const deleteBtn = () => {
     Swal.fire({
@@ -83,7 +86,7 @@ export default function EventOptions({ selectedEvent, open, setOpen }) {
     "https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public";
 
   // Function to format date to Philippine Standard Time
-  const formattedDateTime = (utcDateString) => {
+  const formattedDateTime = (utcDateString: string) => {
     const date = new Date(utcDateString);
     return date.toLocaleString("en-US", {
       timeZone: "Asia/Manila",
@@ -96,11 +99,11 @@ export default function EventOptions({ selectedEvent, open, setOpen }) {
   };
 
   // Format the event date time and created at date
-  const eventDateTimePST = formattedDateTime(selectedEvent.eventdatetime);
-  const createdAtPST = formattedDateTime(selectedEvent.createdat);
+  const eventDateTimePST = formattedDateTime(selectedEvent.eventdatetime.toString()); // Convert Date object to string
+  const createdAtPST = formattedDateTime(selectedEvent.createdat.toString()); // Convert Date object to string
 
   // Function to check if the location is a URL
-  const isUrl = (string) => {
+  const isUrl = (string: string) => {
     try {
       new URL(string);
       return true;
@@ -122,6 +125,29 @@ export default function EventOptions({ selectedEvent, open, setOpen }) {
   ) : (
     selectedEvent.location
   );
+
+  // Fetch attendees when the "Attendees" tab is selected
+  useEffect(() => {
+    if (currentTab === "Attendees") {
+      const fetchAttendees = async () => {
+        setLoadingAttendees(true);
+        const { users, error } = await fetchRegisteredUsersForEvent(
+          selectedEvent.eventid
+        );
+        setLoadingAttendees(false);
+        if (!error) {
+          setAttendees(users);
+        } else {
+          Swal.fire({
+            title: "Error!",
+            text: error.message,
+            icon: "error",
+          });
+        }
+      };
+      fetchAttendees();
+    }
+  }, [currentTab, selectedEvent.eventid]);
 
   return (
     <>
@@ -418,14 +444,24 @@ export default function EventOptions({ selectedEvent, open, setOpen }) {
                         )}
                         {currentTab === "Attendees" && (
                           <div className="space-y-4">
-                            {dummyAttendees.map((attendee, index) => (
-                              <div key={index} className="flex items-center space-x-3">
-                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-500 text-light">
-                                  {attendee.name.charAt(0)}
+                            {loadingAttendees ? (
+                              <div>Loading...</div>
+                            ) : Array.isArray(attendees) && attendees.length > 0 ? (
+                              attendees.map((attendee: UserProfile, index: number) => (
+                                <div key={index} className="flex items-center space-x-3">
+                                  <div className="relative h-8 w-8 flex-shrink-0">
+                                    <img
+                                      className="h-8 w-8 rounded-full"
+                                      src={`${supabaseStorageBaseUrl}/${attendee.profilepicture}`}
+                                      alt={`${attendee.first_name} ${attendee.last_name}`}
+                                    />
+                                  </div>
+                                  <div>{`${attendee.first_name} ${attendee.last_name}`}</div>
                                 </div>
-                                <div>{attendee.name}</div>
-                              </div>
-                            ))}
+                              ))
+                            ) : (
+                              <div>No attendees registered for this event.</div>
+                            )}
                           </div>
                         )}
                       </div>

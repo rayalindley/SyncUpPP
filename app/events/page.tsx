@@ -78,6 +78,8 @@ export default function EventsPublicView() {
                     capacity: event.capacity,
                     organizationid: event.organizationid,
                     tags: event.tags,
+                    createdat: event.createdat,
+                    privacy: event.privacy,
                   }}
                 />
               ))}

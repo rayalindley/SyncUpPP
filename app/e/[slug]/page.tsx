@@ -75,7 +75,6 @@ const EventPage = () => {
             eventData.eventid,
             user.id
           );
-          console.log(isMember);
           setIsMember(isMember);
         }
       } catch (error) {
@@ -167,6 +166,15 @@ const EventPage = () => {
         toast.success("You have successfully cancelled your registration!");
         setIsRegistered(false); // Update the state to reflect the unregistration
       }
+    }
+  };
+
+  const isUrl = (string: string) => {
+    try {
+      new URL(string);
+      return true;
+    } catch (_) {
+      return false;
     }
   };
 
@@ -271,10 +279,16 @@ const EventPage = () => {
                   </span>
                 </div>
               </div>
-              <p className="mb-4 flex items-center text-base">
+              <div className="mb-4 flex items-center text-base">
                 <MapPinIcon className="mr-2 h-10 w-10 text-primary" />
-                {event.location}
-              </p>
+                {isUrl(event.location) ? (
+                  <Link href={event.location}>
+                    <p className="text-primary hover:underline">Virtual Event</p>
+                  </Link>
+                ) : (
+                  event.location
+                )}
+              </div>
 
               <div className="rounded-lg bg-raisinblack p-1 shadow-md">
                 <div className="rounded-t-lg bg-charleston px-4 py-2 text-light">
@@ -316,11 +330,11 @@ const EventPage = () => {
               <div className="mt-6">
                 <p className="text-sm font-medium text-light">Event Description</p>
                 <hr className="my-2 border-t border-fadedgrey opacity-50" />
-                <p className="whitespace-pre-wrap text-justify">
+                <div className="whitespace-pre-wrap text-justify">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {event.description}
                   </ReactMarkdown>
-                </p>
+                </div>
               </div>
             </div>
           </div>
