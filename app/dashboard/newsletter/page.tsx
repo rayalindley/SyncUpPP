@@ -47,7 +47,7 @@ export default function NewsletterPage() {
   const [users, setUsers] = useState<CombinedUserData[]>([]);
   const [selectedFromOrgName, setSelectedFromOrgName] = useState<string | null>(null);
   const [sentEmails, setSentEmails] = useState<Email[]>([]);
-
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [fileError, setFileError] = useState("");
   const [sending, setSending] = useState(false);
@@ -102,7 +102,10 @@ export default function NewsletterPage() {
           id: event.eventid,
           selected: false,
         }));
-        const usersWithSelected = usersData.map((user: CombinedUserData) => ({ ...user, selected: false }));
+        const usersWithSelected = usersData.map((user: CombinedUserData) => ({
+          ...user,
+          selected: false,
+        }));
 
         setOrganizations(organizationsWithSelected);
         setEvents(eventsWithSelected);
@@ -156,19 +159,19 @@ export default function NewsletterPage() {
     const transformedUsers = transformUserData(selectedUsers);
 
     const allUsers = [
-      ...new Set([...orgMembers.flat(), ...eventMembers.flat(), ...transformedUsers])
-    ].map(item => item);
+      ...new Set([...orgMembers.flat(), ...eventMembers.flat(), ...transformedUsers]),
+    ].map((item) => item);
 
     if (selectedFromOrgName) {
-      setFormErrors((prevErrors) => ({ ...prevErrors, from: '' }));
+      setFormErrors((prevErrors) => ({ ...prevErrors, from: "" }));
     }
 
     if (subject.trim()) {
-      setFormErrors((prevErrors) => ({ ...prevErrors, subject: '' }));
+      setFormErrors((prevErrors) => ({ ...prevErrors, subject: "" }));
     }
 
     if (editorState.trim()) {
-      setFormErrors((prevErrors) => ({ ...prevErrors, content: '' }));
+      setFormErrors((prevErrors) => ({ ...prevErrors, content: "" }));
     }
 
     try {
@@ -190,7 +193,7 @@ export default function NewsletterPage() {
         editorState,
         allUsers,
         attachments,
-        selectedFromOrgName ?? ''
+        selectedFromOrgName ?? ""
       );
 
       const { successCount, failures } = await sendNewsletterPromise;
@@ -230,53 +233,35 @@ export default function NewsletterPage() {
         // Transform the fieldErrors to match the expected type for setFormErrors
         const fieldErrors = error.flatten().fieldErrors;
         const transformedErrors: Record<string, string> = {};
-      
+
         Object.keys(fieldErrors).forEach((key) => {
           // Check if fieldErrors[key] is not undefined before calling join
           if (fieldErrors[key] !== undefined) {
             // Since we've checked for undefined, we don't need the optional chaining operator
-            transformedErrors[key] = fieldErrors[key]!.join(', ');
+            transformedErrors[key] = fieldErrors[key]!.join(", ");
           } else {
             // Handle the case where fieldErrors[key] is undefined
-            transformedErrors[key] = 'No error message provided.';
+            transformedErrors[key] = "No error message provided.";
           }
         });
-      
+
         setFormErrors(transformedErrors);
         toast.error("Please fill in all required fields");
       }
-      
-      
     }
   };
 
   const handleAttachmentChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files ? Array.from(event.target.files) : [];
-    const readers: Array<{ filename: string; content: string | ArrayBuffer | null }> = [];
-    let size = 0;
+    let totalSize = files.reduce((total, file) => total + file.size, 0);
 
-    for (let file of files) {
-      if (size + file.size > 600 * 1024) {
-        setFileError("Total size of attachments should not exceed 600KB");
-        return;
-      }
-      size += file.size;
-
-      const reader = new FileReader();
-      reader.onload = () => {
-        readers.push({
-          filename: file.name,
-          content: reader.result,
-        });
-
-        if (readers.length === files.length) {
-          setAttachments(readers);
-          setFileError("");
-        }
-      };
-      reader.onerror = (error) => console.error("Error reading file:", error);
-      reader.readAsDataURL(file);
+    if (totalSize > 600 * 1024) {
+      setFileError("Total size of attachments should not exceed 600KB");
+      return;
     }
+
+    setSelectedFiles(files);
+    setFileError("");
   };
 
   const handleSubjectChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -307,16 +292,13 @@ export default function NewsletterPage() {
     }));
   };
 
-  const toggleEventSelection = (
-    list: Event[],
-    id: string
-  ): Event[] => {
+  const toggleEventSelection = (list: Event[], id: string): Event[] => {
     return list.map((item) => ({
       ...item,
       selected: item.id === id ? !item.selected : item.selected,
     }));
   };
-  
+
   const toggleCombinedUserSelection = (
     list: CombinedUserData[],
     id: string
@@ -326,7 +308,6 @@ export default function NewsletterPage() {
       selected: item.id === id ? !item.selected : item.selected,
     }));
   };
-  
 
   return (
     <>
@@ -390,14 +371,28 @@ export default function NewsletterPage() {
           <label htmlFor="attachments" className="mb-2 block text-lg">
             Attachments:
           </label>
-          <input
-            type="file"
-            multiple
-            id="attachments"
-            onChange={handleAttachmentChange}
-            className="block"
-            placeholder="Select attachments"
-          />
+          <label
+            htmlFor="attachments"
+            className="mt-2 block cursor-pointer rounded bg-primary px-4 py-2 text-white"
+          >
+            Select attachments
+            <input
+              type="file"
+              multiple
+              id="attachments"
+              onChange={handleAttachmentChange}
+              className="hidden"
+            />
+          </label>
+
+          <ul>
+            {selectedFiles.map((file, index) => (
+              <li key={index}>
+                {file.name} ({Math.round(file.size / 1024)} KB)
+              </li>
+            ))}
+          </ul>
+
           {fileError && <p className="text-sm text-red-500">{fileError}</p>}
         </div>
 
