@@ -294,7 +294,7 @@ export default function PostsTextArea({ organizationid, postsData, setPostsData 
                   }`}
                   disabled={isLoading || !content.trim()} // Disable button if content is empty
                 >
-                  {isLoading ? "Posting..." : isUpdate ? "Update" : "Create"}
+                  Create
                 </button>
               </div>
             </div>
