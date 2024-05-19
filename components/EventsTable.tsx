@@ -82,7 +82,7 @@ const EventsTable = ({
 
   const formatDate = (date: Date | string) => {
     const d = new Date(date);
-    return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+    return `${d.getFullYear()}-${("0" + (d.getMonth() + 1)).slice(-2)}-${d.getDate()}`;
   };
 
   const SortIcon = ({ direction }: { direction: "asc" | "desc" | null }) => (
@@ -160,19 +160,22 @@ const EventsTable = ({
 
   return (
     <>
-      {events.length > 0 && (
-        <input
-          className="my-2.5 rounded-full border border-gray-300 bg-charleston p-2.5"
-          type="text"
-          placeholder="Search..."
-          value={searchTerm}
-          onChange={(e) => {
-            setSearchTerm(e.target.value);
-            setCurrentPage(1); // Reset page number
-          }}
-          aria-label="Search events"
-        />
-      )}
+      <div className="flex items-center justify-between">
+        {events.length > 0 && (
+          <input
+            className="my-2.5 rounded-full border border-gray-300 bg-charleston p-2.5"
+            type="text"
+            placeholder="Search..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1); // Reset page number
+            }}
+            aria-label="Search events"
+          />
+        )}
+        {events.length > 10 && <div className="my-4">{renderPageNumbers()}</div>}
+      </div>
       <div className="overflow-x-auto rounded-lg">
         {filteredEvents.length > 0 ? (
           <table className="min-w-full text-white" style={{ tableLayout: "fixed" }}>
@@ -260,9 +263,6 @@ const EventsTable = ({
           <p>No events found.</p>
         )}
       </div>
-      {events.length > 10 && (
-        <div className="my-4 flex justify-center">{renderPageNumbers()}</div>
-      )}
     </>
   );
 };

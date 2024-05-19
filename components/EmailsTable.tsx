@@ -39,9 +39,9 @@ const EmailsTable = ({
     }
   }, [showDetailPane]);
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
+  const formatDate = (date: Date | string) => {
+    const d = new Date(date);
+    return `${d.getFullYear()}-${("0" + (d.getMonth() + 1)).slice(-2)}-${d.getDate()}`;
   };
 
   const formatKey = (key: string) => {
@@ -75,7 +75,7 @@ const EmailsTable = ({
   useEffect(() => {
     const search = searchTerm.toLowerCase();
     const filtered = emails.filter((email) =>
-      ["body", "sender", "receiver", "subject", "status", "date_created"].some(
+      ["body", "sender", "receiver", "subject", "status", "Date Created"].some(
         (field) => email[field] && email[field].toString().toLowerCase().includes(search)
       )
     );
@@ -190,19 +190,22 @@ const EmailsTable = ({
 
   return (
     <>
-      {emails.length > 0 && (
-        <input
-          className="my-2.5 rounded-full border border-gray-300 bg-charleston p-2.5"
-          type="text"
-          placeholder="Search..."
-          value={searchTerm}
-          onChange={(e) => {
-            setSearchTerm(e.target.value);
-            setCurrentPage(1); // Reset page number
-          }}
-          aria-label="Search emails"
-        />
-      )}
+      <div className="flex items-center justify-between">
+        {emails.length > 0 && (
+          <input
+            className="my-2.5 rounded-full border border-gray-300 bg-charleston p-2.5"
+            type="text"
+            placeholder="Search..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1); // Reset page number
+            }}
+            aria-label="Search emails"
+          />
+        )}
+        {emails.length > 10 && <div className="my-4">{renderPageNumbers()}</div>}
+      </div>
       <div className="overflow-x-auto rounded-lg" style={{ overflow: "auto" }}>
         <table className="w-full text-white" style={{ tableLayout: "fixed" }}>
           <thead className="bg-[#505050]">
@@ -267,9 +270,6 @@ const EmailsTable = ({
           </tbody>
         </table>
       </div>
-      {emails.length > 10 && (
-        <div className="my-4 flex justify-center">{renderPageNumbers()}</div>
-      )}
 
       {showDetailPane &&
         selectedEmail &&

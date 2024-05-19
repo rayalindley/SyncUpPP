@@ -1,20 +1,5 @@
 import React, { useState, useEffect } from "react";
-
-type CombinedUserData = {
-  id: string;
-  email: string;
-  role: string;
-  created_at: Date;
-  updated_at: Date;
-  first_name: string;
-  last_name: string;
-  gender: string;
-  dateofbirth: Date;
-  description: string;
-  company: string;
-  website: string;
-  selected?: boolean;
-};
+import { CombinedUserData } from "@/lib/types";
 
 const CombinedUserDataTable = ({
   users,
@@ -36,7 +21,9 @@ const CombinedUserDataTable = ({
   useEffect(() => {
     if (!sortColumn && !sortDirection) {
       setUsers((prevUsers) =>
-        [...prevUsers].sort((a, b) => a.first_name.localeCompare(b.first_name))
+        [...prevUsers].sort((a, b) =>
+          (a.first_name ?? "").localeCompare(b.first_name ?? "")
+        )
       );
     }
   }, [sortColumn, sortDirection, setUsers]);
@@ -100,7 +87,7 @@ const CombinedUserDataTable = ({
 
   const formatDate = (date: Date | string) => {
     const d = new Date(date);
-    return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+    return `${d.getFullYear()}-${("0" + (d.getMonth() + 1)).slice(-2)}-${d.getDate()}`;
   };
 
   const SortIcon = ({ direction }: { direction: "asc" | "desc" | null }) => (
@@ -165,19 +152,22 @@ const CombinedUserDataTable = ({
 
   return (
     <>
-      {users.length > 0 && (
-        <input
-          className="my-2.5 rounded-full border border-gray-300 bg-charleston p-2.5"
-          type="text"
-          placeholder="Search..."
-          value={searchTerm}
-          onChange={(e) => {
-            setSearchTerm(e.target.value);
-            setCurrentPage(1);
-          }}
-          aria-label="Search users"
-        />
-      )}
+      <div className="flex items-center justify-between">
+        {users.length > 0 && (
+          <input
+            className="my-2.5 rounded-full border border-gray-300 bg-charleston p-2.5"
+            type="text"
+            placeholder="Search..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1); // Reset page number
+            }}
+            aria-label="Search users"
+          />
+        )}
+        {users.length > usersPerPage && <div className="my-4">{renderPageNumbers()}</div>}
+      </div>
       <div className="overflow-x-auto rounded-lg">
         {filteredUsers.length > 0 ? (
           <table className="min-w-full text-white" style={{ tableLayout: "fixed" }}>
@@ -229,13 +219,13 @@ const CombinedUserDataTable = ({
                 <tr
                   key={user.id}
                   className={`${index % 2 === 0 ? "bg-[#505050]" : "bg-[#404040]"} cursor-pointer`}
-                  onClick={() => handleSelectRow(user.id)}
+                  onClick={() => handleSelectRow(user.id || "")}
                 >
                   <td className="border-b border-[#404040] p-3">
                     <input
                       type="checkbox"
                       checked={user.selected || false}
-                      onChange={() => handleSelectRow(user.id)}
+                      onChange={() => handleSelectRow(user.id || "")}
                       aria-label={`Select ${user.first_name}`}
                     />
                   </td>
@@ -244,14 +234,14 @@ const CombinedUserDataTable = ({
                   <td className="border-b border-[#404040] p-3">{user.email}</td>
                   <td className="border-b border-[#404040] p-3">{user.role}</td>
                   <td className="border-b border-[#404040] p-3">
-                    {formatDate(user.created_at)}
+                    {formatDate(user.created_at ?? "")}
                   </td>
                   <td className="border-b border-[#404040] p-3">
-                    {formatDate(user.updated_at)}
+                    {formatDate(user.created_at ?? "")}
                   </td>
                   <td className="border-b border-[#404040] p-3">{user.gender}</td>
                   <td className="border-b border-[#404040] p-3">
-                    {formatDate(user.dateofbirth)}
+                    {formatDate(user.created_at ?? "")}
                   </td>
                   <td className="border-b border-[#404040] p-3">{user.description}</td>
                   <td className="border-b border-[#404040] p-3">{user.company}</td>
@@ -264,9 +254,6 @@ const CombinedUserDataTable = ({
           <p>No users found.</p>
         )}
       </div>
-      {users.length > usersPerPage && (
-        <div className="my-4 flex justify-center">{renderPageNumbers()}</div>
-      )}
     </>
   );
 };

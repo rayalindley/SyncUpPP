@@ -1,10 +1,9 @@
-// lib/newsletterActions.js
 "use server";
 import { createClient } from "@/lib/supabase/server";
 import { Resend } from "resend";
+import { EmailContent, AdminUuid, User, OrganizationUuid, EventUuid, CreateEmailResponse } from './types';
 
-// Function to fetch sent emails by admin
-export async function fetchSentEmailsByAdmin(adminUserId) {
+export async function fetchSentEmailsByAdmin(adminUserId: AdminUuid) {
   const supabase = createClient();
   try {
     const { data: sentEmails, error } = await supabase
@@ -19,18 +18,10 @@ export async function fetchSentEmailsByAdmin(adminUserId) {
   }
 }
 
-// Function to send a newsletter
-export async function sendEmail(emailContent) {
+export async function sendEmail(emailContent: EmailContent) {
   const resend = new Resend();
   try {
-    // response has data and error properties
-    const response = await resend.emails.send({
-      from: emailContent.from,
-      to: emailContent.to,
-      subject: emailContent.subject,
-      html: emailContent.html,
-      attachments: emailContent.attachments,
-    });
+    const response = await resend.emails.send(emailContent);
 
     if (response) {
       return response;
@@ -40,47 +31,49 @@ export async function sendEmail(emailContent) {
   }
 }
 
-export async function sendNewsletter(subject, content, allUsers, attachments, from) {
+export async function sendNewsletter(subject: string, content: string, allUsers: User[], attachments: any[], from: string) {
   const supabase = createClient();
   let successCount = 0;
-  let failures = [];
+  let failures: { email: string; reason: string }[] = [];
 
-  // Create a new array that only contains unique email addresses
   const uniqueUsers = allUsers.filter(
     (user, index, self) => index === self.findIndex((t) => t.email === user.email)
   );
 
   const promises = uniqueUsers.map(async (user) => {
     if (user && user.email) {
-      const emailContent = {
+      const emailContent: EmailContent = {
         from: `${from} <onboarding@resend.dev>`,
         to: user.email,
-        subject: subject,
+        subject,
         html: content,
-        attachments: attachments,
+        attachments,
       };
 
-      const { data: emailData, error: emailError } = await sendEmail(emailContent);
+      try {
+        const emailResponse = await sendEmail(emailContent);
+        console.log(emailResponse); // Directly log or use the response
 
-      if (!emailError) {
-        successCount++;
-        const { error: insertError } = await supabase.from("emails").insert([
-          {
-            sender: from,
-            receiver: user.email,
-            subject: subject,
-            body: content,
-            status: "Sent",
-          },
-        ]);
+        if (emailResponse) {
+          successCount++;
+          const insertResponse = await supabase.from("emails").insert([
+            {
+              sender: from,
+              receiver: user.email,
+              subject,
+              body: content,
+              status: "Sent",
+            },
+          ]);
 
-        if (insertError) {
-          console.error("Error inserting email record:", insertError);
+          if (insertResponse.error) {
+            console.error("Error inserting email record:", insertResponse.error);
+          }
+
+          return emailResponse;
         }
-
-        return emailData;
-      } else {
-        failures.push({ email: user.email, reason: emailError.message });
+      } catch (emailError: any) {
+        failures.push({ email: user.email, reason: emailError?.message });
         console.error("Error sending email:", emailError);
       }
     }
@@ -90,112 +83,85 @@ export async function sendNewsletter(subject, content, allUsers, attachments, fr
   return { successCount, failures, responses };
 }
 
-// Function to fetch all members managed by the current admin
-export async function fetchMembersByAdmin(adminUuid) {
+export async function fetchMembersByAdmin(adminUuid: AdminUuid) {
   const supabase = createClient();
   try {
-    const { data: members, error } = await supabase.rpc(
+    const { data: members, error }: { data: any, error: any } = await supabase.rpc(
       "get_all_combined_user_data_by_admin",
       { admin_uuid: adminUuid }
     );
 
     if (error) throw error;
 
-    return members.map((member) => ({
-      last_name: member.last_name,
-      first_name: member.first_name,
-      id: member.id,
-      email: member.email,
-      role: member.role,
-      created_at: member.created_at,
-      updated_at: member.updated_at,
-      gender: member.gender,
-      dateofbirth: member.dateofbirth,
-      description: member.description,
-      company: member.company,
-      website: member.website,
-    }));
-  } catch (error) {
+    return members;
+  } catch (error: any) {
     console.error("Error fetching members by admin:", error.message);
     return [];
   }
 }
 
-
-// Function to fetch all organizations managed by the current admin
-export async function fetchOrganizationsByAdmin(adminUuid) {
-  "Fetching organizations by admin:", adminUuid;
+export async function fetchOrganizationsByAdmin(adminUuid: AdminUuid) {
   const supabase = createClient();
   try {
-    const { data: organizations, error } = await supabase.rpc(
+    const { data: organizations, error }: { data: any, error: any } = await supabase.rpc(
       "get_all_organizations_by_admin",
       { admin_uuid: adminUuid }
     );
 
     if (error) throw error;
 
-    "Fetched organizations:", organizations;
     return organizations;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching organizations by admin:", error.message);
     return [];
   }
 }
 
-// Function to fetch all members of a specific organization
-export async function fetchMembersByOrganization(organizationUuid) {
-  "Fetching members by organization:", organizationUuid;
+export async function fetchMembersByOrganization(organizationUuid: OrganizationUuid) {
   const supabase = createClient();
   try {
-    const { data: members, error } = await supabase.rpc(
+    const { data: members, error }: { data: any, error: any } = await supabase.rpc(
       "get_all_combined_user_data_by_org",
       { organization_uuid: organizationUuid }
     );
 
     if (error) throw error;
 
-    "Fetched members:", members;
     return members;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching members by organization:", error.message);
     return [];
   }
 }
 
-// Function to fetch all events managed by the current admin
-export async function fetchEventsByAdmin(adminUuid) {
-  "Fetching events by admin:", adminUuid;
+export async function fetchEventsByAdmin(adminUuid: AdminUuid) {
   const supabase = createClient();
   try {
-    const { data: events, error } = await supabase.rpc("get_all_events_by_admin", {
+    const { data: events, error }: { data: any, error: any } = await supabase.rpc("get_all_events_by_admin", {
       admin_uuid: adminUuid,
     });
 
     if (error) throw error;
 
-    "Fetched events:", events;
     return events;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching events by admin:", error.message);
     return [];
   }
 }
 
-// Function to fetch all members registered for a specific event
-export async function fetchMembersByEvent(eventUuid) {
-  "Fetching members by event:", eventUuid;
+export async function fetchMembersByEvent(eventUuid: EventUuid) {
   const supabase = createClient();
   try {
-    const { data: members, error } = await supabase.rpc(
+    const { data: members, error }: { data: any, error: any } = await supabase.rpc(
       "get_all_combined_user_data_by_event",
       { event_uuid: eventUuid }
     );
 
     if (error) throw error;
 
-    "Fetched members:", members;
     return members;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching members by event:", error.message);
     return [];
   }

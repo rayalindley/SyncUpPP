@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useUser } from "@/context/UserContext";
-import { Email } from "@/lib/types";
+import { CombinedUserData, Email, Event, Organization } from "@/lib/types";
 import {
   fetchMembersByAdmin,
   fetchOrganizationsByAdmin,
@@ -14,7 +14,6 @@ import {
 } from "@/lib/newsletterActions";
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 import "react-quill/dist/quill.snow.css";
-import renderTable from "@/components/renderTable";
 import { z } from "zod";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -22,7 +21,6 @@ import { getCombinedUserDataById } from "@/lib/userActions";
 import EmailsTable from "@/components/EmailsTable";
 import { createClient } from "@/lib/supabase/client";
 import OrganizationsTable from "@/components/OrganizationTable";
-import { Organization } from "@/lib/types";
 import EventsTable from "@/components/EventsTable";
 import CombinedUserDataTable from "@/components/CombinedUserDataTable";
 
@@ -38,23 +36,24 @@ const newsletterSchema = z.object({
 });
 
 export default function NewsletterPage() {
-  console.log;
   const { user } = useUser();
   const [editorState, setEditorState] = useState("");
   const [subject, setSubject] = useState("");
-  const [attachments, setAttachments] = useState([]);
+  const [attachments, setAttachments] = useState<
+    Array<{ filename: string; content: string | ArrayBuffer | null }>
+  >([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [events, setEvents] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [selectedFromOrgName, setSelectedFromOrgName] = useState(null);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [users, setUsers] = useState<CombinedUserData[]>([]);
+  const [selectedFromOrgName, setSelectedFromOrgName] = useState<string | null>(null);
   const [sentEmails, setSentEmails] = useState<Email[]>([]);
 
-  const [formErrors, setFormErrors] = useState({});
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [fileError, setFileError] = useState("");
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
-    let timeoutId;
+    let timeoutId: NodeJS.Timeout | null = null;
     if (sending) {
       timeoutId = setTimeout(() => {
         toast.error(
@@ -63,9 +62,9 @@ export default function NewsletterPage() {
         setSending(false);
       }, 30000);
     } else {
-      clearTimeout(timeoutId);
+      clearTimeout(timeoutId!);
     }
-    return () => clearTimeout(timeoutId);
+    return () => clearTimeout(timeoutId!);
   }, [sending]);
 
   useEffect(() => {
@@ -76,8 +75,10 @@ export default function NewsletterPage() {
         "postgres_changes",
         { event: "*", schema: "public", table: "emails" },
         async (payload) => {
-          const emailsData = await fetchSentEmailsByAdmin(user.id);
-          setSentEmails(emailsData);
+          if (user) {
+            const emailsData = await fetchSentEmailsByAdmin(user.id);
+            setSentEmails(emailsData);
+          }
         }
       )
       .subscribe();
@@ -87,22 +88,21 @@ export default function NewsletterPage() {
     async function fetchData() {
       if (user) {
         const organizationsData = await fetchOrganizationsByAdmin(user.id);
-        console.log("organizationssssssss", organizationsData);
         const eventsData = await fetchEventsByAdmin(user.id);
         const usersData = await fetchMembersByAdmin(user.id);
         const emailsData = await fetchSentEmailsByAdmin(user.id);
 
-        const organizationsWithSelected = organizationsData.map((org) => ({
+        const organizationsWithSelected = organizationsData.map((org: Organization) => ({
           ...org,
           id: org.organizationid,
           selected: false,
         }));
-        const eventsWithSelected = eventsData.map((event) => ({
+        const eventsWithSelected = eventsData.map((event: Event) => ({
           ...event,
           id: event.eventid,
           selected: false,
         }));
-        const usersWithSelected = usersData.map((user) => ({ ...user, selected: false }));
+        const usersWithSelected = usersData.map((user: CombinedUserData) => ({ ...user, selected: false }));
 
         setOrganizations(organizationsWithSelected);
         setEvents(eventsWithSelected);
@@ -113,7 +113,7 @@ export default function NewsletterPage() {
     fetchData();
   }, [user]);
 
-  const transformUserData = (userDataArray) => {
+  const transformUserData = (userDataArray: Array<{ data: CombinedUserData }>) => {
     return userDataArray.map(({ data }) => ({
       id: data.id,
       email: data.email,
@@ -150,25 +150,25 @@ export default function NewsletterPage() {
     );
 
     const selectedUsers = await Promise.all(
-      selectedUserIds.map((userId) => getCombinedUserDataById(userId))
+      selectedUserIds.map((userId) => getCombinedUserDataById(userId || ""))
     );
 
     const transformedUsers = transformUserData(selectedUsers);
 
     const allUsers = [
-      ...new Set([...orgMembers.flat(), ...eventMembers.flat(), ...transformedUsers]),
-    ];
+      ...new Set([...orgMembers.flat(), ...eventMembers.flat(), ...transformedUsers])
+    ].map(item => item);
 
     if (selectedFromOrgName) {
-      setFormErrors((prevErrors) => ({ ...prevErrors, from: undefined }));
+      setFormErrors((prevErrors) => ({ ...prevErrors, from: '' }));
     }
 
     if (subject.trim()) {
-      setFormErrors((prevErrors) => ({ ...prevErrors, subject: undefined }));
+      setFormErrors((prevErrors) => ({ ...prevErrors, subject: '' }));
     }
 
     if (editorState.trim()) {
-      setFormErrors((prevErrors) => ({ ...prevErrors, content: undefined }));
+      setFormErrors((prevErrors) => ({ ...prevErrors, content: '' }));
     }
 
     try {
@@ -190,7 +190,7 @@ export default function NewsletterPage() {
         editorState,
         allUsers,
         attachments,
-        selectedFromOrgName
+        selectedFromOrgName ?? ''
       );
 
       const { successCount, failures } = await sendNewsletterPromise;
@@ -198,8 +198,10 @@ export default function NewsletterPage() {
       if (successCount > 0) {
         toast.success(`Newsletter sent successfully to ${successCount} recipients!`);
 
-        const emailsData = await fetchSentEmailsByAdmin(user.id);
-        setSentEmails(emailsData);
+        if (user) {
+          const emailsData = await fetchSentEmailsByAdmin(user.id);
+          setSentEmails(emailsData);
+        }
       }
 
       if (failures.length > 0) {
@@ -225,15 +227,32 @@ export default function NewsletterPage() {
       setSending(false);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        setFormErrors(error.flatten().fieldErrors);
+        // Transform the fieldErrors to match the expected type for setFormErrors
+        const fieldErrors = error.flatten().fieldErrors;
+        const transformedErrors: Record<string, string> = {};
+      
+        Object.keys(fieldErrors).forEach((key) => {
+          // Check if fieldErrors[key] is not undefined before calling join
+          if (fieldErrors[key] !== undefined) {
+            // Since we've checked for undefined, we don't need the optional chaining operator
+            transformedErrors[key] = fieldErrors[key]!.join(', ');
+          } else {
+            // Handle the case where fieldErrors[key] is undefined
+            transformedErrors[key] = 'No error message provided.';
+          }
+        });
+      
+        setFormErrors(transformedErrors);
         toast.error("Please fill in all required fields");
       }
+      
+      
     }
   };
 
-  const handleAttachmentChange = (event) => {
-    const files = Array.from(event.target.files);
-    const readers = [];
+  const handleAttachmentChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files ? Array.from(event.target.files) : [];
+    const readers: Array<{ filename: string; content: string | ArrayBuffer | null }> = [];
     let size = 0;
 
     for (let file of files) {
@@ -260,47 +279,54 @@ export default function NewsletterPage() {
     }
   };
 
-  const handleSubjectChange = (event) => {
+  const handleSubjectChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSubject(event.target.value);
   };
 
-  const onEditorStateChange = (value) => {
+  const onEditorStateChange = (value: string) => {
     setEditorState(value);
   };
 
-  const toggleSelection = (list, id) => {
+  const toggleSelection = (
+    list: Array<{ id: string; selected: boolean }>,
+    id: string
+  ) => {
     return list.map((item) => ({
       ...item,
       selected: item.id === id ? !item.selected : item.selected,
     }));
   };
 
-  const formatKey = (key) => {
-    if (key === "dateofbirth") return "Date of Birth";
-    if (key === "eventdatetime") return "Event Date";
-    const excludedKeys = [
-      "updatedat",
-      "selected",
-      "slug",
-      "created_at",
-      "socials",
-      "createdat",
-      "eventphoto",
-      "last_name",
-      "first_name",
-    ];
-
-    if (excludedKeys.includes(key)) return null;
-    return key
-      .split("_")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
+  const toggleOrganizationSelection = (
+    list: Organization[],
+    id: string
+  ): Organization[] => {
+    return list.map((item) => ({
+      ...item,
+      selected: item.id === id ? !item.selected : item.selected,
+    }));
   };
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
+  const toggleEventSelection = (
+    list: Event[],
+    id: string
+  ): Event[] => {
+    return list.map((item) => ({
+      ...item,
+      selected: item.id === id ? !item.selected : item.selected,
+    }));
   };
+  
+  const toggleCombinedUserSelection = (
+    list: CombinedUserData[],
+    id: string
+  ): CombinedUserData[] => {
+    return list.map((item) => ({
+      ...item,
+      selected: item.id === id ? !item.selected : item.selected,
+    }));
+  };
+  
 
   return (
     <>
@@ -324,6 +350,7 @@ export default function NewsletterPage() {
             id="fromOrg"
             value={selectedFromOrgName || ""}
             onChange={(e) => setSelectedFromOrgName(e.target.value)}
+            title="Select a sender organization"
           >
             <option value="">Select a sender organization</option>
             {organizations.map((org) => (
@@ -366,8 +393,10 @@ export default function NewsletterPage() {
           <input
             type="file"
             multiple
+            id="attachments"
             onChange={handleAttachmentChange}
             className="block"
+            placeholder="Select attachments"
           />
           {fileError && <p className="text-sm text-red-500">{fileError}</p>}
         </div>
@@ -384,7 +413,7 @@ export default function NewsletterPage() {
               <OrganizationsTable
                 organizations={organizations}
                 setOrganizations={setOrganizations}
-                toggleSelection={toggleSelection}
+                toggleSelection={toggleOrganizationSelection}
               />
             </div>
           </details>
@@ -398,7 +427,7 @@ export default function NewsletterPage() {
               <EventsTable
                 events={events}
                 setEvents={setEvents}
-                toggleSelection={toggleSelection}
+                toggleSelection={toggleEventSelection}
               />
             </div>
           </details>
@@ -412,7 +441,7 @@ export default function NewsletterPage() {
               <CombinedUserDataTable
                 users={users}
                 setUsers={setUsers}
-                toggleSelection={toggleSelection}
+                toggleSelection={toggleCombinedUserSelection}
               />
             </div>
           </details>

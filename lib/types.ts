@@ -28,6 +28,8 @@ export type Socials = {
 };
 
 export type Organization = {
+  id?: string;
+  selected?: boolean;
   organizationid: string;
   name: string;
   description: string;
@@ -47,6 +49,7 @@ export type Organization = {
 
 // Define the Event type based on the provided schema
 export type Event = {
+  id?: string;
   eventid: string;
   organizationid: string;
   title: string;
@@ -79,7 +82,8 @@ export type UserProfile = {
 
 // ./types/combinedUserData.ts
 export type CombinedUserData = {
-  id?: string
+  selected?: boolean;
+  id?: string | undefined;
   email?: string
   role?: string
   created_at?: Date
@@ -107,3 +111,23 @@ export interface Membership {
 export interface MembershipsProps {
   memberships: Membership[];
 }
+// Add these type definitions to your types.ts file
+
+export type EmailContent = {
+  from: string;
+  to: string;
+  subject: string;
+  html: string;
+  attachments: any[]; // Specify a more precise type for attachments if possible
+};
+
+export type AdminUuid = string; // Assuming admin UUIDs are strings
+export type User = CombinedUserData; // Based on the structure, it seems User can be CombinedUserData
+export type OrganizationUuid = string; // Assuming organization UUIDs are strings
+export type EventUuid = string; // Assuming event UUIDs are strings
+// Add this type definition to your types.ts file
+
+export type CreateEmailResponse = {
+  data?: any; // Replace 'any' with a more specific type if possible
+  error?: any; // Replace 'any' with a more specific type if possible
+};

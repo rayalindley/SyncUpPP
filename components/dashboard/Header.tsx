@@ -38,7 +38,7 @@ function Header({ user }: { user: User }) {
 
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
-  const [notifications, setNotifications] = useState([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
@@ -46,15 +46,18 @@ function Header({ user }: { user: User }) {
     const loadNotifications = async () => {
       const { data, unreadCount } = await fetchNotifications(user.id);
 
-      // Sort notifications by unread status first, then alphabetically
-      const sortedData = data.sort((a, b) => {
-        if (a.isread === b.isread) {
-          return a.message.localeCompare(b.message);
-        }
-        return a.isread ? 1 : -1;
-      });
+      if (data) {
+        // Sort notifications by unread status first, then alphabetically
+        const sortedData = data.sort((a, b) => {
+          if (a.isread === b.isread) {
+            return a.message.localeCompare(b.message);
+          }
+          return a.isread ? 1 : -1;
+        });
 
-      setNotifications(sortedData);
+        setNotifications(sortedData);
+      }
+
       setUnreadCount(unreadCount);
     };
 
@@ -77,6 +80,24 @@ function Header({ user }: { user: User }) {
       .subscribe();
   }, [user]);
 
+  const loadNotifications = async () => {
+    const { data, unreadCount } = await fetchNotifications(user.id);
+
+    if (data) {
+      // Sort notifications by unread status first, then alphabetically
+      const sortedData = data.sort((a, b) => {
+        if (a.isread === b.isread) {
+          return a.message.localeCompare(b.message);
+        }
+        return a.isread ? 1 : -1;
+      });
+
+      setNotifications(sortedData);
+    }
+
+    setUnreadCount(unreadCount);
+  };
+
   const handleMarkAllAsRead = async () => {
     const updatedNotifications = notifications.map((notification) => ({
       ...notification,
@@ -92,7 +113,7 @@ function Header({ user }: { user: User }) {
     }
   };
 
-  function getNotificationLink(notification) {
+  function getNotificationLink(notification: { type: any; path: any; }) {
     switch (notification.type) {
       case "event":
         return "/" + `${notification.path}`;
@@ -109,7 +130,7 @@ function Header({ user }: { user: User }) {
     }
   }
 
-  function getNotificationIcon(notification) {
+  function getNotificationIcon(notification: { type: any; }) {
     switch (notification.type) {
       case "event":
         return <CalendarIcon className="h-6 w-6 text-light" />;
@@ -125,7 +146,7 @@ function Header({ user }: { user: User }) {
     }
   }
 
-  const handleNotificationClick = async (notificationId) => {
+  const handleNotificationClick = async (notificationId: any) => {
     const updatedNotifications = notifications.map((notification) =>
       notification.notificationid === notificationId
         ? { ...notification, isread: true }
@@ -215,7 +236,7 @@ function Header({ user }: { user: User }) {
                       notifications.map((notification) => (
                         <a
                           key={notification.notificationid}
-                          href={getNotificationLink(notification)}
+                          ref={getNotificationLink(notification)}
                           className={`my-1 flex items-center gap-x-2 rounded-lg px-4 py-2 hover:bg-[#525252] ${notification.isread ? "bg-gray" : "bg-[#232323]"}`}
                           onClick={() => {
                             handleNotificationClick(notification.notificationid);

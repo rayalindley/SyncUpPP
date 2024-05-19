@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Organization as BaseOrganization, Address, Socials } from "@/lib/types";
 
 interface Organization extends BaseOrganization {
-  selected?: boolean;
   address: Address;
   socials: Socials;
 }
@@ -91,7 +90,7 @@ const OrganizationsTable = ({
 
   const formatDate = (date: Date | string) => {
     const d = new Date(date);
-    return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+    return `${d.getFullYear()}-${("0" + (d.getMonth() + 1)).slice(-2)}-${d.getDate()}`;
   };
 
   const SortIcon = ({ direction }: { direction: string | null }) => (
@@ -159,19 +158,24 @@ const OrganizationsTable = ({
 
   return (
     <>
-      {organizations.length > 0 && (
-        <input
-          className="my-2.5 rounded-full border border-gray-300 bg-charleston p-2.5"
-          type="text"
-          placeholder="Search..."
-          value={searchTerm}
-          onChange={(e) => {
-            setSearchTerm(e.target.value);
-            setCurrentPage(1); // Reset page number
-          }}
-          aria-label="Search organizations"
-        />
-      )}
+      <div className="flex items-center justify-between">
+        {organizations.length > 0 && (
+          <input
+            className="my-2.5 rounded-full border border-gray-300 bg-charleston p-2.5"
+            type="text"
+            placeholder="Search..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1); // Reset page number
+            }}
+            aria-label="Search organizations"
+          />
+        )}
+        {organizations.length > organizationsPerPage && (
+          <div className="my-4">{renderPageNumbers()}</div>
+        )}
+      </div>
       <div className="overflow-x-auto rounded-lg">
         {filteredOrganizations.length > 0 ? (
           <table className="min-w-full text-white" style={{ tableLayout: "fixed" }}>
@@ -296,9 +300,6 @@ const OrganizationsTable = ({
           <p>No organizations found.</p>
         )}
       </div>
-      {organizations.length > organizationsPerPage && (
-        <div className="my-4 flex justify-center">{renderPageNumbers()}</div>
-      )}
     </>
   );
 };
