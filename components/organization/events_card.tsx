@@ -1,6 +1,7 @@
 "use client";
 import { countRegisteredUsers } from "@/lib/events";
 import { createClient, getUser } from "@/lib/supabase/client";
+import { Event } from "@/lib/types";
 import { UserGroupIcon } from "@heroicons/react/24/outline";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -8,7 +9,7 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Swal from "sweetalert2";
 
-const EventsCard = ({ event }) => {
+const EventsCard = ({ event }: { event: Event }) => {
   const {
     eventid,
     imageUrl,
@@ -26,7 +27,7 @@ const EventsCard = ({ event }) => {
 
   const router = useRouter(); // Next.js router for navigation
 
-  const formattedDateTime = (utcDateString) => {
+  const formattedDateTime = (utcDateString: string) => {
     // Create a Date object from the UTC date string
     const date = new Date(utcDateString);
 
@@ -42,13 +43,7 @@ const EventsCard = ({ event }) => {
   };
 
   // Use this function to format your event.eventdatetime
-  const eventDateTimePST = formattedDateTime(eventdatetime);
-
-  // Determine the content for the registration tag
-  const registrationTagContent =
-    registrationfee && parseFloat(registrationfee) !== null
-      ? `Php ${registrationfee}`
-      : "Free";
+  const eventDateTimePST = formattedDateTime(eventdatetime.toString());
 
   // Determine if the location is a URL and create a clickable link
   const locationContent =
@@ -126,12 +121,12 @@ const EventsCard = ({ event }) => {
       toast.error("Failed to fetch the number of registered users.");
       console.error("Error fetching registered count:", error);
     } else {
-      setRegisteredCount(count);
+      setRegisteredCount(count ?? 0);
     }
   };
 
   // Format date and time
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string) => {
     const options = {
       weekday: "short",
       month: "short",
@@ -143,8 +138,8 @@ const EventsCard = ({ event }) => {
   };
 
   // Format registration fee
-  const formatFee = (fee) => {
-    return fee && fee > 0 ? `Php ${parseFloat(fee).toFixed(2)}` : "Free";
+  const formatFee = (fee: number) => {
+    return fee && fee > 0 ? `Php ${parseFloat(fee.toString()).toFixed(2)}` : "Free";
   };
 
   // Determine the display text for the number of attendees
@@ -182,7 +177,9 @@ const EventsCard = ({ event }) => {
       <div className="flex flex-grow flex-col justify-between p-4">
         <div>
           <h3 className="text-lg font-semibold text-light">{title}</h3>
-          <p className="mt-2 text-sm text-light">{formatDate(eventdatetime)}</p>
+          <p className="mt-2 text-sm text-light">
+            {formatDate(eventdatetime.toString())}
+          </p>
           <p className="text-sm text-light">{locationContent}</p>
           <p className="mt-2 text-sm font-medium text-light">
             {formatFee(registrationfee)}

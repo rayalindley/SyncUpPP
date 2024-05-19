@@ -3,18 +3,21 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import EventsCard from "@/components/organization/events_card";
 import { createClient, getUser } from "@/lib/supabase/client";
+import { Event } from "@/lib/types";
+import { User } from "@/node_modules/@supabase/auth-js/src/lib/types";
 import { ArrowLongLeftIcon, ArrowLongRightIcon } from "@heroicons/react/20/solid";
 import { useEffect, useState } from "react";
 
 export default function EventsPublicView() {
-  const [user, setUser] = useState(null);
-  const [events, setEvents] = useState([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [events, setEvents] = useState<Event[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const eventsPerPage = 6;
 
   useEffect(() => {
     async function fetchUser() {
-      const user = await getUser(); // Adjust this to your actual user fetching logic
+      const { user } = await getUser(); // Adjust this to your actual user fetching logic
+      console.log(user);
       setUser(user);
     }
 
@@ -42,7 +45,7 @@ export default function EventsPublicView() {
   const currentEvents = events.slice(indexOfFirstEvent, indexOfLastEvent);
 
   // Pagination handlers
-  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
   const isFirstPage = currentPage === 1;
   const isLastPage = indexOfLastEvent >= events.length;
 
@@ -58,18 +61,23 @@ export default function EventsPublicView() {
               <p>Browse and view public events that fit your interests.</p>
             </div>
 
-            <div className="min-w-2xl mx-auto mt-20 grid w-full grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
+            <div className="min-w-2xl mx-auto mt-20 grid w-full grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
               {currentEvents.map((event) => (
                 <EventsCard
                   key={event.eventid}
                   event={{
                     eventid: event.eventid,
-                    imageUrl: event.eventphoto, // Assuming eventphoto is the field for the event photo
+                    imageUrl: event.eventphoto,
                     title: event.title,
                     description: event.description,
                     registrationfee: event.registrationfee,
                     eventdatetime: event.eventdatetime,
                     location: event.location,
+                    eventslug: event.eventslug,
+                    eventphoto: event.eventphoto,
+                    capacity: event.capacity,
+                    organizationid: event.organizationid,
+                    tags: event.tags,
                   }}
                 />
               ))}

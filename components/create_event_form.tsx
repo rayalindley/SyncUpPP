@@ -12,10 +12,10 @@ import "react-toastify/dist/ReactToastify.css";
 import { z } from "zod";
 import "../app/tags.css";
 
-const isFutureDate = (value: Date, context) => {
+const isFutureDate = (value: Date) => {
   if (value instanceof Date) {
     const now = new Date();
-    return value > now || context?.options?.original_value?.getTime() === value.getTime();
+    return value > now;
   }
   return false;
 };
@@ -23,7 +23,7 @@ const isFutureDate = (value: Date, context) => {
 const EventSchema = z.object({
   title: z.string().min(3, "Event Title is required"),
   description: z.string().min(3, "Description is required"),
-  eventdatetime: z.date().refine((value, context) => isFutureDate(value, context), {
+  eventdatetime: z.date().refine((value) => isFutureDate(value), {
     message: "Event Date & Time should be in the future",
   }),
   location: z.string().min(3, "Location is required"),
@@ -44,6 +44,7 @@ const EventSchema = z.object({
 });
 
 interface EventFormValues {
+  eventid: string;
   title: string;
   description: string;
   eventdatetime: Date;
@@ -77,6 +78,7 @@ const CreateEventForm = ({
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [removeImageFlag, setRemoveImageFlag] = useState(false);
+  const [imageError, setImageError] = useState("");
   const router = useRouter();
 
   const formOptions = event ? { defaultValues: event } : {};
@@ -169,7 +171,7 @@ const CreateEventForm = ({
         return;
       }
     } else if (removeImageFlag && previousPhotoUrl) {
-      const fileName = previousPhotoUrl.split("/").pop(); // This will get you "test_1715006261622-hip4l"
+      const fileName = previousPhotoUrl?.split("/").pop() ?? ""; // Ensure fileName is always a string
 
       // Remove the image from storage
       const { error } = await supabase.storage.from("event-images").remove([fileName]);
@@ -213,7 +215,7 @@ const CreateEventForm = ({
       capacity: finalCapacityValue,
       registrationfee: finalRegistrationFeeValue,
       tags: formattedTags,
-      eventslug: event ? event.slug : slug,
+      slug: event ? event.eventslug : slug,
     };
 
     console.log("Complete form data:", completeFormData);
@@ -226,7 +228,7 @@ const CreateEventForm = ({
       toast.success(
         event ? "Event was updated successfully." : "Event was created successfully."
       );
-      router.push(`/e/${event ? event.eventslug : completeFormData.eventslug}`);
+      router.push(`/e/${event ? event.eventslug : completeFormData.slug}`);
       reset();
     } else if (error) {
       toast.error(
@@ -241,7 +243,7 @@ const CreateEventForm = ({
     setRemoveImageFlag(false); // Reset the flag after form submission
   };
 
-  const formatDateForInput = (date) => {
+  const formatDateForInput = (date: Date) => {
     const year = date.getFullYear();
     const month = (date.getMonth() + 1).toString().padStart(2, "0");
     const day = date.getDate().toString().padStart(2, "0");
@@ -300,20 +302,20 @@ const CreateEventForm = ({
     event?.capacity > 0 || event?.capacity != null
   );
   const [hasRegistrationFee, setHasRegistrationFee] = useState(
-    event?.registrationfee > 0 || event?.registrationfee != null
+    event?.registrationfee > 0 || event?.registrationfee != null ? true : false
   );
 
-  const handleRegistrationFeeChange = (hasFee) => {
+  const handleRegistrationFeeChange = (hasFee: boolean) => {
     setHasRegistrationFee(hasFee);
     if (!hasFee) {
       setRegistrationFeeValue(null); // Clear registration fee value when "No" is selected
-      setValue("registrationfee", null); // Reset the registration fee field in the form state
+      setValue("registrationfee", 0); // Reset the registration fee field in the form state
       // Trigger validation for the registration fee field
       trigger("registrationfee");
     }
   };
 
-  const handleCapacityChange = (hasLimit) => {
+  const handleCapacityChange = (hasLimit: boolean) => {
     setHasCapacityLimit(hasLimit);
     if (!hasLimit) {
       setCapacityValue(null); // Clear capacity value when "No" is selected
@@ -332,7 +334,7 @@ const CreateEventForm = ({
     setRemoveImageFlag(true);
   };
 
-  const [tags, setTags] = useState([]);
+  const [tags, setTags] = useState<string[]>(event?.tags || []);
 
   useEffect(() => {
     const input = document.querySelector("input[name=tags]");
@@ -365,17 +367,26 @@ const CreateEventForm = ({
               )}
               <div className="absolute bottom-0 right-0 mb-2 mr-2 flex items-center gap-1 ">
                 {!eventphoto && (
-                  <div className="flex items-center space-x-2 rounded-lg bg-black bg-opacity-25 px-4  text-white hover:bg-gray-600 hover:bg-opacity-25">
-                    <PhotoIcon className="h-6 w-6 text-white" />
-                    <label htmlFor="file-input" className="cursor-pointer py-2 ">
+                  <div className="flex items-center space-x-2 rounded-lg bg-black bg-opacity-25 px-3  text-white hover:cursor-pointer hover:bg-gray-600 hover:bg-opacity-25">
+                    <PhotoIcon className="h-5 w-5 text-white " />
+                    <label
+                      htmlFor="file-input"
+                      className="cursor-pointer py-2 text-sm font-medium"
+                    >
                       Add
                     </label>
                     <input
                       id="file-input"
                       type="file"
+                      accept="image/*"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
+                          if (!file.type.startsWith("image/")) {
+                            setImageError("Please upload an image file");
+                            return;
+                          }
+                          setImageError("");
                           setPhotoFile(file);
                           setEventPhoto(URL.createObjectURL(file));
                         }
@@ -386,9 +397,12 @@ const CreateEventForm = ({
                 )}
                 {eventphoto && (
                   <>
-                    <div className="flex items-center space-x-2 rounded-lg bg-black bg-opacity-25 px-2 pr-1 text-white hover:bg-gray-500 hover:bg-opacity-25">
-                      <PhotoIcon className="h-6 w-6 text-white" />
-                      <label htmlFor="file-input" className="cursor-pointer py-2 pr-2">
+                    <div className="flex items-center space-x-2 rounded-lg bg-black bg-opacity-25 px-3 pr-1 text-white hover:cursor-pointer hover:bg-gray-500 hover:bg-opacity-25">
+                      <PhotoIcon className="h-5 w-5 text-white" />
+                      <label
+                        htmlFor="file-input"
+                        className="cursor-pointer py-2 pr-2 text-sm font-medium"
+                      >
                         Change
                       </label>
                       <input
@@ -397,6 +411,11 @@ const CreateEventForm = ({
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) {
+                            if (!file.type.startsWith("image/")) {
+                              setImageError("Please upload an image file");
+                              return;
+                            }
+                            setImageError("");
                             setPhotoFile(file);
                             setEventPhoto(URL.createObjectURL(file));
                             setRemoveImageFlag(false); // Reset the flag when a new image is added
@@ -408,7 +427,7 @@ const CreateEventForm = ({
                     <button
                       type="button"
                       onClick={removeImage}
-                      className="cursor-pointer rounded-lg bg-red-600 bg-opacity-50 px-2 py-2 text-light hover:bg-red-700 hover:bg-opacity-25"
+                      className="cursor-pointer rounded-lg bg-red-600 bg-opacity-75 px-2 py-2 text-sm font-medium text-light hover:bg-red-700 hover:bg-opacity-50"
                     >
                       Remove
                     </button>
@@ -597,8 +616,10 @@ const CreateEventForm = ({
             </label>
             <input
               name="tags"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
+              value={tags.join(",")}
+              onChange={(e) =>
+                setTags(e.target.value.split(",").map((tag) => tag.trim()))
+              }
               className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-charleston focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
             />
           </div>

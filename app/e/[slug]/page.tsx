@@ -2,6 +2,8 @@
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import { createClient, getUser } from "@/lib/supabase/client"; // Ensure you have this import for Supabase client
+import { Event, Organization } from "@/lib/types";
+import { User } from "@/node_modules/@supabase/auth-js/src/lib/types";
 import {
   CalendarIcon,
   ChevronDownIcon,
@@ -11,25 +13,28 @@ import {
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import Swal from "sweetalert2";
-
-import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import Swal from "sweetalert2";
 
 const EventPage = () => {
   const router = useRouter();
   const { slug } = useParams();
-  const [event, setEvent] = useState(null);
-  const [organization, setOrganization] = useState(null);
+  const [event, setEvent] = useState<Event | null>(null);
+  const [organization, setOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const { user } = getUser();
   const supabase = createClient();
   const [showFullDescription, setShowFullDescription] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
+    async function fetchUser() {
+      const { user } = await getUser(); // Adjust this to your actual user fetching logic
+      console.log(user);
+      setUser(user);
+    }
     const fetchEvent = async () => {
       try {
         const { data: eventData, error: eventError } = await supabase
@@ -63,6 +68,7 @@ const EventPage = () => {
     if (slug) {
       fetchEvent();
     }
+    fetchUser();
   }, [slug, supabase]);
 
   if (loading) {
@@ -182,7 +188,7 @@ const EventPage = () => {
                   </div>
                 </div>
               )}
-              <hr className="border-fadedgrey my-4 border-t opacity-50" />
+              <hr className="my-4 border-t border-fadedgrey opacity-50" />
 
               {/* Render tags if they exist */}
               {event.tags && (
@@ -254,7 +260,7 @@ const EventPage = () => {
 
               <div className="mt-6">
                 <p className="text-sm font-medium text-light">Event Description</p>
-                <hr className="border-fadedgrey my-2 border-t opacity-50" />
+                <hr className="my-2 border-t border-fadedgrey opacity-50" />
                 <p className="whitespace-pre-wrap text-justify">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {event.description}
