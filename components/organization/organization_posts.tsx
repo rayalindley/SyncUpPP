@@ -16,7 +16,6 @@ const OrganizationPostsComponent = ({ organizationid, posts }) => {
       const { data, error } = await fetchPosts(organizationid, currentPage, postsPerPage);
       if (!error) {
         setPostsData(data);
-        console.log("Posts fetched successfully:", data);
       } else {
         console.error("Error fetching posts:", error);
       }
@@ -45,7 +44,7 @@ const OrganizationPostsComponent = ({ organizationid, posts }) => {
         <div className="isolate max-w-6xl lg:max-w-none">
           {postsData.map((post, index) => (
             <div key={index} className="mx-auto">
-              <PostsCard post={post} />
+              <PostsCard post={post} setPostsData={setPostsData} postsData={postsData} />
               {index !== postsData.length - 1 && <Divider />}
             </div>
           ))}
