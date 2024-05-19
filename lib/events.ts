@@ -220,3 +220,177 @@ export async function getEventBySlug(slug: string) {
     };
   }
 }
+
+export async function registerForEvent(eventId: string, userId: string) {
+  const supabase = createClient();
+
+  try {
+    // Fetch event to check privacy setting
+    const { data: event, error: eventError } = await supabase
+      .from("events")
+      .select("privacy, organizationid")
+      .eq("eventid", eventId)
+      .single();
+
+    if (eventError || !event) {
+      return { data: null, error: { message: eventError?.message || "Event not found" } };
+    }
+
+    // Check if the event is private
+    if (event.privacy === "private") {
+      // Check if the user is a member of the organization
+      const { data: membership, error: membershipError } = await supabase
+        .from("organizationmembers")
+        .select("organizationmemberid")
+        .eq("userid", userId)
+        .eq("organizationid", event.organizationid)
+        .single();
+
+      if (membershipError || !membership) {
+        return {
+          data: null,
+          error: { message: "User is not a member of the organization" },
+        };
+      }
+
+      const organizationMemberId = membership.organizationmemberid;
+
+      // Register the user for the event
+      const { data: registrationData, error: registrationError } = await supabase
+        .from("eventregistrations")
+        .insert([
+          {
+            eventid: eventId,
+            organizationmemberid: organizationMemberId,
+            registrationdate: new Date().toISOString(),
+            status: "registered",
+          },
+        ]);
+
+      if (registrationError) {
+        return { data: null, error: { message: registrationError.message } };
+      }
+
+      return { data: registrationData, error: null };
+    } else {
+      // Public event, register the user without checking membership
+      const { data: registrationData, error: registrationError } = await supabase
+        .from("eventregistrations")
+        .insert([
+          {
+            eventid: eventId,
+            registrationdate: new Date().toISOString(),
+            status: "registered",
+          },
+        ]);
+
+      if (registrationError) {
+        return { data: null, error: { message: registrationError.message } };
+      }
+
+      return { data: registrationData, error: null };
+    }
+  } catch (e: any) {
+    console.error("Unexpected error:", e);
+    return {
+      data: null,
+      error: { message: e.message || "An unexpected error occurred" },
+    };
+  }
+}
+
+export async function checkUserRegistration(eventId: string, userId: string) {
+  const supabase = createClient();
+
+  try {
+    // Fetch the event registration record for the user
+    const { data: registration, error } = await supabase
+      .from("eventregistrations")
+      .select("status")
+      .eq("eventid", eventId)
+      .eq("userid", userId)
+      .single();
+
+    if (error && error.code !== "PGRST116") {
+      // PGRST116 is the code for no rows found
+      throw error;
+    }
+
+    const isRegistered = registration?.status === "registered";
+    return { isRegistered, error: null };
+  } catch (e: any) {
+    console.error("Unexpected error:", e);
+    return {
+      isRegistered: false,
+      error: { message: e.message || "An unexpected error occurred" },
+    };
+  }
+}
+
+export async function checkEventPrivacyAndMembership(eventId: string, userId: string) {
+  const supabase = createClient();
+
+  try {
+    // Fetch the event privacy setting and organization ID
+    const { data: event, error: eventError } = await supabase
+      .from("events")
+      .select("privacy, organizationid")
+      .eq("eventid", eventId)
+      .single();
+
+    if (eventError || !event) {
+      throw new Error(eventError?.message || "Event not found");
+    }
+
+    // If the event is public, no need to check membership
+    if (event.privacy === "public") {
+      return { isMember: true, error: null };
+    }
+
+    // If the event is private, check if the user is a member of the organization
+    const { data: membership, error: membershipError } = await supabase
+      .from("organizationmembers")
+      .select("organizationmemberid")
+      .eq("userid", userId)
+      .eq("organizationid", event.organizationid)
+      .single();
+
+    if (membershipError && membershipError.code !== "PGRST116") {
+      // PGRST116 is the code for no rows found
+      throw membershipError;
+    }
+
+    const isMember = !!membership;
+    return { isMember, error: null };
+  } catch (e: any) {
+    console.error("Unexpected error:", e);
+    return {
+      isMember: false,
+      error: { message: e.message || "An unexpected error occurred" },
+    };
+  }
+}
+
+export async function unregisterFromEvent(eventId: string, userId: string) {
+  const supabase = createClient();
+
+  try {
+    const { data, error } = await supabase
+      .from("eventregistrations")
+      .delete()
+      .eq("eventid", eventId)
+      .eq("userid", userId);
+
+    if (error) {
+      throw error;
+    }
+
+    return { data, error: null };
+  } catch (e: any) {
+    console.error("Unexpected error:", e);
+    return {
+      data: null,
+      error: { message: e.message || "An unexpected error occurred" },
+    };
+  }
+}

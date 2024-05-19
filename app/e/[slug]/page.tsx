@@ -1,6 +1,12 @@
 "use client";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
+import {
+  checkEventPrivacyAndMembership,
+  checkUserRegistration,
+  registerForEvent,
+  unregisterFromEvent,
+} from "@/lib/events";
 import { createClient, getUser } from "@/lib/supabase/client"; // Ensure you have this import for Supabase client
 import { Event, Organization } from "@/lib/types";
 import { User } from "@/node_modules/@supabase/auth-js/src/lib/types";
@@ -28,15 +34,16 @@ const EventPage = () => {
   const supabase = createClient();
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [isRegistered, setIsRegistered] = useState(false);
+  const [isMember, setIsMember] = useState(false);
 
   useEffect(() => {
-    async function fetchUser() {
-      const { user } = await getUser(); // Adjust this to your actual user fetching logic
-      console.log(user);
+    async function fetchData() {
+      const { user } = await getUser();
       setUser(user);
-    }
-    const fetchEvent = async () => {
+
       try {
+        const supabase = createClient();
         const { data: eventData, error: eventError } = await supabase
           .from("events")
           .select("*")
@@ -44,32 +51,44 @@ const EventPage = () => {
           .single();
 
         if (eventError) throw eventError;
-
         setEvent(eventData);
 
-        if (eventData.organizationid) {
-          const { data: organizationData, error: organizationError } = await supabase
+        if (eventData?.organizationid) {
+          const { data: organizationData, error: orgError } = await supabase
             .from("organizations")
             .select("*")
             .eq("organizationid", eventData.organizationid)
             .single();
 
-          if (organizationError) throw organizationError;
-
+          if (orgError) throw orgError;
           setOrganization(organizationData);
+        }
+
+        if (eventData && user) {
+          const { isRegistered } = await checkUserRegistration(
+            eventData.eventid,
+            user.id
+          );
+          setIsRegistered(isRegistered);
+
+          const { isMember } = await checkEventPrivacyAndMembership(
+            eventData.eventid,
+            user.id
+          );
+          console.log(isMember);
+          setIsMember(isMember);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
         setLoading(false);
       }
-    };
+    }
 
     if (slug) {
-      fetchEvent();
+      fetchData();
     }
-    fetchUser();
-  }, [slug, supabase]);
+  }, [slug]);
 
   if (loading) {
     return <div>Loading...</div>;
@@ -80,13 +99,11 @@ const EventPage = () => {
   }
 
   const handleEventRegistration = async () => {
-    // Initialize Supabase client
-    const supabase = createClient();
-
+    if (isRegistered || !isMember) return;
     // Confirmation dialog with SweetAlert
     const result = await Swal.fire({
       title: "Are you sure?",
-      text: "You won't be able to revert this!",
+      text: "Do you want to join the event?",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#3085d6",
@@ -99,30 +116,56 @@ const EventPage = () => {
       const { user } = await getUser();
       const userId = user?.id;
 
-      // Check if the user data is retrieved successfully
       if (!userId) {
         console.error("User not found");
         toast.error("User not found. Please log in.");
         return;
       }
 
-      const { data, error } = await supabase.from("eventregistrations").insert([
-        {
-          eventid: event.eventid,
-          organizationmemberid: "65f1453b-b118-4b49-9000-8f33e52caed2", // Replace with the organization member ID
-          registrationdate: new Date().toISOString(),
-          status: "registered",
-        },
-      ]);
+      // Call the new registerForEvent function
+      const { data, error } = await registerForEvent(event.eventid, userId);
 
       if (error) {
         console.error("Registration failed:", error);
-        toast.error("Registration failed. Please try again.");
+        toast.error(`Registration failed: ${error.message}`);
       } else {
         console.log("Registration successful:", data);
         toast.success("You have successfully joined the event!");
-        // setIsDialogOpen(false); // Uncomment and use if you have a dialog state
-        // Additional logic after successful registration (e.g., close dialog, show message)
+        setIsRegistered(true);
+      }
+    }
+  };
+
+  const handleEventUnregistration = async () => {
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "Do you want to cancel your registration?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, cancel it!",
+    });
+
+    if (result.isConfirmed) {
+      const { user } = await getUser();
+      const userId = user?.id;
+
+      if (!userId) {
+        console.error("User not found");
+        toast.error("User not found. Please log in.");
+        return;
+      }
+
+      const { data, error } = await unregisterFromEvent(event.eventid, userId);
+
+      if (error) {
+        console.error("Unregistration failed:", error);
+        toast.error(`Unregistration failed: ${error.message}`);
+      } else {
+        console.log("Unregistration successful:", data);
+        toast.success("You have successfully cancelled your registration!");
+        setIsRegistered(false); // Update the state to reflect the unregistration
       }
     }
   };
@@ -134,6 +177,7 @@ const EventPage = () => {
   return (
     <div className="flex min-h-screen flex-col">
       <Header user={user} />
+      <ToastContainer />
       <main className="isolate mb-10 flex flex-1 justify-center pt-4 sm:px-4 md:px-6 lg:px-80">
         <div className="w-full max-w-screen-lg text-light">
           <div className="grid grid-cols-[2fr,3fr] gap-8 md:grid-cols-[1fr,1.5fr]">
@@ -169,7 +213,7 @@ const EventPage = () => {
                       </Link>
                     </div>
                   </div>
-                  <ToastContainer />
+
                   <div
                     className={`relative ${showFullDescription ? "" : "group max-h-24 overflow-hidden"}`}
                   >
@@ -249,15 +293,26 @@ const EventPage = () => {
                 </div>
                 <div className="p-2">
                   <button
-                    className="mt-2 w-full rounded-lg bg-primary px-4 py-2 text-light transition-colors hover:bg-primarydark"
-                    onClick={handleEventRegistration}
+                    className={`mt-8 w-full rounded-md px-6 py-3 text-white ${
+                      event.privacy === "private" && !isMember
+                        ? "cursor-not-allowed bg-fadedgrey"
+                        : isRegistered
+                          ? "bg-red-600 hover:bg-red-700"
+                          : "bg-primary hover:bg-primarydark"
+                    }`}
+                    onClick={
+                      isRegistered ? handleEventUnregistration : handleEventRegistration
+                    }
+                    disabled={event.privacy === "private" && !isMember}
                   >
-                    Register
+                    {event.privacy === "private" && !isMember
+                      ? "Event is available for Org Members only"
+                      : isRegistered
+                        ? "Unregister"
+                        : "Register"}
                   </button>
                 </div>
               </div>
-              <ToastContainer />
-
               <div className="mt-6">
                 <p className="text-sm font-medium text-light">Event Description</p>
                 <hr className="my-2 border-t border-fadedgrey opacity-50" />

@@ -65,7 +65,7 @@ export default function Header({ user = null }: { user: User | null }) {
             <div className="flex items-center">
               <div className="-m-1.5 p-1.5">
                 <span className="sr-only">SyncUp</span>
-                <img className="h-10 w-auto" src="syncup.png" alt="" />
+                <img className="h-10 w-auto" src="/syncup.png" alt="" />
               </div>
               <div className="font text-l flex items-center px-2 font-semibold text-light">
                 SyncUp

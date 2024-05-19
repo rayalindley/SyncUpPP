@@ -58,6 +58,7 @@ export interface Event {
   eventslug: string;
   imageUrl: string;
   tags: string[];
+  privacy: string;
 }
 
 export interface Organization {
