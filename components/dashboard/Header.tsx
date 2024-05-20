@@ -2,7 +2,6 @@
 import { signOut } from "@/lib/auth";
 import { Menu, Transition } from "@headlessui/react";
 import { ChevronDownIcon, MagnifyingGlassIcon } from "@heroicons/react/20/solid";
-import { Fragment, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { UserProfile } from "@/lib/types";
 import { getUserProfileById } from "@/lib/userActions";
@@ -23,13 +22,15 @@ import {
   HandRaisedIcon,
 } from "@heroicons/react/24/outline";
 import { createClient } from "@/lib/supabase/client";
-import { useEffect } from "react";
+import { Fragment, useState, useEffect, useRef } from "react";
 
 function classNames(...classes: any[]) {
   return classes?.filter(Boolean).join(" ");
 }
 
 function Header({ user }: { user: User }) {
+  const notificationLinkRef = useRef(null);
+
   const { sidebarOpen, setSidebarOpen } = useSidebarStore((state) => ({
     sidebarOpen: state.sidebarOpen,
     setSidebarOpen: state.setSidebarOpen,
@@ -235,7 +236,7 @@ function Header({ user }: { user: User }) {
                       notifications.map((notification) => (
                         <a
                           key={notification.notificationid}
-                          ref={getNotificationLink(notification)}
+                          ref={notificationLinkRef}
                           className={`my-1 flex items-center gap-x-2 rounded-lg px-4 py-2 hover:bg-[#525252] ${notification.isread ? "bg-gray" : "bg-[#232323]"}`}
                           onClick={() => {
                             handleNotificationClick(notification.notificationid);
