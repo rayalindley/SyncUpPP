@@ -21,6 +21,7 @@ interface Role {
   color: string;
   member_count: number;
   org_id: string;
+  deletable: boolean; // Add this property to the Role interface
 }
 
 interface Permission {
@@ -43,8 +44,11 @@ export default function SettingsRolesPage() {
     [role_id: string]: { [perm_id: string]: boolean };
   }>({});
   const [rolesData, setRolesData] = useState<Role[] | null>(null);
+  const [filteredRoles, setFilteredRoles] = useState<Role[] | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const [orgID, setOrgID] = useState(null);
+  const [orgID, setOrgID] = useState<string | null>(null);
   const { slug } = useParams();
 
   useEffect(() => {
@@ -113,6 +117,7 @@ export default function SettingsRolesPage() {
             }
 
             setRolesData(organization.roles);
+            setFilteredRoles(organization.roles);
           } else {
             console.log("Error:", orgError);
           }
@@ -125,6 +130,7 @@ export default function SettingsRolesPage() {
 
   const handleRoleClick = (role: Role) => {
     setSelectedRole(role);
+    setSelectedIndex(1);
   };
 
   const handleSidebarClose = () => {
@@ -150,9 +156,18 @@ export default function SettingsRolesPage() {
       }
 
       setRolesData((prevRolesData) =>
-        prevRolesData.map((role) =>
-          role.role_id === formValues.role_id ? formValues : role
-        )
+        prevRolesData
+          ? prevRolesData.map((role) =>
+              role.role_id === formValues.role_id ? formValues : role
+            )
+          : null
+      );
+      setFilteredRoles((prevRolesData) =>
+        prevRolesData
+          ? prevRolesData.map((role) =>
+              role.role_id === formValues.role_id ? formValues : role
+            )
+          : null
       );
       setSelectedRole(formValues);
       toast.success("Changes saved successfully!", {
@@ -165,7 +180,7 @@ export default function SettingsRolesPage() {
         progress: undefined,
         theme: "light",
       });
-    } catch (error) {
+    } catch (error: any) {
       toast.error(error.message, {
         position: "bottom-right",
         autoClose: 5000,
@@ -179,7 +194,7 @@ export default function SettingsRolesPage() {
     }
   };
 
-  const handleDeleteRole = async (role) => {
+  const handleDeleteRole = async (role: Role) => {
     const supabase = createClient();
     try {
       const { error } = await supabase
@@ -192,7 +207,10 @@ export default function SettingsRolesPage() {
       }
 
       setRolesData((prevRolesData) =>
-        prevRolesData.filter((r) => r.role_id !== role.role_id)
+        prevRolesData ? prevRolesData.filter((r) => r.role_id !== role.role_id) : null
+      );
+      setFilteredRoles((prevRolesData) =>
+        prevRolesData ? prevRolesData.filter((r) => r.role_id !== role.role_id) : null
       );
       setSelectedRole(null);
       console.log("Role deleted");
@@ -206,7 +224,7 @@ export default function SettingsRolesPage() {
         progress: undefined,
         theme: "light",
       });
-    } catch (error) {
+    } catch (error: any) {
       setSelectedRole(null);
       toast.error(error.message, {
         position: "bottom-right",
@@ -278,9 +296,24 @@ export default function SettingsRolesPage() {
     if (error) {
       console.log(error);
     } else {
-      setRolesData((prevRoles) => (prevRoles ? [...prevRoles, data] : data));
+      setRolesData((prevRoles) => (prevRoles ? [...prevRoles, data] : [data]));
+      setFilteredRoles((prevRoles) => (prevRoles ? [...prevRoles, data] : [data]));
       setSelectedRole(data);
+      setSelectedIndex(0);
     }
+  };
+
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const query = event.target.value.toLowerCase();
+    setSearchQuery(query);
+    setFilteredRoles(
+      rolesData?.filter((role) => role.role.toLowerCase().includes(query)) || null
+    );
+  };
+
+  const handleMemberClick = (role: Role) => {
+    setSelectedRole(role);
+    setSelectedIndex(2);
   };
 
   return (
@@ -294,7 +327,9 @@ export default function SettingsRolesPage() {
         <input
           type="text"
           placeholder="Search roles..."
-          className="flex-grow rounded-md border border-raisinblack bg-charleston p-2 text-light placeholder-opacity-50 placeholder:text-light"
+          className="flex-grow rounded-md border border-raisinblack bg-charleston p-2 px-4 text-sm text-light placeholder-opacity-50 placeholder:text-light"
+          value={searchQuery}
+          onChange={handleSearchChange}
         />
         <button
           className="rounded-md bg-primary p-2 px-4 text-sm hover:bg-primarydark"
@@ -314,7 +349,7 @@ export default function SettingsRolesPage() {
             </tr>
           </thead>
           <tbody>
-            {rolesData?.map((role) => (
+            {filteredRoles?.map((role) => (
               <tr
                 key={role.role_id}
                 className="border-b border-t border-[#525252] hover:bg-charleston"
@@ -331,7 +366,10 @@ export default function SettingsRolesPage() {
                     {role.role}
                   </div>
                 </td>
-                <td className="px-4 py-4">
+                <td
+                  className="px-4 py-4 hover:cursor-pointer"
+                  onClick={() => handleMemberClick(role)}
+                >
                   <div className="flex items-center">
                     <UsersIcon className="mr-2 h-6 w-6" />
                     {role.member_count || 0}
@@ -420,24 +458,22 @@ export default function SettingsRolesPage() {
           </div>
           <div className="flex-grow overflow-y-auto bg-raisinblack py-6 pl-10 pr-10">
             <h2 className="mb-4 text-lg font-medium">EDIT ROLE - {selectedRole.role}</h2>
-            <Tab.Group>
+            <Tab.Group selectedIndex={selectedIndex} onChange={setSelectedIndex}>
               <Tab.List className="border-b border-gray-700">
-                {({ selectedIndex }) =>
-                  ["Display", "Permissions", "Members"].map((tab, index) => (
-                    <Tab
-                      key={tab}
-                      className={({ selected }) =>
-                        `inline-block cursor-pointer px-4 py-2 text-sm font-medium leading-5 ${
-                          selected
-                            ? "border-primary text-primary"
-                            : "text-white hover:text-primary"
-                        } ${selectedIndex === index ? "border-b-2" : ""}`
-                      }
-                    >
-                      {tab}
-                    </Tab>
-                  ))
-                }
+                {["Display", "Permissions", "Members"].map((tab, index) => (
+                  <Tab
+                    key={tab}
+                    className={({ selected }) =>
+                      `inline-block cursor-pointer px-4 py-2 text-sm font-medium leading-5 ${
+                        selected
+                          ? "border-primary text-primary"
+                          : "text-white hover:text-primary"
+                      } ${selected ? "border-b-2" : ""}`
+                    }
+                  >
+                    {tab}
+                  </Tab>
+                ))}
               </Tab.List>
               <Tab.Panels>
                 <Tab.Panel>

@@ -9,15 +9,15 @@ export default function EditEventPage() {
   const router = useRouter();
   const { eventId } = useParams(); // Assume eventId is part of the URL params
   const [event, setEvent] = useState(null); // State to hold the event data
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         // Fetch event
-        const eventResponse = await fetchEventById(eventId);
+        const eventResponse = await fetchEventById(eventId.toString()); // Convert eventId to string
         if (eventResponse.error) {
-          setError(eventResponse.error);
+          setError(eventResponse.error.message);
           console.error(eventResponse.error);
         } else {
           setEvent(eventResponse.data);
@@ -25,7 +25,7 @@ export default function EditEventPage() {
         }
       } catch (err) {
         console.error("Failed to fetch data:", err);
-        setError(err.message);
+        setError(err instanceof Error ? err.message : "Unknown error");
       }
     };
 
@@ -57,7 +57,7 @@ export default function EditEventPage() {
           </h2>
         </div>
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-lg">
-          <CreateEventForm organizationId={undefined} event={event} />
+          <CreateEventForm organizationId="" event={event} />
         </div>
       </div>
     </>

@@ -1,19 +1,21 @@
+import EventsCard from "@/components/organization/events_card"; // Ensure this path is correct
 import { Event } from "@/lib/types";
-import { ArrowLongLeftIcon, ArrowLongRightIcon } from "@heroicons/react/20/solid";
+import { ArrowLongLeftIcon, ArrowLongRightIcon } from "@heroicons/react/24/solid";
 import { useState } from "react";
-import EventsCard from "./events_card";
-const OrganizationEventsComponent = ({ events }: { events: Event[] }) => {
+
+interface UserEventsProps {
+  events: Event[];
+}
+
+const UserEvents: React.FC<UserEventsProps> = ({ events }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const eventsPerPage = 6;
 
-  // Calculate the indices for the current page's events
   const indexOfLastEvent = currentPage * eventsPerPage;
   const indexOfFirstEvent = indexOfLastEvent - eventsPerPage;
   const currentEvents = events.slice(indexOfFirstEvent, indexOfLastEvent);
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
-
-  // Determine if the current page is the first or the last
   const isFirstPage = currentPage === 1;
   const isLastPage = indexOfLastEvent >= events.length;
 
@@ -21,19 +23,19 @@ const OrganizationEventsComponent = ({ events }: { events: Event[] }) => {
     <div className="mx-auto max-w-7xl px-6 lg:px-8">
       <div className="mx-auto max-w-7xl text-center">
         <p className="mt-2 text-2xl font-bold tracking-tight text-light sm:text-2xl">
-          Our Events
+          My Events
         </p>
       </div>
-      <div className="isolate mx-auto mt-8 grid max-w-md grid-cols-1 gap-x-4 gap-y-8 sm:mt-12 lg:mx-0 lg:max-w-none lg:grid-cols-4">
+      <div className="isolate mx-auto mt-8 grid max-w-md grid-cols-1 gap-x-4 gap-y-8 sm:mt-12 lg:mx-0 lg:max-w-none lg:grid-cols-3">
         {currentEvents.map((event, index) => (
           <EventsCard
             key={index}
             event={{
-              id: event.eventid, // Add the missing 'id' property
-              eventid: event.eventid, // Add the missing 'eventid' property
-              eventphoto: event.eventphoto, // Add the missing 'eventphoto' property
-              capacity: event.capacity, // Add the missing 'capacity' property
-              organizationid: event.organizationid, // Add the missing 'organizationid' property
+              id: event.eventid,
+              eventid: event.eventid,
+              eventphoto: event.eventphoto,
+              capacity: event.capacity,
+              organizationid: event.organizationid,
               imageUrl: event.eventphoto,
               title: event.title,
               description: event.description,
@@ -41,9 +43,9 @@ const OrganizationEventsComponent = ({ events }: { events: Event[] }) => {
               eventdatetime: event.eventdatetime,
               location: event.location,
               eventslug: event.eventslug,
-              tags: event.tags, // Add the missing 'tags' property
-              privacy: event.privacy, // Add the missing 'privacy' property
-              createdat: event.createdat, // Add the missing 'createdat' property
+              tags: event.tags,
+              privacy: event.privacy,
+              createdat: event.createdat,
             }}
           />
         ))}
@@ -100,4 +102,4 @@ const OrganizationEventsComponent = ({ events }: { events: Event[] }) => {
   );
 };
 
-export default OrganizationEventsComponent;
+export default UserEvents;

@@ -78,25 +78,27 @@ export type UserProfile = {
   profilepicture?: string | undefined; // Now a string to store the URL
   website?: string;
   updatedat?: Date;
-}
+  length?: number;
+};
 
 // ./types/combinedUserData.ts
 export type CombinedUserData = {
   selected?: boolean;
   id?: string | undefined;
-  email?: string
-  role?: string
-  created_at?: Date
-  updated_at?: Date
-  first_name?: string
-  last_name?: string
-  gender?: string
-  dateofbirth?: Date
-  description?: string
-  company?: string
-  website?: string
-  updatedat?: Date
-}
+  email?: string;
+  role?: string;
+  created_at?: Date;
+  updated_at?: Date;
+  first_name?: string;
+  last_name?: string;
+  gender?: string;
+  dateofbirth?: Date;
+  description?: string;
+  company?: string;
+  website?: string;
+  updatedat?: Date;
+};
+
 
 export interface Membership {
   membershipid: string;
@@ -111,6 +113,7 @@ export interface Membership {
 export interface MembershipsProps {
   memberships: Membership[];
 }
+
 // Add these type definitions to your types.ts file
 
 export type EmailContent = {
@@ -131,3 +134,36 @@ export type CreateEmailResponse = {
   data?: any; // Replace 'any' with a more specific type if possible
   error?: any; // Replace 'any' with a more specific type if possible
 };
+
+export interface Event {
+  id: string;
+  eventid: string;
+  eventphoto: string;
+  title: string;
+  description: string;
+  registrationfee: number;
+  eventdatetime: Date;
+  location: string;
+  capacity: number;
+  organizationid: string;
+  eventslug: string;
+  imageUrl: string;
+  tags: string[];
+  privacy: string;
+  createdat: Date;
+}
+
+export interface Organization {
+  id: string;
+  organization_id: string;
+  organizationid: string;
+  name: string;
+  description: string;
+  created_at: Date;
+  organization_type: string;
+  organization_size: number;
+  photo: string;
+  banner: string;
+  slug: string;
+  socials: string[];
+}

@@ -3,14 +3,11 @@ import { useState, useEffect } from "react";
 import { UserIcon, XCircleIcon } from "@heroicons/react/20/solid";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
 
 const MySwal = withReactContent(Swal);
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+const supabase = createClient();
 
 export const Members = ({ selectedRole, organizationId }) => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -20,13 +17,15 @@ export const Members = ({ selectedRole, organizationId }) => {
     if (searchQuery === "") {
       setFilteredMembers(selectedRole.members || []);
     } else {
-      setFilteredMembers(
-        selectedRole.members.filter((member) =>
-          `${member.first_name} ${member.last_name}`
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase())
-        )
-      );
+      if (selectedRole.members) {
+        setFilteredMembers(
+          selectedRole.members.filter((member) =>
+            `${member.first_name} ${member.last_name}`
+              .toLowerCase()
+              .includes(searchQuery.toLowerCase())
+          )
+        );
+      }
     }
   }, [searchQuery, selectedRole.members]);
 
@@ -68,7 +67,7 @@ export const Members = ({ selectedRole, organizationId }) => {
           placeholder="Search members..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="flex-grow rounded-md border border-raisinblack bg-charleston p-2 text-light placeholder-opacity-50 placeholder:text-light"
+          className="flex-grow rounded-md border border-raisinblack bg-charleston p-2 px-4 text-sm text-light placeholder-opacity-50 placeholder:text-light "
         />
         <button
           onClick={() => console.log("Add new member")}

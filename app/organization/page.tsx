@@ -1,9 +1,7 @@
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import OrganizationCard from "@/components/app/OrganizationCard";
-import { getUser } from "@/lib/supabase/server";
-import { createClient } from "@/lib/supabase/server";
-import { UserGroupIcon } from "@heroicons/react/24/outline";
+import { createClient, getUser } from "@/lib/supabase/server";
 
 export default async function OrganizationUserView() {
   const { user } = await getUser();
@@ -24,16 +22,17 @@ export default async function OrganizationUserView() {
             </div>
 
             <div className="min-w-2xl mx-auto mt-20 grid w-full grid-cols-1 gap-6  sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
-              {organizations.map((org) => (
-                <OrganizationCard
-                  key={org.id}
-                  name={org.name}
-                  description={org.description}
-                  organization_size={org.organization_size}
-                  photo={org.photo}
-                  slug={org.slug}
-                />
-              ))}
+              {organizations &&
+                organizations.map((org) => (
+                  <OrganizationCard
+                    key={org.id}
+                    name={org.name}
+                    description={org.description}
+                    organization_size={org.organization_size}
+                    photo={org.photo}
+                    slug={org.slug}
+                  />
+                ))}
             </div>
           </div>
         </div>
