@@ -76,8 +76,8 @@ export default async function OrganizationUserView({
     <div>
       <Header user={user} />
       <ToastContainer />
-      <main className="isolate flex justify-center sm:px-4 md:px-6 lg:px-80">
-        <div className="relative">
+      <main className="isolate flex justify-center sm:px-4 md:px-6 lg:px-80 ">
+        <div className="relative max-w-7xl">
           {/* White Rectangle */}
           {/* <div className="relative rounded-2xl bg-white p-8 shadow-lg sm:p-16 lg:p-40"></div> */}
           <img

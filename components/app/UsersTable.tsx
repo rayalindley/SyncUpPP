@@ -52,6 +52,16 @@ export default function UsersTable({ users, userProfiles }) {
     {
       name: "Role",
       selector: (row) => row.user.role,
+      cell: (row) =>
+        row.user.role === "superadmin" ? (
+          <span className="border-1 rounded-2xl border border-red-200 bg-red-100 px-2 text-xs text-red-500">
+            {row.user.role.replace(/_/g, " ").replace(/\b\w/g, (char) => char)}
+          </span>
+        ) : (
+          <span className="border-1 rounded-2xl border border-green-400 bg-green-200 px-2 text-xs text-green-800">
+            {row.user.role.replace(/_/g, " ").replace(/\b\w/g, (char) => char)}
+          </span>
+        ),
       sortable: true,
     },
     {
