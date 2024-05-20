@@ -210,9 +210,35 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
         setImageError("Please upload an image file");
         return;
       }
+
+      // Set the loading state
+      setIsUpdating(true);
+
+      // Generate a unique file name
+      const fileName = `${userProfile?.userid}_${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      const { data: uploadResult, error } = await createClient()
+        .storage.from("profile-pictures")
+        .upload(fileName, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (uploadResult) {
+        setUserProfile({
+          ...userProfile,
+          profilepicture: `https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public/${(uploadResult as any).fullPath}`,
+        });
+      } else {
+        console.error("Error uploading image:", error);
+        toast.error("Error uploading image. Please try again.");
+      }
+
+      // Reset the loading state
+      setIsUpdating(false);
       setProfilePictureFile(file);
       setPreviewUrl(URL.createObjectURL(file)); // Create a preview URL
       setImageError("");
+
     }
   };
 
@@ -268,6 +294,8 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                       type="file"
                       onChange={handleProfilePictureChange}
                       className="hidden"
+                      title="Profile Picture"
+                      placeholder="Choose an image"
                     />
                   </div>
                 </div>
