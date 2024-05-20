@@ -8,6 +8,7 @@ import { getMemberships } from "@/lib/memberships";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { InboxIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 import { ToastContainer } from "react-toastify";
+import Link from "next/link";
 
 const orgdata = [
   {
@@ -46,7 +47,6 @@ export default async function OrganizationUserView({
     .eq("slug", slug)
     .single();
 
-
   // Inside your component
   const currentPage = 1; // Set the current page
   const postsPerPage = 6; // Set the number of posts per page
@@ -65,7 +65,6 @@ export default async function OrganizationUserView({
   }
 
   // Fetch events data
-  const currentPage = 1; // Set the current page
   const eventsPerPage = 6; // Set the number of events per page
   const { data: events, error: eventsError } = await fetchEvents(
     org.organizationid,
@@ -122,9 +121,12 @@ export default async function OrganizationUserView({
                 />
               </div>
               <div>
-                <button className="rounded-lg bg-primary px-4 py-2 text-white hover:bg-primarydark">
+                <Link
+                  className="rounded-lg bg-primary px-4 py-2 text-white hover:bg-primarydark"
+                  href={`${slug}/settings`}
+                >
                   Settings
-                </button>
+                </Link>
               </div>
             </div>
           </div>
@@ -145,10 +147,8 @@ export default async function OrganizationUserView({
               twitter={twitterLink}
               linkedin={linkedinLink}
             />
-            <div className="mt-4 px-4 text-center text-sm text-light sm:px-8 lg:px-10">
-              {org.description}
-            </div>
-<!--             <TabsComponent organizationid={org.organizationid} posts={posts} /> -->
+
+            {/* <TabsComponent organizationid={org.organizationid} posts={posts} /> */}
 
             <TabsComponent
               organizationid={org.organizationid}
@@ -156,7 +156,6 @@ export default async function OrganizationUserView({
               events={events}
               posts={posts}
             />
-
           </div>
         </div>
       </main>

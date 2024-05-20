@@ -101,7 +101,7 @@ export default function Header({ user = null }: { user: User | null }) {
                     className="h-10 w-10 rounded-full bg-gray-50"
                     src={
                       userProfile?.profilepicture
-                        ? `https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public/${userProfile.profilepicture}`
+                        ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${userProfile.profilepicture}`
                         : "/Portrait_Placeholder.png"
                     }
                     alt="Profile Picture"

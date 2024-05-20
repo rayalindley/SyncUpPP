@@ -20,6 +20,8 @@ import Swal from "sweetalert2";
 import Datepicker from "tailwind-datepicker-react";
 import { z } from "zod";
 
+const supabase = createClient();
+
 // Schema for form validation
 const UserProfileSchema = z.object({
   first_name: z.string().min(1, "First name is required"),
@@ -94,7 +96,12 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
   useEffect(() => {
     const fetchUserProfile = async () => {
       const response = await getUserProfileById(userId);
-      setUserProfile(response?.data);
+      if (response?.data) {
+        setUserProfile(response.data);
+        setPreviewUrl(
+          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${response.data.profilepicture}`
+        );
+      }
     };
 
     const fetchEmail = async () => {
@@ -113,8 +120,8 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
 
     if (profilePictureFile) {
       const fileName = `${userProfile?.first_name}_${userProfile?.last_name}_${Date.now()}-${Math.random().toString(36).substring(7)}`;
-      const { data: uploadResult, error } = await createClient()
-        .storage.from("profile-pictures")
+      const { data: uploadResult, error } = await supabase.storage
+        .from("profile-pictures")
         .upload(fileName, profilePictureFile, {
           cacheControl: "3600",
           upsert: false,
@@ -211,34 +218,9 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
         return;
       }
 
-      // Set the loading state
-      setIsUpdating(true);
-
-      // Generate a unique file name
-      const fileName = `${userProfile?.userid}_${Date.now()}-${Math.random().toString(36).substring(7)}`;
-      const { data: uploadResult, error } = await createClient()
-        .storage.from("profile-pictures")
-        .upload(fileName, file, {
-          cacheControl: "3600",
-          upsert: false,
-        });
-
-      if (uploadResult) {
-        setUserProfile({
-          ...userProfile,
-          profilepicture: `https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public/${(uploadResult as any).fullPath}`,
-        });
-      } else {
-        console.error("Error uploading image:", error);
-        toast.error("Error uploading image. Please try again.");
-      }
-
-      // Reset the loading state
-      setIsUpdating(false);
       setProfilePictureFile(file);
       setPreviewUrl(URL.createObjectURL(file)); // Create a preview URL
       setImageError("");
-
     }
   };
 
@@ -277,7 +259,7 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                       previewUrl
                         ? previewUrl
                         : userProfile?.profilepicture
-                          ? `https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public/${userProfile.profilepicture}`
+                          ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${userProfile.profilepicture}`
                           : "/Portrait_Placeholder.png"
                     }
                     alt="Profile Picture"

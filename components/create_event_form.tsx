@@ -292,7 +292,7 @@ const CreateEventForm = ({
 
   useEffect(() => {
     if (event && event.eventphoto) {
-      const imageUrl = `https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public/${event.eventphoto}`;
+      const imageUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${event.eventphoto}`;
       setEventPhoto(imageUrl);
     }
   }, [event]);
