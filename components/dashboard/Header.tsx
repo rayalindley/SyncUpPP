@@ -237,9 +237,10 @@ function Header({ user }: { user: User }) {
                         <a
                           key={notification.notificationid}
                           ref={notificationLinkRef}
-                          className={`my-1 flex items-center gap-x-2 rounded-lg px-4 py-2 hover:bg-[#525252] ${notification.isread ? "bg-gray" : "bg-[#232323]"}`}
+                          className={`my-1 flex items-center gap-x-2 rounded-lg px-4 py-2 hover:bg-[#525252] ${notification.isread ? "bg-gray" : "bg-[#232323]"} cursor-pointer`}
                           onClick={() => {
                             handleNotificationClick(notification.notificationid);
+                            window.location.href = getNotificationLink(notification) ?? '';
                           }}
                         >
                           <span className="text-sm leading-tight">
