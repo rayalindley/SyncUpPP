@@ -31,6 +31,21 @@ const EmailsTable = ({
     }
   }, [emails]);
 
+    // This effect will run when the component mounts and whenever the emails change
+    useEffect(() => {
+      // If sortColumn and sortDirection are not null, sort the emails
+      if (sortColumn && sortDirection) {
+        const sortedEmails = [...emails].sort((a, b) => {
+          // Custom sorting logic based on sortColumn and sortDirection
+          // For example, if sorting by date:
+          const valueA = new Date(a[sortColumn]).getTime();
+          const valueB = new Date(b[sortColumn]).getTime();
+          return sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
+        });
+        setEmails(sortedEmails);
+      }
+    }, [emails, sortColumn, sortDirection, setEmails]);
+
   useEffect(() => {
     if (showDetailPane) {
       setTimeout(() => setOpacity(1), 0);
