@@ -1,25 +1,33 @@
 "use server";
 import { createClient } from "@/lib/supabase/server";
 import { Resend } from "resend";
-import { EmailContent, AdminUuid, User, OrganizationUuid, EventUuid, CreateEmailResponse } from './types';
+import {
+  EmailContent,
+  AdminUuid,
+  User,
+  OrganizationUuid,
+  EventUuid,
+  CreateEmailResponse,
+} from "./types";
 
 export async function fetchSentEmailsByAdmin(adminUserId: AdminUuid) {
   const supabase = createClient();
   try {
-    const { data: sentEmails, error } = await supabase
-      .rpc("get_emails_by_admin", { admin_user_id: adminUserId });
+    const { data: sentEmails, error } = await supabase.rpc("get_emails_by_admin", {
+      admin_user_id: adminUserId,
+    });
 
     if (error) throw error;
 
     return sentEmails;
   } catch (error) {
-    console.error('Error fetching sent emails:', error);
+    console.error("Error fetching sent emails:", error);
     return [];
   }
 }
 
 export async function sendEmail(emailContent: EmailContent) {
-  const resend = new Resend();
+  const resend = new Resend(process.env.NEXT_PUBLIC_RESEND_API_KEY);
   try {
     const response = await resend.emails.send(emailContent);
 
@@ -31,7 +39,13 @@ export async function sendEmail(emailContent: EmailContent) {
   }
 }
 
-export async function sendNewsletter(subject: string, content: string, allUsers: User[], attachments: any[], from: string) {
+export async function sendNewsletter(
+  subject: string,
+  content: string,
+  allUsers: User[],
+  attachments: any[],
+  from: string
+) {
   const supabase = createClient();
   let successCount = 0;
   let failures: { email: string; reason: string }[] = [];
@@ -86,7 +100,7 @@ export async function sendNewsletter(subject: string, content: string, allUsers:
 export async function fetchMembersByAdmin(adminUuid: AdminUuid) {
   const supabase = createClient();
   try {
-    const { data: members, error }: { data: any, error: any } = await supabase.rpc(
+    const { data: members, error }: { data: any; error: any } = await supabase.rpc(
       "get_all_combined_user_data_by_admin",
       { admin_uuid: adminUuid }
     );
@@ -103,7 +117,7 @@ export async function fetchMembersByAdmin(adminUuid: AdminUuid) {
 export async function fetchOrganizationsByAdmin(adminUuid: AdminUuid) {
   const supabase = createClient();
   try {
-    const { data: organizations, error }: { data: any, error: any } = await supabase.rpc(
+    const { data: organizations, error }: { data: any; error: any } = await supabase.rpc(
       "get_all_organizations_by_admin",
       { admin_uuid: adminUuid }
     );
@@ -120,7 +134,7 @@ export async function fetchOrganizationsByAdmin(adminUuid: AdminUuid) {
 export async function fetchMembersByOrganization(organizationUuid: OrganizationUuid) {
   const supabase = createClient();
   try {
-    const { data: members, error }: { data: any, error: any } = await supabase.rpc(
+    const { data: members, error }: { data: any; error: any } = await supabase.rpc(
       "get_all_combined_user_data_by_org",
       { organization_uuid: organizationUuid }
     );
@@ -137,9 +151,12 @@ export async function fetchMembersByOrganization(organizationUuid: OrganizationU
 export async function fetchEventsByAdmin(adminUuid: AdminUuid) {
   const supabase = createClient();
   try {
-    const { data: events, error }: { data: any, error: any } = await supabase.rpc("get_all_events_by_admin", {
-      admin_uuid: adminUuid,
-    });
+    const { data: events, error }: { data: any; error: any } = await supabase.rpc(
+      "get_all_events_by_admin",
+      {
+        admin_uuid: adminUuid,
+      }
+    );
 
     if (error) throw error;
 
@@ -153,7 +170,7 @@ export async function fetchEventsByAdmin(adminUuid: AdminUuid) {
 export async function fetchMembersByEvent(eventUuid: EventUuid) {
   const supabase = createClient();
   try {
-    const { data: members, error }: { data: any, error: any } = await supabase.rpc(
+    const { data: members, error }: { data: any; error: any } = await supabase.rpc(
       "get_all_combined_user_data_by_event",
       { event_uuid: eventUuid }
     );

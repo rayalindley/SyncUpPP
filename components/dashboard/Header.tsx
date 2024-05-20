@@ -10,7 +10,6 @@ import useSidebarStore from "@/store/useSidebarStore";
 import { Bars3Icon, BellIcon } from "@heroicons/react/24/outline";
 import { type User } from "@supabase/supabase-js";
 import Link from "next/link";
-import useSidebarStore from "@/store/useSidebarStore";
 import {
   fetchNotifications,
   markAllAsRead,
@@ -113,7 +112,7 @@ function Header({ user }: { user: User }) {
     }
   };
 
-  function getNotificationLink(notification: { type: any; path: any; }) {
+  function getNotificationLink(notification: { type: any; path: any }) {
     switch (notification.type) {
       case "event":
         return "/" + `${notification.path}`;
@@ -130,7 +129,7 @@ function Header({ user }: { user: User }) {
     }
   }
 
-  function getNotificationIcon(notification: { type: any; }) {
+  function getNotificationIcon(notification: { type: any }) {
     switch (notification.type) {
       case "event":
         return <CalendarIcon className="h-6 w-6 text-light" />;
