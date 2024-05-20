@@ -1,0 +1,33 @@
+/* Base styles for the Tagify input */
+.tagify {
+  --tag-bg: #ffffff; /* Background color for tags */
+  --tags-border-color: #c5c5c5; /* Border color for tags */
+  --tag-text-color: #333333; /* Text color for tags */
+  --tag-pad: 0.3em 0.5em; /* Padding for tags */
+  --tag-inset-shadow-size: 1.1em; /* Size of the inset shadow in the tags */
+  --tag-text-hover: #ffffff; /* Text color when hovering over tags */
+  --tag-invalid-color: #e74c3c; /* Color for invalid tags */
+  --tag-invalid-bg: #fce4e4; /* Background color for invalid tags */
+  --tag-remove-bg: rgba(255, 0, 0, 0.6); /* Background color for the remove button */
+  --tag-remove-btn-bg: none;
+  --tag-remove-btn-text: #ffffff; /* Background for the remove button */
+  --tag-remove-btn-bg--hover: #ffdddd; /* Background for the remove button when hovered */
+  --tag--min-width: 1ch; /* Minimum width for tags */
+  --tag--max-width: auto; /* Maximum width for tags */
+  --tag-hide-transition: 0.3s; /* Transition for hiding tags */
+  --loader-size: 4em; /* Size of the loading animation */
+  --tag-focus-border-color: #e74c3c; /* Border color for tags when focused */
+  --tags-border-color: #525252; /* Border color for tags */
+  --tag-text-size: 0.875rem;
+}
+.tagify .tag {
+  font-size: var(--tag-text-size); /* Applying the text size to tags */
+}
+
+/* Focus styles for the Tagify input */
+.tagify:focus {
+  outline: #e74c3c; /* Remove default focus outline */
+  box-shadow: 0 0 0 2px var(--primary-color); /* Custom focus ring */
+}
+
+/* You can also target the Tagify input's container for additional styling */

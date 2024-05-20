@@ -3,8 +3,11 @@ import Header from "@/components/Header";
 import TabsComponent from "@/components/organization/organization_view_tabs";
 import SocialIcons from "@/components/organization/social_icons";
 import { fetchPosts } from "@/lib/posts";
+import { fetchEvents } from "@/lib/events";
+import { getMemberships } from "@/lib/memberships";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { InboxIcon, UserGroupIcon } from "@heroicons/react/24/outline";
+import { ToastContainer } from "react-toastify";
 
 const orgdata = [
   {
@@ -43,6 +46,7 @@ export default async function OrganizationUserView({
     .eq("slug", slug)
     .single();
 
+
   // Inside your component
   const currentPage = 1; // Set the current page
   const postsPerPage = 6; // Set the number of posts per page
@@ -60,20 +64,22 @@ export default async function OrganizationUserView({
     return; // Optionally, handle the error in your UI
   }
 
-  // // Fetch events data
-  // const currentPage = 1; // Set the current page
-  // const eventsPerPage = 6; // Set the number of events per page
-  // const { data: events, error: eventsError } = await fetchEvents(
-  //   org.organizationid,
-  //   currentPage,
-  //   eventsPerPage
-  // );
+  // Fetch events data
+  const currentPage = 1; // Set the current page
+  const eventsPerPage = 6; // Set the number of events per page
+  const { data: events, error: eventsError } = await fetchEvents(
+    org.organizationid,
+    currentPage,
+    eventsPerPage
+  );
 
-  // // Handle any errors from fetching events
-  // if (eventsError) {
-  //   console.error("Error fetching events:", eventsError);
-  //   return; // Optionally, handle the error in your UI
-  // }
+  // Handle any errors from fetching events
+  if (eventsError) {
+    console.error("Error fetching events:", eventsError);
+    return; // Optionally, handle the error in your UI
+  }
+
+  const memberships = await getMemberships(org.organizationid);
 
   // Assuming `org` is an object retrieved from your database that contains the social media links object
   const socials = org?.socials || {}; // Use default empty object if `org.socials` is undefined or null
@@ -82,42 +88,58 @@ export default async function OrganizationUserView({
   const twitterLink = socials.twitter; // Access the Twitter link
   const linkedinLink = socials.linkedin; // Access the LinkedIn link
 
-  // Now you can use these links in your code as needed
-  console.log("Facebook Link:", facebookLink);
-  console.log("Twitter Link:", twitterLink);
-  console.log("LinkedIn Link:", linkedinLink);
+  const supabaseStorageBaseUrl =
+    "https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public";
 
   return (
     <div>
       <Header user={user} />
-
-      <main className="isolate flex justify-center sm:px-4 md:px-6 lg:px-80">
-        <div className="relative">
+      <ToastContainer />
+      <main className="isolate flex justify-center sm:px-4 md:px-6 lg:px-80 ">
+        <div className="relative max-w-7xl">
           {/* White Rectangle */}
-          <div className="relative rounded-xl bg-white p-8 shadow-lg sm:p-16 lg:p-40">
-            {/* Circle */}
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 transform">
-              <div>
+          {/* <div className="relative rounded-2xl bg-white p-8 shadow-lg sm:p-16 lg:p-40"></div> */}
+          <img
+            src={
+              `${supabaseStorageBaseUrl}/${org?.banner}` ||
+              "https://via.placeholder.com/150"
+            }
+            alt={`${org?.name} logo`}
+            className="h-80 w-full rounded-lg"
+            style={{ objectFit: "cover" }}
+          />
+          <div className="absolute w-full -translate-y-1/2 transform px-5">
+            <div className="flex w-full transform items-end justify-between">
+              <div className="block h-36 w-36 rounded-xl border-4 border-primary sm:h-32 sm:w-32">
                 <img
-                  src={org?.photo || "https://via.placeholder.com/150"}
+                  src={
+                    `${supabaseStorageBaseUrl}/${org?.photo}` ||
+                    "https://via.placeholder.com/150"
+                  }
                   alt={`${org?.name} logo`}
-                  className="block h-32 w-32 rounded-full border-8 border-primary sm:h-40 sm:w-40 lg:h-44 lg:w-44"
+                  className="h-full w-full rounded-lg"
                   style={{ objectFit: "cover" }}
                 />
+              </div>
+              <div>
+                <button className="rounded-lg bg-primary px-4 py-2 text-white hover:bg-primarydark">
+                  Settings
+                </button>
               </div>
             </div>
           </div>
           {/* Content */}
 
-          <div className="mt-8 min-w-[1265px] sm:mt-16 lg:mt-24">
+          <div className="mt-8 space-y-4 px-5 sm:mt-16 lg:mt-24">
             {/* min width to be modified */}
-            <h1 className="text-center text-3xl font-bold text-light">{org?.name}</h1>
-            <div className="mt-2 flex items-center justify-center">
-              <UserGroupIcon className="mr-1 h-4 w-4 text-primary sm:h-5 sm:w-5 lg:h-6 lg:w-6" />
+            <h1 className="text-3xl font-bold text-light">{org?.name}</h1>
+            <div className="mt-2 flex ">
+              <UserGroupIcon className="mr-1 h-5 w-5 text-primary " />
               <p className="mr-4 text-sm text-light">Members: {orgdata[0].members}</p>
-              <InboxIcon className="mr-1 h-4 w-4 text-primary sm:h-5 sm:w-5 lg:h-6 lg:w-6" />
+              <InboxIcon className="mr-1 h-5 w-5 text-primary " />
               <p className="text-sm text-light">Posts: {orgdata[0].posts}</p>
             </div>
+            <div className="mt-4text-sm text-light ">{org.description}</div>
             <SocialIcons
               facebook={facebookLink}
               twitter={twitterLink}
@@ -126,7 +148,15 @@ export default async function OrganizationUserView({
             <div className="mt-4 px-4 text-center text-sm text-light sm:px-8 lg:px-10">
               {org.description}
             </div>
-            <TabsComponent organizationid={org.organizationid} posts={posts} />
+<!--             <TabsComponent organizationid={org.organizationid} posts={posts} /> -->
+
+            <TabsComponent
+              organizationid={org.organizationid}
+              memberships={memberships}
+              events={events}
+              posts={posts}
+            />
+
           </div>
         </div>
       </main>

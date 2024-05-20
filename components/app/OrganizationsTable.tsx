@@ -1,129 +1,180 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
+import DataTable from "react-data-table-component";
 import OrganizationOptions from "./organization_options";
 
 export default function OrganizationsTable({ organizations }) {
+  const [tableData, setTableData] = useState([]);
+  const [filterText, setFilterText] = useState("");
+
+  useEffect(() => {
+    const data = organizations.map((org, index) => ({
+      ...org,
+      open: false,
+      setOpen: (open) => {
+        setTableData((prevData) => {
+          const newData = [...prevData];
+          newData[index].open = open;
+          return newData;
+        });
+      },
+    }));
+    setTableData(data);
+  }, [organizations]);
+
+  const columns = [
+    {
+      name: "Name",
+      selector: (row) => row.name,
+      sortable: true,
+      cell: (row) => (
+        <a href="#" className="hover:text-primary" onClick={() => row.setOpen(!row.open)}>
+          {row.name}
+        </a>
+      ),
+    },
+    {
+      name: "Type",
+      selector: (row) => row.organization_type,
+      sortable: true,
+    },
+    {
+      name: "Industry",
+      selector: (row) => row.industry,
+      sortable: true,
+    },
+    {
+      name: "Size",
+      selector: (row) => row.organization_size,
+      sortable: true,
+    },
+    {
+      name: "Date Established",
+      selector: (row) =>
+        row.date_established
+          ? new Date(row.date_established).toLocaleDateString("en-US", {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })
+          : "",
+      sortable: true,
+    },
+    {
+      name: "Created at",
+      selector: (row) =>
+        row.created_at
+          ? new Date(row.created_at).toLocaleString("en-US", {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+            })
+          : "",
+      sortable: true,
+    },
+    {
+      name: "",
+      cell: (row) => (
+        <OrganizationOptions selectedOrg={row} open={row.open} setOpen={row.setOpen} />
+      ),
+      button: true,
+    },
+  ];
+
+  const filteredData = useMemo(
+    () =>
+      tableData.filter((item) => {
+        if (!filterText) return true;
+        return (
+          item.name.toLowerCase().includes(filterText.toLowerCase()) ||
+          item.organization_type.toLowerCase().includes(filterText.toLowerCase()) ||
+          item.industry.toLowerCase().includes(filterText.toLowerCase())
+        );
+      }),
+    [filterText, tableData]
+  );
+
+  const subHeaderComponent = (
+    <input
+      type="text"
+      placeholder="Search..."
+      value={filterText}
+      onChange={(e) => setFilterText(e.target.value)}
+      className="block rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+    />
+  );
+
   return (
     <div className="px-4 sm:px-6 lg:px-8">
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto">
           <h1 className="text-base font-semibold leading-6 text-light">Organizations</h1>
           <p className="mt-2 text-sm text-light">
-            A list of all the users in your account including their name, title, email and
-            role.
+            A list of all the organizations in your account including their name, type,
+            industry, size, and dates.
           </p>
         </div>
-        <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none"></div>
       </div>
-      <div className="mt-8 flow-root">
-        <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-          <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
-              <table className="min-w-full divide-y divide-[#525252]">
-                <thead className="bg-charleston">
-                  <tr>
-                    <th
-                      scope="col"
-                      className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-light sm:pl-6"
-                    >
-                      Name
-                    </th>
-
-                    <th
-                      scope="col"
-                      className="px-3 py-3.5 text-left text-sm font-semibold text-light"
-                    >
-                      Type
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-3 py-3.5 text-left text-sm font-semibold text-light"
-                    >
-                      Industry
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-3 py-3.5 text-left text-sm font-semibold text-light"
-                    >
-                      Size
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-3 py-3.5 text-left text-sm font-semibold text-light"
-                    >
-                      Date Established
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-3 py-3.5 text-left text-sm font-semibold text-light"
-                    >
-                      Created at
-                    </th>
-
-                    <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                      <span className="sr-only">Edit</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#525252] bg-raisinblack">
-                  {organizations.map((org, index) => (
-                    <OrganizationRow key={index} org={org} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+      <div className="mt-8">
+        {tableData.length > 0 ? (
+          <DataTable
+            columns={columns}
+            data={filteredData}
+            defaultSortField="name"
+            pagination
+            highlightOnHover
+            subHeader
+            subHeaderComponent={subHeaderComponent}
+            customStyles={{
+              header: {
+                style: {
+                  backgroundColor: "rgb(36, 36, 36)",
+                  color: "rgb(255, 255, 255)",
+                },
+              },
+              subHeader: {
+                style: {
+                  backgroundColor: "none",
+                  color: "rgb(255, 255, 255)",
+                  padding: 0,
+                  marginBottom: 10,
+                },
+              },
+              rows: {
+                style: {
+                  minHeight: "6vh",
+                  backgroundColor: "rgb(33, 33, 33)",
+                  color: "rgb(255, 255, 255)",
+                },
+              },
+              headCells: {
+                style: {
+                  backgroundColor: "rgb(36, 36, 36)",
+                  color: "rgb(255, 255, 255)",
+                },
+              },
+              cells: {
+                style: {
+                  backgroundColor: "rgb(33, 33, 33)",
+                  color: "rgb(255, 255, 255)",
+                },
+              },
+              pagination: {
+                style: {
+                  backgroundColor: "rgb(33, 33, 33)",
+                  color: "rgb(255, 255, 255)",
+                },
+              },
+            }}
+          />
+        ) : (
+          <p>Loading...</p>
+        )}
       </div>
     </div>
-  );
-}
-
-function OrganizationRow({ org }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <tr key={org.organizationid}>
-      <td
-        className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-light sm:pl-6"
-        onClick={() => setOpen(!open)}
-      >
-        <a href="#" className="hover:text-primary" onClick={() => setOpen(!open)}>
-          {org.name}
-        </a>
-      </td>
-      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-        {org.organization_type}
-      </td>
-      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">{org.industry}</td>
-      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-        {org.organization_size}
-      </td>
-      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-        {org.date_established
-          ? new Date(org.date_established).toLocaleString("en-US", {
-              weekday: "long", // "Monday"
-              year: "numeric", // "2024"
-              month: "long", // "April"
-              day: "numeric", // "16"
-            })
-          : ""}
-      </td>
-      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-        {org.created_at
-          ? new Date(org.created_at).toLocaleString("en-US", {
-              weekday: "long", // "Monday"
-              year: "numeric", // "2024"
-              month: "long", // "April"
-              day: "numeric", // "16"
-              hour: "numeric", // "1"
-              minute: "2-digit", // "40"
-            })
-          : ""}
-      </td>
-
-      <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-        <OrganizationOptions selectedOrg={org} open={open} setOpen={setOpen} />
-      </td>
-    </tr>
   );
 }

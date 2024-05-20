@@ -1,5 +1,6 @@
 "use client";
 import { useUser } from "@/context/UserContext";
+import { createClient } from "@/lib/supabase/client";
 import { UserProfile } from "@/lib/types";
 import {
   deleteUser,
@@ -8,22 +9,21 @@ import {
   sendPasswordRecovery,
   updateUserProfileById,
 } from "@/lib/userActions";
-import { convertToBase64, isDateValid } from "@/lib/utils";
+import { isDateValid } from "@/lib/utils";
 import { EnvelopeIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
-import Swal from "sweetalert2";
-import { z } from "zod";
+import { useEffect, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { Controller } from "react-hook-form";
+import Swal from "sweetalert2";
 import Datepicker from "tailwind-datepicker-react";
+import { z } from "zod";
 
 // Schema for form validation
 const UserProfileSchema = z.object({
   first_name: z.string().min(1, "First name is required"),
-  last_name: z.string(),
+  last_name: z.string().min(1, "Last name is required"),
   gender: z
     .string()
     .min(1, "Gender is required")
@@ -43,6 +43,8 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [email, setEmail] = useState("");
   const [imageError, setImageError] = useState("");
+  const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null); // State for preview URL
   const { user } = useUser(); // Use the useUser hook to access the logged-in user's details
   const [show, setShow] = useState<boolean>(false);
 
@@ -107,14 +109,33 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
   const handleEdit = async (data: UserProfile) => {
     setIsUpdating(true);
 
+    let profilePictureUrl = userProfile?.profilepicture;
+
+    if (profilePictureFile) {
+      const fileName = `${userProfile?.first_name}_${userProfile?.last_name}_${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      const { data: uploadResult, error } = await createClient()
+        .storage.from("profile-pictures")
+        .upload(fileName, profilePictureFile, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (uploadResult) {
+        profilePictureUrl = uploadResult.fullPath;
+      } else {
+        console.error("Error uploading image:", error);
+        toast.error("Error uploading image. Please try again.");
+        setIsUpdating(false);
+        return;
+      }
+    }
+
     const updatedData: UserProfile = {
       ...data,
       userid: userProfile?.userid || "",
       updatedat: new Date(),
       dateofbirth: data.dateofbirth ? data.dateofbirth : undefined,
-      profilepicture: userProfile?.profilepicture
-        ? userProfile.profilepicture
-        : undefined,
+      profilepicture: profilePictureUrl,
     };
 
     const response = await updateUserProfileById(userProfile?.userid || "", updatedData);
@@ -181,6 +202,46 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
     }
   };
 
+  const handleProfilePictureChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Check if the file is an image
+      if (!file.type.startsWith("image/")) {
+        setImageError("Please upload an image file");
+        return;
+      }
+
+      // Set the loading state
+      setIsUpdating(true);
+
+      // Generate a unique file name
+      const fileName = `${userProfile?.userid}_${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      const { data: uploadResult, error } = await createClient()
+        .storage.from("profile-pictures")
+        .upload(fileName, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (uploadResult) {
+        setUserProfile({
+          ...userProfile,
+          profilepicture: `https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public/${(uploadResult as any).fullPath}`,
+        });
+      } else {
+        console.error("Error uploading image:", error);
+        toast.error("Error uploading image. Please try again.");
+      }
+
+      // Reset the loading state
+      setIsUpdating(false);
+      setProfilePictureFile(file);
+      setPreviewUrl(URL.createObjectURL(file)); // Create a preview URL
+      setImageError("");
+
+    }
+  };
+
   if (!userProfile) {
     return <div className="mt-10 text-light">Loading...</div>;
   }
@@ -213,38 +274,28 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                 <div className="relative">
                   <img
                     src={
-                      userProfile?.profilepicture
-                        ? userProfile.profilepicture
-                        : "/Portrait_Placeholder.png"
+                      previewUrl
+                        ? previewUrl
+                        : userProfile?.profilepicture
+                          ? `https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public/${userProfile.profilepicture}`
+                          : "/Portrait_Placeholder.png"
                     }
                     alt="Profile Picture"
                     className="block h-44 w-44 rounded-full border-4 border-primary"
                     style={{ objectFit: "cover" }}
                   />
                   <div className="absolute bottom-0 right-0 mb-2 mr-2">
-                    <label htmlFor="file-input" className="">
+                    <label htmlFor="profile-picture-input" className="">
                       <PlusIcon className="mr-2 inline-block h-8 w-8 cursor-pointer rounded-full border-2 border-primary  bg-white text-primarydark" />
                     </label>
                     <input
-                      id="file-input"
+                      id="profile-picture-input"
                       accept="image/*"
                       type="file"
-                      onChange={async (event) => {
-                        const file = event.target.files?.[0];
-                        if (file) {
-                          // Check if the file is an image
-                          if (!file.type.startsWith("image/")) {
-                            // Set the error message
-                            setImageError("Please upload an image file");
-                            return;
-                          }
-                          const base64 = await convertToBase64(file);
-                          setUserProfile({ ...userProfile, profilepicture: base64 });
-                          // Clear the error message
-                          setImageError("");
-                        }
-                      }}
+                      onChange={handleProfilePictureChange}
                       className="hidden"
+                      title="Profile Picture"
+                      placeholder="Choose an image"
                     />
                   </div>
                 </div>
@@ -256,7 +307,7 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                 <div className="mt-8 flex flex-row gap-2">
                   <div className="w-full">
                     <label className="block text-sm font-medium text-light">
-                      First Name
+                      First Name*
                       <input
                         type="text"
                         {...register("first_name")}
@@ -270,7 +321,7 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                   </div>
                   <div className="w-full">
                     <label className="block text-sm font-medium text-light">
-                      Last Name
+                      Last Name*
                       <input
                         type="text"
                         {...register("last_name")}
@@ -285,7 +336,7 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                 </div>
 
                 <label className="mt-2 block text-sm font-medium text-light">
-                  Gender
+                  Gender*
                   <select
                     {...register("gender")}
                     defaultValue={userProfile.gender || ""}
@@ -300,7 +351,7 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                   <p className="text-red-500">{errors.gender && errors.gender.message}</p>
                 </label>
                 <label className="mt-2 block text-sm font-medium text-light">
-                  Date of Birth
+                  Date of Birth*
                   <Controller
                     name="dateofbirth" // The field name
                     control={control} // Pass in the control prop
