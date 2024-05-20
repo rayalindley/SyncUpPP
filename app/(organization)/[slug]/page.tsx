@@ -24,6 +24,15 @@ const orgdata = [
   },
 ];
 
+const getInitials = (name) => {
+  const words = name.split(" ");
+  if (words.length > 1) {
+    return words[0][0] + words[1][0];
+  } else {
+    return name.substring(0, 2);
+  }
+};
+
 export default async function OrganizationUserView({
   params,
   searchParams,
@@ -87,40 +96,44 @@ export default async function OrganizationUserView({
   const twitterLink = socials.twitter; // Access the Twitter link
   const linkedinLink = socials.linkedin; // Access the LinkedIn link
 
-  const supabaseStorageBaseUrl =
-    "https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public";
+  const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
 
   return (
     <div>
       <Header user={user} />
       <ToastContainer />
-      <main className="isolate flex justify-center sm:px-4 md:px-6 lg:px-80 ">
-        <div className="relative max-w-7xl">
-          {/* White Rectangle */}
-          {/* <div className="relative rounded-2xl bg-white p-8 shadow-lg sm:p-16 lg:p-40"></div> */}
-          <img
-            src={
-              `${supabaseStorageBaseUrl}/${org?.banner}` ||
-              "https://via.placeholder.com/150"
-            }
-            alt={`${org?.name} logo`}
-            className="h-80 w-full rounded-lg"
-            style={{ objectFit: "cover" }}
-          />
+      <main className="isolate flex flex-col items-center sm:px-4 md:px-6 lg:px-80">
+        <div className="relative w-full max-w-7xl">
+          {org.banner ? (
+            <img
+              src={`${supabaseStorageBaseUrl}/${org?.banner}`}
+              alt={`${org?.name} logo`}
+              className="h-64 w-full rounded-lg sm:h-80"
+              style={{ objectFit: "cover" }}
+            />
+          ) : (
+            <div className="h-64 w-full rounded-lg bg-zinc-200 sm:h-80 "></div>
+          )}
+
           <div className="absolute w-full -translate-y-1/2 transform px-5">
-            <div className="flex w-full transform items-end justify-between">
-              <div className="block h-36 w-36 rounded-xl border-4 border-primary sm:h-32 sm:w-32">
-                <img
-                  src={
-                    `${supabaseStorageBaseUrl}/${org?.photo}` ||
-                    "https://via.placeholder.com/150"
-                  }
-                  alt={`${org?.name} logo`}
-                  className="h-full w-full rounded-lg"
-                  style={{ objectFit: "cover" }}
-                />
+            <div className="flex flex-col items-center sm:flex-row sm:justify-between">
+              <div className="h-24 w-24 rounded-xl border-4 border-primary sm:h-32 sm:w-32">
+                {org.photo ? (
+                  <img
+                    src={`${supabaseStorageBaseUrl}/${org?.photo}`}
+                    alt={`${org?.name} logo`}
+                    className="h-full w-full rounded-lg"
+                    style={{ objectFit: "cover" }}
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center rounded-lg bg-zinc-200">
+                    <span className="text-5xl text-zinc-800">
+                      {getInitials(org.name)}
+                    </span>
+                  </div>
+                )}
               </div>
-              <div>
+              <div className="mt-4 sm:mt-0">
                 <Link
                   className="rounded-lg bg-primary px-4 py-2 text-white hover:bg-primarydark"
                   href={`${slug}/settings`}
@@ -130,26 +143,24 @@ export default async function OrganizationUserView({
               </div>
             </div>
           </div>
-          {/* Content */}
-
           <div className="mt-8 space-y-4 px-5 sm:mt-16 lg:mt-24">
-            {/* min width to be modified */}
-            <h1 className="text-3xl font-bold text-light">{org?.name}</h1>
-            <div className="mt-2 flex ">
-              <UserGroupIcon className="mr-1 h-5 w-5 text-primary " />
-              <p className="mr-4 text-sm text-light">Members: {orgdata[0].members}</p>
-              <InboxIcon className="mr-1 h-5 w-5 text-primary " />
-              <p className="text-sm text-light">Posts: {orgdata[0].posts}</p>
+            <h1 className="text-2xl font-bold text-light sm:text-3xl">{org?.name}</h1>
+            <div className="mt-2 flex flex-col sm:flex-row sm:items-center">
+              <div className="mb-2 flex items-center sm:mb-0 sm:mr-4">
+                <UserGroupIcon className="mr-1 h-5 w-5 text-primary" />
+                <p className="text-sm text-light">Members: {orgdata[0].members}</p>
+              </div>
+              <div className="flex items-center">
+                <InboxIcon className="mr-1 h-5 w-5 text-primary" />
+                <p className="text-sm text-light">Posts: {orgdata[0].posts}</p>
+              </div>
             </div>
-            <div className="mt-4text-sm text-light ">{org.description}</div>
+            <div className="text-sm text-light">{org.description}</div>
             <SocialIcons
               facebook={facebookLink}
               twitter={twitterLink}
               linkedin={linkedinLink}
             />
-
-            {/* <TabsComponent organizationid={org.organizationid} posts={posts} /> */}
-
             <TabsComponent
               organizationid={org.organizationid}
               memberships={memberships}

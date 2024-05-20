@@ -77,8 +77,7 @@ export default function ProfilePage() {
   };
 
   // Define the base URL for your Supabase storage bucket
-  const supabaseStorageBaseUrl =
-    "https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public";
+  const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
 
   return (
     <>

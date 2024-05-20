@@ -8,8 +8,7 @@ export default function OrganizationCard({
   slug,
 }) {
   // Define the base URL for your Supabase storage bucket
-  const supabaseStorageBaseUrl =
-    "https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public";
+  const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
 
   // Use the default photo if `photo` is not provided
   const photoUrl = photo || "./images/placeholder.png";

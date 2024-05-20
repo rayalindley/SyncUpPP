@@ -50,8 +50,7 @@ const EventsCard = ({ event }: { event: Event }) => {
     location && location.startsWith("http") ? "Virtual Event" : location;
 
   // Define the base URL for your Supabase storage bucket
-  const supabaseStorageBaseUrl =
-    "https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public";
+  const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
 
   const handleEventRegistration = async () => {
     // Initialize Supabase client
