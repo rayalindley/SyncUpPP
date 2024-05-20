@@ -9,11 +9,14 @@ const TabsComponent = ({
   organizationid,
   memberships,
   events,
+  posts
 }: {
   organizationid: any;
   memberships: any;
   events: any;
+  posts: any;
 }) => {
+
   const [activeTab, setActiveTab] = useState("posts");
 
   const handleTabChange = (tab: any) => {
@@ -22,7 +25,9 @@ const TabsComponent = ({
 
   let tabContent = null;
   if (activeTab === "posts") {
-    tabContent = <OrganizationPostsComponent />;
+    tabContent = (
+      <OrganizationPostsComponent organizationid={organizationid} posts={posts} />
+    );
   } else if (activeTab === "membership") {
     tabContent = <OrganizationMembershipsComponent memberships={memberships} />;
   } else if (activeTab === "events") {

@@ -2,6 +2,7 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import TabsComponent from "@/components/organization/organization_view_tabs";
 import SocialIcons from "@/components/organization/social_icons";
+import { fetchPosts } from "@/lib/posts";
 import { fetchEvents } from "@/lib/events";
 import { getMemberships } from "@/lib/memberships";
 import { createClient, getUser } from "@/lib/supabase/server";
@@ -45,6 +46,24 @@ export default async function OrganizationUserView({
     .eq("slug", slug)
     .single();
 
+
+  // Inside your component
+  const currentPage = 1; // Set the current page
+  const postsPerPage = 6; // Set the number of posts per page
+
+  // Fetch organization posts
+  const { data: posts, error: postsError } = await fetchPosts(
+    org.organizationid,
+    currentPage,
+    postsPerPage
+  );
+
+  // Handle any errors from fetching posts
+  if (postsError) {
+    console.error("Error fetching posts:", postsError);
+    return; // Optionally, handle the error in your UI
+  }
+
   // Fetch events data
   const currentPage = 1; // Set the current page
   const eventsPerPage = 6; // Set the number of events per page
@@ -63,7 +82,7 @@ export default async function OrganizationUserView({
   const memberships = await getMemberships(org.organizationid);
 
   // Assuming `org` is an object retrieved from your database that contains the social media links object
-  const socials = org.socials || {}; // Use default empty object if `org.socials` is undefined or null
+  const socials = org?.socials || {}; // Use default empty object if `org.socials` is undefined or null
 
   const facebookLink = socials.facebook; // Access the Facebook link
   const twitterLink = socials.twitter; // Access the Twitter link
@@ -126,11 +145,18 @@ export default async function OrganizationUserView({
               twitter={twitterLink}
               linkedin={linkedinLink}
             />
+            <div className="mt-4 px-4 text-center text-sm text-light sm:px-8 lg:px-10">
+              {org.description}
+            </div>
+<!--             <TabsComponent organizationid={org.organizationid} posts={posts} /> -->
+
             <TabsComponent
               organizationid={org.organizationid}
               memberships={memberships}
               events={events}
+              posts={posts}
             />
+
           </div>
         </div>
       </main>
