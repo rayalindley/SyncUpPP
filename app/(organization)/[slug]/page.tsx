@@ -116,7 +116,7 @@ export default async function OrganizationUserView({
           )}
 
           <div className="absolute w-full -translate-y-1/2 transform px-5">
-            <div className="flex flex-col items-center sm:flex-row sm:justify-between">
+            <div className="flex flex-col items-end sm:flex-row sm:justify-between">
               <div className="h-24 w-24 rounded-xl border-4 border-primary sm:h-32 sm:w-32">
                 {org.photo ? (
                   <img
