@@ -473,3 +473,67 @@ export async function fetchEventsForUser(userId: string) {
     };
   }
 }
+
+export async function isEventFull(eventId: string) {
+  const supabase = createClient();
+  try {
+    // Fetch the event capacity
+    const { data: event, error: eventError } = await supabase
+      .from("events")
+      .select("capacity")
+      .eq("eventid", eventId)
+      .single();
+
+    if (eventError || !event) {
+      throw new Error(eventError?.message || "Event not found");
+    }
+
+    // Fetch the count of registered users
+    const { count, error: registrationError } = await supabase
+      .from("eventregistrations")
+      .select("*", { count: "exact" })
+      .eq("eventid", eventId)
+      .eq("status", "registered");
+
+    if (registrationError) {
+      throw new Error(registrationError.message);
+    }
+
+    // Compare the count with the capacity
+    const isFull = count !== null && count >= event.capacity;
+    return { isFull, error: null };
+  } catch (e: any) {
+    console.error("Unexpected error:", e);
+    return {
+      isFull: false,
+      error: { message: e.message || "An unexpected error occurred" },
+    };
+  }
+}
+
+export async function checkMembership(userId: string, organizationId: string) {
+  const supabase = createClient();
+
+  try {
+    const { data: membership, error } = await supabase
+      .from("organizationmembers")
+      .select("organizationmemberid")
+      .eq("userid", userId)
+      .eq("organizationid", organizationId)
+      .single();
+
+    if (error && error.code !== "PGRST116") {
+      // PGRST116 is the code for no rows found
+      throw error;
+    }
+
+    const isMember = !!membership;
+    return { isMember, error: null };
+  } catch (e: any) {
+    console.error("Unexpected error:", e);
+    return {
+      isMember: false,
+      error: { message: e.message || "An unexpected error occurred" },
+    };
+  }
+}
