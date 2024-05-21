@@ -1,5 +1,5 @@
 "use client";
-import CreateMembershipForm from "@/components/create_membership_form";
+import CreateMembershipForm from "@/components/memberships/create_membership_form";
 import CreateOrganizationForm from "@/components/create_organization_form";
 import { fetchOrganizationBySlug } from "@/lib/organization";
 import { createClient } from "@/lib/supabase/client";
@@ -15,7 +15,7 @@ export default function Example() {
 
   const [organization, setOrganization] = useState(null);
   const [error, setError] = useState(null);
-
+const [showModal, setShowModal] = useState(false);
   
   useEffect(() => {
     const fetchOrganization = async () => {

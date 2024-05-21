@@ -7,7 +7,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { StepsProvider } from "react-step-builder";
 import EditMembershipForm from "@/components/edit_membership_form";
-import CreateMembershipForm from "@/components/create_membership_form";
+import CreateMembershipForm from "@/components/memberships/create_membership_form";
 import { fetchMembershipById, getOrgMem } from "@/lib/memberships";
 
 export default function Example() {

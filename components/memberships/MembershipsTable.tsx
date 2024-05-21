@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import OrganizationOptions from "./organization_options";
+import OrganizationOptions from "../app/organization_options";
 import MembershipOptions from "./membership_options";
 import { Listbox } from "@headlessui/react"; 
 
@@ -108,12 +108,6 @@ export default function MembershipsTable({ orgmems, allMembers}: { orgmems?: Mem
                       Members
                     </th>
                   
-                    {/* <th
-                      scope="col"
-                      className="px-3 py-3.5 text-left text-sm font-semibold text-light"
-                    >
-                      Most Popular
-                    </th> */}
                     <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                       <span className="sr-only">Edit</span>
                     </th>
@@ -159,10 +153,6 @@ function MemRow({ mem ,members, showOrg }) {
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
         {mem.membership_count}
       </td>
-
-      {/* <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-        {mem.mostPopular ? "TRUE" : "FALSE"}
-      </td> */}
 
       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
         <MembershipOptions selectedTier={mem} open={open} setOpen={setOpen}  TierMembers={members}/>
