@@ -10,7 +10,7 @@ export default async function DashboardPage() {
     user_uuid: user?.id,
   });
 
-  console.log(organizations, error);
+  // console.log(organizations, error);
 
   return (
     <>

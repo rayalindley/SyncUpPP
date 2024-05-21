@@ -128,7 +128,7 @@ const EventPage = () => {
         console.error("Registration failed:", error);
         toast.error(`Registration failed: ${error.message}`);
       } else {
-        console.log("Registration successful:", data);
+        // console.log("Registration successful:", data);
         toast.success("You have successfully joined the event!");
         setIsRegistered(true);
       }
@@ -162,7 +162,7 @@ const EventPage = () => {
         console.error("Unregistration failed:", error);
         toast.error(`Unregistration failed: ${error.message}`);
       } else {
-        console.log("Unregistration successful:", data);
+        // console.log("Unregistration successful:", data);
         toast.success("You have successfully cancelled your registration!");
         setIsRegistered(false); // Update the state to reflect the unregistration
       }

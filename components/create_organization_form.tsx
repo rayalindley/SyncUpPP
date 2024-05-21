@@ -384,7 +384,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
             progress: undefined,
             theme: "light",
           });
-          console.log(formData);
+          // console.log(formData);
           router.push("/dashboard");
           reset();
         } else if (error) {
@@ -412,7 +412,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
   // Date Picker
   const [show, setShow] = useState<boolean>(false);
   const handleChange = (selectedDate: Date) => {
-    console.log(selectedDate);
+    // console.log(selectedDate);
   };
   const handleClose = (state: boolean) => {
     setShow(state);

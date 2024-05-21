@@ -113,7 +113,7 @@ const CreateEventForm = ({
       return;
     }
 
-    console.log(formData.eventdatetime);
+    // console.log(formData.eventdatetime);
     const { data, error } = event
       ? await updateEvent(event.eventid, completeFormData)
       : await insertEvent(completeFormData, organizationId);

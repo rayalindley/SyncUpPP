@@ -66,7 +66,7 @@ export async function sendPasswordRecovery(email: string) {
   let { data, error } = await supabase.auth.resetPasswordForEmail(email);
 
   if (!error) {
-    console.log(data);
+    // console.log(data);
     return data;
   }
 

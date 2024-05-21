@@ -15,7 +15,7 @@ function classNames(...classes: string[]) {
 }
 
 const MembershipTiers: React.FC<MembershipsProps> = ({ memberships, userid }) => {
-  console.log("The view component membership ", memberships);
+  // console.log("The view component membership ", memberships);
 
   const [userMemberships, setUserMemberships] = useState<string[]>([]);
   useEffect(() => {
@@ -84,7 +84,7 @@ const MembershipTiers: React.FC<MembershipsProps> = ({ memberships, userid }) =>
           console.error("Error inserting data: ", error);
         } else {
           toast.success("Congratulations! You've successfully purchased the membership.");
-          console.log("Data inserted successfully: ", data);
+          // console.log("Data inserted successfully: ", data);
           setUserMemberships(prevUserMemberships => [...prevUserMemberships, membershipId]);
         }
       } catch (error) {

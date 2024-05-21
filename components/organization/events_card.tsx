@@ -92,7 +92,7 @@ const EventsCard = ({ event }: { event: Event }) => {
         console.error("Registration failed:", error);
         toast.error("Registration failed. Please try again.");
       } else {
-        console.log("Registration successful:", data);
+        // console.log("Registration successful:", data);
         toast.success("You have successfully joined the event!");
         // Additional logic after successful registration (e.g., close dialog, show message)
       }

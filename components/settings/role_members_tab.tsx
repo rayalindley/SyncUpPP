@@ -70,7 +70,7 @@ export const Members = ({ selectedRole, organizationId }) => {
           className="flex-grow rounded-md border border-raisinblack bg-charleston p-2 px-4 text-sm text-light placeholder-opacity-50 placeholder:text-light "
         />
         <button
-          onClick={() => console.log("Add new member")}
+          onClick={() => // console.log("Add new member")}
           className="rounded-md bg-primary p-2 px-4 text-sm hover:bg-primarydark"
         >
           Add Member

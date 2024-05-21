@@ -183,7 +183,7 @@ const CreateEventForm = ({
       }
       imageUrl = null;
       setPreviousPhotoUrl(null); // Reset the previousPhotoUrl since the image was removed
-      console.log(fileName);
+      // console.log(fileName);
     }
 
     const eventDateTimeWithTimezone = new Date(formData.eventdatetime).toISOString();
@@ -218,7 +218,7 @@ const CreateEventForm = ({
       slug: event ? event.eventslug : slug,
     };
 
-    console.log("Complete form data:", completeFormData);
+    // console.log("Complete form data:", completeFormData);
 
     const { data, error } = event
       ? await updateEvent(event.eventid, completeFormData)

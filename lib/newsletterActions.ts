@@ -66,7 +66,7 @@ export async function sendNewsletter(
 
       try {
         const emailResponse = await sendEmail(emailContent);
-        console.log(emailResponse); // Directly log or use the response
+        // console.log(emailResponse); // Directly log or use the response
 
         if (emailResponse) {
           successCount++;

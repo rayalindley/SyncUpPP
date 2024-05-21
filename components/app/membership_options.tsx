@@ -34,7 +34,7 @@ export default function MembershipOptions({
   open: boolean;
   setOpen: any;
   TierMembers: any;
-}) { console.log(selectedTier.membershipid)
+}) { // console.log(selectedTier.membershipid)
   const deleteBtn = () => {
     Swal.fire({
       title: "Are you sure?",
@@ -48,7 +48,7 @@ export default function MembershipOptions({
       if (result.isConfirmed) {
         const response = await deleteMembership(selectedTier.membershipid);
 
-        console.log(selectedTier.membershipid)
+        // console.log(selectedTier.membershipid)
 
         if (!response.error) {
           Swal.fire({
