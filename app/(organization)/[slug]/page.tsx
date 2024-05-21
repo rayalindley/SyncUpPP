@@ -10,6 +10,7 @@ import { InboxIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 import { ToastContainer } from "react-toastify";
 import Link from "next/link";
 
+
 const orgdata = [
   {
     name: "Lorem Ipsum",
@@ -96,7 +97,16 @@ export default async function OrganizationUserView({
   const twitterLink = socials.twitter; // Access the Twitter link
   const linkedinLink = socials.linkedin; // Access the LinkedIn link
 
+  // Now you can use these links in your code as needed
+  // console.log("Facebook Link:", facebookLink);
+  // console.log("Twitter Link:", twitterLink);
+  // console.log("LinkedIn Link:", linkedinLink);
+  // console.log("Org ID:", org.organizationid)
+  // console.log("Memberships: ", memberships)
+  console.log(user?.id)
+
   const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
+
 
   return (
     <div>
@@ -161,12 +171,15 @@ export default async function OrganizationUserView({
               twitter={twitterLink}
               linkedin={linkedinLink}
             />
+
             <TabsComponent
               organizationid={org.organizationid}
               memberships={memberships}
               events={events}
               posts={posts}
+              id={user?.id}
             />
+            
           </div>
         </div>
       </main>

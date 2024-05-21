@@ -112,6 +112,7 @@ export interface Membership {
 
 export interface MembershipsProps {
   memberships: Membership[];
+  userid: string;
 }
 
 // Add these type definitions to your types.ts file
