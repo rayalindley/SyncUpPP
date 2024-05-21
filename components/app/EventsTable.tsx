@@ -1,9 +1,16 @@
 "use client";
+import { Event, Organization } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import EventOptions from "./event_options"; // Assuming you have EventOptions component
+import EventOptions from "./event_options"; // Assuming you have EventOptions component\\
 
-export default function EventsTable({ organizations, events }) {
+export default function EventsTable({
+  organizations,
+  events,
+}: {
+  organizations: Organization[];
+  events: Event[];
+}) {
   const [selectedOrgId, setSelectedOrgId] = useState("");
   const router = useRouter();
 
@@ -124,10 +131,10 @@ export default function EventsTable({ organizations, events }) {
   );
 }
 
-function EventRow({ event }) {
+function EventRow({ event }: { event: Event }) {
   const [open, setOpen] = useState(false);
   // Convert eventdatetime to PST
-  const formattedDateTime = (utcDateString) => {
+  const formattedDateTime = (utcDateString: string) => {
     const date = new Date(utcDateString);
     return date.toLocaleString("en-US", {
       timeZone: "Asia/Manila",
@@ -140,7 +147,7 @@ function EventRow({ event }) {
   };
 
   // Call the formattedDateTime function with the event's datetime
-  const eventDateTimePST = formattedDateTime(event.eventdatetime);
+  const eventDateTimePST = formattedDateTime(event.eventdatetime.toString());
   return (
     <tr key={event.id}>
       <td

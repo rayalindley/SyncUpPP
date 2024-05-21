@@ -8,7 +8,7 @@ interface SocialIconsProps {
 
 const SocialIcons = ({ facebook, twitter, linkedin }: SocialIconsProps) => {
   return (
-    <div className="mt-2 flex justify-center sm:mt-2 lg:mt-4">
+    <div className="my-5">
       {facebook && (
         <a href={facebook} className="mr-4 text-blue-500">
           <CiFacebook className="inline-block h-4 w-4 text-light hover:text-primary sm:h-7 sm:w-7 lg:h-7 lg:w-7" />
