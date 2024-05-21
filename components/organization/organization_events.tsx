@@ -1,36 +1,19 @@
-import { fetchEvents } from "@/lib/events";
+import { Event } from "@/lib/types";
 import { ArrowLongLeftIcon, ArrowLongRightIcon } from "@heroicons/react/20/solid";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import EventsCard from "./events_card";
-const OrganizationEventsComponent = ({ organizationid }) => {
-  const [events, setEvents] = useState([]);
-
+const OrganizationEventsComponent = ({ events }: { events: Event[] }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const eventsPerPage = 6;
 
-  useEffect(() => {
-    // Fetch events when the organizationId or currentPage changes
-    const fetchData = async () => {
-      const { data, error } = await fetchEvents(
-        organizationid,
-        currentPage,
-        eventsPerPage
-      );
-      if (!error) {
-        setEvents(data);
-      } else {
-        console.error("Error fetching events:", error);
-      }
-    };
-    fetchData();
-  }, [organizationid, currentPage]);
-
+  // Calculate the indices for the current page's events
   const indexOfLastEvent = currentPage * eventsPerPage;
   const indexOfFirstEvent = indexOfLastEvent - eventsPerPage;
   const currentEvents = events.slice(indexOfFirstEvent, indexOfLastEvent);
 
-  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
+  // Determine if the current page is the first or the last
   const isFirstPage = currentPage === 1;
   const isLastPage = indexOfLastEvent >= events.length;
 
@@ -41,18 +24,26 @@ const OrganizationEventsComponent = ({ organizationid }) => {
           Our Events
         </p>
       </div>
-      <div className="isolate mx-auto mt-8 grid max-w-md grid-cols-1 gap-x-8 gap-y-8 sm:mt-12 lg:mx-0 lg:max-w-none lg:grid-cols-3">
+      <div className="isolate mx-auto my-8 grid grid-cols-1 justify-between gap-x-4 gap-y-8 sm:mt-12 md:grid-cols-3 lg:grid-cols-4">
         {currentEvents.map((event, index) => (
           <EventsCard
             key={index}
             event={{
-              eventid: event.eventid,
-              imageUrl: event.eventphoto, // Assuming eventphoto is the field for the event photo
+              id: event.eventid, // Add the missing 'id' property
+              eventid: event.eventid, // Add the missing 'eventid' property
+              eventphoto: event.eventphoto, // Add the missing 'eventphoto' property
+              capacity: event.capacity, // Add the missing 'capacity' property
+              organizationid: event.organizationid, // Add the missing 'organizationid' property
+              imageUrl: event.eventphoto,
               title: event.title,
               description: event.description,
               registrationfee: event.registrationfee,
               eventdatetime: event.eventdatetime,
               location: event.location,
+              eventslug: event.eventslug,
+              tags: event.tags, // Add the missing 'tags' property
+              privacy: event.privacy, // Add the missing 'privacy' property
+              createdat: event.createdat, // Add the missing 'createdat' property
             }}
           />
         ))}

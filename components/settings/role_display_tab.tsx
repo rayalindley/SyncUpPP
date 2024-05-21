@@ -20,6 +20,7 @@ export const RoleDisplay = ({ selectedRole, handleDeleteRole, handleSaveChanges 
   useEffect(() => {
     setRoleColor(selectedRole.color || "Silver");
     setRoleName(selectedRole.role);
+    setHasChanges(false);
     setErrors({ role: "" }); // Clear errors when a new role is selected
   }, [selectedRole]);
 
@@ -81,22 +82,21 @@ export const RoleDisplay = ({ selectedRole, handleDeleteRole, handleSaveChanges 
       </div>
 
       <hr className="my-8 border-[#525252]" />
-
-      <div className="flex items-center gap-4">
-        {selectedRole?.deletable && (
-          <button
-            className="rounded-md bg-red-600 px-4 py-2 text-sm"
-            onClick={() => handleDeleteRole(selectedRole)}
-          >
-            Remove Role
-          </button>
-        )}
+      <div className="flex items-center gap-2">
         {hasChanges && (
           <button
             className=" rounded-md bg-blue-600 px-4 py-2 text-sm"
             onClick={handleSave}
           >
             Save Changes
+          </button>
+        )}
+        {selectedRole?.deletable && (
+          <button
+            className="rounded-md bg-red-600 px-4 py-2 text-sm"
+            onClick={() => handleDeleteRole(selectedRole)}
+          >
+            Remove Role
           </button>
         )}
       </div>

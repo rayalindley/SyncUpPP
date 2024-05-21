@@ -3,17 +3,18 @@ import useSidebarStore from "@/store/useSidebarStore";
 import { Dialog, Transition } from "@headlessui/react";
 import {
   CalendarIcon,
-  ChartPieIcon,
+    ChartPieIcon,
   Cog6ToothIcon,
   DocumentDuplicateIcon,
   HomeIcon,
   UsersIcon,
   XMarkIcon,
+FolderIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Fragment, useEffect, useState } from "react";
-import { FolderIcon } from "@heroicons/react/20/solid";
+import { EnvelopeIcon } from "@heroicons/react/24/outline"; // Import the icon
 
 function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
@@ -27,6 +28,9 @@ const navigation = [
     href: "/dashboard/organizations",
     icon: UsersIcon,
   },
+  { name: "Events", href: "/dashboard/events", icon: CalendarIcon },
+  { name: "Calendar", href: "#", icon: CalendarIcon },
+  { name: "Newsletter", href: "/dashboard/newsletter", icon: EnvelopeIcon },
   { name: "Projects", href: "#", icon: FolderIcon },
   { name: "Memberships", href: "/dashboard/memberships", icon: CalendarIcon },
   { name: "Documents", href: "#", icon: DocumentDuplicateIcon },

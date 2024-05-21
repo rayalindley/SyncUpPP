@@ -1,54 +1,121 @@
 "use client";
+<<<<<<< HEAD:components/memberships/MembershipsTable.tsx
 import { useState } from "react";
 import OrganizationOptions from "../app/organization_options";
+=======
+import { useState, useEffect, useMemo } from "react";
+import DataTable from "react-data-table-component";
+import OrganizationOptions from "./organization_options";
+>>>>>>> 5e3b0f24347089edf1c0bcd652501440a6645bc7:components/app/MembershipsTable.tsx
 import MembershipOptions from "./membership_options";
-import { Listbox } from "@headlessui/react"; 
 
-interface Membership {
-  organizationid: string;
-  membershipid:string;
-  orgname: string;
-}
-
-interface Member {
-  membershipid: string;
-  organizationid: string;
-  username: string;
-}
-
-interface MembersByMembershipId {
-  [membershipid: string]: Member[];
-}
-
-export default function MembershipsTable({ orgmems, allMembers}: { orgmems?: Membership[], allMembers: Member[]}) {
+export default function MembershipsTable({ orgmems, allMembers }) {
   const [selectedOrgId, setSelectedOrgId] = useState("");
+  const [tableData, setTableData] = useState([]);
+  const [filterText, setFilterText] = useState("");
 
-  // Extract unique organizations
-  const organizations = Array.from(
-    new Set(orgmems.map((mem: Membership) => mem.organizationid))
-  ).map((id) => {
-    const found = orgmems.find((mem) => mem.organizationid === id);
-    return { id: found?.organizationid, name: found?.orgname };
-  });
+  const organizations = useMemo(() => {
+    return Array.from(new Set(orgmems.map((mem) => mem.organizationid))).map((id) => {
+      const found = orgmems.find((mem) => mem.organizationid === id);
+      return { id: found?.organizationid, name: found?.orgname };
+    });
+  }, [orgmems]);
 
-  const filteredMemberships = orgmems.filter(
-    (mem) => mem.organizationid === selectedOrgId || selectedOrgId === ""
+  useEffect(() => {
+    const filteredMemberships = orgmems.filter(
+      (mem) => mem.organizationid === selectedOrgId || selectedOrgId === ""
+    );
+
+    const filteredMembers = allMembers.filter(
+      (member) => member.organizationid === selectedOrgId || selectedOrgId === ""
+    );
+
+    const membersByMembershipId = {};
+    filteredMembers.forEach((member) => {
+      if (!membersByMembershipId[member.membershipid]) {
+        membersByMembershipId[member.membershipid] = [];
+      }
+      membersByMembershipId[member.membershipid].push(member);
+    });
+
+    const data = filteredMemberships.map((mem) => ({
+      ...mem,
+      members: membersByMembershipId[mem.membershipid] || [],
+      open: false,
+      setOpen: (open) => {
+        setTableData((prevData) => {
+          const newData = [...prevData];
+          const index = newData.findIndex(
+            (item) => item.membershipid === mem.membershipid
+          );
+          newData[index].open = open;
+          return newData;
+        });
+      },
+    }));
+
+    setTableData(data);
+  }, [orgmems, allMembers, selectedOrgId]);
+
+  const columns = [
+    {
+      name: "Membership",
+      selector: (row) => row.membershipname,
+      sortable: true,
+    },
+    {
+      name: "Organization",
+      selector: (row) => row.orgname,
+      sortable: true,
+      omit: selectedOrgId !== "",
+    },
+    {
+      name: "Fee",
+      selector: (row) => `$ ${row.registrationfee.toFixed(2)}`,
+      sortable: true,
+    },
+    {
+      name: "Members",
+      selector: (row) => row.membership_count,
+      sortable: true,
+    },
+    {
+      name: "",
+      cell: (row) => (
+        <MembershipOptions
+          selectedTier={row}
+          open={row.open}
+          setOpen={row.setOpen}
+          TierMembers={row.members}
+        />
+      ),
+      button: true,
+    },
+  ];
+
+  const filteredData = useMemo(
+    () =>
+      tableData.filter((item) => {
+        if (!filterText) return true;
+        return (
+          item.membershipname.toLowerCase().includes(filterText.toLowerCase()) ||
+          (selectedOrgId === "" &&
+            item.orgname.toLowerCase().includes(filterText.toLowerCase()))
+        );
+      }),
+    [filterText, tableData, selectedOrgId]
   );
 
-   // Filter members based on the selected organization
-   const filteredMembers = allMembers.filter(
-    (member) => member.organizationid === selectedOrgId || selectedOrgId === ""
+  const subHeaderComponent = (
+    <input
+      type="text"
+      placeholder="Search..."
+      value={filterText}
+      onChange={(e) => setFilterText(e.target.value)}
+      className="block rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+    />
   );
 
-  const membersByMembershipId: MembersByMembershipId = {};
-  filteredMembers.forEach(member => {
-    if (!membersByMembershipId[member.membershipid]) {
-      membersByMembershipId[member.membershipid] = [];
-    }
-    membersByMembershipId[member.membershipid].push(member);
-  });
-
-  // console.log(acc);
   return (
     <div className="px-4 sm:px-6 lg:px-8">
       <div className="sm:flex sm:items-center">
@@ -58,21 +125,22 @@ export default function MembershipsTable({ orgmems, allMembers}: { orgmems?: Mem
             A list of all the memberships in your organization
           </p>
         </div>
-        <div className=" relative mt-2 sm:mt-0">
+        <div className="relative mt-2 sm:mt-0">
           <select
             value={selectedOrgId}
             onChange={(e) => setSelectedOrgId(e.target.value)}
-            className="appearance-none block w-full px-3 py-2 text-base font-normal text-light bg-raisinblack border border-solid border-gray-500 rounded-full transition ease-in-out focus:border-emerald-500 focus:bg-charleston focus:text-light focus:outline-none focus:ring-2 focus:ring-emerald-500 hover:border-emerald-500 pr-8"
+            className="block w-full appearance-none rounded-full border border-solid border-gray-500 bg-raisinblack px-3 py-2 pr-8 text-base font-normal text-light transition ease-in-out hover:border-emerald-500 focus:border-emerald-500 focus:bg-charleston focus:text-light focus:outline-none focus:ring-2 focus:ring-emerald-500"
           >
             <option value="">All Organizations</option>
             {organizations.map((org) => (
-              <option key={org.id} value={org.id} >
+              <option key={org.id} value={org.id}>
                 {org.name}
               </option>
             ))}
           </select>
         </div>
       </div>
+<<<<<<< HEAD:components/memberships/MembershipsTable.tsx
       <div className="mt-8 flow-root">
         <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
           <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
@@ -125,10 +193,68 @@ export default function MembershipsTable({ orgmems, allMembers}: { orgmems?: Mem
             </div>
           </div>
         </div>
+=======
+      <div className="mt-8">
+        {tableData.length > 0 ? (
+          <DataTable
+            columns={columns}
+            data={filteredData}
+            defaultSortField="membershipname"
+            pagination
+            highlightOnHover
+            subHeader
+            subHeaderComponent={subHeaderComponent}
+            customStyles={{
+              header: {
+                style: {
+                  backgroundColor: "rgb(36, 36, 36)",
+                  color: "rgb(255, 255, 255)",
+                },
+              },
+              subHeader: {
+                style: {
+                  backgroundColor: "none",
+                  color: "rgb(255, 255, 255)",
+                  padding: 0,
+                  marginBottom: 10,
+                },
+              },
+              rows: {
+                style: {
+                  minHeight: "6vh",
+                  backgroundColor: "rgb(33, 33, 33)",
+                  color: "rgb(255, 255, 255)",
+                },
+              },
+              headCells: {
+                style: {
+                  backgroundColor: "rgb(36, 36, 36)",
+                  color: "rgb(255, 255, 255)",
+                },
+              },
+              cells: {
+                style: {
+                  backgroundColor: "rgb(33, 33, 33)",
+                  color: "rgb(255, 255, 255)",
+                },
+              },
+              pagination: {
+                style: {
+                  backgroundColor: "rgb(33, 33, 33)",
+                  color: "rgb(255, 255, 255)",
+                },
+              },
+            }}
+          />
+        ) : (
+          <p>Loading...</p>
+        )}
+>>>>>>> 5e3b0f24347089edf1c0bcd652501440a6645bc7:components/app/MembershipsTable.tsx
       </div>
     </div>
   );
 }
+<<<<<<< HEAD:components/memberships/MembershipsTable.tsx
 
 function MemRow({ mem ,members, showOrg }) {
   const [open, setOpen] = useState(false);
@@ -160,3 +286,5 @@ function MemRow({ mem ,members, showOrg }) {
     </tr>
   );
 }
+=======
+>>>>>>> 5e3b0f24347089edf1c0bcd652501440a6645bc7:components/app/MembershipsTable.tsx

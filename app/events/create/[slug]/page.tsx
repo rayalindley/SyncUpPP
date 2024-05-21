@@ -9,21 +9,26 @@ export default function CreateEventPage() {
   const router = useRouter();
   const { slug } = useParams();
   const [organization, setOrganization] = useState(null);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchOrganization = async () => {
+      if (typeof slug !== "string") {
+        setError("Invalid slug type");
+        return;
+      }
+
       try {
         const { data, error } = await fetchOrganizationBySlug(slug);
         if (error) {
-          setError(error);
+          setError(error.message); // Pass the error message instead of the entire error object
           console.error(error);
         } else {
           setOrganization(data);
         }
       } catch (err) {
         console.error("Failed to fetch organization:", err);
-        setError(err.message);
+        setError(err instanceof Error ? err.message : "Unknown error");
       }
     };
 
@@ -56,7 +61,7 @@ export default function CreateEventPage() {
         </div>
 
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-lg">
-          <CreateEventForm organizationId={organization.organizationid} />
+          <CreateEventForm organizationId={(organization as any)?.organizationid} />
         </div>
       </div>
     </>

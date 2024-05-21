@@ -1,10 +1,12 @@
 "use client";
 import EventsTable from "@/components/app/EventsTable";
 import { createClient, getUser } from "@/lib/supabase/client";
+import { Organization } from "@/lib/types";
+import { User } from "@/node_modules/@supabase/auth-js/src/lib/types";
 import { useEffect, useState } from "react";
 
 export default function DashboardPage() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
   const [organizations, setOrganizations] = useState([]);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,7 +31,6 @@ export default function DashboardPage() {
       }
 
       setOrganizations(orgs);
-      console.log(orgs);
 
       // Assuming you have an 'organizationId' field in your events
       const { data: userEvents, error: eventsError } = await supabase
@@ -37,7 +38,7 @@ export default function DashboardPage() {
         .select("*")
         .in(
           "organizationid",
-          orgs.map((org) => org.organization_id)
+          orgs.map((org: Organization) => org.organization_id)
         );
 
       if (eventsError) {
