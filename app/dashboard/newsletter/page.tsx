@@ -445,6 +445,7 @@ export default function NewsletterPage() {
         <button
           onClick={handleSendNewsletter}
           className="mt-6 cursor-pointer rounded bg-primary px-6 py-3 text-lg text-white"
+          disabled={sending}
         >
           {sending ? "Sending..." : "Send Newsletter"}
         </button>
