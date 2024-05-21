@@ -1,6 +1,7 @@
 "use client";
-import { Members } from "@/components/settings/role_members_tab";
+
 import { RoleDisplay } from "@/components/settings/role_display_tab";
+import { Members } from "@/components/settings/role_members_tab";
 import { createClient } from "@/lib/supabase/client";
 import { Menu, Switch, Tab } from "@headlessui/react";
 import {

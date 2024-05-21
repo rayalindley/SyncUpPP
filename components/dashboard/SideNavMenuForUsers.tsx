@@ -1,17 +1,35 @@
 "use client";
+import useSidebarStore from "@/store/useSidebarStore";
 import { Dialog, Transition, Listbox } from "@headlessui/react";
 import {
   CalendarIcon,
   ChartPieIcon,
   Cog6ToothIcon,
+  DocumentDuplicateIcon,
   HomeIcon,
   UsersIcon,
   XMarkIcon,
+  FolderIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Fragment, useEffect, useState } from "react";
+
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/20/solid";
+
+function classNames(...classes: any[]) {
+  return classes.filter(Boolean).join(" ");
+}
+
+const navigation = [
+  { name: "Overview", href: `/dashboard`, icon: HomeIcon },
+  { name: "Roles", href: `/dashboard/roles`, icon: UsersIcon },
+  { name: "Memberships", href: `/dashboard/memberships`, icon: UsersIcon },
+  { name: "Newsletter", href: `/dashboard/newsletter`, icon: CalendarIcon },
+  { name: "Calendar", href: `/dashboard/calendar`, icon: CalendarIcon },
+  // { name: "Reports", href: `/dashboard/reports`, icon: ChartPieIcon },
+];
+
 const people = [
   {
     id: 1,
@@ -75,34 +93,21 @@ const people = [
   },
 ];
 
-function classNames(...classes: any[]) {
-  return classes.filter(Boolean).join(" ");
-}
+const SideNavMenuForUsers = () => {
+  const { sidebarOpen, toggleSidebar, setSidebarOpen } = useSidebarStore((state) => ({
+    sidebarOpen: state.sidebarOpen,
+    toggleSidebar: state.toggleSidebar,
+    setSidebarOpen: state.setSidebarOpen,
+  }));
 
-const SideNavMenu = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [currentItem, setCurrentItem] = useState("");
-  const router = useRouter();
-  const { slug } = useParams();
+  const pathname = usePathname();
+  const [currentItem, setCurrentItem] = useState(pathname);
   const [selected, setSelected] = useState(people[3]);
 
-  const navigation = [
-    { name: "Overview", href: `/${slug}/dashboard`, icon: HomeIcon },
-    { name: "Roles", href: `/${slug}/dashboard/roles`, icon: UsersIcon },
-    { name: "Memberships", href: `/${slug}/dashboard/memberships`, icon: UsersIcon },
-    { name: "Newsletter", href: `/${slug}/dashboard/newsletter`, icon: CalendarIcon },
-    { name: "Calendar", href: `/${slug}/dashboard/calendar`, icon: CalendarIcon },
-    { name: "Reports", href: `/${slug}/dashboard/reports`, icon: ChartPieIcon },
-  ];
-
-  const handleItemClick = (itemHref: string) => {
-    setCurrentItem(itemHref);
-  };
-
   useEffect(() => {
-    const currentPath = window.location.pathname;
-    setCurrentItem(currentPath);
-  }, []);
+    setCurrentItem(pathname);
+    console.log(pathname);
+  }, [pathname]);
 
   return (
     <div>
@@ -155,10 +160,93 @@ const SideNavMenu = () => {
                 <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-4">
                   <Link href="#">
                     <div className="flex h-16 shrink-0 items-center">
-                      <img className="h-8 w-auto" src="/Symbian.png" alt="SyncUp" />
+                      <img className="h-10 w-auto" src="/syncup.png" alt="SyncUp" />
                     </div>
                   </Link>
 
+                  <Listbox value={selected} onChange={setSelected}>
+                    {({ open }) => (
+                      <>
+                        <div className="relative ">
+                          <Listbox.Button className="relative w-full cursor-default rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:text-sm sm:leading-6">
+                            <span className="flex items-center">
+                              <img
+                                src={selected.avatar}
+                                alt=""
+                                className="h-5 w-5 flex-shrink-0 rounded-full"
+                              />
+                              <span className="ml-3 block truncate">{selected.name}</span>
+                            </span>
+                            <span className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
+                              <ChevronUpDownIcon
+                                className="h-5 w-5 text-gray-400"
+                                aria-hidden="true"
+                              />
+                            </span>
+                          </Listbox.Button>
+
+                          <Transition
+                            show={open}
+                            as={Fragment}
+                            leave="transition ease-in duration-100"
+                            leaveFrom="opacity-100"
+                            leaveTo="opacity-0"
+                          >
+                            <Listbox.Options className="absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                              {people.map((person) => (
+                                <Listbox.Option
+                                  key={person.id}
+                                  className={({ active }) =>
+                                    classNames(
+                                      active
+                                        ? "bg-indigo-600 text-white"
+                                        : "text-gray-900",
+                                      "relative cursor-default select-none py-2 pl-3 pr-9"
+                                    )
+                                  }
+                                  value={person}
+                                >
+                                  {({ selected, active }) => (
+                                    <>
+                                      <div className="flex items-center">
+                                        <img
+                                          src={person.avatar}
+                                          alt=""
+                                          className="h-5 w-5 flex-shrink-0 rounded-full"
+                                        />
+                                        <span
+                                          className={classNames(
+                                            selected ? "font-semibold" : "font-normal",
+                                            "ml-3 block truncate"
+                                          )}
+                                        >
+                                          {person.name}
+                                        </span>
+                                      </div>
+
+                                      {selected ? (
+                                        <span
+                                          className={classNames(
+                                            active ? "text-white" : "text-indigo-600",
+                                            "absolute inset-y-0 right-0 flex items-center pr-4"
+                                          )}
+                                        >
+                                          <CheckIcon
+                                            className="h-5 w-5"
+                                            aria-hidden="true"
+                                          />
+                                        </span>
+                                      ) : null}
+                                    </>
+                                  )}
+                                </Listbox.Option>
+                              ))}
+                            </Listbox.Options>
+                          </Transition>
+                        </div>
+                      </>
+                    )}
+                  </Listbox>
                   <nav className="flex flex-1 flex-col">
                     <ul role="list" className="flex flex-1 flex-col gap-y-7">
                       <li>
@@ -167,7 +255,6 @@ const SideNavMenu = () => {
                             <li key={item.name}>
                               <Link
                                 href={item.href}
-                                onClick={() => handleItemClick(item.name)}
                                 className={classNames(
                                   currentItem === item.name
                                     ? "bg-gray-50 text-indigo-600"
@@ -199,7 +286,6 @@ const SideNavMenu = () => {
                             <li key={item.name}>
                               <a
                                 href={item.href}
-                                onClick={() => handleItemClick(item.name)}
                                 className={classNames(
                                   currentItem === item.name
                                     ? "bg-gray-50 text-indigo-600"
@@ -248,7 +334,7 @@ const SideNavMenu = () => {
         <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-[#525252] bg-eerieblack px-6 pb-4">
           <Link href="/">
             <div className="flex h-16 shrink-0 items-center">
-              <img className="h-8 w-auto" src="/Symbian.png" alt="SyncUp" />
+              <img className="h-10 w-auto" src="/syncup.png" alt="SyncUp" />
               <p className="ml-2 font-semibold text-light">SyncUp</p>
             </div>
           </Link>
@@ -340,7 +426,6 @@ const SideNavMenu = () => {
                     <li key={item.name}>
                       <Link
                         href={item.href}
-                        onClick={() => handleItemClick(item.href)}
                         className={classNames(
                           currentItem === item.href
                             ? "bg-charleston text-light"
@@ -383,4 +468,4 @@ const SideNavMenu = () => {
   );
 };
 
-export default SideNavMenu;
+export default SideNavMenuForUsers;

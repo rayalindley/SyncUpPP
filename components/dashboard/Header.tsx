@@ -29,6 +29,7 @@ function classNames(...classes: any[]) {
 }
 
 function Header({ user }: { user: User }) {
+  console.log(user);
   const notificationLinkRef = useRef(null);
 
   const { sidebarOpen, setSidebarOpen } = useSidebarStore((state) => ({
@@ -185,7 +186,7 @@ function Header({ user }: { user: User }) {
       <div className="h-6 w-px bg-gray-200 lg:hidden" aria-hidden="true" />
 
       <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-        <form className="relative flex flex-1" action="#" method="GET">
+        {/* <form className="relative flex flex-1" action="#" method="GET">
           <label htmlFor="search-field" className="sr-only">
             Search
           </label>
@@ -200,7 +201,10 @@ function Header({ user }: { user: User }) {
             type="search"
             name="search"
           />
-        </form>
+        </form> */}
+        <div className="relative flex flex-1 items-center ">
+          {/* <span className="font-bold text-gray-200">Dashboard</span> */}
+        </div>
         <div className="flex items-center gap-x-4 lg:gap-x-6">
           <Menu as="div" className="relative">
             <Menu.Button className="p-3 text-gray-400 hover:text-gray-500">
@@ -240,7 +244,8 @@ function Header({ user }: { user: User }) {
                           className={`my-1 flex items-center gap-x-2 rounded-lg px-4 py-2 hover:bg-[#525252] ${notification.isread ? "bg-gray" : "bg-[#232323]"} cursor-pointer`}
                           onClick={() => {
                             handleNotificationClick(notification.notificationid);
-                            window.location.href = getNotificationLink(notification) ?? '';
+                            window.location.href =
+                              getNotificationLink(notification) ?? "";
                           }}
                         >
                           <span className="text-sm leading-tight">

@@ -3,13 +3,13 @@ import useSidebarStore from "@/store/useSidebarStore";
 import { Dialog, Transition } from "@headlessui/react";
 import {
   CalendarIcon,
-    ChartPieIcon,
+  ChartPieIcon,
   Cog6ToothIcon,
   DocumentDuplicateIcon,
   HomeIcon,
   UsersIcon,
   XMarkIcon,
-FolderIcon,
+  FolderIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -29,15 +29,12 @@ const navigation = [
     icon: UsersIcon,
   },
   { name: "Events", href: "/dashboard/events", icon: CalendarIcon },
-  { name: "Calendar", href: "#", icon: CalendarIcon },
+  // { name: "Calendar", href: "#", icon: CalendarIcon },
   { name: "Newsletter", href: "/dashboard/newsletter", icon: EnvelopeIcon },
-  { name: "Projects", href: "#", icon: FolderIcon },
   { name: "Memberships", href: "/dashboard/memberships", icon: CalendarIcon },
-  { name: "Documents", href: "#", icon: DocumentDuplicateIcon },
-  { name: "Reports", href: "#", icon: ChartPieIcon },
 ];
 
-const SideNavMenu = () => {
+const SideNavMenuForAdmins = () => {
   const { sidebarOpen, toggleSidebar, setSidebarOpen } = useSidebarStore((state) => ({
     sidebarOpen: state.sidebarOpen,
     toggleSidebar: state.toggleSidebar,
@@ -248,4 +245,4 @@ const SideNavMenu = () => {
   );
 };
 
-export default SideNavMenu;
+export default SideNavMenuForAdmins;

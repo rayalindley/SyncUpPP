@@ -552,6 +552,7 @@ export default function UserActionButton({
                                     {[
                                       "authenticated",
                                       "superadmin",
+                                      "testing",
                                       "supabase_admin",
                                     ].map((role) => (
                                       <Listbox.Option

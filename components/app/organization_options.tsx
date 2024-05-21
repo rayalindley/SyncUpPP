@@ -308,7 +308,7 @@ export default function OrganizationOptions({
                           </Link>
                           <Link
                             className="font-regular text-foreground relative inline-flex h-[26px] cursor-pointer items-center justify-center space-x-2 rounded-md border-[1px] border-zinc-600 bg-zinc-800 px-3 py-1 text-center text-xs hover:bg-opacity-60"
-                            href={`/${selectedOrg.slug}/settings`}
+                            href={`/${selectedOrg.slug}/dashboard`}
                           >
                             View Settings
                           </Link>

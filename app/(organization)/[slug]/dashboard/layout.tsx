@@ -8,6 +8,7 @@ export default function SettingsLayout({
   return (
     <div className="flex">
       <SideNavMenu />
+
       <div className="ml-72 flex-grow p-8">{children}</div>
     </div>
   );

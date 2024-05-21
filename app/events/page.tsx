@@ -28,6 +28,8 @@ export default function EventsPublicView() {
         .select("*")
         .eq("privacy", "public");
 
+      // console.log(events, error);
+
       if (!error) {
         setEvents(events);
       } else {
