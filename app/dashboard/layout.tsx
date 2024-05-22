@@ -17,7 +17,7 @@ export default async function DashboardLayout({
     return redirect("/signin");
   }
 
-  console.log(user.role);
+  // console.log(user.role);
   return (
     <UserProvider>
       <div className="">

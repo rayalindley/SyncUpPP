@@ -106,7 +106,7 @@ const SideNavMenuForUsers = () => {
 
   useEffect(() => {
     setCurrentItem(pathname);
-    console.log(pathname);
+    // console.log(pathname);
   }, [pathname]);
 
   return (
