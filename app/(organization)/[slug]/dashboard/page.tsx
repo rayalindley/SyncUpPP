@@ -1,12 +1,12 @@
 "use client";
-
-import CreateOrganizationForm from "@/components/create_organization_form";
-import { fetchOrganizationBySlug } from "@/lib/organization";
-import { useParams } from "next/navigation";
+import StatisticsSection from "@/components/dashboard/StatisticsSection";
+import { deleteOrganization, fetchOrganizationBySlug } from "@/lib/organization";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { StepsProvider } from "react-step-builder";
+import Swal from "sweetalert2";
 
 export default function SettingsPage() {
+  const router = useRouter();
   const { slug } = useParams();
   const [formValues, setFormValues] = useState(null);
   const [error, setError] = useState(null);
@@ -30,11 +30,62 @@ export default function SettingsPage() {
     }
   }, [slug]);
 
+  const handleEditOrg = () => {
+    if (slug) {
+      router.push(`/${slug}/dashboard/edit`);
+    }
+  };
+
+  const handleDeleteOrg = async () => {
+    const confirmResult = await Swal.fire({
+      title: "Are you sure?",
+      text: "You won't be able to revert this!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "No, cancel!",
+      reverseButtons: true,
+    });
+
+    if (confirmResult.isConfirmed) {
+      const response = await deleteOrganization(formValues?.organizationid);
+
+      if (!response.error) {
+        await Swal.fire({
+          title: "Deleted!",
+          text: "The organization was successfully deleted.",
+          icon: "success",
+        });
+
+        // Redirect to /dashboard after successful deletion
+        router.push("/dashboard");
+      } else {
+        Swal.fire({
+          title: "Failed!",
+          text: response.error.message,
+          icon: "error",
+        });
+      }
+    }
+  };
+
   return (
     <div className="min-h-full flex-1 flex-col justify-center bg-eerieblack px-6 py-12  lg:px-8">
-      <StepsProvider>
-        <CreateOrganizationForm formValues={formValues} />
-      </StepsProvider>
+      <StatisticsSection />
+      <div className="mt-4 flex justify-center">
+        <button
+          className="mr-4 rounded-md bg-primary px-4 py-2 text-white hover:bg-primarydark"
+          onClick={handleEditOrg}
+        >
+          Edit Org
+        </button>
+        <button
+          className="rounded-md bg-red-500 px-4 py-2 text-white"
+          onClick={handleDeleteOrg}
+        >
+          Delete Org
+        </button>
+      </div>
     </div>
   );
 }

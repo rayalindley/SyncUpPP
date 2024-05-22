@@ -1,113 +1,95 @@
 "use client";
+import { Organization } from "@/lib/types";
 import useSidebarStore from "@/store/useSidebarStore";
-import { Dialog, Transition, Listbox } from "@headlessui/react";
+import { Dialog, Listbox, Transition } from "@headlessui/react";
+import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/20/solid";
 import {
   CalendarIcon,
-  ChartPieIcon,
   Cog6ToothIcon,
-  DocumentDuplicateIcon,
   HomeIcon,
   UsersIcon,
   XMarkIcon,
-  FolderIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import { Fragment, useEffect, useState } from "react";
-
-import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/20/solid";
 
 function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
 }
+const getInitials = (name: string) => {
+  const words = name.split(" ");
+  if (words.length > 1) {
+    return words[0][0] + words[1][0];
+  } else {
+    return name.substring(0, 2);
+  }
+};
 
-const navigation = [
-  { name: "Overview", href: `/dashboard`, icon: HomeIcon },
-  { name: "Roles", href: `/dashboard/roles`, icon: UsersIcon },
-  { name: "Memberships", href: `/dashboard/memberships`, icon: UsersIcon },
-  { name: "Newsletter", href: `/dashboard/newsletter`, icon: CalendarIcon },
-  { name: "Calendar", href: `/dashboard/calendar`, icon: CalendarIcon },
-  // { name: "Reports", href: `/dashboard/reports`, icon: ChartPieIcon },
-];
-
-const people = [
-  {
-    id: 1,
-    name: "Wade Cooper",
-    avatar:
-      "https://images.unsplash.com/photo-1491528323818-fdd1faba62cc?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
-  },
-  {
-    id: 2,
-    name: "Arlene Mccoy",
-    avatar:
-      "https://images.unsplash.com/photo-1550525811-e5869dd03032?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
-  },
-  {
-    id: 3,
-    name: "Devon Webb",
-    avatar:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2.25&w=256&h=256&q=80",
-  },
-  {
-    id: 4,
-    name: "Tom Cook",
-    avatar:
-      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
-  },
-  {
-    id: 5,
-    name: "Tanya Fox",
-    avatar:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
-  },
-  {
-    id: 6,
-    name: "Hellen Schmidt",
-    avatar:
-      "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
-  },
-  {
-    id: 7,
-    name: "Caroline Schultz",
-    avatar:
-      "https://images.unsplash.com/photo-1568409938619-12e139227838?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
-  },
-  {
-    id: 8,
-    name: "Mason Heaney",
-    avatar:
-      "https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
-  },
-  {
-    id: 9,
-    name: "Claudie Smitham",
-    avatar:
-      "https://images.unsplash.com/photo-1584486520270-19eca1efcce5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
-  },
-  {
-    id: 10,
-    name: "Emil Schaefer",
-    avatar:
-      "https://images.unsplash.com/photo-1561505457-3bcad021f8ee?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
-  },
-];
-
-const SideNavMenuForUsers = () => {
+const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] }) => {
   const { sidebarOpen, toggleSidebar, setSidebarOpen } = useSidebarStore((state) => ({
     sidebarOpen: state.sidebarOpen,
     toggleSidebar: state.toggleSidebar,
     setSidebarOpen: state.setSidebarOpen,
   }));
+  const router = useRouter();
+  const { slug } = useParams();
 
   const pathname = usePathname();
   const [currentItem, setCurrentItem] = useState(pathname);
-  const [selected, setSelected] = useState(people[3]);
+  const [selected, setSelected] = useState("default");
+
+  const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
+
+  const navigation = [
+    {
+      name: "Overview",
+      href: slug ? `/${slug}/dashboard` : `/dashboard`,
+      icon: HomeIcon,
+    },
+    {
+      name: "Roles",
+      href: slug ? `/${slug}/dashboard/roles` : `/dashboard/roles`,
+      icon: UsersIcon,
+    },
+    {
+      name: "Memberships",
+      href: slug ? `/${slug}/dashboard/memberships` : `/dashboard/memberships`,
+      icon: UsersIcon,
+    },
+    {
+      name: "Newsletter",
+      href: slug ? `/${slug}/dashboard/newsletter` : `/dashboard/newsletter`,
+      icon: CalendarIcon,
+    },
+    {
+      name: "Calendar",
+      href: slug ? `/${slug}/dashboard/calendar` : `/dashboard/calendar`,
+      icon: CalendarIcon,
+    },
+    // { name: "Reports", href: slug ? `/${slug}/dashboard/reports` : `/dashboard/reports`, icon: ChartPieIcon },
+  ];
+
+  useEffect(() => {
+    if (slug) {
+      const organization = organizations.find((org) => org.slug === slug);
+      if (organization) {
+        setSelected(organization);
+      }
+    } else {
+      setSelected("default");
+    }
+  }, [organizations, slug]);
 
   useEffect(() => {
     setCurrentItem(pathname);
-    // console.log(pathname);
   }, [pathname]);
+
+  useEffect(() => {
+    if (selected !== "default" && selected !== "create-org") {
+      router.push(`/${selected.slug}/dashboard`);
+    }
+  }, [selected, router]);
 
   return (
     <div>
@@ -157,25 +139,38 @@ const SideNavMenuForUsers = () => {
                   </div>
                 </Transition.Child>
                 {/* Sidebar component, swap this element with another sidebar if you like */}
-                <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-4">
+                <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-eerieblack px-6 pb-4">
                   <Link href="#">
                     <div className="flex h-16 shrink-0 items-center">
                       <img className="h-10 w-auto" src="/syncup.png" alt="SyncUp" />
+                      <p className="ml-2 font-semibold text-light">SyncUp</p>
                     </div>
                   </Link>
 
                   <Listbox value={selected} onChange={setSelected}>
                     {({ open }) => (
                       <>
-                        <div className="relative ">
-                          <Listbox.Button className="relative w-full cursor-default rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:text-sm sm:leading-6">
+                        <div className="relative">
+                          <Listbox.Button className="relative w-full cursor-default rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-primary sm:text-sm sm:leading-6">
                             <span className="flex items-center">
-                              <img
-                                src={selected.avatar}
-                                alt=""
-                                className="h-5 w-5 flex-shrink-0 rounded-full"
-                              />
-                              <span className="ml-3 block truncate">{selected.name}</span>
+                              {selected === "default" ? (
+                                <span className="ml-3 block truncate">Default</span>
+                              ) : selected?.photo ? (
+                                <img
+                                  src={`${supabaseStorageBaseUrl}/${selected.photo}`}
+                                  alt=""
+                                  className="h-5 w-5 flex-shrink-0 rounded-full"
+                                />
+                              ) : (
+                                <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-zinc-700">
+                                  <span className="text-xs uppercase text-white">
+                                    {getInitials(selected.name)}
+                                  </span>
+                                </div>
+                              )}
+                              <span className="ml-3 block truncate">
+                                {selected?.name}
+                              </span>
                             </span>
                             <span className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
                               <ChevronUpDownIcon
@@ -193,34 +188,89 @@ const SideNavMenuForUsers = () => {
                             leaveTo="opacity-0"
                           >
                             <Listbox.Options className="absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                              {people.map((person) => (
+                              <Listbox.Option
+                                key="create-org"
+                                className={({ active }) =>
+                                  classNames(
+                                    active ? "bg-primary text-white" : "text-gray-900",
+                                    "relative cursor-default select-none py-2 pl-3 pr-9"
+                                  )
+                                }
+                                value="create-org"
+                              >
+                                {({ active }) => (
+                                  <Link
+                                    href="/organization/create"
+                                    className="flex items-center"
+                                  >
+                                    <span
+                                      className={classNames(
+                                        active ? "font-semibold" : "font-normal",
+                                        "ml-3 block truncate"
+                                      )}
+                                    >
+                                      Create Org
+                                    </span>
+                                  </Link>
+                                )}
+                              </Listbox.Option>
+                              <Listbox.Option
+                                key="default"
+                                className={({ active }) =>
+                                  classNames(
+                                    active ? "bg-primary text-white" : "text-gray-900",
+                                    "relative cursor-default select-none py-2 pl-3 pr-9"
+                                  )
+                                }
+                                value="default"
+                              >
+                                {({ active }) => (
+                                  <Link href="/dashboard" className="flex items-center">
+                                    <span
+                                      className={classNames(
+                                        active ? "font-semibold" : "font-normal",
+                                        "ml-3 block truncate"
+                                      )}
+                                    >
+                                      Default
+                                    </span>
+                                  </Link>
+                                )}
+                              </Listbox.Option>
+                              {organizations?.map((organization) => (
                                 <Listbox.Option
-                                  key={person.id}
+                                  key={organization.id}
                                   className={({ active }) =>
                                     classNames(
-                                      active
-                                        ? "bg-indigo-600 text-white"
-                                        : "text-gray-900",
+                                      active ? "bg-primary text-white" : "text-gray-900",
                                       "relative cursor-default select-none py-2 pl-3 pr-9"
                                     )
                                   }
-                                  value={person}
+                                  value={organization}
                                 >
                                   {({ selected, active }) => (
                                     <>
                                       <div className="flex items-center">
-                                        <img
-                                          src={person.avatar}
-                                          alt=""
-                                          className="h-5 w-5 flex-shrink-0 rounded-full"
-                                        />
+                                        {organization.photo ? (
+                                          <img
+                                            src={`${supabaseStorageBaseUrl}/${organization.photo}`}
+                                            alt=""
+                                            className="h-5 w-5 flex-shrink-0 rounded-full"
+                                          />
+                                        ) : (
+                                          <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-zinc-700">
+                                            <span className="text-xs uppercase text-white">
+                                              {getInitials(organization.name)}
+                                            </span>
+                                          </div>
+                                        )}
                                         <span
                                           className={classNames(
                                             selected ? "font-semibold" : "font-normal",
                                             "ml-3 block truncate"
                                           )}
                                         >
-                                          {person.name}
+                                          {organization.name}
                                         </span>
                                       </div>
 
@@ -247,6 +297,7 @@ const SideNavMenuForUsers = () => {
                       </>
                     )}
                   </Listbox>
+
                   <nav className="flex flex-1 flex-col">
                     <ul role="list" className="flex flex-1 flex-col gap-y-7">
                       <li>
@@ -256,17 +307,17 @@ const SideNavMenuForUsers = () => {
                               <Link
                                 href={item.href}
                                 className={classNames(
-                                  currentItem === item.name
-                                    ? "bg-gray-50 text-indigo-600"
-                                    : "text-gray-700 hover:bg-gray-50 hover:text-indigo-600",
+                                  currentItem === item.href
+                                    ? "bg-charleston text-light"
+                                    : "text-light hover:bg-charleston hover:text-light",
                                   "group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6"
                                 )}
                               >
                                 <item.icon
                                   className={classNames(
-                                    currentItem === item.name
-                                      ? "text-indigo-600"
-                                      : "text-gray-400 group-hover:text-indigo-600",
+                                    currentItem === item.href
+                                      ? "text-light"
+                                      : "text-gray-400 group-hover:text-light",
                                     "h-6 w-6 shrink-0"
                                   )}
                                   aria-hidden="true"
@@ -277,39 +328,9 @@ const SideNavMenuForUsers = () => {
                           ))}
                         </ul>
                       </li>
-                      <li>
-                        <div className="text-xs font-semibold leading-6 text-gray-400">
-                          Your Organizations
-                        </div>
-                        <ul role="list" className="-mx-2 mt-2 space-y-1">
-                          {navigation.map((item) => (
-                            <li key={item.name}>
-                              <a
-                                href={item.href}
-                                className={classNames(
-                                  currentItem === item.name
-                                    ? "bg-gray-50 text-indigo-600"
-                                    : "text-gray-700 hover:bg-gray-50 hover:text-indigo-600",
-                                  "group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6"
-                                )}
-                              >
-                                <item.icon
-                                  className={classNames(
-                                    currentItem === item.name
-                                      ? "text-indigo-600"
-                                      : "text-gray-400 group-hover:text-indigo-600",
-                                    "h-6 w-6 shrink-0"
-                                  )}
-                                  aria-hidden="true"
-                                />
-                                {item.name}
-                              </a>
-                            </li>
-                          ))}
-                        </ul>
-                      </li>
+                      <li></li>
                       <li className="mt-auto">
-                        <a
+                        <Link
                           href="#"
                           className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-700 hover:bg-gray-50 hover:text-indigo-600"
                         >
@@ -318,7 +339,7 @@ const SideNavMenuForUsers = () => {
                             aria-hidden="true"
                           />
                           Settings
-                        </a>
+                        </Link>
                       </li>
                     </ul>
                   </nav>
@@ -331,8 +352,9 @@ const SideNavMenuForUsers = () => {
 
       {/* Static sidebar for desktop */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
-        <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-[#525252] bg-eerieblack px-6 pb-4">
-          <Link href="/">
+        {/* Sidebar component, swap this element with another sidebar if you like */}
+        <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-fadedgrey bg-eerieblack px-6">
+          <Link href="#">
             <div className="flex h-16 shrink-0 items-center">
               <img className="h-10 w-auto" src="/syncup.png" alt="SyncUp" />
               <p className="ml-2 font-semibold text-light">SyncUp</p>
@@ -342,15 +364,25 @@ const SideNavMenuForUsers = () => {
           <Listbox value={selected} onChange={setSelected}>
             {({ open }) => (
               <>
-                <div className="relative ">
-                  <Listbox.Button className="relative w-full cursor-default rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:text-sm sm:leading-6">
+                <div className="relative">
+                  <Listbox.Button className="relative w-full cursor-default rounded-md bg-charleston py-1.5 pl-3 pr-10 text-left text-light shadow-sm ring-1 ring-inset ring-fadedgrey focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm sm:leading-6">
                     <span className="flex items-center">
-                      <img
-                        src={selected.avatar}
-                        alt=""
-                        className="h-5 w-5 flex-shrink-0 rounded-full"
-                      />
-                      <span className="ml-3 block truncate">{selected.name}</span>
+                      {selected === "default" ? (
+                        <span className="ml-3 block truncate">Default</span>
+                      ) : selected?.photo ? (
+                        <img
+                          src={`${supabaseStorageBaseUrl}/${selected.photo}`}
+                          alt=""
+                          className="h-5 w-5 flex-shrink-0 rounded-full"
+                        />
+                      ) : (
+                        <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-zinc-700">
+                          <span className="shrink text-xs uppercase text-white">
+                            {getInitials(selected.name)}
+                          </span>
+                        </div>
+                      )}
+                      <span className="ml-3 block truncate">{selected?.name}</span>
                     </span>
                     <span className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
                       <ChevronUpDownIcon
@@ -367,40 +399,94 @@ const SideNavMenuForUsers = () => {
                     leaveFrom="opacity-100"
                     leaveTo="opacity-0"
                   >
-                    <Listbox.Options className="absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                      {people.map((person) => (
+                    <Listbox.Options className="absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded-md bg-charleston py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                      <Listbox.Option
+                        key="create-org"
+                        className={({ active }) =>
+                          classNames(
+                            active ? "bg-primary text-white" : "text-light",
+                            "relative cursor-default select-none py-2 pl-3 pr-9"
+                          )
+                        }
+                        value="create-org"
+                      >
+                        {({ active }) => (
+                          <Link href="/organization/create" className="flex items-center">
+                            <span
+                              className={classNames(
+                                active ? "font-semibold" : "font-normal",
+                                "ml-3 block truncate"
+                              )}
+                            >
+                              Create Org
+                            </span>
+                          </Link>
+                        )}
+                      </Listbox.Option>
+                      <Listbox.Option
+                        key="default"
+                        className={({ active }) =>
+                          classNames(
+                            active ? "bg-primary text-white" : "text-light",
+                            "relative cursor-default select-none py-2 pl-3 pr-9"
+                          )
+                        }
+                        value="default"
+                      >
+                        {({ active }) => (
+                          <Link href="/dashboard" className="flex items-center">
+                            <span
+                              className={classNames(
+                                active ? "font-semibold" : "font-normal",
+                                "ml-3 block truncate"
+                              )}
+                            >
+                              Default
+                            </span>
+                          </Link>
+                        )}
+                      </Listbox.Option>
+                      {organizations.map((organization) => (
                         <Listbox.Option
-                          key={person.id}
+                          key={organization.id}
                           className={({ active }) =>
                             classNames(
-                              active ? "bg-indigo-600 text-white" : "text-gray-900",
+                              active ? "bg-primary text-white" : "text-light",
                               "relative cursor-default select-none py-2 pl-3 pr-9"
                             )
                           }
-                          value={person}
+                          value={organization}
                         >
                           {({ selected, active }) => (
                             <>
                               <div className="flex items-center">
-                                <img
-                                  src={person.avatar}
-                                  alt=""
-                                  className="h-5 w-5 flex-shrink-0 rounded-full"
-                                />
+                                {organization.photo ? (
+                                  <img
+                                    src={`${supabaseStorageBaseUrl}/${organization.photo}`}
+                                    alt=""
+                                    className="h-5 w-5 flex-shrink-0 rounded-full"
+                                  />
+                                ) : (
+                                  <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-zinc-700">
+                                    <span className="text-xs uppercase text-white">
+                                      {getInitials(organization.name)}
+                                    </span>
+                                  </div>
+                                )}
                                 <span
                                   className={classNames(
                                     selected ? "font-semibold" : "font-normal",
                                     "ml-3 block truncate"
                                   )}
                                 >
-                                  {person.name}
+                                  {organization.name}
                                 </span>
                               </div>
 
                               {selected ? (
                                 <span
                                   className={classNames(
-                                    active ? "text-white" : "text-indigo-600",
+                                    active ? "text-white" : "text-light",
                                     "absolute inset-y-0 right-0 flex items-center pr-4"
                                   )}
                                 >
@@ -429,7 +515,7 @@ const SideNavMenuForUsers = () => {
                         className={classNames(
                           currentItem === item.href
                             ? "bg-charleston text-light"
-                            : "text-gray-400 hover:bg-charleston hover:text-light",
+                            : "text-light hover:bg-charleston hover:text-light",
                           "group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6"
                         )}
                       >
@@ -448,17 +534,27 @@ const SideNavMenuForUsers = () => {
                   ))}
                 </ul>
               </li>
+              {slug && (
+                <li className="">
+                  <hr className="my-2 border-t border-fadedgrey" />
+                  <Link href={`/${slug}`}>
+                    <div className="group flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-light hover:bg-primarydark">
+                      Visit Page
+                    </div>
+                  </Link>
+                </li>
+              )}
               <li className="mt-auto">
-                <a
+                <Link
                   href="#"
-                  className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-light hover:bg-charleston hover:text-light"
+                  className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-700 hover:bg-gray-50 hover:text-indigo-600"
                 >
                   <Cog6ToothIcon
-                    className="h-6 w-6 shrink-0 text-light group-hover:text-light"
+                    className="h-6 w-6 shrink-0 text-gray-400 group-hover:text-indigo-600"
                     aria-hidden="true"
                   />
                   Settings
-                </a>
+                </Link>
               </li>
             </ul>
           </nav>
