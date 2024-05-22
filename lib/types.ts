@@ -112,8 +112,7 @@ export interface Membership {
   registrationfee: number;
   features: string[];
   mostPopular: boolean;
-  type: string;
-  months: number;
+  yearlydiscount: number;
 }
 
 export interface MembershipsProps {

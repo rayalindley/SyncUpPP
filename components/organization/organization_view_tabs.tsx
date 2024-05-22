@@ -30,7 +30,7 @@ const TabsComponent = ({
     tabContent = (
       <OrganizationPostsComponent organizationid={organizationid} posts={posts} />
     );
-  } else if (activeTab === "membership") 
+  } else if (activeTab === "membership") {
     tabContent = <OrganizationMembershipsComponent memberships = {memberships} userid={id}/>;
   } else if (activeTab === "events") {
     tabContent = <OrganizationEventsComponent events={events} />;

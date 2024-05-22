@@ -6,18 +6,28 @@ function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(" ");
 }
 
+
+
 const MembershipCard = ({
   membership,
   index,
   totalMemberships,
   userid,
-  userMemberships, 
+  userMemberships,
   handleBuyPlan,
   handleEditMembership,
   handleDeleteMembership,
+  frequency,
 }) => {
-
-const isPurchased = userMemberships.includes(membership.membershipid);
+  const isPurchased = userMemberships.includes(membership.membershipid);
+  
+  const calculateDiscountedRegistrationFee = () => {
+    const discountMultiplier = 1 - (membership.yearlydiscount ?? 0) / 100;
+    const yearlyFee = membership.registrationfee * 12 * discountMultiplier;
+    return frequency.value === "monthly"
+      ? membership.registrationfee.toFixed(2)
+      : yearlyFee.toFixed(2);
+  };
 
   return (
     <div
@@ -42,10 +52,10 @@ const isPurchased = userMemberships.includes(membership.membershipid);
       </p>
       <p className="mt-6 flex items-baseline gap-x-1">
         <span className="text-4xl font-bold tracking-tight text-white">
-          ${membership.registrationfee.toFixed(2)}
+            ${calculateDiscountedRegistrationFee()}
         </span>
         <span className="text-sm font-semibold leading-6 text-gray-300">
-          /month
+          {frequency.priceSuffix}
         </span>
       </p>
       {userid ? (
@@ -70,23 +80,21 @@ const isPurchased = userMemberships.includes(membership.membershipid);
         </button>
       ) : (
         <div className="flex flex-row gap-2">
-        <button
-          aria-describedby={membership.membershipid}
-          onClick={() => handleEditMembership(membership, membership.organizationid)}
-          className= " w-full bg-primary text-white shadow-sm hover:bg-primarydark focus-visible:outline-primary mt-6 block rounded-md py-2 px-3 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-        >
-          Edit Membership
-        </button>
+          <button
+            aria-describedby={membership.membershipid}
+            onClick={() => handleEditMembership(membership, membership.organizationid)}
+            className="w-full bg-primary text-white shadow-sm hover:bg-primarydark focus-visible:outline-primary mt-6 block rounded-md py-2 px-3 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+          >
+            Edit Membership
+          </button>
 
-        <button
-          aria-describedby={membership.membershipid}
-          onClick={() => handleDeleteMembership(membership.membershipid)}
-          className=" bg-red-900 text-white hover:bg-red-950 focus-visible:outline-rose-900 mt-6 block rounded-md py-2 px-3 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 "
-        >
+          <button
+            aria-describedby={membership.membershipid}
+            onClick={() => handleDeleteMembership(membership.membershipid)}
+            className="bg-red-900 text-white hover:bg-red-950 focus-visible:outline-rose-900 mt-6 block rounded-md py-2 px-3 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+          >
             <TrashIcon className="text-white size-5"></TrashIcon>
-        </button>
-
-
+          </button>
         </div>
       )}
       <ul role="list" className="mt-8 space-y-3 text-sm leading-6 text-gray-300 xl:mt-10">

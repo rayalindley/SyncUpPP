@@ -147,8 +147,6 @@ export async function deleteOrganization(id: string) {
   }
 }
 
-<<<<<<< HEAD
-=======
 export async function fetchOrganizationsForUser(userId: string) {
   const supabase = createClient();
 
@@ -172,4 +170,3 @@ export async function fetchOrganizationsForUser(userId: string) {
     };
   }
 }
->>>>>>> 5e3b0f24347089edf1c0bcd652501440a6645bc7

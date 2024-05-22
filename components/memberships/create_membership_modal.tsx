@@ -20,7 +20,15 @@ const membershipSchema = z.object({
   description: z.string(),
   organizationid: z.string(),
   features: z.array(z.string()).nonempty("At least one feature is required"),
-  months: z.number(),
+  yearlydiscount: z
+  .number()
+  .min(0, "Discount cannot be negative")
+  .refine((value) => {
+    if (!Number.isFinite(value) || Math.abs(value) > Number.MAX_SAFE_INTEGER) {
+      throw new Error("Discount Fee is too large");
+    }
+    return true;
+  }), 
 });
 
 const fetchData = async (organizationId: string) => {
@@ -35,7 +43,7 @@ const fetchData = async (organizationId: string) => {
 
 
 
-const CreateMembershipModal = ({ organizationId, membership, isOpen, onClose}) => {
+const CreateMembershipModal = ({ organizationId, membership, isOpen, onClose,}) => {
   const initialFormData: Membership = {
     name: "",
     membershipid: "",
@@ -44,9 +52,9 @@ const CreateMembershipModal = ({ organizationId, membership, isOpen, onClose}) =
     registrationfee: 0,
     features: [""],
     mostPopular: false,
-    type: "monthly", // Default to monthly
-    months: 1,
+    yearlydiscount: 0,
   };
+  
 
   const [formData, setFormData] = useState<Membership>(initialFormData);
 
@@ -69,12 +77,13 @@ const CreateMembershipModal = ({ organizationId, membership, isOpen, onClose}) =
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    const newValue = name === "registrationfee" ? parseFloat(value) : value;
+    const parsedValue = (name === "registrationfee" || name === "yearlydiscount") ? parseFloat(value) : value;
     setFormData((prevData) => ({
       ...prevData,
-      [name]: newValue,
+      [name]: parsedValue, 
     }));
   };
+  
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -83,54 +92,43 @@ const CreateMembershipModal = ({ organizationId, membership, isOpen, onClose}) =
         (feature) => feature.trim() !== ""
       );
       const updatedFormData = { ...formData, features: filteredFeatures };
-      let months: number;
-      if (updatedFormData.type === "monthly") {
-        months = 1; // Monthly
-      } else {
-        months = 12; // Annual
-      }
-
-      updatedFormData.months = months;
-      
-
-
+  
       const validatedData = membershipSchema.parse(updatedFormData);
       const supabase = createClient();
-      console.log("UPDATED",updatedFormData)
-      console.log("VALIDATION",validatedData)
+      console.log("UPDATED", updatedFormData);
+      console.log("VALIDATION", validatedData);
       if (membership) {
         const { data, error } = await supabase
           .from("memberships")
           .update(validatedData)
           .eq("membershipid", membership.membershipid);
-
+        // Ensure the discount value is included in the updated data
         if (error) {
           throw error;
         }
-
+  
         toast.success("Membership updated successfully", {
           position: "bottom-right",
           autoClose: 3000,
         });
-
+  
         console.log(data);
       } else {
         const { data, error } = await supabase
           .from("memberships")
           .insert([validatedData]);
-
+        // Ensure the discount value is included in the inserted data
         if (error) {
           throw error;
         }
-
+  
         toast.success("Membership created successfully", {
           position: "bottom-right",
           autoClose: 3000,
         });
-
+  
         console.log(data);
         setFormData(initialFormData);
-
       }
       onClose();
     } catch (error) {
@@ -182,6 +180,7 @@ const CreateMembershipModal = ({ organizationId, membership, isOpen, onClose}) =
     setTopmostFeatureEmpty(formData.features[0].trim() === "");
   }, [formData.features]);
 
+  
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-10" onClose={onClose}>
@@ -250,7 +249,7 @@ const CreateMembershipModal = ({ organizationId, membership, isOpen, onClose}) =
                         htmlFor="registrationfee"
                         className="block text-sm font-medium leading-6 text-white"
                       >
-                        Registration Fee:
+                        Registration Fee: 
                       </label>
                       <div className="relative mt-2">
                         <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-white">
@@ -260,7 +259,7 @@ const CreateMembershipModal = ({ organizationId, membership, isOpen, onClose}) =
                           type="number"
                           id="registrationfee"
                           name="registrationfee"
-                          value={formData.registrationfee}
+                          value={formData.registrationfee }
                           onChange={handleChange}
                           required
                           pattern="[0-9]*[.]?[0-9]*"
@@ -268,6 +267,26 @@ const CreateMembershipModal = ({ organizationId, membership, isOpen, onClose}) =
                           className="block w-full rounded-md border-0 bg-white/5 py-1.5 pl-12 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                         />
                       </div>
+                      <div>
+                        <label
+                          htmlFor="yearlydiscount"
+                          className="block text-sm font-medium leading-6 text-white"
+                        >
+                          Yearly Discount (%):
+                        </label>
+                        <div className="relative mt-2">
+                          <input
+                            type="number"
+                            id="yearlydiscount"
+                            name="yearlydiscount"
+                            value={formData.yearlydiscount}
+                            onChange={handleChange}
+                            className="block w-full rounded-md border-0 bg-white/5 py-1.5 pr-12 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                          />
+                          <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-sm text-white">%</span>
+                        </div>
+                      </div>
+
                     </div>
                     <div>
                       <label
@@ -333,31 +352,6 @@ const CreateMembershipModal = ({ organizationId, membership, isOpen, onClose}) =
                       </div>
                     </div>
                     <div className="mt-2">
-                    <label className="block text-sm font-medium leading-6 text-white">Membership Type:</label>
-                    <div className="mt-1 grid grid-cols-2 gap-x-4">
-                      <label className="flex items-center">
-                        <input
-                          type="radio"
-                          name="type"
-                          value="monthly"
-                          checked={formData.type === "monthly"}
-                          onChange={handleTypeChange}
-                          className="form-radio text-primary focus:ring-primary"
-                        />
-                        <span className="ml-2 text-sm text-white">Monthly</span>
-                      </label>
-                      <label className="flex items-center">
-                        <input
-                          type="radio"
-                          name="type"
-                          value="annual"
-                          checked={formData.type === "annual"}
-                          onChange={handleTypeChange}
-                          className="form-radio text-primary focus:ring-primary"
-                        />
-                        <span className="ml-2 text-sm text-white">Annual</span>
-                      </label>
-                    </div>
                   </div>
                     <div className="flex items-center justify-end">
                       <button
