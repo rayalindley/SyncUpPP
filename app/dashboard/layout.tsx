@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 
-import Header from "@/components/dashboard/Header";
-import SideNavMenu from "@/components/dashboard/SideNavMenu";
 import { UserProvider } from "@/context/UserContext";
 import { getUser } from "@/lib/supabase/server";
+import SideNavMenuForAdmins from "@/components/dashboard/SideNavMenuForAdmins";
+import SideNavMenuForUsers from "@/components/dashboard/SideNavMenuForUsers";
+import Header from "@/components/dashboard/Header";
 
 export default async function DashboardLayout({
   children,
@@ -16,10 +17,11 @@ export default async function DashboardLayout({
     return redirect("/signin");
   }
 
+  // console.log(user.role);
   return (
     <UserProvider>
       <div className="">
-        <SideNavMenu />
+        {user.role === "superadmin" ? <SideNavMenuForAdmins /> : <SideNavMenuForUsers />}
 
         <div className="lg:pl-72">
           <Header user={user} />

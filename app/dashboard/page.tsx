@@ -1,5 +1,6 @@
-import OrganizationsSection from "@/components/dashboard/OrganizationsSection";
 import StatisticsSection from "@/components/dashboard/StatisticsSection";
+import OrganizationsSection from "@/components/dashboard/OrganizationsSection";
+
 import { getUser, createClient } from "@/lib/supabase/server";
 
 export default async function DashboardPage() {

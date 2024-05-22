@@ -7,6 +7,7 @@ export async function insertOrganization(formData: any) {
   const insertValues = {
     name: formData.name,
     photo: formData.photo,
+    banner: formData.banner,
     slug: formData.slug,
     description: formData.description,
     organization_type: formData.organizationType,
@@ -53,6 +54,7 @@ export async function updateOrganization(organizationid: string, formData: any) 
   const updateValues = {
     name: formData.name,
     photo: formData.photo,
+    banner: formData.banner,
     slug: formData.slug,
     description: formData.description,
     organization_type: formData.organizationType,
@@ -140,6 +142,30 @@ export async function deleteOrganization(id: string) {
   } catch (e: any) {
     console.error("Unexpected error:", e);
     return {
+      error: { message: e.message || "An unexpected error occurred" },
+    };
+  }
+}
+
+export async function fetchOrganizationsForUser(userId: string) {
+  const supabase = createClient();
+
+  try {
+    const { data, error } = await supabase
+      .from("organizations")
+      .select("*")
+      .eq("adminid", userId); // Assuming 'user_id' is the field that relates organizations to users
+
+    if (!error) {
+      return { data, error: null };
+    } else {
+      console.error("Error fetching organizations for user:", error);
+      return { data: null, error: { message: error.message } };
+    }
+  } catch (e: any) {
+    console.error("Unexpected error:", e);
+    return {
+      data: null,
       error: { message: e.message || "An unexpected error occurred" },
     };
   }

@@ -9,6 +9,7 @@ import { FaRegEdit } from "react-icons/fa";
 import JSONPretty from "react-json-pretty";
 import Link from "next/link";
 import { useOpenStore } from "@/store/useOpenStore";
+import { ReactNode } from "react";
 
 const jsonTheme = {
   main: "line-height:1.3;color:#383a42;background:#ffffff;overflow:hidden;word-wrap:break-word;white-space: pre-wrap;word-wrap: break-word; ",
@@ -20,7 +21,7 @@ const jsonTheme = {
   boolean: "color:#986801;", // Brown for booleans for quick identification
 };
 
-function classNames(...classes: any[]) {
+function classNames(...classes: (string | boolean | undefined)[]) {
   return classes.filter(Boolean).join(" ");
 }
 
@@ -31,7 +32,7 @@ export default function OrganizationOptions({
 }: {
   selectedOrg: any;
   open: boolean;
-  setOpen: any;
+  setOpen: (open: boolean) => void;
 }) {
   const deleteBtn = () => {
     Swal.fire({
@@ -51,6 +52,8 @@ export default function OrganizationOptions({
             title: "Deleted!",
             text: "The organization was successfully deleted.",
             icon: "success",
+          }).then(() => {
+            location.reload();
           });
         } else {
           Swal.fire({
@@ -193,7 +196,7 @@ export default function OrganizationOptions({
                       </div>
                       <div className="relative mt-6 flex-1 flex-wrap overflow-hidden px-4 text-light sm:px-6">
                         {/* <JSONPretty data={selectedOrg} theme={jsonTheme}></JSONPretty> */}
-                        <table className="table-auto ">
+                        <table className="w-full table-auto ">
                           <tbody>
                             <tr>
                               <td className="p-2 font-bold text-gray-400">Name:</td>
@@ -245,21 +248,34 @@ export default function OrganizationOptions({
                                 Date Established:
                               </td>
                               <td className="p-2">
-                                {selectedOrg.date_established || "Not specified"}
+                                {selectedOrg.date_established
+                                  ? new Date(selectedOrg.date_established).toLocaleString(
+                                      "en-US",
+                                      {
+                                        weekday: "long", // "Monday"
+                                        year: "numeric", // "2024"
+                                        month: "long", // "April"
+                                        day: "numeric", // "16"
+                                      }
+                                    )
+                                  : "Not specified"}
                               </td>
                             </tr>
                             <tr>
                               <td className="p-2 font-bold text-gray-400">Address:</td>
                               <td className="p-2">
                                 {Object.entries(selectedOrg.address).map(
-                                  ([key, value], index, array) => (
-                                    <span key={key}>
-                                      {value}
-                                      {index < array.length - 1 && value != ""
-                                        ? ", "
-                                        : ""}
-                                    </span>
-                                  )
+                                  ([key, value], index, array) => {
+                                    // Ensure value is defined and not an empty string
+                                    if (!value) return null;
+
+                                    return (
+                                      <span key={key}>
+                                        {value as string}
+                                        {index < array.length - 1 && value ? ", " : ""}
+                                      </span>
+                                    );
+                                  }
                                 )}
                               </td>
                             </tr>
@@ -267,20 +283,24 @@ export default function OrganizationOptions({
                               <td className="p-2 font-bold text-gray-400">Socials:</td>
                               <td className="p-2">
                                 {Object.entries(selectedOrg.socials).map(
-                                  ([key, value], index, array) => (
-                                    <span key={key}>
-                                      {value != "" && (
-                                        <Link href={value} className="hover:text-primary">
-                                          {value}
+                                  ([key, value], index, array) => {
+                                    // Ensure value is defined and not an empty string
+                                    if (!value) return null;
+
+                                    return (
+                                      <span key={key}>
+                                        <Link
+                                          href={value as string}
+                                          className="hover:text-primary"
+                                        >
+                                          {value as string}
                                         </Link>
-                                      )}
-                                      {index < array.length - 1 && value != "" ? (
-                                        <br />
-                                      ) : (
-                                        ""
-                                      )}
-                                    </span>
-                                  )
+                                        {index < array.length - 1 && value ? (
+                                          <br />
+                                        ) : null}
+                                      </span>
+                                    );
+                                  }
                                 )}
                               </td>
                             </tr>
@@ -289,20 +309,26 @@ export default function OrganizationOptions({
 
                         <div className="mt-5 flex gap-2">
                           <Link
-                            className="group flex items-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-light text-white shadow-sm hover:bg-opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                            className="font-regular text-foreground relative inline-flex h-[26px] cursor-pointer items-center justify-center space-x-2 rounded-md border-[1px] border-zinc-600 bg-zinc-800 px-3 py-1 text-center text-xs hover:bg-opacity-60"
                             href={`/${selectedOrg.slug}`}
                           >
                             Visit Page
                           </Link>
                           <Link
-                            className="group flex items-center rounded-md bg-blue-500 px-4 py-2 text-sm font-semibold text-light text-white shadow-sm hover:bg-opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                            className="font-regular text-foreground relative inline-flex h-[26px] cursor-pointer items-center justify-center space-x-2 rounded-md border-[1px] border-zinc-600 bg-zinc-800 px-3 py-1 text-center text-xs hover:bg-opacity-60"
+                            href={`/${selectedOrg.slug}/dashboard`}
+                          >
+                            View Settings
+                          </Link>
+                          <Link
+                            className="font-regular text-foreground relative inline-flex h-[26px] cursor-pointer items-center justify-center space-x-2 rounded-md border-[1px] border-zinc-600 bg-zinc-800 px-3 py-1 text-center text-xs hover:bg-opacity-60"
                             href={`/organization/edit/${selectedOrg.slug}`}
                           >
                             Edit
                           </Link>
 
                           <button
-                            className="group flex items-center rounded-md bg-rose-500 px-4 py-2 text-sm font-semibold text-light text-white shadow-sm hover:bg-opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                            className="font-regular text-foreground relative inline-flex h-[26px] cursor-pointer items-center justify-center space-x-2 rounded-md border-[1px] border-red-300 bg-red-500 px-3 py-1 text-center text-xs hover:bg-opacity-60"
                             onClick={deleteBtn}
                           >
                             Delete

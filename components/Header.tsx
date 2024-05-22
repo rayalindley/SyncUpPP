@@ -1,13 +1,12 @@
 "use client";
 import { signOut } from "@/lib/auth";
 import { UserProfile } from "@/lib/types";
+import { getUserProfileById } from "@/lib/userActions";
 import { Dialog, Menu, Transition } from "@headlessui/react";
 import { Bars3Icon, ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { User } from "@supabase/supabase-js";
-import { Fragment, useEffect, useState } from "react";
-import { getUserProfileById } from "@/lib/userActions";
 import Link from "next/link";
-import Image from "next/image";
+import { Fragment, useEffect, useState } from "react";
 
 const navigation = [
   { name: "Home", href: "#" },
@@ -25,14 +24,14 @@ export default function Header({ user = null }: { user: User | null }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
-  // useEffect(() => {
-  //   const fetchUserProfile = async () => {
-  //     const response = await getUserProfileById(user?.id);
-  //     setUserProfile(response.data as UserProfile);
-  //   };
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      const response = await getUserProfileById(user?.id);
+      setUserProfile(response.data as UserProfile);
+    };
 
-  //   fetchUserProfile();
-  // }, [user]);
+    fetchUserProfile();
+  }, [user]);
   const handleNavClick = (href: string) => {
     const landingPageUrl = "/"; // Update this with your landing page URL
     const targetSection = href.substring(1); // Remove the '#' from the href
@@ -61,19 +60,21 @@ export default function Header({ user = null }: { user: User | null }) {
         className="mx-auto flex max-w-7xl items-center justify-between gap-x-6 p-6 lg:px-8"
         aria-label="Global"
       >
-        <Link href="/">
-          <div className="flex lg:flex-1">
-            <div className="-m-1.5 p-1.5">
-              <span className="sr-only">SyncUp</span>
-              <img className="h-8 w-auto" src="Symbian.png" alt="" />
+        <div className="flex items-center lg:flex-1">
+          <Link href="/">
+            <div className="flex items-center">
+              <div className="-m-1.5 p-1.5">
+                <span className="sr-only">SyncUp</span>
+                <img className="h-10 w-auto" src="/syncup.png" alt="" />
+              </div>
+              <div className="font text-l flex items-center px-2 font-semibold text-light">
+                SyncUp
+              </div>
             </div>
-            <div className="font text-l flex items-center px-2 font-semibold text-light">
-              SyncUp
-            </div>
-          </div>
-        </Link>
+          </Link>
+        </div>
 
-        <div className="hidden lg:flex lg:gap-x-12">
+        <div className="hidden justify-center lg:flex lg:gap-x-12">
           {navigation.map((item) => (
             <Link
               key={item.name}
@@ -97,10 +98,10 @@ export default function Header({ user = null }: { user: User | null }) {
                 <Menu.Button className="-m-1.5 flex items-center p-1.5">
                   <span className="sr-only">Open user menu</span>
                   <img
-                    className="h-8 w-8 rounded-full bg-gray-50"
+                    className="h-10 w-10 rounded-full bg-gray-50"
                     src={
                       userProfile?.profilepicture
-                        ? userProfile.profilepicture
+                        ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${userProfile.profilepicture}`
                         : "/Portrait_Placeholder.png"
                     }
                     alt="Profile Picture"
@@ -151,7 +152,7 @@ export default function Header({ user = null }: { user: User | null }) {
                       <Menu.Item>
                         {({ active }) => (
                           <Link
-                            href={`/edit-profile/${user?.id}`}
+                            href={`/user/profile/${user?.id}`}
                             className={classNames(
                               active ? "bg-[#383838] text-light" : "text-light",
                               "block px-4 py-2 text-sm"
@@ -250,7 +251,7 @@ export default function Header({ user = null }: { user: User | null }) {
               <div className="flex lg:flex-1 ">
                 <div className="-m-1.5 p-1.5">
                   <span className="sr-only">SyncUp</span>
-                  <Image className="h-8 w-auto" src="Symbian.png" alt="SyncUp Logo" />
+                  <img className="h-8 w-auto" src="syncup.png" alt="SyncUp Logo" />
                 </div>
                 <div className="font text-lg font-semibold text-light">SyncUp</div>
               </div>
