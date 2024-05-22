@@ -1,12 +1,20 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
-import DataTable from "react-data-table-component";
+import DataTable, { TableColumn } from "react-data-table-component";
 import UserActionButton from "./user_action_button";
 import { useDebounce } from "use-debounce";
+import { User } from "@supabase/auth-js/src/lib/types";
 
-export default function UsersTable({ users, userProfiles }) {
-  const [tableData, setTableData] = useState([]);
-  const [filterText, setFilterText] = useState("");
+import {
+  UserProfileData,
+  UserProfile,
+  UserTableData,
+  UsersTableProps,
+} from "@/types/users";
+
+const UsersTable: React.FC<UsersTableProps> = ({ users, userProfiles }) => {
+  const [tableData, setTableData] = useState<UserTableData[]>([]);
+  const [filterText, setFilterText] = useState<string>("");
   const [debouncedFilterText] = useDebounce(filterText, 300);
 
   useEffect(() => {
@@ -15,7 +23,7 @@ export default function UsersTable({ users, userProfiles }) {
         userProfile,
         user: users[index],
         open: false,
-        setOpen: (open) => {
+        setOpen: (open: boolean) => {
           setTableData((prevData) => {
             const newData = [...prevData];
             newData[index].open = open;
@@ -27,11 +35,11 @@ export default function UsersTable({ users, userProfiles }) {
     }
   }, [users, userProfiles]);
 
-  const columns = [
+  const columns: TableColumn<UserTableData>[] = [
     {
       name: "Name",
       selector: (row) =>
-        `${row.userProfile?.data?.first_name} ${row.userProfile?.data?.last_name}`,
+        `${row.userProfile?.data?.first_name ?? ""} ${row.userProfile?.data?.last_name ?? ""}`,
       sortable: true,
       cell: (row) => (
         <span
@@ -46,48 +54,60 @@ export default function UsersTable({ users, userProfiles }) {
     },
     {
       name: "Email",
-      selector: (row) => row.user.email,
+      selector: (row) => row.user.email ?? "",
       sortable: true,
     },
     {
       name: "Role",
-      selector: (row) => row.user.role,
+      selector: (row) => row.user.role ?? "",
       cell: (row) =>
-        row.user.role === "superadmin" ? (
-          <span className="border-1 rounded-2xl border border-red-200 bg-red-100 px-2 text-xs text-red-500">
-            {row.user.role.replace(/_/g, " ").replace(/\b\w/g, (char) => char)}
-          </span>
+        row.user.role ? (
+          row.user.role === "superadmin" ? (
+            <span className="border-1 rounded-2xl border border-red-200 bg-red-100 px-2 text-xs text-red-500">
+              {row.user.role
+                .replace(/_/g, " ")
+                .replace(/\b\w/g, (char) => char.toUpperCase())}
+            </span>
+          ) : (
+            <span className="border-1 rounded-2xl border border-green-400 bg-green-200 px-2 text-xs text-green-800">
+              {row.user.role
+                .replace(/_/g, " ")
+                .replace(/\b\w/g, (char) => char.toUpperCase())}
+            </span>
+          )
         ) : (
-          <span className="border-1 rounded-2xl border border-green-400 bg-green-200 px-2 text-xs text-green-800">
-            {row.user.role.replace(/_/g, " ").replace(/\b\w/g, (char) => char)}
-          </span>
+          "No role"
         ),
       sortable: true,
     },
     {
       name: "Created",
       selector: (row) =>
-        new Date(row.user.created_at).toLocaleString("en-US", {
-          weekday: "long",
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-          hour: "numeric",
-          minute: "2-digit",
-        }),
+        row.user.created_at
+          ? new Date(row.user.created_at).toLocaleString("en-US", {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+            })
+          : "",
       sortable: true,
     },
     {
       name: "Last Sign In",
       selector: (row) =>
-        new Date(row.user.last_sign_in_at).toLocaleString("en-US", {
-          weekday: "long",
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-          hour: "numeric",
-          minute: "2-digit",
-        }),
+        row.user.last_sign_in_at
+          ? new Date(row.user.last_sign_in_at).toLocaleString("en-US", {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+            })
+          : "",
       sortable: true,
     },
     {
@@ -108,11 +128,13 @@ export default function UsersTable({ users, userProfiles }) {
     () =>
       tableData.filter((item) => {
         if (!debouncedFilterText) return true;
-        const name = `${item.userProfile?.data?.first_name} ${item.userProfile?.data?.last_name}`;
+        const name = `${item.userProfile?.data?.first_name ?? ""} ${item.userProfile?.data?.last_name ?? ""}`;
         return (
           name.toLowerCase().includes(debouncedFilterText.toLowerCase()) ||
-          item.user.email.toLowerCase().includes(debouncedFilterText.toLowerCase()) ||
-          item.user.role.toLowerCase().includes(debouncedFilterText.toLowerCase())
+          (item.user.email?.toLowerCase().includes(debouncedFilterText.toLowerCase()) ??
+            false) ||
+          (item.user.role?.toLowerCase().includes(debouncedFilterText.toLowerCase()) ??
+            false)
         );
       }),
     [debouncedFilterText, tableData]
@@ -144,7 +166,7 @@ export default function UsersTable({ users, userProfiles }) {
           <DataTable
             columns={columns}
             data={filteredData}
-            defaultSortField="name"
+            defaultSortFieldId="name"
             pagination
             highlightOnHover
             subHeader
@@ -198,4 +220,6 @@ export default function UsersTable({ users, userProfiles }) {
       </div>
     </div>
   );
-}
+};
+
+export default UsersTable;

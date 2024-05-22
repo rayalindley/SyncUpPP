@@ -9,6 +9,7 @@ import { FaRegEdit } from "react-icons/fa";
 import JSONPretty from "react-json-pretty";
 import Link from "next/link";
 import { useOpenStore } from "@/store/useOpenStore";
+import { ReactNode } from "react";
 
 const jsonTheme = {
   main: "line-height:1.3;color:#383a42;background:#ffffff;overflow:hidden;word-wrap:break-word;white-space: pre-wrap;word-wrap: break-word; ",
@@ -20,7 +21,7 @@ const jsonTheme = {
   boolean: "color:#986801;", // Brown for booleans for quick identification
 };
 
-function classNames(...classes: any[]) {
+function classNames(...classes: (string | boolean | undefined)[]) {
   return classes.filter(Boolean).join(" ");
 }
 
@@ -31,7 +32,7 @@ export default function OrganizationOptions({
 }: {
   selectedOrg: any;
   open: boolean;
-  setOpen: any;
+  setOpen: (open: boolean) => void;
 }) {
   const deleteBtn = () => {
     Swal.fire({
@@ -264,14 +265,17 @@ export default function OrganizationOptions({
                               <td className="p-2 font-bold text-gray-400">Address:</td>
                               <td className="p-2">
                                 {Object.entries(selectedOrg.address).map(
-                                  ([key, value], index, array) => (
-                                    <span key={key}>
-                                      {value}
-                                      {index < array.length - 1 && value != ""
-                                        ? ", "
-                                        : ""}
-                                    </span>
-                                  )
+                                  ([key, value], index, array) => {
+                                    // Ensure value is defined and not an empty string
+                                    if (!value) return null;
+
+                                    return (
+                                      <span key={key}>
+                                        {value as string}
+                                        {index < array.length - 1 && value ? ", " : ""}
+                                      </span>
+                                    );
+                                  }
                                 )}
                               </td>
                             </tr>
@@ -279,20 +283,24 @@ export default function OrganizationOptions({
                               <td className="p-2 font-bold text-gray-400">Socials:</td>
                               <td className="p-2">
                                 {Object.entries(selectedOrg.socials).map(
-                                  ([key, value], index, array) => (
-                                    <span key={key}>
-                                      {value != "" && (
-                                        <Link href={value} className="hover:text-primary">
-                                          {value}
+                                  ([key, value], index, array) => {
+                                    // Ensure value is defined and not an empty string
+                                    if (!value) return null;
+
+                                    return (
+                                      <span key={key}>
+                                        <Link
+                                          href={value as string}
+                                          className="hover:text-primary"
+                                        >
+                                          {value as string}
                                         </Link>
-                                      )}
-                                      {index < array.length - 1 && value != "" ? (
-                                        <br />
-                                      ) : (
-                                        ""
-                                      )}
-                                    </span>
-                                  )
+                                        {index < array.length - 1 && value ? (
+                                          <br />
+                                        ) : null}
+                                      </span>
+                                    );
+                                  }
                                 )}
                               </td>
                             </tr>

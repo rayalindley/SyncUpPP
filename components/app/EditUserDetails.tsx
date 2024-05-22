@@ -128,7 +128,7 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
         });
 
       if (uploadResult) {
-        profilePictureUrl = uploadResult.fullPath;
+        profilePictureUrl = `profile-pictures/${uploadResult.path}`;
       } else {
         console.error("Error uploading image:", error);
         toast.error("Error uploading image. Please try again.");

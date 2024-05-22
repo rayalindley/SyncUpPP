@@ -116,7 +116,7 @@ const EventsCard = ({ event }: { event: Event }) => {
 
   // Format date and time
   const formatDate = (dateString: string) => {
-    const options = {
+    const options: Intl.DateTimeFormatOptions = {
       weekday: "short",
       month: "short",
       day: "numeric",
