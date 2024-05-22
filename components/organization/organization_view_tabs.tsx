@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import OrganizationEventsComponent from "./organization_events";
 import OrganizationMembershipsComponent from "./organization_membership";
 import OrganizationPostsComponent from "./organization_posts";
@@ -18,10 +19,23 @@ const TabsComponent = ({
   posts: any;
   id: any;
 }) => {
-  const [activeTab, setActiveTab] = useState("posts");
+  const { orgslug } = useParams();
+  const query = new URLSearchParams(window.location.search);
+  const initialTab = query.get("tab") || "posts";
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  useEffect(() => {
+    const urlTab = query.get("tab");
+    if (urlTab && urlTab !== activeTab) {
+      setActiveTab(urlTab);
+    }
+  }, [query.get("tab")]);
 
   const handleTabChange = (tab: any) => {
     setActiveTab(tab);
+    query.set("tab", tab);
+    const newUrl = `${window.location.pathname}?${query.toString()}`;
+    window.history.pushState({}, "", newUrl);
   };
 
   let tabContent = null;

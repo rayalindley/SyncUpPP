@@ -12,21 +12,17 @@ export default function EventsPublicView() {
   const [user, setUser] = useState<User | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const eventsPerPage = 6;
+  const eventsPerPage = 8;
 
   useEffect(() => {
     async function fetchUser() {
       const { user } = await getUser(); // Adjust this to your actual user fetching logic
-      console.log(user);
       setUser(user);
     }
 
     async function fetchEvents() {
       const supabase = createClient();
-      const { data: events, error } = await supabase
-        .from("events")
-        .select("*")
-        .eq("privacy", "public");
+      const { data: events, error } = await supabase.from("events").select("*");
 
       // console.log(events, error);
 
@@ -60,14 +56,15 @@ export default function EventsPublicView() {
             <h1 className="text-center text-3xl font-bold text-light">Events</h1>
             <div className="mt-2 flex items-center justify-center"></div>
             <div className="mt-2 px-4 text-center text-sm text-light sm:px-8 lg:px-10">
-              <p>Browse and view public events that fit your interests.</p>
+              <p>Browse and view events that fit your interests.</p>
             </div>
 
-            <div className="min-w-2xl mx-auto mt-20 grid w-full grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+            <div className="min-w-2xl mx-auto mt-20 grid justify-items-center gap-x-1 gap-y-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 ">
               {currentEvents.map((event) => (
                 <EventsCard
                   key={event.eventid}
                   event={{
+                    id: event.eventid,
                     eventid: event.eventid,
                     imageUrl: event.eventphoto,
                     title: event.title,

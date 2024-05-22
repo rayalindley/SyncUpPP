@@ -3,7 +3,10 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import {
   checkEventPrivacyAndMembership,
+  checkMembership,
   checkUserRegistration,
+  countRegisteredUsers,
+  isEventFull,
   registerForEvent,
   unregisterFromEvent,
 } from "@/lib/events";
@@ -15,6 +18,7 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   MapPinIcon,
+  UsersIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -36,6 +40,9 @@ const EventPage = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isRegistered, setIsRegistered] = useState(false);
   const [isMember, setIsMember] = useState(false);
+  const [attendeesCount, setAttendeesCount] = useState(0);
+  const [eventFull, setEventFull] = useState(false);
+  const [isOrgMember, setIsOrgMember] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -64,6 +71,16 @@ const EventPage = () => {
           setOrganization(organizationData);
         }
 
+        if (eventData) {
+          const { count } = await countRegisteredUsers(eventData.eventid);
+          setAttendeesCount(count ?? 0);
+
+          if (eventData.capacity) {
+            const { isFull } = await isEventFull(eventData.eventid);
+            setEventFull(isFull);
+          }
+        }
+
         if (eventData && user) {
           const { isRegistered } = await checkUserRegistration(
             eventData.eventid,
@@ -76,6 +93,13 @@ const EventPage = () => {
             user.id
           );
           setIsMember(isMember);
+        }
+
+        if (user && eventData) {
+          const { isMember } = await checkMembership(user.id, eventData.organizationid);
+          setIsOrgMember(isMember);
+          console.log(eventData.organizationid, user.id);
+          console.log("isOrgMember", isOrgMember);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -131,6 +155,11 @@ const EventPage = () => {
         console.log("Registration successful:", data);
         toast.success("You have successfully joined the event!");
         setIsRegistered(true);
+        setAttendeesCount((prevCount) => prevCount + 1);
+
+        if (event.capacity && attendeesCount + 1 >= event.capacity) {
+          setEventFull(true);
+        }
       }
     }
   };
@@ -165,6 +194,8 @@ const EventPage = () => {
         console.log("Unregistration successful:", data);
         toast.success("You have successfully cancelled your registration!");
         setIsRegistered(false); // Update the state to reflect the unregistration
+        setAttendeesCount((prevCount) => prevCount - 1);
+        setEventFull(false); // Allow registration again if user cancels
       }
     }
   };
@@ -188,7 +219,7 @@ const EventPage = () => {
       <main className="isolate mb-10 flex flex-1 justify-center pt-4 sm:px-4 md:px-6 lg:px-80">
         <div className="w-full max-w-screen-lg text-light">
           <div className="grid grid-cols-[2fr,3fr] gap-8 md:grid-cols-[1fr,1.5fr]">
-            <div className="h-96 w-full">
+            <div className="relative h-96 w-full">
               {event.eventphoto ? (
                 <img
                   src={`${supabaseStorageBaseUrl}/${event.eventphoto}`}
@@ -196,29 +227,49 @@ const EventPage = () => {
                   className="h-96 w-full rounded-lg object-cover"
                 />
               ) : (
-                <div className="h-96 w-full rounded-lg bg-white" />
+                <div className="bg- h-96 w-full rounded-lg bg-fadedgrey" />
               )}
+              <span
+                className={`absolute right-2 top-2 rounded-full bg-opacity-75 px-2	py-1 text-xs font-medium shadow-2xl ${event.privacy === "public" ? "bg-green-500 text-white" : "bg-red-500 text-white"}`}
+              >
+                {event.privacy === "public" ? "Public" : "Members only"}
+              </span>
               {organization && (
                 <div className="mt-4">
-                  <div className="flex items-center">
-                    {organization.photo ? (
-                      <img
-                        src={`${supabaseStorageBaseUrl}/${organization.photo}`}
-                        alt={organization.name}
-                        className="mr-4 h-10 w-10 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="mr-4 h-10 w-10 rounded-full bg-white" />
-                    )}
-                    <div>
-                      <p className="text-sm font-medium">Hosted By</p>
-                      <Link href={`/${organization.slug}`}>
-                        <p className="text-md group flex items-center font-semibold hover:text-primary">
-                          {organization.name}
-                          <ChevronRightIcon className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                        </p>
-                      </Link>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      {organization.photo ? (
+                        <img
+                          src={`${supabaseStorageBaseUrl}/${organization.photo}`}
+                          alt={organization.name}
+                          className="mr-4 h-10 w-10 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="mr-4 h-10 w-10 rounded-full bg-white" />
+                      )}
+                      <div>
+                        <p className="text-sm font-medium">Hosted By</p>
+                        <Link href={`/${organization.slug}`}>
+                          <p className="text-md group flex items-center font-semibold hover:text-primary">
+                            {organization.name}
+                            <ChevronRightIcon className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                          </p>
+                        </Link>
+                      </div>
                     </div>
+                    {!isOrgMember && (
+                      <div className="ml-auto">
+                        <button
+                          className="rounded-full bg-primary px-4 py-2 text-sm text-white hover:bg-primarydark"
+                          onClick={() => {
+                            // Redirect to the membership page
+                            router.push(`/${organization.slug}?tab=membership`);
+                          }}
+                        >
+                          Join Org
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   <div
@@ -261,15 +312,14 @@ const EventPage = () => {
               <div className="mt-6 flex items-center text-base">
                 <CalendarIcon className="mr-2 h-10 w-10 text-primary" />
                 <div>
-                  <span className="text-base font-medium">
+                  <span className="text-base font-medium leading-tight">
                     {new Date(event.eventdatetime).toLocaleDateString("en-US", {
                       weekday: "long",
                       month: "long",
                       day: "numeric",
                     })}
                   </span>
-                  <br />
-                  <span className="text-sm">
+                  <span className="block text-sm leading-tight">
                     {new Date(event.eventdatetime).toLocaleTimeString("en-US", {
                       hour: "2-digit",
                       minute: "2-digit",
@@ -278,7 +328,7 @@ const EventPage = () => {
                   </span>
                 </div>
               </div>
-              <div className="mb-4 flex items-center text-base">
+              <div className="mb-2 mt-2 flex items-center text-base">
                 <MapPinIcon className="mr-2 h-10 w-10 text-primary" />
                 {isUrl(event.location) ? (
                   <Link href={event.location}>
@@ -286,6 +336,20 @@ const EventPage = () => {
                   </Link>
                 ) : (
                   event.location
+                )}
+              </div>
+              <div className="mb-4 flex items-center text-base">
+                <UsersIcon className="mr-2 h-10 w-10 text-primary" />
+                {event.capacity > 0 ? (
+                  <span
+                    className={`text-base ${
+                      attendeesCount >= event.capacity ? "text-red-500" : "text-light"
+                    }`}
+                  >
+                    {attendeesCount} / {event.capacity} attending
+                  </span>
+                ) : (
+                  <span className="text-base text-light">{attendeesCount} attending</span>
                 )}
               </div>
 
@@ -298,16 +362,22 @@ const EventPage = () => {
                 </p>
                 <div className="mt-2">
                   <p className="px-6 text-light">
-                    <span>Registration Fee:</span>{" "}
-                    {event.registrationfee
-                      ? `Php ${event.registrationfee.toFixed(2)}`
-                      : "Free"}
+                    {event.registrationfee ? (
+                      <>
+                        <span>Registration Fee:</span> Php{" "}
+                        {event.registrationfee.toFixed(2)}
+                      </>
+                    ) : (
+                      "Free Registration"
+                    )}
                   </p>
                 </div>
+
                 <div className="p-2">
                   <button
-                    className={`mt-8 w-full rounded-md px-6 py-3 text-white ${
-                      event.privacy === "private" && !isMember
+                    className={`mt-2 w-full rounded-md px-6 py-3 text-white ${
+                      (event.privacy === "private" && !isMember) ||
+                      (eventFull && !isRegistered)
                         ? "cursor-not-allowed bg-fadedgrey"
                         : isRegistered
                           ? "bg-red-600 hover:bg-red-700"
@@ -316,13 +386,18 @@ const EventPage = () => {
                     onClick={
                       isRegistered ? handleEventUnregistration : handleEventRegistration
                     }
-                    disabled={event.privacy === "private" && !isMember}
+                    disabled={
+                      (event.privacy === "private" && !isMember) ||
+                      (eventFull && !isRegistered)
+                    }
                   >
                     {event.privacy === "private" && !isMember
-                      ? "Event is available for Org Members only"
-                      : isRegistered
-                        ? "Unregister"
-                        : "Register"}
+                      ? "Event for Org Members Only"
+                      : eventFull && !isRegistered
+                        ? "Event Full"
+                        : isRegistered
+                          ? "Unregister"
+                          : "Register"}
                   </button>
                 </div>
               </div>

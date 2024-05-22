@@ -20,6 +20,7 @@ const EventsCard = ({ event }: { event: Event }) => {
     eventdatetime,
     capacity,
     eventslug,
+    privacy,
   } = event;
   const hasImageUrl = !!imageUrl; // Check if imageUrl is provided
   const truncatedDescription =
@@ -149,9 +150,9 @@ const EventsCard = ({ event }: { event: Event }) => {
     <div
       onClick={handleCardClick}
       className="mb-4 flex max-h-96 cursor-pointer flex-col overflow-hidden rounded-md bg-eerieblack  transition duration-100 hover:scale-[1.01] hover:bg-raisinblack
-      lg:w-72"
+      md:w-64 lg:w-64"
     >
-      <div className="h-40 overflow-hidden">
+      <div className="relative h-40 overflow-hidden">
         {imageUrl ? (
           <img
             src={`${supabaseStorageBaseUrl}/${imageUrl}`}
@@ -159,8 +160,13 @@ const EventsCard = ({ event }: { event: Event }) => {
             className="h-full w-full rounded-lg object-cover"
           />
         ) : (
-          <div className="h-full w-full bg-white" />
+          <div className="h-full w-[262px] rounded-lg bg-fadedgrey" />
         )}
+        <span
+          className={`absolute right-2 top-2 rounded-full bg-opacity-75 px-2	py-1 text-xs font-medium shadow-2xl ${privacy === "public" ? "bg-green-500 text-white" : "bg-red-500 text-white"}`}
+        >
+          {privacy === "public" ? "Public" : "Members only"}
+        </span>
       </div>
       <div className="flex flex-grow flex-col justify-between p-4 text-left">
         <div>
@@ -169,7 +175,7 @@ const EventsCard = ({ event }: { event: Event }) => {
             {formatDate(eventdatetime.toString())}
           </p>
           <p className="text-sm text-light">{locationContent}</p>
-          <p className="mt-2 text-sm font-medium text-light">
+          <p className="mt-2 inline-block rounded-full border border-primary px-3 py-1 text-sm font-medium text-light">
             {formatFee(registrationfee)}
           </p>
         </div>
