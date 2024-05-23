@@ -1,7 +1,19 @@
 "use client";
 import { CalendarIcon, InboxIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 import { useRouter } from "next/navigation";
-export default function OrganizationCard({
+
+interface OrganizationCardProps {
+  name: string;
+  description: string;
+  organization_size: string | number;
+  photo: string;
+  slug: string;
+  banner: string;
+  total_members: number;
+  total_posts: number;
+  total_events: number;
+}
+const OrganizationCard: React.FC<OrganizationCardProps> = ({
   name,
   description,
   organization_size,
@@ -11,17 +23,7 @@ export default function OrganizationCard({
   total_members,
   total_posts,
   total_events,
-}: {
-  name: string;
-  description: string;
-  organization_size: number;
-  photo: string;
-  slug: string;
-  banner: string;
-  total_members: number;
-  total_posts: number;
-  total_events: number;
-}) {
+}) => {
   // Define the base URL for your Supabase storage bucket
   const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
 
@@ -96,4 +98,5 @@ export default function OrganizationCard({
       </div>
     </div>
   );
-}
+};
+export default OrganizationCard;

@@ -12,12 +12,12 @@ export default async function MembershipsPage() {
   const { data: orgmems, error: orgmemsError } =
     (await supabase.from("organization_memberships").select("*")) ?? [];
 
-  const { data: allMembers, error: allMembersError  } =
+  const { data: allMembers, error: allMembersError } =
     (await supabase.from("user_membership_info").select("*")) ?? [];
 
   return (
     <>
-      <MembershipsTable orgmems={orgmems} allMembers={allMembers} />
+      <MembershipsTable orgmems={orgmems || []} allMembers={allMembers || []} />
     </>
   );
 }

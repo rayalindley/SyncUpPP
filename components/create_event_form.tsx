@@ -34,7 +34,6 @@ const EventSchema = z.object({
     .refine((value) => value !== 0, "Capacity cannot be zero")
     .optional()
     .nullable(),
-
   registrationfee: z
     .number()
     .nonnegative("Registration Fee cannot be negative")
@@ -44,20 +43,24 @@ const EventSchema = z.object({
 });
 
 interface EventFormValues {
-  eventid: string;
+  eventid?: string; // Make eventid optional
   title: string;
   description: string;
   eventdatetime: Date;
   location: string;
-  capacity: number;
-  registrationfee: number;
+  capacity?: number | null;
+  registrationfee?: number | null;
   privacy: "public" | "private";
   organizationId: string;
   eventphoto: string | null;
   tags: string[];
-  eventslug: string;
+  eventslug?: string;
 }
 
+type TagData = {
+  value: string;
+  [key: string]: any;
+};
 const CreateEventForm = ({
   organizationId,
   event,
@@ -95,7 +98,6 @@ const CreateEventForm = ({
     ...formOptions,
   });
 
-  // Function to generate a random slug for the event
   function generateRandomSlug(length = 8) {
     const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     let result = "";
@@ -105,7 +107,6 @@ const CreateEventForm = ({
     return result;
   }
 
-  // Function to check slug availability in the events table
   async function checkSlugAvailability(slug: string) {
     const supabase = createClient();
     const { data, error } = await supabase
@@ -122,7 +123,6 @@ const CreateEventForm = ({
       };
     }
 
-    // If data is null, no rows exist, hence the slug is available
     return {
       isAvailable: !data,
       error: null,
@@ -139,7 +139,6 @@ const CreateEventForm = ({
 
     let imageUrl = event?.eventphoto || null;
     if (photoFile) {
-      // Delete the previous image if it exists and is different from the current event image
       if (previousPhotoUrl && previousPhotoUrl !== event?.eventphoto) {
         const { error: deleteError } = await supabase.storage
           .from("event-images")
@@ -152,7 +151,6 @@ const CreateEventForm = ({
         }
       }
 
-      // Upload the new image
       const fileName = `${formData.title}_${Date.now()}-${Math.random().toString(36).substring(7)}`;
       const { data: uploadResult, error: uploadError } = await supabase.storage
         .from("event-images")
@@ -162,8 +160,8 @@ const CreateEventForm = ({
         });
 
       if (uploadResult) {
-        imageUrl = uploadResult.fullPath;
-        setPreviousPhotoUrl(imageUrl); // Update the previousPhotoUrl with the new image URL
+        imageUrl = `event-images/${uploadResult.path}`;
+        setPreviousPhotoUrl(imageUrl);
       } else {
         console.error("Error uploading image:", uploadError);
         toast.error("Error uploading image. Please try again.");
@@ -171,9 +169,8 @@ const CreateEventForm = ({
         return;
       }
     } else if (removeImageFlag && previousPhotoUrl) {
-      const fileName = previousPhotoUrl?.split("/").pop() ?? ""; // Ensure fileName is always a string
+      const fileName = previousPhotoUrl?.split("/").pop() ?? "";
 
-      // Remove the image from storage
       const { error } = await supabase.storage.from("event-images").remove([fileName]);
       if (error) {
         console.error("Error removing image:", error);
@@ -182,8 +179,7 @@ const CreateEventForm = ({
         return;
       }
       imageUrl = null;
-      setPreviousPhotoUrl(null); // Reset the previousPhotoUrl since the image was removed
-      // console.log(fileName);
+      setPreviousPhotoUrl(null);
     }
 
     const eventDateTimeWithTimezone = new Date(formData.eventdatetime).toISOString();
@@ -191,11 +187,9 @@ const CreateEventForm = ({
 
     let slug;
     if (!event) {
-      // Only generate a slug if creating a new event
       slug = generateRandomSlug();
       let slugCheck = await checkSlugAvailability(slug);
 
-      // Ensure slug is unique by checking availability
       while (!slugCheck.isAvailable) {
         slug = generateRandomSlug();
         slugCheck = await checkSlugAvailability(slug);
@@ -218,10 +212,8 @@ const CreateEventForm = ({
       slug: event ? event.eventslug : slug,
     };
 
-    // console.log("Complete form data:", completeFormData);
-
     const { data, error } = event
-      ? await updateEvent(event.eventid, completeFormData)
+      ? await updateEvent(event.eventid!, completeFormData)
       : await insertEvent(completeFormData, organizationId);
 
     if (data) {
@@ -240,7 +232,7 @@ const CreateEventForm = ({
     }
 
     setIsLoading(false);
-    setRemoveImageFlag(false); // Reset the flag after form submission
+    setRemoveImageFlag(false);
   };
 
   const formatDateForInput = (date: Date) => {
@@ -254,36 +246,36 @@ const CreateEventForm = ({
 
   useEffect(() => {
     const input = document.querySelector("input[name=tags]");
-    const tagify = new Tagify(input, {
-      originalInputValueFormat: (valuesArr) => valuesArr.map((item) => item.value),
+    const tagify = new Tagify(input as HTMLInputElement, {
+      originalInputValueFormat: (valuesArr: TagData[]) =>
+        valuesArr.map((item) => item.value).join(","), // Change made here
     });
 
-    // Update the tags state when tags change
     tagify.on("change", (e) => {
-      // Assuming e.detail.value is the updated tags array in string format
       const tagsArray = e.detail.value.split(",").map((tag) => tag.trim());
       setTags(tagsArray);
     });
 
-    // Set initial tags if editing an existing event
     if (event?.tags) {
       setTags(event.tags);
-      tagify.addTags(event.tags); // Add initial tags to Tagify
+      tagify.addTags(event.tags);
     }
 
-    // Cleanup on component unmount
     return () => {
       tagify.destroy();
     };
   }, [event]);
+
   useEffect(() => {
     if (event) {
-      Object.keys(event).forEach((key) => {
+      (Object.keys(event) as (keyof typeof event)[]).forEach((key) => {
         if (key === "eventdatetime") {
-          const formattedDate = formatDateForInput(new Date(event[key]));
+          const formattedDate = formatDateForInput(
+            new Date(event[key] as unknown as string)
+          ); // Explicitly cast to unknown first, then to string
           setValue(key as keyof EventFormValues, formattedDate);
         } else {
-          setValue(key as keyof EventFormValues, event[key]);
+          setValue(key as keyof EventFormValues, event[key] as any); // Ensure correct type casting
         }
       });
       setPreviousPhotoUrl(event.eventphoto || null);
@@ -299,18 +291,17 @@ const CreateEventForm = ({
 
   const [enabled, setEnabled] = useState(false);
   const [hasCapacityLimit, setHasCapacityLimit] = useState(
-    event?.capacity > 0 || event?.capacity != null
+    event?.capacity ? event.capacity > 0 : false
   );
   const [hasRegistrationFee, setHasRegistrationFee] = useState(
-    event?.registrationfee > 0 || event?.registrationfee != null ? true : false
+    event?.registrationfee ? event.registrationfee > 0 : false
   );
 
   const handleRegistrationFeeChange = (hasFee: boolean) => {
     setHasRegistrationFee(hasFee);
     if (!hasFee) {
-      setRegistrationFeeValue(null); // Clear registration fee value when "No" is selected
-      setValue("registrationfee", 0); // Reset the registration fee field in the form state
-      // Trigger validation for the registration fee field
+      setRegistrationFeeValue(null);
+      setValue("registrationfee", null);
       trigger("registrationfee");
     }
   };
@@ -318,9 +309,8 @@ const CreateEventForm = ({
   const handleCapacityChange = (hasLimit: boolean) => {
     setHasCapacityLimit(hasLimit);
     if (!hasLimit) {
-      setCapacityValue(null); // Clear capacity value when "No" is selected
-      setValue("capacity", null); // Reset the capacity field in the form state
-      // Trigger validation for the capacity field
+      setCapacityValue(null);
+      setValue("capacity", null);
       trigger("capacity");
     }
   };
@@ -335,19 +325,6 @@ const CreateEventForm = ({
   };
 
   const [tags, setTags] = useState<string[]>(event?.tags || []);
-
-  useEffect(() => {
-    const input = document.querySelector("input[name=tags]");
-    new Tagify(input, {
-      originalInputValueFormat: (valuesArr) =>
-        valuesArr.map((item) => item.value).join(","),
-    });
-
-    // Set initial tags if editing an existing event
-    if (event?.tags) {
-      setTags(event.tags);
-    }
-  }, [event]);
 
   return (
     <>
@@ -418,7 +395,7 @@ const CreateEventForm = ({
                             setImageError("");
                             setPhotoFile(file);
                             setEventPhoto(URL.createObjectURL(file));
-                            setRemoveImageFlag(false); // Reset the flag when a new image is added
+                            setRemoveImageFlag(false);
                           }
                         }}
                         className="hidden"
@@ -584,7 +561,7 @@ const CreateEventForm = ({
                 type="number"
                 id="registrationfee"
                 defaultValue={0}
-                step="0.01" // Allows decimal values up to two decimal places
+                step="0.01"
                 {...register("registrationfee", { valueAsNumber: true })}
                 onChange={(e) => setRegistrationFeeValue(parseFloat(e.target.value))}
                 className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"

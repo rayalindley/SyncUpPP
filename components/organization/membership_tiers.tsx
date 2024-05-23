@@ -166,7 +166,7 @@ const MembershipTiers: React.FC<MembershipsProps> = ({ memberships, userid }) =>
               </div>
               <button
                 onClick={() =>
-                  handleBuyPlan(membership.membershipid, membership.organizationid)
+                  handleBuyPlan(membership.membershipid, membership.organizationId || "")
                 }
                 aria-describedby={membership.membershipid}
                 className={classNames(

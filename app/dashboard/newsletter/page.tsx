@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useUser } from "@/context/UserContext";
-import { CombinedUserData, Email, Event, Organization } from "@/lib/types";
+import { CombinedUserData, Email, Event, Organizations } from "@/lib/types";
 import {
   fetchMembersByAdmin,
   fetchOrganizationsByAdmin,
@@ -42,7 +42,7 @@ export default function NewsletterPage() {
   const [attachments, setAttachments] = useState<
     Array<{ filename: string; content: string | ArrayBuffer | null }>
   >([]);
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [organizations, setOrganizations] = useState<Organizations[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [users, setUsers] = useState<CombinedUserData[]>([]);
   const [selectedFromOrgName, setSelectedFromOrgName] = useState<string | null>(null);
@@ -76,7 +76,7 @@ export default function NewsletterPage() {
         { event: "*", schema: "public", table: "emails" },
         async (payload) => {
           if (user) {
-            const emailsData = await fetchSentEmailsByAdmin(user.id);
+            const emailsData = await fetchSentEmailsByAdmin(user.id || "");
             setSentEmails(emailsData);
           }
         }
@@ -87,12 +87,12 @@ export default function NewsletterPage() {
   useEffect(() => {
     async function fetchData() {
       if (user) {
-        const organizationsData = await fetchOrganizationsByAdmin(user.id);
-        const eventsData = await fetchEventsByAdmin(user.id);
-        const usersData = await fetchMembersByAdmin(user.id);
-        const emailsData = await fetchSentEmailsByAdmin(user.id);
+        const organizationsData = await fetchOrganizationsByAdmin(user.id || "");
+        const eventsData = await fetchEventsByAdmin(user.id || "");
+        const usersData = await fetchMembersByAdmin(user.id || "");
+        const emailsData = await fetchSentEmailsByAdmin(user.id || "");
 
-        const organizationsWithSelected = organizationsData.map((org: Organization) => ({
+        const organizationsWithSelected = organizationsData.map((org: Organizations) => ({
           ...org,
           id: org.organizationid,
           selected: false,
@@ -202,7 +202,7 @@ export default function NewsletterPage() {
         toast.success(`Newsletter sent successfully to ${successCount} recipients!`);
 
         if (user) {
-          const emailsData = await fetchSentEmailsByAdmin(user.id);
+          const emailsData = await fetchSentEmailsByAdmin(user.id || "");
           setSentEmails(emailsData);
         }
       }
@@ -283,9 +283,9 @@ export default function NewsletterPage() {
   };
 
   const toggleOrganizationSelection = (
-    list: Organization[],
+    list: Organizations[],
     id: string
-  ): Organization[] => {
+  ): Organizations[] => {
     return list.map((item) => ({
       ...item,
       selected: item.id === id ? !item.selected : item.selected,

@@ -11,7 +11,11 @@ export async function insertComment(formData: any) {
       created_at: new Date().toISOString(),
     };
 
-    const { data, error } = await supabase.from("post_comments").insert([insertValues]).select().single();
+    const { data, error } = await supabase
+      .from("post_comments")
+      .insert([insertValues])
+      .select()
+      .single();
 
     if (!error) {
       return { data, error: null };
@@ -23,7 +27,7 @@ export async function insertComment(formData: any) {
     console.error("Unexpected error:", e);
     return {
       data: null,
-      error: { message: e.message || "An unexpected error occurred" },
+      error: { message: (e as Error).message || "An unexpected error occurred" },
     };
   }
 }
@@ -47,14 +51,14 @@ export async function fetchComments(postid: string) {
     console.error("Unexpected error:", e);
     return {
       data: null,
-      error: { message: e.message || "An unexpected error occurred" },
+      error: { message: (e as Error).message || "An unexpected error occurred" },
     };
   }
 }
 
 export async function updateComment(updatedComment: {
-  commentid: string,
-  comment?: string,
+  commentid: string;
+  comment?: string;
 }) {
   const supabase = createClient();
   try {
@@ -62,12 +66,12 @@ export async function updateComment(updatedComment: {
     const updateFields: any = {};
     if (updatedComment.comment) updateFields.comment = updatedComment.comment;
 
-
     const { data, error } = await supabase
       .from("post_comments")
       .update(updateFields)
       .eq("commentid", updatedComment.commentid)
-      .select().single();
+      .select()
+      .single();
 
     if (!error) {
       return { data, error: null };
@@ -101,7 +105,10 @@ export async function deleteComment(commentid: string, authorid: string) {
     // Check if the current user is the author of the comment
     if (comment.authorid !== authorid) {
       console.error("Unauthorized: Only the author can delete this comment");
-      return { data: null, error: { message: `Unauthorized: Only the author can delete this comment` } };
+      return {
+        data: null,
+        error: { message: `Unauthorized: Only the author can delete this comment` },
+      };
     }
 
     // Delete the comment if the current user is the author
@@ -120,9 +127,9 @@ export async function deleteComment(commentid: string, authorid: string) {
     console.error("Unexpected error:", e.message);
     return {
       data: null,
-      error: { message: e.message || "An unexpected error occurred while deleting the comment" },
+      error: {
+        message: e.message || "An unexpected error occurred while deleting the comment",
+      },
     };
   }
 }
-
-

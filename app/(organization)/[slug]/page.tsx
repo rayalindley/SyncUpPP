@@ -6,7 +6,7 @@ import { fetchEvents } from "@/lib/events";
 import { getMemberships } from "@/lib/memberships";
 import { fetchPosts } from "@/lib/posts";
 import { createClient, getUser } from "@/lib/supabase/server";
-import { InboxIcon, UserGroupIcon } from "@heroicons/react/24/outline";
+import { CalendarIcon, InboxIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { ToastContainer } from "react-toastify";
 
@@ -51,7 +51,7 @@ export default async function OrganizationUserView({
   const supabase = createClient();
 
   let { data: org, error } = await supabase
-    .from("organizations")
+    .from("organization_summary")
     .select("*")
     .eq("slug", slug)
     .single();
@@ -61,11 +61,7 @@ export default async function OrganizationUserView({
   const postsPerPage = 6; // Set the number of posts per page
 
   // Fetch organization posts
-  const { data: posts, error: postsError } = await fetchPosts(
-    org.organizationid,
-    currentPage,
-    postsPerPage
-  );
+  const { data: posts, error: postsError } = await fetchPosts(org.organizationid);
 
   // Handle any errors from fetching posts
   if (postsError) {
@@ -156,11 +152,15 @@ export default async function OrganizationUserView({
             <div className="mt-2 flex flex-col sm:flex-row sm:items-center">
               <div className="mb-2 flex items-center sm:mb-0 sm:mr-4">
                 <UserGroupIcon className="mr-1 h-5 w-5 text-primary" />
-                <p className="text-sm text-light">Members: {orgdata[0].members}</p>
+                <p className="text-sm text-light">{org?.total_members} members</p>
               </div>
-              <div className="flex items-center">
+              <div className="mb-2 flex items-center sm:mb-0 sm:mr-4">
                 <InboxIcon className="mr-1 h-5 w-5 text-primary" />
-                <p className="text-sm text-light">Posts: {orgdata[0].posts}</p>
+                <p className="text-sm text-light">{org?.total_posts} posts</p>
+              </div>
+              <div className="mb-2 flex items-center sm:mb-0 sm:mr-4">
+                <CalendarIcon className="mr-1 h-5 w-5 text-primary" />
+                <p className="text-sm text-light">{org?.total_events} events</p>
               </div>
             </div>
             <div className="text-sm text-light">{org.description}</div>

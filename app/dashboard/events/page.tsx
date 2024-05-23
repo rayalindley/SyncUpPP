@@ -7,8 +7,8 @@ import { useEffect, useState } from "react";
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
-  const [organizations, setOrganizations] = useState([]);
-  const [events, setEvents] = useState([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [events, setEvents] = useState<any[]>([]); // Replace 'any' with your actual event type if available
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -38,7 +38,7 @@ export default function DashboardPage() {
         .select("*")
         .in(
           "organizationid",
-          orgs.map((org: Organization) => org.organization_id)
+          orgs.map((org: Organization) => org.organizationid)
         );
 
       if (eventsError) {

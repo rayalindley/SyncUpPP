@@ -17,24 +17,26 @@ const membershipSchema = z.object({
       return true;
     }),
   description: z.string(),
-  organizationid: z.string(),
+  organizationId: z.string(),
   features: z.array(z.string()).nonempty("At least one feature is required"),
 });
 
 const CreateMembershipForm = ({
-  organizationId,
+  organizationId = null,
   membership,
 }: {
-  organizationId: string;
+  organizationId: string | null;
   membership?: Membership;
 }) => {
   const initialFormData: Membership = {
     name: "",
     membershipid: "",
-    organizationid: organizationId,
+    organizationId: "",
+    price: 0, // Add this property
+    duration: "", // Add this property
     description: "",
     registrationfee: 0,
-    features: [""],
+    features: [],
     mostPopular: false,
   };
 
@@ -61,9 +63,8 @@ const CreateMembershipForm = ({
     e.preventDefault();
     try {
       // Filter out empty or whitespace-only feature fields
-      const filteredFeatures = formData.features.filter(
-        (feature) => feature.trim() !== ""
-      );
+      const filteredFeatures =
+        formData.features?.filter((feature) => feature.trim() !== "") ?? [];
 
       // Update the formData with filtered features
       const updatedFormData = { ...formData, features: filteredFeatures };
@@ -117,8 +118,8 @@ const CreateMembershipForm = ({
         setFormData(initialFormData);
       }
     } catch (error) {
-      console.error("Error creating/updating membership:", error.message);
-      if (error.message === "Registration Fee is too large") {
+      console.error("Error creating/updating membership:", (error as Error).message);
+      if ((error as Error).message === "Registration Fee is too large") {
         toast.error("The registration fee entered is too large", {
           position: "bottom-right",
           autoClose: 3000,
@@ -143,7 +144,7 @@ const CreateMembershipForm = ({
   };
 
   const handleFeatureChange = (index: number, value: string) => {
-    const newFeatures = [...formData.features];
+    const newFeatures = [...(formData.features ?? [])];
     newFeatures[index] = value;
     setFormData((prevData) => ({
       ...prevData,
@@ -154,14 +155,14 @@ const CreateMembershipForm = ({
   const handleAddFeature = () => {
     setFormData((prevData) => ({
       ...prevData,
-      features: [...prevData.features, ""], // Adding a new empty feature field
+      features: [...(prevData.features ?? []), ""], // Adding a new empty feature field
     }));
   };
 
   const handleDeleteFeature = (indexToDelete: number) => {
     setFormData((prevData) => ({
       ...prevData,
-      features: prevData.features.filter((_, index) => index !== indexToDelete),
+      features: (prevData.features ?? []).filter((_, index) => index !== indexToDelete),
     }));
   };
 
@@ -238,7 +239,7 @@ const CreateMembershipForm = ({
           >
             Features:
           </label>
-          {formData.features.map((feature, index) => (
+          {formData.features?.map((feature, index) => (
             <div key={index} className="relative mt-2">
               <input
                 type="text"
@@ -246,11 +247,11 @@ const CreateMembershipForm = ({
                 onChange={(e) => handleFeatureChange(index, e.target.value)}
                 className="block w-full rounded-md border-0 bg-white/5 py-1.5 pr-20 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
               />
-              {index === formData.features.length - 1 ? (
+              {formData.features && index === formData.features.length - 1 ? (
                 <button
                   type="button"
                   onClick={handleAddFeature}
-                  className="absolute  right-2 top-2/4 -translate-y-2/4 rounded-md bg-primary  bg-opacity-10 px-1.5 text-white hover:bg-primarydark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-opacity-50"
+                  className="absolute right-2 top-2/4 -translate-y-2/4 rounded-md bg-primary bg-opacity-10 px-1.5 text-white hover:bg-primarydark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-opacity-50"
                 >
                   +
                 </button>
@@ -258,7 +259,7 @@ const CreateMembershipForm = ({
                 <button
                   type="button"
                   onClick={() => handleDeleteFeature(index)}
-                  className="absolute right-2 top-2/4 -translate-y-2/4 rounded-md bg-red-500  bg-opacity-10 px-2 text-white hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-opacity-50"
+                  className="absolute right-2 top-2/4 -translate-y-2/4 rounded-md bg-red-500 bg-opacity-10 px-2 text-white hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-opacity-50"
                 >
                   x
                 </button>

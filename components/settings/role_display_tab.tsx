@@ -1,3 +1,4 @@
+import { Role } from "@/types/roles";
 import { useState, useEffect, ChangeEvent } from "react";
 import { CirclePicker, ColorResult } from "react-color";
 import * as z from "zod";
@@ -11,17 +12,11 @@ const RoleSchema = z.object({
   color: z.string(),
 });
 
-type Role = {
-  role: string;
-  color: string;
-  deletable?: boolean;
-};
-
-type RoleDisplayProps = {
+interface RoleDisplayProps {
   selectedRole: Role;
-  handleDeleteRole: (role: Role) => void;
-  handleSaveChanges: (role: Role) => void;
-};
+  handleSaveChanges: (role: Role) => Promise<void>;
+  handleDeleteRole: (role: Role) => Promise<void>;
+}
 
 export const RoleDisplay = ({
   selectedRole,
@@ -53,16 +48,16 @@ export const RoleDisplay = ({
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     try {
       RoleSchema.parse({
         role: roleName,
         color: roleColor,
       });
       const updatedRole = { ...selectedRole, role: roleName, color: roleColor };
-      handleSaveChanges(updatedRole);
+      await handleSaveChanges(updatedRole); // Ensure await for async function
       setHasChanges(false);
-      setErrors({ role: "" }); // Clear errors on successful save
+      setErrors({ role: "" });
     } catch (e: any) {
       const formattedErrors = e.errors.reduce((acc: any, curr: any) => {
         acc[curr.path[0]] = curr.message;

@@ -5,27 +5,46 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import MembershipModal from "./create_membership_modal";
 import MembershipCard from "./membership_card"; // Adjust the import path as needed
-import Swal from 'sweetalert2';
+import Swal from "sweetalert2";
 import { PlusCircleIcon } from "@heroicons/react/24/outline";
 import { RadioGroup } from "@headlessui/react";
-import { monthsToQuarters } from "date-fns";
-// Initialize Supabase client
+import { Membership } from "@/lib/types"; // Import Membership type from central location
+
 const supabase = createClient();
 
-const frequencies = [
-  { value: 'monthly', label: 'Monthly', priceSuffix: '/month' },
-  { value: 'annually', label: 'Annually', priceSuffix: '/year' },
-];
-export { frequencies };
+interface Frequency {
+  value: string;
+  label: string;
+  priceSuffix: string;
+}
 
-const MembershipTiers = ({ memberships, userid, onCreateClick }) => {
+const frequencies: Frequency[] = [
+  { value: "monthly", label: "Monthly", priceSuffix: "/month" },
+  { value: "annually", label: "Annually", priceSuffix: "/year" },
+];
+
+interface MembershipTiersProps {
+  memberships: Membership[];
+  userid?: string;
+  onCreateClick?: () => void;
+}
+
+const MembershipTiers: React.FC<MembershipTiersProps> = ({
+  memberships,
+  userid,
+  onCreateClick = undefined,
+}) => {
   const [userMemberships, setUserMemberships] = useState<string[]>([]);
   const [showModal, setShowModal] = useState(false);
-  const [selectedMembership, setSelectedMembership] = useState(undefined);
-  const [selectedOrganizationId, setSelectedOrganizationId] = useState(null);
+  const [selectedMembership, setSelectedMembership] = useState<Membership | undefined>(
+    undefined
+  );
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState<string | null>(
+    null
+  );
   const [frequency, setFrequency] = useState(frequencies[0]);
 
-  const handleEditMembership = (membership, organizationId) => {
+  const handleEditMembership = (membership: Membership, organizationId: string) => {
     setSelectedMembership(membership);
     setSelectedOrganizationId(organizationId);
     setShowModal(true);
@@ -50,9 +69,10 @@ const MembershipTiers = ({ memberships, userid, onCreateClick }) => {
         return;
       }
 
-      // Extract membership IDs from data
       const userMemberships =
-        userMembershipsData?.map((membership) => membership.membershipid) || [];
+        userMembershipsData?.map(
+          (membership: { membershipid: string }) => membership.membershipid
+        ) || [];
       setUserMemberships(userMemberships);
     } catch (error) {
       console.error("Error: ", error);
@@ -60,19 +80,15 @@ const MembershipTiers = ({ memberships, userid, onCreateClick }) => {
     }
   };
 
-
-
   const handleBuyPlan = useCallback(
-    async (membershipId, organizationId) => {
+    async (membershipId: string, organizationId: string) => {
       try {
         if (userMemberships.includes(membershipId)) {
-          // If user already has the membership, notify and return
           toast.warning("You already have this membership.");
           return;
         }
 
-        const months = frequency.value === 'monthly' ? 12 : 1;
-        console.log("months", months)
+        const months = frequency.value === "monthly" ? 12 : 1;
 
         const { data: rolesData, error: rolesError } = await supabase
           .from("organization_roles")
@@ -102,7 +118,6 @@ const MembershipTiers = ({ memberships, userid, onCreateClick }) => {
           console.error("Error inserting data: ", error);
         } else {
           toast.success("Congratulations! You've successfully purchased the membership.");
-          console.log("Data inserted successfully: ", data);
           setUserMemberships((prevUserMemberships) => [
             ...prevUserMemberships,
             membershipId,
@@ -112,48 +127,43 @@ const MembershipTiers = ({ memberships, userid, onCreateClick }) => {
         console.error("Error: ", error);
       }
     },
-    [userid, userMemberships]
+    [userid, userMemberships, frequency]
   );
 
-  const handleDeleteMembership = useCallback(
-    async (membershipId) => {
-      try {
-        // Show SweetAlert confirmation dialog
-        const result = await Swal.fire({
-          title: 'Are you sure?',
-          text: 'You are about to delete this membership. This action cannot be undone.',
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonColor: '#d33',
-          cancelButtonColor: '#3085d6',
-          confirmButtonText: 'Yes, delete it!'
-        });
+  const handleDeleteMembership = useCallback(async (membershipId: string) => {
+    try {
+      const result = await Swal.fire({
+        title: "Are you sure?",
+        text: "You are about to delete this membership. This action cannot be undone.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Yes, delete it!",
+      });
 
-        if (result.isConfirmed) {
-          const { error } = await supabase
-            .from("memberships")
-            .delete()
-            .eq("membershipid", membershipId);
+      if (result.isConfirmed) {
+        const { error } = await supabase
+          .from("memberships")
+          .delete()
+          .eq("membershipid", membershipId);
 
-          if (error) {
-            console.error("Error deleting membership: ", error);
-            toast.error("Error deleting membership. Please try again later.");
-            return;
-          }
-
-          toast.success("Membership deleted successfully.");
-          // Optionally, remove the deleted membership from the memberships list
-          setUserMemberships((prevUserMemberships) =>
-            prevUserMemberships.filter((id) => id !== membershipId)
-          );
+        if (error) {
+          console.error("Error deleting membership: ", error);
+          toast.error("Error deleting membership. Please try again later.");
+          return;
         }
-      } catch (error) {
-        console.error("Error: ", error);
-        toast.error("An error occurred. Please try again later.");
+
+        toast.success("Membership deleted successfully.");
+        setUserMemberships((prevUserMemberships) =>
+          prevUserMemberships.filter((id) => id !== membershipId)
+        );
       }
-    },
-    []
-  );
+    } catch (error) {
+      console.error("Error: ", error);
+      toast.error("An error occurred. Please try again later.");
+    }
+  }, []);
 
   function classNames(...classes: string[]) {
     return classes.filter(Boolean).join(" ");
@@ -184,8 +194,8 @@ const MembershipTiers = ({ memberships, userid, onCreateClick }) => {
                 value={option}
                 className={({ checked }) =>
                   classNames(
-                    checked ? 'bg-indigo-600 text-white' : 'text-gray-500',
-                    'cursor-pointer rounded-full px-2.5 py-1'
+                    checked ? "bg-indigo-600 text-white" : "text-gray-500",
+                    "cursor-pointer rounded-full px-2.5 py-1"
                   )
                 }
               >
@@ -194,19 +204,18 @@ const MembershipTiers = ({ memberships, userid, onCreateClick }) => {
             ))}
           </RadioGroup>
         </div>
-        <div className="isolate justify-center justify-items-center mx-8 mt-16 flex flex-wrap max-w-md gap-y-8 gap-x-8 sm:mt-20 lg:max-w-none">
+        <div className="isolate mx-8 mt-16 flex max-w-md flex-wrap justify-center justify-items-center gap-x-8 gap-y-8 sm:mt-20 lg:max-w-none">
           {!userid && (
-            <div className="w-full sm:w-64 mr-16">
+            <div className="mr-16 w-full sm:w-64">
               <PlusCircleIcon
                 className={classNames(
-                  'bg-raisinblack outline-2 outline-dashed text-opacity-50 outline-primarydark text-charleston rounded-3xl p-8 xl:p-10 min-w-80 size-80 hover:text-opacity-100 hover:bg-eerieblack focus-visible:outline-primary',
-                  'h-full'
+                  "size-80 min-w-80 rounded-3xl bg-raisinblack p-8 text-charleston text-opacity-50 outline-dashed outline-2 outline-primarydark hover:bg-eerieblack hover:text-opacity-100 focus-visible:outline-primary xl:p-10",
+                  "h-full"
                 )}
                 onClick={onCreateClick}
-                strokeWidth={2} // Adjust the stroke width as needed
+                strokeWidth={2}
                 stroke="currentColor"
-              >
-              </PlusCircleIcon>
+              ></PlusCircleIcon>
             </div>
           )}
           {memberships.map((membership, index) => (

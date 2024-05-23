@@ -231,9 +231,11 @@ export default function MembershipOptions({
                               <td className="p-2">
                                 <ul className="list-inside list-disc">
                                   {selectedTier.features ? (
-                                    selectedTier.features.map((feature, index) => (
-                                      <li key={index}>{feature}</li>
-                                    ))
+                                    selectedTier.features.map(
+                                      (feature: string, index: number) => (
+                                        <li key={index}>{feature}</li>
+                                      )
+                                    )
                                   ) : (
                                     <a>N/A</a>
                                   )}

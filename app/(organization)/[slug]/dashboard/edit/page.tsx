@@ -8,11 +8,11 @@ import { StepsProvider } from "react-step-builder";
 
 export default function Example() {
   const router = useRouter();
-
-  const { slug } = useParams();
+  const params = useParams();
+  const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
 
   const [formValues, setFormValues] = useState(null);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (slug) {
@@ -20,12 +20,12 @@ export default function Example() {
         try {
           const { data, error } = await fetchOrganizationBySlug(slug);
           if (error) {
-            setError(error);
+            setError(error.message);
             console.error(error);
           } else {
             setFormValues(data);
           }
-        } catch (err) {
+        } catch (err: any) {
           console.error("Failed to fetch organization:", err);
           setError(err.message);
         }
@@ -35,11 +35,11 @@ export default function Example() {
 
   return (
     <>
-      <div className="flex min-h-full flex-1 flex-col justify-center bg-eerieblack px-6 py-12  lg:px-8">
+      <div className="flex min-h-full flex-1 flex-col justify-center bg-eerieblack px-6 py-12 lg:px-8">
         <div className="fixed top-10 text-gray-100 hover:cursor-pointer">
           <a
             onClick={() => router.back()}
-            className=" flex items-center gap-2 hover:opacity-80"
+            className="flex items-center gap-2 hover:opacity-80"
           >
             <ArrowLeftIcon className="h-5 w-5" /> Back
           </a>
@@ -57,7 +57,7 @@ export default function Example() {
             <CreateOrganizationForm formValues={formValues} />
           </StepsProvider>
 
-          <p className="mt-10 text-center text-sm text-gray-400">
+          {/* <p className="mt-10 text-center text-sm text-gray-400">
             Not a member?{" "}
             <a
               href="#"
@@ -65,7 +65,7 @@ export default function Example() {
             >
               Start a 14 day free trial
             </a>
-          </p>
+          </p> */}
         </div>
       </div>
     </>

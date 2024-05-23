@@ -16,24 +16,12 @@ import { FiPlus } from "react-icons/fi";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-interface Role {
-  role_id: string;
-  role: string;
-  color: string;
-  member_count: number;
-  org_id: string;
-  deletable: boolean; // Add this property to the Role interface
-}
-
+import { Role } from "@/types/roles";
 interface Permission {
   perm_id: string;
   name: string;
   category: string;
   description: string;
-}
-
-interface Organization {
-  roles: Role[];
 }
 
 export default function SettingsRolesPage() {
@@ -138,7 +126,7 @@ export default function SettingsRolesPage() {
     setSelectedRole(null);
   };
 
-  const handleSaveChanges = async (formValues: Role) => {
+  const handleSaveChanges = async (formValues: Role): Promise<void> => {
     const supabase = createClient();
 
     try {
@@ -530,7 +518,9 @@ export default function SettingsRolesPage() {
                   ))}
                 </Tab.Panel>
                 <Tab.Panel>
-                  <Members selectedRole={selectedRole} organizationId={orgID} />
+                  {selectedRole && orgID && (
+                    <Members selectedRole={selectedRole} organizationId={orgID} />
+                  )}
                 </Tab.Panel>
               </Tab.Panels>
             </Tab.Group>

@@ -1,11 +1,12 @@
 "use client";
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import type { User } from "@supabase/supabase-js";
+// import type { User } from "@supabase/supabase-js";
 
 import { getUser } from "@/lib/supabase/client";
+import { Combined_user_data } from "@/types/users";
 
 interface UserContextType {
-  user: User | null;
+  user: Combined_user_data | null;
   refreshUser: () => Promise<void>;
 }
 
