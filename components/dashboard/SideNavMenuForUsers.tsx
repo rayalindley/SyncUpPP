@@ -37,37 +37,48 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
 
   const pathname = usePathname();
   const [currentItem, setCurrentItem] = useState(pathname);
-  const [selected, setSelected] = useState("default");
+  const [selected, setSelected] = useState<Organization | "default" | "create-org">(
+    "default"
+  );
 
   const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
 
   const navigation = [
     {
       name: "Overview",
-      href: slug ? `/${slug}/dashboard` : `/dashboard`,
+      href: selected === "default" ? `/dashboard` : `/${selected.slug}/dashboard`,
       icon: HomeIcon,
     },
     {
       name: "Roles",
-      href: slug ? `/${slug}/dashboard/roles` : `/dashboard/roles`,
+      href:
+        selected === "default" ? `/dashboard/roles` : `/${selected.slug}/dashboard/roles`,
       icon: UsersIcon,
     },
     {
       name: "Memberships",
-      href: slug ? `/${slug}/dashboard/memberships` : `/dashboard/memberships`,
+      href:
+        selected === "default"
+          ? `/dashboard/memberships`
+          : `/${selected.slug}/dashboard/memberships`,
       icon: UsersIcon,
     },
     {
       name: "Newsletter",
-      href: slug ? `/${slug}/dashboard/newsletter` : `/dashboard/newsletter`,
+      href:
+        selected === "default"
+          ? `/dashboard/newsletter`
+          : `/${selected.slug}/dashboard/newsletter`,
       icon: CalendarIcon,
     },
     {
       name: "Calendar",
-      href: slug ? `/${slug}/dashboard/calendar` : `/dashboard/calendar`,
+      href:
+        selected === "default"
+          ? `/dashboard/calendar`
+          : `/${selected.slug}/dashboard/calendar`,
       icon: CalendarIcon,
     },
-    // { name: "Reports", href: slug ? `/${slug}/dashboard/reports` : `/dashboard/reports`, icon: ChartPieIcon },
   ];
 
   useEffect(() => {
@@ -86,10 +97,19 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
   }, [pathname]);
 
   useEffect(() => {
-    if (selected !== "default" && selected !== "create-org") {
-      router.push(`/${selected.slug}/dashboard`);
+    if (selected === "default" && slug) {
+      router.push("/dashboard");
+    } else if (
+      selected !== "default" &&
+      selected !== "create-org" &&
+      typeof selected !== "string"
+    ) {
+      const newSlugPath = pathname.startsWith(`/${selected.slug}`)
+        ? pathname
+        : `/${selected.slug}/dashboard`;
+      router.push(newSlugPath);
     }
-  }, [selected, router]);
+  }, [selected, slug, pathname, router]);
 
   return (
     <div>
