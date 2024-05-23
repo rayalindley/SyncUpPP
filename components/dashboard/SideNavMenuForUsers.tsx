@@ -37,7 +37,9 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
 
   const pathname = usePathname();
   const [currentItem, setCurrentItem] = useState(pathname);
-  const [selected, setSelected] = useState("default");
+  const [selected, setSelected] = useState<Organization | "default" | "create-org">(
+    "default"
+  );
 
   const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
 
@@ -85,18 +87,44 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
     setCurrentItem(pathname);
   }, [pathname]);
 
+  //NAVIGATION LOGIC
   useEffect(() => {
-    if (
-      selected !== "default" &&
-      selected !== "create-org" &&
-      typeof selected !== "string"
-    ) {
-      const currentSubpage = pathname.split("/").slice(2).join("/");
-      if (!pathname.startsWith(`/${selected.slug}`)) {
-        router.push(`/${selected.slug}/${currentSubpage}`);
+    let isMounted = true;
+
+    const navigate = async () => {
+      console.log("Selected:", selected.slug);
+      console.log("Pathname:", pathname);
+
+      if (
+        selected !== "default" &&
+        selected !== "create-org" &&
+        typeof selected !== "string"
+      ) {
+        const currentSubpage = pathname.split("/").slice(2).join("/");
+        const newSlugPath = currentSubpage
+          ? `/${selected.slug}/dashboard/${currentSubpage}`
+          : `/${selected.slug}/dashboard`;
+        if (!pathname.startsWith(`/${selected.slug}`) && isMounted) {
+          await router.push(newSlugPath);
+        }
+      } else if (selected === "default" && slug) {
+        const currentSubpage = pathname.split("/").slice(3).join("/");
+        const newDefaultPath = currentSubpage
+          ? `/dashboard/${currentSubpage}`
+          : `/dashboard`;
+        if (pathname.startsWith(`/${slug}`) && isMounted) {
+          await router.push(newDefaultPath);
+        }
       }
-    }
-  }, [selected, router, pathname]);
+    };
+
+    navigate();
+
+    return () => {
+      isMounted = false; // set the flag to false when the component unmounts
+    };
+  }, [selected, pathname]);
+
   return (
     <div>
       <Transition.Root show={sidebarOpen} as={Fragment}>
