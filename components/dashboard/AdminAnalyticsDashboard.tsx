@@ -24,6 +24,12 @@ const AdminAnalyticsDashboard = ({ userId }: { userId: string }) => {
   const [filter, setFilter] = useState("total_events");
   const supabase = createClient();
 
+  const filterLabels: { [key: string]: string } = {
+    total_events: "Total Events",
+    total_posts: "Total Posts",
+    total_members: "Total Members",
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -117,13 +123,13 @@ const AdminAnalyticsDashboard = ({ userId }: { userId: string }) => {
               <YAxis tick={{ fill: "#E0E0E0" }} /> {/* Change tick color */}
               <Tooltip contentStyle={{ backgroundColor: "#525252", color: "#E0E0E0" }} />
               <Legend />
-              <Bar dataKey={filter} fill="#37996b" />
+              <Bar dataKey={filter} name={filterLabels[filter]} fill="#37996b" />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
         <div className="rounded bg-charleston p-4 shadow">
-          <h2 className="mb-4 text-lg font-semibold text-light">
+          <h2 className="mb-4 mt-2 text-lg font-semibold text-light">
             Member Registrations Per Day
           </h2>
           <ResponsiveContainer width="100%" height={400}>
@@ -143,7 +149,7 @@ const AdminAnalyticsDashboard = ({ userId }: { userId: string }) => {
               <Legend />
               <Line
                 type="monotone"
-                dataKey="total_registrations"
+                dataKey="Total Registrations"
                 stroke="#37996b"
                 activeDot={{ r: 8 }}
               />
