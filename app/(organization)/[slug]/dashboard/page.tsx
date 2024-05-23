@@ -1,5 +1,5 @@
 "use client";
-import StatisticsSection from "@/components/dashboard/StatisticsSection";
+import AnalyticsDashboard from "@/components/dashboard/Analytics";
 import { deleteOrganization, fetchOrganizationBySlug } from "@/lib/organization";
 import { Organization } from "@/lib/types";
 import { useParams, useRouter } from "next/navigation";
@@ -70,7 +70,7 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-full flex-1 flex-col justify-center bg-eerieblack px-6 py-12  lg:px-8">
-      <StatisticsSection />
+      <AnalyticsDashboard organizationId={formValues?.organizationid ?? ""} />
       <div className="mt-4 flex gap-2">
         <a
           className="border-1 rounded-md border border-primary bg-primarydark p-1 px-2 text-sm  text-gray-100 hover:cursor-pointer"

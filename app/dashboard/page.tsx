@@ -1,5 +1,5 @@
+import AdminAnalyticsDashboard from "@/components/dashboard/AdminAnalyticsDashboard";
 import OrganizationsSection from "@/components/dashboard/OrganizationsSection";
-import StatisticsSection from "@/components/dashboard/StatisticsSection";
 
 import { createClient, getUser } from "@/lib/supabase/server";
 
@@ -15,8 +15,7 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <StatisticsSection />
-
+      <AdminAnalyticsDashboard userId={user?.id ?? ""} />
       <OrganizationsSection organizations={organizations} />
       {/* <pre>{JSON.stringify(user, null, 2)}</pre> */}
     </>
