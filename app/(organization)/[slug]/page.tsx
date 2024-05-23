@@ -24,7 +24,8 @@ const orgdata = [
   },
 ];
 
-const getInitials = (name: string) => {
+
+const getInitials = (name: string): string => {
   const words = name.split(" ");
   if (words.length > 1) {
     return words[0][0] + words[1][0];
