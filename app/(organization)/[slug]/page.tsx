@@ -2,13 +2,13 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import TabsComponent from "@/components/organization/organization_view_tabs";
 import SocialIcons from "@/components/organization/social_icons";
-import { fetchPosts } from "@/lib/posts";
 import { fetchEvents } from "@/lib/events";
 import { getMemberships } from "@/lib/memberships";
+import { fetchPosts } from "@/lib/posts";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { InboxIcon, UserGroupIcon } from "@heroicons/react/24/outline";
-import { ToastContainer } from "react-toastify";
 import Link from "next/link";
+import { ToastContainer } from "react-toastify";
 
 const orgdata = [
   {
@@ -23,6 +23,7 @@ const orgdata = [
     image: "https://via.placeholder.com/150",
   },
 ];
+
 
 const getInitials = (name: string): string => {
   const words = name.split(" ");
@@ -134,8 +135,8 @@ export default async function OrganizationUserView({
                     style={{ objectFit: "cover" }}
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center rounded-lg bg-zinc-200">
-                    <span className="text-5xl text-zinc-800">
+                  <div className="flex h-full w-full items-center justify-center rounded-lg bg-zinc-700">
+                    <span className="text-5xl font-medium uppercase text-light">
                       {getInitials(org.name)}
                     </span>
                   </div>

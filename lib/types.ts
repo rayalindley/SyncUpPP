@@ -127,4 +127,7 @@ export interface Organization {
   banner: string;
   slug: string;
   socials: string[];
+  total_members: number;
+  total_posts: number;
+  total_events: number;
 }
