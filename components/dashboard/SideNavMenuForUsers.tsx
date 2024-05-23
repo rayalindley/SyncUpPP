@@ -46,30 +46,39 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
   const navigation = [
     {
       name: "Overview",
-      href: slug ? `/${slug}/dashboard` : `/dashboard`,
+      href: selected === "default" ? `/dashboard` : `/${selected.slug}/dashboard`,
       icon: HomeIcon,
     },
     {
       name: "Roles",
-      href: slug ? `/${slug}/dashboard/roles` : `/dashboard/roles`,
+      href:
+        selected === "default" ? `/dashboard/roles` : `/${selected.slug}/dashboard/roles`,
       icon: UsersIcon,
     },
     {
       name: "Memberships",
-      href: slug ? `/${slug}/dashboard/memberships` : `/dashboard/memberships`,
+      href:
+        selected === "default"
+          ? `/dashboard/memberships`
+          : `/${selected.slug}/dashboard/memberships`,
       icon: UsersIcon,
     },
     {
       name: "Newsletter",
-      href: slug ? `/${slug}/dashboard/newsletter` : `/dashboard/newsletter`,
+      href:
+        selected === "default"
+          ? `/dashboard/newsletter`
+          : `/${selected.slug}/dashboard/newsletter`,
       icon: CalendarIcon,
     },
     {
       name: "Calendar",
-      href: slug ? `/${slug}/dashboard/calendar` : `/dashboard/calendar`,
+      href:
+        selected === "default"
+          ? `/dashboard/calendar`
+          : `/${selected.slug}/dashboard/calendar`,
       icon: CalendarIcon,
     },
-    // { name: "Reports", href: slug ? `/${slug}/dashboard/reports` : `/dashboard/reports`, icon: ChartPieIcon },
   ];
 
   useEffect(() => {
@@ -87,43 +96,20 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
     setCurrentItem(pathname);
   }, [pathname]);
 
-  //NAVIGATION LOGIC
   useEffect(() => {
-    let isMounted = true;
-
-    const navigate = async () => {
-      console.log("Selected:", selected.slug);
-      console.log("Pathname:", pathname);
-
-      if (
-        selected !== "default" &&
-        selected !== "create-org" &&
-        typeof selected !== "string"
-      ) {
-        const currentSubpage = pathname.split("/").slice(2).join("/");
-        const newSlugPath = currentSubpage
-          ? `/${selected.slug}/dashboard/${currentSubpage}`
-          : `/${selected.slug}/dashboard`;
-        if (!pathname.startsWith(`/${selected.slug}`) && isMounted) {
-          await router.push(newSlugPath);
-        }
-      } else if (selected === "default" && slug) {
-        const currentSubpage = pathname.split("/").slice(3).join("/");
-        const newDefaultPath = currentSubpage
-          ? `/dashboard/${currentSubpage}`
-          : `/dashboard`;
-        if (pathname.startsWith(`/${slug}`) && isMounted) {
-          await router.push(newDefaultPath);
-        }
-      }
-    };
-
-    navigate();
-
-    return () => {
-      isMounted = false; // set the flag to false when the component unmounts
-    };
-  }, [selected, pathname]);
+    if (selected === "default" && slug) {
+      router.push("/dashboard");
+    } else if (
+      selected !== "default" &&
+      selected !== "create-org" &&
+      typeof selected !== "string"
+    ) {
+      const newSlugPath = pathname.startsWith(`/${selected.slug}`)
+        ? pathname
+        : `/${selected.slug}/dashboard`;
+      router.push(newSlugPath);
+    }
+  }, [selected, slug, pathname, router]);
 
   return (
     <div>
