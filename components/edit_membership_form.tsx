@@ -47,7 +47,7 @@ const EditMembershipForm = ({ formValues = null }: { formValues: any | null }) =
       if (error) {
         throw error;
       }
-      console.log(data); // Log the response from Supabase
+      // console.log(data); // Log the response from Supabase
       toast.success("Membership created successfully", {
         position: "bottom-right",
         autoClose: 3000,

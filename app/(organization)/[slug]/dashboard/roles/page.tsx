@@ -84,7 +84,7 @@ export default function SettingsRolesPage() {
             setPermissionsData(groupedPermissions);
           } else {
             if (permissionsError) {
-              console.log(permissionsError);
+              // console.log(permissionsError);
             }
           }
 
@@ -113,17 +113,17 @@ export default function SettingsRolesPage() {
               setPermissionsEnabled(permissionsEnabledState);
             } else {
               if (rolePermissionsError) {
-                console.log(rolePermissionsError);
+                // console.log(rolePermissionsError);
               }
             }
 
             setRolesData(organization.roles);
             setFilteredRoles(organization.roles);
           } else {
-            console.log("Error:", orgError);
+            // console.log("Error:", orgError);
           }
         } catch (xError) {
-          console.log(xError);
+          // console.log(xError);
         }
       })();
     }
@@ -214,7 +214,7 @@ export default function SettingsRolesPage() {
         prevRolesData ? prevRolesData.filter((r) => r.role_id !== role.role_id) : null
       );
       setSelectedRole(null);
-      console.log("Role deleted");
+      // console.log("Role deleted");
       toast.success("The role was delete successfully.", {
         position: "bottom-right",
         autoClose: 5000,
@@ -263,7 +263,9 @@ export default function SettingsRolesPage() {
           .select()
           .single();
 
-        if (error) console.log(error);
+        if (error) {
+          console.log(error);
+        }
       } else {
         const { data, error } = await supabase
           .from("role_permissions")
@@ -273,7 +275,9 @@ export default function SettingsRolesPage() {
           .select()
           .single();
 
-        if (error) console.log(error);
+        if (error) {
+          console.log(error);
+        }
       }
     }
   };
@@ -295,7 +299,7 @@ export default function SettingsRolesPage() {
       .single();
 
     if (error) {
-      console.log(error);
+      // console.log(error);
     } else {
       setRolesData((prevRoles) => (prevRoles ? [...prevRoles, data] : [data]));
       setFilteredRoles((prevRoles) => (prevRoles ? [...prevRoles, data] : [data]));

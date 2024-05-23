@@ -69,7 +69,7 @@ export default function NewsletterPage() {
 
   useEffect(() => {
     const supabase = createClient();
-    const channels = supabase
+    supabase
       .channel("emails")
       .on(
         "postgres_changes",

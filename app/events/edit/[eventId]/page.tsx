@@ -21,7 +21,7 @@ export default function EditEventPage() {
           console.error(eventResponse.error);
         } else {
           setEvent(eventResponse.data);
-          console.log(eventResponse.data);
+          // console.log(eventResponse.data);
         }
       } catch (err) {
         console.error("Failed to fetch data:", err);

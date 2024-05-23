@@ -3,13 +3,13 @@ import { createClient, getUser } from "@/lib/supabase/server";
 
 export async function insertPost(formData: any, organizationid: string) {
   const supabase = createClient();
-  // console.log("Retrieved organizationid:", organizationid); // Log the retrieved organizationid
+
   try {
     const insertValues = {
       content: formData.content,
       organizationid: organizationid,
       privacylevel: formData.privacyLevel,
-      postphoto: formData.postphoto,
+      postphotos: formData.postphotos || [], // Ensure this is an array
     };
 
     const { data, error } = await supabase.from("posts").insert([insertValues]).select().single();
@@ -29,18 +29,13 @@ export async function insertPost(formData: any, organizationid: string) {
   }
 }
 
-export async function fetchPosts(
-  organizationid: string,
-  currentPage: number,
-  postsPerPage: number
-) {
+export async function fetchPosts(organizationid: string) {
   const supabase = createClient();
   try {
     const { data, error } = await supabase
       .from("posts")
       .select("*")
       .eq("organizationid", organizationid)
-      .range(currentPage * postsPerPage - postsPerPage, currentPage * postsPerPage)
       .order("createdat", { ascending: false });
 
     if (!error) {
@@ -57,11 +52,33 @@ export async function fetchPosts(
   }
 }
 
+
+// lib/posts.ts
+
+export const checkIsMemberOfOrganization = async (organizationid: string) => {
+  const supabase = createClient();
+  const currentUser = await getUser();
+
+  if (currentUser) {
+    const { data, error } = await supabase
+      .from("organizationmembers")
+      .select("*")
+      .eq("userid", currentUser.user?.id)
+      .eq("organizationid", organizationid);
+      
+    if (!error && data.length > 0) {
+      return true;
+    }
+  }
+  return false;
+};
+
+
 export async function updatePost(updatedPost: {
   postid: string;
   content?: string;
   privacyLevel?: string;
-  postphoto?: string | null;
+  postphotos?: string[];
 }) {
   const supabase = createClient();
   try {
@@ -69,13 +86,14 @@ export async function updatePost(updatedPost: {
     const updateFields: any = {};
     if (updatedPost.content) updateFields.content = updatedPost.content;
     if (updatedPost.privacyLevel) updateFields.privacylevel = updatedPost.privacyLevel;
-    if (updatedPost.postphoto !== undefined) updateFields.postphoto = updatedPost.postphoto;
+    if (updatedPost.postphotos !== undefined) updateFields.postphotos = updatedPost.postphotos;
 
     const { data, error } = await supabase
       .from("posts")
       .update(updateFields)
       .eq("postid", updatedPost.postid)
-      .select().single();
+      .select()
+      .single();
 
     if (!error) {
       return { data, error: null };
@@ -90,6 +108,7 @@ export async function updatePost(updatedPost: {
     };
   }
 }
+
 
 export async function deletePost(postid: string, authorid: string) {
   const supabase = createClient();
