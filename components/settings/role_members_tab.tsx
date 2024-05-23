@@ -5,21 +5,11 @@ import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+import { Member, Role } from "@/types/roles";
 
 const MySwal = withReactContent(Swal);
 
 const supabase = createClient();
-
-type Member = {
-  userid: string;
-  first_name: string;
-  last_name: string;
-  profilepicture?: string;
-};
-
-type Role = {
-  members: Member[];
-};
 
 type MembersProps = {
   selectedRole: Role;

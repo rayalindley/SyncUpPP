@@ -1,12 +1,30 @@
 import { CheckIcon } from "@heroicons/react/20/solid";
-import { Membership } from "@/lib/types";
 import { TrashIcon } from "@heroicons/react/20/solid";
+import { Membership } from "@/lib/types"; // Ensure it matches the type in the other file
+
+interface Frequency {
+  value: string;
+  label: string;
+  priceSuffix: string;
+}
+
+interface MembershipCardProps {
+  membership: Membership;
+  index: number;
+  totalMemberships: number;
+  userid?: string;
+  userMemberships: string[];
+  handleBuyPlan: (membershipId: string, organizationId: string) => void;
+  handleEditMembership: (membership: Membership, organizationId: string) => void;
+  handleDeleteMembership: (membershipId: string) => void;
+  frequency: Frequency;
+}
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(" ");
 }
 
-const MembershipCard = ({
+const MembershipCard: React.FC<MembershipCardProps> = ({
   membership,
   index,
   totalMemberships,
@@ -22,10 +40,11 @@ const MembershipCard = ({
   const calculateDiscountedRegistrationFee = () => {
     const discountMultiplier = 1 - (membership.yearlydiscount ?? 0) / 100;
     const yearlyFee = membership.registrationfee * 12 * discountMultiplier;
-    return frequency.value === "monthly"
-      ? membership.registrationfee.toFixed(2)
-      : yearlyFee.toFixed(2);
+    return frequency.value === "monthly" ? membership.registrationfee : yearlyFee;
   };
+
+  const registrationFee = calculateDiscountedRegistrationFee();
+  const isFree = registrationFee <= 0;
 
   return (
     <div
@@ -51,14 +70,14 @@ const MembershipCard = ({
         ) : null}
       </div>
       <p className="mt-4 text-sm leading-6 text-gray-300">{membership.description}</p>
-      {calculateDiscountedRegistrationFee() <= 0 ? (
+      {isFree ? (
         <p className="mt-6 flex items-baseline gap-x-1">
           <span className="text-4xl font-bold tracking-tight text-white">Free</span>
         </p>
       ) : (
         <p className="mt-6 flex items-baseline gap-x-1">
           <span className="text-4xl font-bold tracking-tight text-white">
-            ${calculateDiscountedRegistrationFee()}
+            ${registrationFee.toFixed(2)}
           </span>
           <span className="text-sm font-semibold leading-6 text-gray-300">
             {frequency.priceSuffix}
@@ -69,7 +88,7 @@ const MembershipCard = ({
       {userid ? (
         <button
           onClick={() =>
-            handleBuyPlan(membership.membershipid, membership.organizationid)
+            handleBuyPlan(membership.membershipid, membership.organizationId || "")
           }
           aria-describedby={membership.membershipid}
           className={classNames(
@@ -82,17 +101,15 @@ const MembershipCard = ({
           )}
           disabled={isPurchased}
         >
-          {isPurchased
-            ? "Current Plan"
-            : calculateDiscountedRegistrationFee() <= 0
-              ? "Join Plan"
-              : "Buy Plan"}
+          {isPurchased ? "Current Plan" : isFree ? "Join Plan" : "Buy Plan"}
         </button>
       ) : (
         <div className="flex flex-row gap-2">
           <button
             aria-describedby={membership.membershipid}
-            onClick={() => handleEditMembership(membership, membership.organizationid)}
+            onClick={() =>
+              handleEditMembership(membership, membership.organizationId || "")
+            }
             className="mt-6 block w-full rounded-md bg-primary px-3 py-2 text-center text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             Edit Membership
@@ -108,12 +125,13 @@ const MembershipCard = ({
         </div>
       )}
       <ul role="list" className="mt-8 space-y-3 text-sm leading-6 text-gray-300 xl:mt-10">
-        {membership.features.map((feature) => (
-          <li key={feature} className="flex gap-x-3">
-            <CheckIcon className="h-6 w-5 flex-none text-primary" aria-hidden="true" />
-            {feature}
-          </li>
-        ))}
+        {membership.features &&
+          membership.features.map((feature) => (
+            <li key={feature} className="flex gap-x-3">
+              <CheckIcon className="h-6 w-5 flex-none text-primary" aria-hidden="true" />
+              {feature}
+            </li>
+          ))}
       </ul>
     </div>
   );

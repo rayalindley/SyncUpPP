@@ -16,16 +16,15 @@ export default function Example() {
   const { membershipid } = useParams();
 
   const [membership, setMembership] = useState(null);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
-  
   useEffect(() => {
     const fetchData = async () => {
       try {
         // Fetch event
-        const membershipResponse = await fetchMembershipById(membershipid);
+        const membershipResponse = await fetchMembershipById(membershipid as string);
         if (membershipResponse.error) {
-          setError(membershipResponse.error);
+          setError(membershipResponse.error.message);
           console.error(membershipResponse.error);
         } else {
           setMembership(membershipResponse.data);
@@ -33,7 +32,7 @@ export default function Example() {
         }
       } catch (err) {
         console.error("Failed to fetch data:", err);
-        setError(err.message);
+        setError((err as Error).message);
       }
     };
 
@@ -47,8 +46,6 @@ export default function Example() {
   }
 
   // console.log(membership);
-
-  
 
   return (
     <>
@@ -72,7 +69,7 @@ export default function Example() {
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-lg">
           <StepsProvider>
             {/* <CreateOrganizationForm formValues={formValues} /> */}
-            <CreateMembershipForm organizationId= {undefined} membership = {membership}/>
+            <CreateMembershipForm organizationId={null} membership={membership} />
           </StepsProvider>
         </div>
       </div>

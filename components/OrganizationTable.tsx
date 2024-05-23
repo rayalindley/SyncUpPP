@@ -1,10 +1,5 @@
+import { Organizations } from "@/lib/types";
 import React, { useState, useEffect } from "react";
-import { Organization as BaseOrganization, Address, Socials } from "@/lib/types";
-
-interface Organization extends BaseOrganization {
-  address: Address;
-  socials: Socials;
-}
 
 const formatTitle = (title: string) =>
   title.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
@@ -14,12 +9,12 @@ const OrganizationsTable = ({
   setOrganizations,
   toggleSelection,
 }: {
-  organizations: Organization[];
-  setOrganizations: React.Dispatch<React.SetStateAction<Organization[]>>;
-  toggleSelection: (list: Organization[], id: string) => Organization[];
+  organizations: Organizations[];
+  setOrganizations: React.Dispatch<React.SetStateAction<Organizations[]>>;
+  toggleSelection: (list: Organizations[], id: string) => Organizations[];
 }) => {
   const [selectAll, setSelectAll] = useState(false);
-  const [sortColumn, setSortColumn] = useState<keyof Organization | null>(null);
+  const [sortColumn, setSortColumn] = useState<keyof Organizations | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc" | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredOrganizations, setFilteredOrganizations] = useState(organizations);
@@ -48,8 +43,8 @@ const OrganizationsTable = ({
           "website",
         ].some(
           (field) =>
-            org[field as keyof Organization] !== undefined &&
-            org[field as keyof Organization]?.toString().toLowerCase().includes(search)
+            org[field as keyof Organizations] !== undefined &&
+            org[field as keyof Organizations]?.toString().toLowerCase().includes(search)
         )
       )
       .slice(startIndex, startIndex + organizationsPerPage);
@@ -68,7 +63,7 @@ const OrganizationsTable = ({
     setOrganizations(toggleSelection(organizations, id));
   };
 
-  const handleSort = (column: keyof Organization) => {
+  const handleSort = (column: keyof Organizations) => {
     const direction =
       sortColumn !== column ? "asc" : sortDirection === "asc" ? "desc" : "asc";
     setSortColumn(column);
@@ -200,7 +195,7 @@ const OrganizationsTable = ({
                     <th
                       key={key}
                       className="cursor-pointer border-b border-[#404040] p-3 text-left"
-                      onClick={() => handleSort(key as keyof Organization)}
+                      onClick={() => handleSort(key as keyof Organizations)}
                       style={{
                         whiteSpace: "nowrap",
                         minWidth: "150px",
@@ -248,7 +243,7 @@ const OrganizationsTable = ({
                     className="border-b border-[#404040] p-3"
                     style={{ width: "150px" }}
                   >
-                    {formatDate(org.created_at)}
+                    {formatDate(org.created_at as string)}
                   </td>
                   <td
                     className="border-b border-[#404040] p-3"
@@ -278,19 +273,19 @@ const OrganizationsTable = ({
                     className="border-b border-[#404040] p-3"
                     style={{ width: "150px" }}
                   >
-                    {formatDate(org.date_established)}
+                    {formatDate(org.date_established as string)}
                   </td>
                   <td
                     className="border-b border-[#404040] p-3"
                     style={{ width: "150px" }}
                   >
-                    {`${org.address.city}, ${org.address.state ? org.address.state + ", " : ""}${org.address.country}`}
+                    {`${org.address?.city}, ${org.address?.state ? org.address?.state + ", " : ""}${org.address?.country}`}
                   </td>
                   <td
                     className="border-b border-[#404040] p-3"
                     style={{ width: "150px" }}
                   >
-                    {Object.values(org.socials).filter(Boolean).join(", ")}
+                    {org.socials && Object.values(org.socials).filter(Boolean).join(", ")}
                   </td>
                 </tr>
               ))}

@@ -6,6 +6,14 @@ import { createClient } from "@/lib/supabase/client";
 import { z } from "zod";
 import { Membership } from "@/lib/types";
 
+// Define props types
+interface CreateMembershipModalProps {
+  organizationId: string;
+  membership?: Membership;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
 const membershipSchema = z.object({
   name: z.string(),
   registrationfee: z
@@ -18,43 +26,47 @@ const membershipSchema = z.object({
       return true;
     }),
   description: z.string(),
-  organizationid: z.string(),
+  organizationId: z.string(), // updated to use camelCase
   features: z.array(z.string()).nonempty("At least one feature is required"),
   yearlydiscount: z
-  .number()
-  .min(0, "Discount cannot be negative")
-  .refine((value) => {
-    if (!Number.isFinite(value) || Math.abs(value) > Number.MAX_SAFE_INTEGER) {
-      throw new Error("Discount Fee is too large");
-    }
-    return true;
-  }), 
+    .number()
+    .min(0, "Discount cannot be negative")
+    .refine((value) => {
+      if (!Number.isFinite(value) || Math.abs(value) > Number.MAX_SAFE_INTEGER) {
+        throw new Error("Discount Fee is too large");
+      }
+      return true;
+    }),
 });
 
 const fetchData = async (organizationId: string) => {
-    // Fetch updated data from the database
-    const supabase = createClient();
-    const { data, error } = await supabase.from("memberships").select("*").eq("organizationid", organizationId);
-    if (error) {
-      throw error;
-    }
-    return data;
-  };
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("memberships")
+    .select("*")
+    .eq("organizationid", organizationId);
+  if (error) {
+    throw error;
+  }
+  return data;
+};
 
-
-
-const CreateMembershipModal = ({ organizationId, membership, isOpen, onClose,}) => {
+const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
+  organizationId,
+  membership,
+  isOpen,
+  onClose,
+}) => {
   const initialFormData: Membership = {
     name: "",
     membershipid: "",
-    organizationid: organizationId,
+    organizationId: organizationId,
     description: "",
     registrationfee: 0,
     features: [""],
     mostPopular: false,
     yearlydiscount: 0,
   };
-  
 
   const [formData, setFormData] = useState<Membership>(initialFormData);
 
@@ -66,7 +78,6 @@ const CreateMembershipModal = ({ organizationId, membership, isOpen, onClose,}) 
     }));
   };
 
-
   useEffect(() => {
     if (membership) {
       setFormData(membership);
@@ -77,61 +88,50 @@ const CreateMembershipModal = ({ organizationId, membership, isOpen, onClose,}) 
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    const parsedValue = (name === "registrationfee" || name === "yearlydiscount") ? parseFloat(value) : value;
+    const parsedValue =
+      name === "registrationfee" || name === "yearlydiscount" ? parseFloat(value) : value;
     setFormData((prevData) => ({
       ...prevData,
-      [name]: parsedValue, 
+      [name]: parsedValue,
     }));
   };
-  
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      const filteredFeatures = formData.features.filter(
-        (feature) => feature.trim() !== ""
-      );
+      const filteredFeatures =
+        formData.features?.filter((feature) => feature.trim() !== "") || [];
       const updatedFormData = { ...formData, features: filteredFeatures };
-  
+
       const validatedData = membershipSchema.parse(updatedFormData);
       const supabase = createClient();
-      console.log("UPDATED", updatedFormData);
-      console.log("VALIDATION", validatedData);
       if (membership) {
         const { data, error } = await supabase
           .from("memberships")
           .update(validatedData)
           .eq("membershipid", membership.membershipid);
-        // Ensure the discount value is included in the updated data
         if (error) {
           throw error;
         }
-  
         toast.success("Membership updated successfully", {
           position: "bottom-right",
           autoClose: 3000,
         });
-  
-        console.log(data);
       } else {
         const { data, error } = await supabase
           .from("memberships")
           .insert([validatedData]);
-        // Ensure the discount value is included in the inserted data
         if (error) {
           throw error;
         }
-  
         toast.success("Membership created successfully", {
           position: "bottom-right",
           autoClose: 3000,
         });
-  
-        console.log(data);
         setFormData(initialFormData);
       }
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating/updating membership:", error.message);
       if (error.message === "Registration Fee is too large") {
         toast.error("The registration fee entered is too large", {
@@ -148,9 +148,9 @@ const CreateMembershipModal = ({ organizationId, membership, isOpen, onClose,}) 
   };
 
   const handleFeatureChange = (index: number, value: string) => {
-    const newFeatures = [...formData.features];
+    const newFeatures = [...(formData.features || [])];
     newFeatures[index] = value;
-    setFormData(prevData => ({
+    setFormData((prevData) => ({
       ...prevData,
       features: newFeatures,
     }));
@@ -159,28 +159,27 @@ const CreateMembershipModal = ({ organizationId, membership, isOpen, onClose,}) 
       setTopmostFeatureEmpty(value.trim() === "");
     }
   };
+
   const handleAddFeature = () => {
     setFormData((prevData) => ({
       ...prevData,
-      features: ["", ...prevData.features],
+      features: ["", ...(prevData.features || [])],
     }));
   };
 
   const handleDeleteFeature = (indexToDelete: number) => {
     setFormData((prevData) => ({
       ...prevData,
-      features: prevData.features.filter((_, index) => index !== indexToDelete),
+      features: prevData.features?.filter((_, index) => index !== indexToDelete),
     }));
   };
 
   const [topmostFeatureEmpty, setTopmostFeatureEmpty] = useState(true);
 
   useEffect(() => {
-    // Check if the initial topmost feature is empty
-    setTopmostFeatureEmpty(formData.features[0].trim() === "");
+    setTopmostFeatureEmpty((formData.features || [])[0]?.trim() === "");
   }, [formData.features]);
 
-  
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-10" onClose={onClose}>
@@ -218,7 +217,6 @@ const CreateMembershipModal = ({ organizationId, membership, isOpen, onClose,}) 
                     onClick={onClose}
                     className="rounded-md text-white hover:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2"
                   >
-                    {/* Close button icon, e.g., X */}
                     &#x2715;
                   </button>
                 </Dialog.Title>
@@ -249,7 +247,7 @@ const CreateMembershipModal = ({ organizationId, membership, isOpen, onClose,}) 
                         htmlFor="registrationfee"
                         className="block text-sm font-medium leading-6 text-white"
                       >
-                        Registration Fee: 
+                        Registration Fee:
                       </label>
                       <div className="relative mt-2">
                         <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-white">
@@ -259,7 +257,7 @@ const CreateMembershipModal = ({ organizationId, membership, isOpen, onClose,}) 
                           type="number"
                           id="registrationfee"
                           name="registrationfee"
-                          value={formData.registrationfee }
+                          value={formData.registrationfee}
                           onChange={handleChange}
                           required
                           pattern="[0-9]*[.]?[0-9]*"
@@ -283,10 +281,11 @@ const CreateMembershipModal = ({ organizationId, membership, isOpen, onClose,}) 
                             onChange={handleChange}
                             className="block w-full rounded-md border-0 bg-white/5 py-1.5 pr-12 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                           />
-                          <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-sm text-white">%</span>
+                          <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-sm text-white">
+                            %
+                          </span>
                         </div>
                       </div>
-
                     </div>
                     <div>
                       <label
@@ -316,21 +315,21 @@ const CreateMembershipModal = ({ organizationId, membership, isOpen, onClose,}) 
                       <div>
                         <div className="relative mt-2">
                           <input
-                            type="text"                                                                                                                                                    
-                            value={formData.features[0]}
+                            type="text"
+                            value={formData.features?.[0] || ""}
                             onChange={(e) => handleFeatureChange(0, e.target.value)}
                             className="block w-full rounded-md border-0 bg-white/5 py-1.5 pr-20 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                           />
-                        <button
+                          <button
                             type="button"
                             onClick={handleAddFeature}
-                            disabled={topmostFeatureEmpty} // Disable the button if the topmost feature input is empty
-                            className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center justify-center size-5 text-white bg-primary rounded-md hover:bg-primarydark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-opacity-50"
-                            >
+                            disabled={topmostFeatureEmpty}
+                            className="absolute right-2 top-1/2 flex size-5 -translate-y-1/2 transform items-center justify-center rounded-md bg-primary text-white hover:bg-primarydark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-opacity-50"
+                          >
                             +
-                        </button>
+                          </button>
                         </div>
-                        {formData.features.slice(1).map((feature, index) => (
+                        {formData.features?.slice(1).map((feature, index) => (
                           <div key={index + 1} className="relative mt-2">
                             <input
                               type="text"
@@ -338,12 +337,12 @@ const CreateMembershipModal = ({ organizationId, membership, isOpen, onClose,}) 
                               onChange={(e) =>
                                 handleFeatureChange(index + 1, e.target.value)
                               }
-                              className="block w-full text-sm font-bold rounded-md border-0 bg-white/5 py-1.5 pr-20 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                              className="block w-full rounded-md border-0 bg-white/5 py-1.5 pr-20 text-sm font-bold text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                             />
                             <button
                               type="button"
                               onClick={() => handleDeleteFeature(index + 1)}
-                              className="absolute right-2 text-xs top-2/4 -translate-y-2/4 rounded-md bg-red-500 size-5 text-white hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-opacity-50"
+                              className="absolute right-2 top-2/4 size-5 -translate-y-2/4 rounded-md bg-red-500 text-xs text-white hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-opacity-50"
                             >
                               x
                             </button>
@@ -351,8 +350,7 @@ const CreateMembershipModal = ({ organizationId, membership, isOpen, onClose,}) 
                         ))}
                       </div>
                     </div>
-                    <div className="mt-2">
-                  </div>
+                    <div className="mt-2"></div>
                     <div className="flex items-center justify-end">
                       <button
                         type="submit"

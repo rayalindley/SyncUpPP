@@ -26,7 +26,7 @@ export default function Header({ user = null }: { user: User | null }) {
 
   useEffect(() => {
     const fetchUserProfile = async () => {
-      const response = await getUserProfileById(user?.id);
+      const response = await getUserProfileById(user?.id || "");
       setUserProfile(response.data as UserProfile);
     };
 

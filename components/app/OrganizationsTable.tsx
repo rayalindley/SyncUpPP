@@ -2,16 +2,25 @@
 import { useState, useEffect, useMemo } from "react";
 import DataTable from "react-data-table-component";
 import OrganizationOptions from "./organization_options";
+import { Organization } from "@/lib/types"; // Ensure you have this type defined in your types file
 
-export default function OrganizationsTable({ organizations }) {
-  const [tableData, setTableData] = useState([]);
+interface OrganizationsTableProps {
+  organizations: (Organization & { open: boolean; setOpen: (open: boolean) => void })[];
+}
+
+export default function OrganizationsTable({
+  organizations = [],
+}: OrganizationsTableProps) {
+  const [tableData, setTableData] = useState<
+    (Organization & { open: boolean; setOpen: (open: boolean) => void })[]
+  >([]);
   const [filterText, setFilterText] = useState("");
 
   useEffect(() => {
     const data = organizations.map((org, index) => ({
       ...org,
       open: false,
-      setOpen: (open) => {
+      setOpen: (open: boolean) => {
         setTableData((prevData) => {
           const newData = [...prevData];
           newData[index].open = open;
@@ -25,9 +34,9 @@ export default function OrganizationsTable({ organizations }) {
   const columns = [
     {
       name: "Name",
-      selector: (row) => row.name,
+      selector: (row: Organization) => row.name,
       sortable: true,
-      cell: (row) => (
+      cell: (row: Organization & { setOpen: (open: boolean) => void; open: boolean }) => (
         <a href="#" className="hover:text-primary" onClick={() => row.setOpen(!row.open)}>
           {row.name}
         </a>
@@ -35,22 +44,22 @@ export default function OrganizationsTable({ organizations }) {
     },
     {
       name: "Type",
-      selector: (row) => row.organization_type,
+      selector: (row: Organization) => row.organization_type,
       sortable: true,
     },
     {
       name: "Industry",
-      selector: (row) => row.industry,
+      selector: (row: Organization) => row.industry,
       sortable: true,
     },
     {
       name: "Size",
-      selector: (row) => row.organization_size,
+      selector: (row: Organization) => row.organization_size,
       sortable: true,
     },
     {
       name: "Date Established",
-      selector: (row) =>
+      selector: (row: Organization) =>
         row.date_established
           ? new Date(row.date_established).toLocaleDateString("en-US", {
               weekday: "long",
@@ -63,7 +72,7 @@ export default function OrganizationsTable({ organizations }) {
     },
     {
       name: "Created at",
-      selector: (row) =>
+      selector: (row: Organization) =>
         row.created_at
           ? new Date(row.created_at).toLocaleString("en-US", {
               weekday: "long",
@@ -78,7 +87,7 @@ export default function OrganizationsTable({ organizations }) {
     },
     {
       name: "",
-      cell: (row) => (
+      cell: (row: Organization & { setOpen: (open: boolean) => void; open: boolean }) => (
         <OrganizationOptions selectedOrg={row} open={row.open} setOpen={row.setOpen} />
       ),
       button: true,
@@ -124,7 +133,7 @@ export default function OrganizationsTable({ organizations }) {
           <DataTable
             columns={columns}
             data={filteredData}
-            defaultSortField="name"
+            defaultSortFieldId="name"
             pagination
             highlightOnHover
             subHeader

@@ -15,6 +15,7 @@ export interface Combined_user_data {
   company?: string;
   website?: string;
   updatedat?: string;
+  profilepicture?: string;
 }
 
 export interface Userprofiles {

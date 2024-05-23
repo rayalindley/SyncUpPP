@@ -232,7 +232,7 @@ const EventsTable = ({
                   <td className="border-b border-[#404040] p-3">
                     <input
                       type="checkbox"
-                      checked={event.selected || false}
+                      checked={!!event.selected}
                       onChange={() => handleSelectRow(event.eventid)}
                       aria-label={`Select ${event.title}`}
                     />

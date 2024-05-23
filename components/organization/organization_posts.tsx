@@ -5,15 +5,22 @@ import { fetchPosts, checkIsMemberOfOrganization } from "@/lib/posts";
 import Divider from "./divider";
 import { createClient } from "@/lib/supabase/client";
 import { ArrowLeftIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
+import { Posts } from "@/types/posts"; // Ensure this import matches your actual types
 
-const OrganizationPostsComponent = ({ organizationid }) => {
-  const [postsData, setPostsData] = useState([]);
-  const [editingPost, setEditingPost] = useState(null);
+interface OrganizationPostsComponentProps {
+  organizationid: string;
+}
+
+const OrganizationPostsComponent = ({
+  organizationid,
+}: OrganizationPostsComponentProps) => {
+  const [postsData, setPostsData] = useState<Posts[]>([]);
+  const [editingPost, setEditingPost] = useState<Posts | null>(null);
   const [isMemberOfOrganization, setIsMemberOfOrganization] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [postsPerPage] = useState(5);
   const [loading, setLoading] = useState(true);
-  const postsTextAreaRef = useRef(null);
+  const postsTextAreaRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
 
   const fetchData = useCallback(async () => {
@@ -62,7 +69,7 @@ const OrganizationPostsComponent = ({ organizationid }) => {
     }
   }, [editingPost]);
 
-  const startEdit = (post) => {
+  const startEdit = (post: Posts) => {
     setEditingPost(post);
   };
 
@@ -74,7 +81,7 @@ const OrganizationPostsComponent = ({ organizationid }) => {
   const indexOfFirstPost = indexOfLastPost - postsPerPage;
   const currentPosts = postsData.slice(indexOfFirstPost, indexOfLastPost);
 
-  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   return (
     <div className="mx-auto max-w-4xl">

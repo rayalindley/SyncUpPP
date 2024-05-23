@@ -422,7 +422,7 @@ export default function UserActionButton({
                           </table>
                           <div className="mt-5 flex gap-2">
                             <Link
-                              className="group flex items-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-light text-white shadow-sm hover:bg-opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                              className="group flex items-center rounded-md bg-primary px-4 py-2 text-sm font-semibold  text-white shadow-sm hover:bg-opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                               href={`/user/edit/${selectedUser.id}`}
                             >
                               Edit
@@ -460,7 +460,7 @@ export default function UserActionButton({
                               Send password recovery
                             </button>
                             <button
-                              className="group flex items-center rounded-md bg-rose-500 px-4 py-2 text-sm font-semibold text-light text-white shadow-sm hover:bg-opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                              className="group flex items-center rounded-md bg-rose-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                               onClick={deleteBtn}
                             >
                               Delete

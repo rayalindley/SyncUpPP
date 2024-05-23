@@ -1,8 +1,7 @@
 "use client";
 import CreateMembershipForm from "@/components/memberships/create_membership_form";
-import CreateOrganizationForm from "@/components/create_organization_form";
 import { fetchOrganizationBySlug } from "@/lib/organization";
-import { createClient } from "@/lib/supabase/client";
+import { Organization } from "@/lib/types";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -10,26 +9,24 @@ import { StepsProvider } from "react-step-builder";
 
 export default function Example() {
   const router = useRouter();
+  const { slug } = useParams() as { slug: string };
 
-  const { slug } = useParams();
+  const [organization, setOrganization] = useState<Organization | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const [organization, setOrganization] = useState(null);
-  const [error, setError] = useState(null);
-
-  
   useEffect(() => {
     const fetchOrganization = async () => {
       try {
         const { data, error } = await fetchOrganizationBySlug(slug);
         if (error) {
-          setError(error);
+          setError(error.message);
           console.error(error);
         } else {
           setOrganization(data);
         }
       } catch (err) {
         console.error("Failed to fetch organization:", err);
-        setError(err.message);
+        setError((err as Error).message);
       }
     };
 
@@ -41,9 +38,6 @@ export default function Example() {
   if (!organization) {
     return <div>Loading...</div>;
   }
-
-
-  
 
   return (
     <>
@@ -66,7 +60,6 @@ export default function Example() {
 
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-lg">
           <StepsProvider>
-            {/* <CreateOrganizationForm formValues={formValues} /> */}
             <CreateMembershipForm organizationId={organization.organizationid} />
           </StepsProvider>
         </div>

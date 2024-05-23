@@ -64,7 +64,7 @@ const EditMembershipForm = ({ formValues = null }: { formValues: any | null }) =
         features: [],
       });
     } catch (error) {
-      console.error("Error creating membership:", error.message);
+      console.error("Error creating membership:", error);
       toast.error("Failed to create membership", {
         position: "bottom-right",
         autoClose: 3000,
@@ -167,7 +167,10 @@ const EditMembershipForm = ({ formValues = null }: { formValues: any | null }) =
           </div>
         </div>
         <div>
-          <label htmlFor="features" className="mt-6 block text-sm font-medium leading-6 text-white">
+          <label
+            htmlFor="features"
+            className="mt-6 block text-sm font-medium leading-6 text-white"
+          >
             Features:
           </label>
           {formData.features.map((feature, index) => (
@@ -176,13 +179,13 @@ const EditMembershipForm = ({ formValues = null }: { formValues: any | null }) =
                 type="text"
                 value={feature}
                 onChange={(e) => handleFeatureChange(index, e.target.value)}
-                className="block w-full pr-20 rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                className="block w-full rounded-md border-0 bg-white/5 py-1.5 pr-20 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
               />
               {index === formData.features.length - 1 ? (
                 <button
                   type="button"
                   onClick={handleAddFeature}
-                  className="absolute  bg-opacity-10 right-2 top-2/4 -translate-y-2/4 px-1.5  text-white bg-primary rounded-md hover:bg-primarydark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-opacity-50"
+                  className="absolute  right-2 top-2/4 -translate-y-2/4 rounded-md bg-primary  bg-opacity-10 px-1.5 text-white hover:bg-primarydark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-opacity-50"
                 >
                   +
                 </button>
@@ -190,7 +193,7 @@ const EditMembershipForm = ({ formValues = null }: { formValues: any | null }) =
                 <button
                   type="button"
                   onClick={() => handleDeleteFeature(index)}
-                  className="absolute bg-opacity-10 right-2 top-2/4 -translate-y-2/4 px-2  text-white bg-red-500 rounded-md hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-opacity-50"
+                  className="absolute right-2 top-2/4 -translate-y-2/4 rounded-md bg-red-500  bg-opacity-10 px-2 text-white hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-opacity-50"
                 >
                   x
                 </button>
@@ -200,7 +203,7 @@ const EditMembershipForm = ({ formValues = null }: { formValues: any | null }) =
         </div>
         <button
           type="submit"
-          className="mt-5 w-full flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="mt-5 flex w-full justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           Create Membership
         </button>
@@ -208,6 +211,5 @@ const EditMembershipForm = ({ formValues = null }: { formValues: any | null }) =
     </div>
   );
 };
-
 
 export default EditMembershipForm;

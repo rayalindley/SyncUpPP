@@ -6,8 +6,35 @@ import { deletePost, getAuthorDetails } from "@/lib/posts";
 import { getUser } from "@/lib/supabase/client";
 import Comments from "./comments";
 import { fetchComments } from "@/lib/comments";
+import { Posts } from "@/types/posts"; // Ensure this import matches your actual types
 
-const PostsCard = ({ post, postsData, setPostsData, startEdit }) => {
+interface PostsCardProps {
+  post: Posts;
+  postsData: Posts[];
+  setPostsData: React.Dispatch<React.SetStateAction<Posts[]>>;
+  startEdit: (post: Posts) => void;
+}
+
+interface State {
+  showDeleteModal: boolean;
+  isImageVisible: boolean;
+  comments: any[]; // You might want to create a type for comments if you have one
+  accordionOpen: boolean;
+  authorDetails: {
+    firstName: string;
+    lastName: string;
+    profilePicture: string | null;
+  };
+  isCurrentUserAuthor: boolean;
+  isLoading: boolean;
+}
+
+const PostsCard: React.FC<PostsCardProps> = ({
+  post,
+  postsData,
+  setPostsData,
+  startEdit,
+}) => {
   const {
     content,
     createdat,
@@ -17,7 +44,8 @@ const PostsCard = ({ post, postsData, setPostsData, startEdit }) => {
     privacylevel,
     organizationid,
   } = post;
-  const [state, setState] = useState({
+
+  const [state, setState] = useState<State>({
     showDeleteModal: false,
     isImageVisible: true,
     comments: [],
@@ -31,7 +59,7 @@ const PostsCard = ({ post, postsData, setPostsData, startEdit }) => {
     isLoading: false,
   });
 
-  const handleInputChange = (key, value) => {
+  const handleInputChange = (key: keyof State, value: any) => {
     setState((prevState) => ({ ...prevState, [key]: value }));
   };
 
@@ -59,7 +87,9 @@ const PostsCard = ({ post, postsData, setPostsData, startEdit }) => {
           });
           return { ...comment, created_at: philippineTime };
         })
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        .sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
       handleInputChange("comments", convertedData);
     }
   }, [postid]);
@@ -93,9 +123,9 @@ const PostsCard = ({ post, postsData, setPostsData, startEdit }) => {
 
   const calculateTimeElapsed = () => {
     const currentTime = new Date();
-    const postTime = new Date(createdat);
+    const postTime = new Date(createdat ?? "");
     postTime.setHours(postTime.getHours() + 8);
-    const elapsedTime = currentTime - postTime;
+    const elapsedTime = currentTime.getTime() - postTime.getTime();
     const minutes = Math.floor(elapsedTime / 60000);
     if (minutes < 1) return "Just now";
     if (minutes < 60) return `${minutes}m`;
@@ -142,14 +172,14 @@ const PostsCard = ({ post, postsData, setPostsData, startEdit }) => {
             </p>
             <div className="mt-2 text-sm text-white">
               <p className="mb-3">{content}</p>
-              {postphotos && postphotos.length > 0 && (
+              {Array.isArray(post.postphotos) && post.postphotos.length > 0 && (
                 <Carousel
                   showArrows={true}
                   dynamicHeight={true}
                   swipeable={true}
                   showThumbs={false}
                 >
-                  {postphotos.map((photo, index) => (
+                  {post.postphotos.map((photo: string, index: number) => (
                     <div key={index}>
                       <img
                         src={`${supabaseStorageBaseUrl}/post-images/${photo}`}

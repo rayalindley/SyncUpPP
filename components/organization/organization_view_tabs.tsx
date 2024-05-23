@@ -40,9 +40,7 @@ const TabsComponent = ({
 
   let tabContent = null;
   if (activeTab === "posts") {
-    tabContent = (
-      <OrganizationPostsComponent organizationid={organizationid} posts={posts} />
-    );
+    tabContent = <OrganizationPostsComponent organizationid={organizationid} />;
   } else if (activeTab === "membership") {
     tabContent = (
       <OrganizationMembershipsComponent memberships={memberships} userid={id} />

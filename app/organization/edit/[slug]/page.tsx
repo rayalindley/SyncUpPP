@@ -13,22 +13,22 @@ export default function Example() {
   const { slug } = useParams();
 
   const [formValues, setFormValues] = useState(null);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (slug) {
       (async () => {
         try {
-          const { data, error } = await fetchOrganizationBySlug(slug);
+          const { data, error } = await fetchOrganizationBySlug(slug as string);
           if (error) {
-            setError(error);
+            setError(error.message);
             console.error(error);
           } else {
             setFormValues(data);
           }
         } catch (err) {
           console.error("Failed to fetch organization:", err);
-          setError(err.message);
+          setError((err as Error).message);
         }
       })();
     }

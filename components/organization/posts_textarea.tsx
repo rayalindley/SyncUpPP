@@ -9,6 +9,7 @@ import { PhotoIcon, XCircleIcon, UserCircleIcon } from "@heroicons/react/24/soli
 import { getUserProfileById } from "@/lib/userActions";
 import { useUser } from "@/context/UserContext";
 import "react-toastify/dist/ReactToastify.css";
+import { Posts } from "@/types/posts"; // Ensure this matches your actual types
 
 const postSchema = z.object({
   content: z
@@ -25,6 +26,15 @@ const privacyLevels = [
 
 const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
 
+interface PostsTextAreaProps {
+  organizationid: string;
+  postsData: Posts[];
+  setPostsData: React.Dispatch<React.SetStateAction<Posts[]>>;
+  editingPost: Posts | null;
+  cancelEdit: () => void;
+  setEditingPost: React.Dispatch<React.SetStateAction<Posts | null>>;
+}
+
 export default function PostsTextArea({
   organizationid,
   postsData,
@@ -32,14 +42,14 @@ export default function PostsTextArea({
   editingPost,
   cancelEdit,
   setEditingPost,
-}) {
+}: PostsTextAreaProps) {
   const { register, handleSubmit, control, watch, setValue, reset } = useForm({
     resolver: zodResolver(postSchema),
   });
   const { user } = useUser();
   const [isLoading, setIsLoading] = useState(false);
-  const [photos, setPhotos] = useState([]);
-  const [profilePicture, setProfilePicture] = useState(null);
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [isMember, setIsMember] = useState(false);
 
   useEffect(() => {
@@ -78,8 +88,8 @@ export default function PostsTextArea({
     checkMembership();
   }, [organizationid]);
 
-  const handleFileChange = async (event) => {
-    const files = Array.from(event.target.files);
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
     const imageFiles = files.filter((file) => file.type.startsWith("image/"));
     const newPhotos = [...photos];
 
@@ -101,7 +111,7 @@ export default function PostsTextArea({
     setIsLoading(false);
   };
 
-  const handleRemovePhoto = (index) => {
+  const handleRemovePhoto = (index: number) => {
     const newPhotos = photos.filter((_, i) => i !== index);
     setPhotos(newPhotos);
   };
@@ -112,7 +122,7 @@ export default function PostsTextArea({
     setEditingPost(null);
   };
 
-  const onSubmit = async (formData) => {
+  const onSubmit = async (formData: any) => {
     setIsLoading(true);
     try {
       const postData = { ...formData, organizationid, postphotos: photos };
@@ -136,7 +146,7 @@ export default function PostsTextArea({
       } else {
         throw new Error(error.message);
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error("Failed to create/update post. Please try again later.");
     } finally {
       setIsLoading(false);
@@ -262,4 +272,3 @@ export default function PostsTextArea({
     </form>
   );
 }
-

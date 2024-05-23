@@ -13,7 +13,14 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <UsersTable users={users} userProfiles={userProfiles} />
+      <UsersTable
+        users={users}
+        userProfiles={
+          userProfiles
+            ? userProfiles.map((up) => up.data).filter((data) => data !== null)
+            : []
+        }
+      />
       {/* <pre>{JSON.stringify(user, null, 2)}</pre> */}
     </>
   );

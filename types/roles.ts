@@ -9,3 +9,19 @@ export interface Organization_roles {
   editable?: boolean;
   organizations?: Organizations;
 }
+export interface Member {
+  userid: string;
+  first_name: string;
+  last_name: string;
+  profilepicture?: string;
+}
+
+export interface Role {
+  role_id: string;
+  role: string;
+  color: string;
+  member_count?: number;
+  org_id: string;
+  deletable: boolean;
+  members?: Member[];
+}

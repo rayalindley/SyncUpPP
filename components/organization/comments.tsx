@@ -10,6 +10,7 @@ import { useUser } from "@/context/UserContext";
 import { createClient } from "@/lib/supabase/client";
 import { UserCircleIcon } from "@heroicons/react/24/solid";
 import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 const commentSchema = z.object({
   commentText: z
@@ -25,35 +26,58 @@ const editCommentSchema = z.object({
     .max(100, "Comment cannot exceed 100 characters"),
 });
 
-const Comments = ({ postid }) => {
-  const [comments, setComments] = useState([]);
+interface Comment {
+  commentid: string;
+  comment: string;
+  created_at: string;
+  authorid: string;
+  authorFirstName?: string;
+  authorLastName?: string;
+  authorProfilePicture?: string | null;
+}
+
+interface CommentsProps {
+  postid: string;
+}
+
+const Comments: React.FC<CommentsProps> = ({ postid }) => {
+  const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [commentToDelete, setCommentToDelete] = useState(null);
+  const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
   const [charCount, setCharCount] = useState({ comment: 0, editing: 0 });
   const [errors, setErrors] = useState({ commentText: "", editingText: "" });
 
   const { user } = useUser();
+
+  console.log(user);
   const supabaseStorageBaseUrl =
     "https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public/";
 
   useEffect(() => {
-    setCharCount({ ...charCount, comment: commentText.length });
+    setCharCount((prev) => ({ ...prev, comment: commentText.length }));
   }, [commentText]);
 
   useEffect(() => {
-    setCharCount({ ...charCount, editing: editingText.length });
+    setCharCount((prev) => ({ ...prev, editing: editingText.length }));
   }, [editingText]);
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       const { data: commentsData } = await fetchComments(postid);
+
+      if (!commentsData) {
+        setComments([]);
+        setIsLoading(false);
+        return;
+      }
+
       const commentsWithDetails = await Promise.all(
-        commentsData.map(async (comment) => {
+        commentsData.map(async (comment: Comment) => {
           const { data: authorData } = await getUserProfileById(comment.authorid);
           return {
             ...comment,
@@ -65,6 +89,7 @@ const Comments = ({ postid }) => {
           };
         })
       );
+
       setComments(commentsWithDetails);
       setIsLoading(false);
     };
@@ -84,7 +109,7 @@ const Comments = ({ postid }) => {
   const handleSubmit = async () => {
     try {
       commentSchema.parse({ commentText });
-      setErrors({ ...errors, commentText: "" });
+      setErrors((prev) => ({ ...prev, commentText: "" }));
       setIsLoading(true);
       const formData = { postid, authorid: user?.id, comment: commentText };
       const { data: newComment } = await insertComment(formData);
@@ -103,7 +128,7 @@ const Comments = ({ postid }) => {
       setIsLoading(false);
     } catch (e) {
       if (e instanceof z.ZodError) {
-        setErrors({ ...errors, commentText: e.errors[0].message });
+        setErrors((prev) => ({ ...prev, commentText: e.errors[0].message }));
       }
     }
   };
@@ -111,10 +136,10 @@ const Comments = ({ postid }) => {
   const handleEdit = async () => {
     try {
       editCommentSchema.parse({ editingText });
-      setErrors({ ...errors, editingText: "" });
+      setErrors((prev) => ({ ...prev, editingText: "" }));
       setIsLoading(true);
       const { data } = await updateComment({
-        commentid: editingCommentId,
+        commentid: editingCommentId!,
         comment: editingText,
       });
       setComments(
@@ -129,22 +154,23 @@ const Comments = ({ postid }) => {
       setIsLoading(false);
     } catch (e) {
       if (e instanceof z.ZodError) {
-        setErrors({ ...errors, editingText: e.errors[0].message });
+        setErrors((prev) => ({ ...prev, editingText: e.errors[0].message }));
       }
     }
   };
 
   const handleDelete = async () => {
     setIsLoading(true);
-    await deleteComment(commentToDelete, user?.id);
+    await deleteComment(commentToDelete!, user?.id!);
     setComments(comments.filter((comment) => comment.commentid !== commentToDelete));
     setShowDeleteModal(false);
     setCommentToDelete(null);
     setIsLoading(false);
   };
 
-  const toPhilippineTime = (date) => new Date(new Date(date).getTime() + 8 * 60 * 60000);
-  const timeElapsed = (date) => {
+  const toPhilippineTime = (date: string) =>
+    new Date(new Date(date).getTime() + 8 * 60 * 60000);
+  const timeElapsed = (date: string) => {
     const elapsed = Date.now() - toPhilippineTime(date).getTime();
     const units = [
       { label: "d", value: 86400000 },
@@ -194,7 +220,9 @@ const Comments = ({ postid }) => {
           </button>
         </div>
       ) : (
-        <div className="mb-4 text-sm text-[#858585]">You must be logged in to comment.</div>
+        <div className="mb-4 text-sm text-[#858585]">
+          You must be logged in to comment.
+        </div>
       )}
       <div>
         {comments.length === 0 && isLoading ? (
@@ -202,8 +230,8 @@ const Comments = ({ postid }) => {
             Loading comments...
           </div>
         ) : (
-          comments.map((comment, index) => (
-            <div key={index} className="flex border-t border-[#424242] py-2">
+          comments.map((comment) => (
+            <div key={comment.commentid} className="flex border-t border-[#424242] py-2">
               <div className="mr-2 flex h-10 w-10 items-center justify-center">
                 {comment.authorProfilePicture ? (
                   <img

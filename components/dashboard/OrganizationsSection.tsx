@@ -2,8 +2,19 @@
 import { ArrowLongLeftIcon, ArrowLongRightIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
 import OrganizationCard from "../app/OrganizationCard";
+import { Organizations } from "@/lib/types";
 
-export default function OrganizationSection({ organizations }) {
+interface OrgSummary extends Organizations {
+  total_members: number;
+  total_posts: number;
+  total_events: number;
+}
+
+interface OrganizationSectionProps {
+  organizations: OrgSummary[];
+}
+
+export default function OrganizationSection({ organizations }: OrganizationSectionProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const organizationsPerPage = 8;
 
@@ -16,7 +27,7 @@ export default function OrganizationSection({ organizations }) {
   );
 
   // Pagination handlers
-  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
   const isFirstPage = currentPage === 1;
   const isLastPage = indexOfLastOrganization >= organizations.length;
 
@@ -38,12 +49,12 @@ export default function OrganizationSection({ organizations }) {
           currentOrganizations.map((org, index) => (
             <OrganizationCard
               key={index}
-              name={org.name}
-              description={org.description}
-              organization_size={org.organization_size}
-              photo={org.photo}
-              slug={org.slug}
-              banner={org.banner}
+              name={org.name ?? ""}
+              description={org.description ?? ""}
+              organization_size={org.organization_size ?? 0}
+              photo={org.photo ?? ""}
+              slug={org.slug ?? ""}
+              banner={org.banner ?? ""}
               total_members={org.total_members}
               total_posts={org.total_posts}
               total_events={org.total_events}

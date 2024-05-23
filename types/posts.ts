@@ -10,7 +10,7 @@ export interface Posts {
   privacylevel?: any; // type unknown;
   targetmembershipid?: string /* foreign key to memberships.membershipid */;
   createdat?: string;
-  postphoto?: string;
+  postphotos?: string[];
   organizations?: Organizations;
   combined_user_data?: Combined_user_data;
   memberships?: Memberships;

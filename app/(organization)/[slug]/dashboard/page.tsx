@@ -1,15 +1,17 @@
 "use client";
 import StatisticsSection from "@/components/dashboard/StatisticsSection";
 import { deleteOrganization, fetchOrganizationBySlug } from "@/lib/organization";
+import { Organization } from "@/lib/types";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { slug } = useParams();
-  const [formValues, setFormValues] = useState(null);
-  const [error, setError] = useState(null);
+  const { slug } = useParams() as { slug: string }; // Ensure slug is a string
+
+  const [formValues, setFormValues] = useState<Organization | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (slug) {
@@ -17,14 +19,14 @@ export default function SettingsPage() {
         try {
           const { data, error } = await fetchOrganizationBySlug(slug);
           if (error) {
-            setError(error);
+            setError(error.message);
             console.error(error);
           } else {
             setFormValues(data);
           }
         } catch (err) {
           console.error("Failed to fetch organization:", err);
-          setError(err.message);
+          setError((err as Error).message);
         }
       })();
     }
@@ -48,7 +50,7 @@ export default function SettingsPage() {
     });
 
     if (confirmResult.isConfirmed) {
-      const response = await deleteOrganization(formValues?.organizationid);
+      const response = await deleteOrganization(formValues?.organizationid || "");
 
       if (!response.error) {
         await Swal.fire({

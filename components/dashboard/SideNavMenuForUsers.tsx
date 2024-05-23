@@ -1,5 +1,5 @@
 "use client";
-import { Organization } from "@/lib/types";
+import { Organizations as Organization } from "@/lib/types"; // Ensure the correct import
 import useSidebarStore from "@/store/useSidebarStore";
 import { Dialog, Listbox, Transition } from "@headlessui/react";
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/20/solid";
@@ -17,6 +17,7 @@ import { Fragment, useEffect, useState } from "react";
 function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
 }
+
 const getInitials = (name: string) => {
   const words = name.split(" ");
   if (words.length > 1) {
@@ -46,19 +47,24 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
   const navigation = [
     {
       name: "Overview",
-      href: selected === "default" ? `/dashboard` : `/${selected.slug}/dashboard`,
+      href:
+        selected === "default" || typeof selected === "string"
+          ? `/dashboard`
+          : `/${selected.slug}/dashboard`,
       icon: HomeIcon,
     },
     {
       name: "Roles",
       href:
-        selected === "default" ? `/dashboard/roles` : `/${selected.slug}/dashboard/roles`,
+        selected === "default" || typeof selected === "string"
+          ? `/dashboard/roles`
+          : `/${selected.slug}/dashboard/roles`,
       icon: UsersIcon,
     },
     {
       name: "Memberships",
       href:
-        selected === "default"
+        selected === "default" || typeof selected === "string"
           ? `/dashboard/memberships`
           : `/${selected.slug}/dashboard/memberships`,
       icon: UsersIcon,
@@ -66,7 +72,7 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
     {
       name: "Newsletter",
       href:
-        selected === "default"
+        selected === "default" || typeof selected === "string"
           ? `/dashboard/newsletter`
           : `/${selected.slug}/dashboard/newsletter`,
       icon: CalendarIcon,
@@ -74,7 +80,7 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
     {
       name: "Calendar",
       href:
-        selected === "default"
+        selected === "default" || typeof selected === "string"
           ? `/dashboard/calendar`
           : `/${selected.slug}/dashboard/calendar`,
       icon: CalendarIcon,
@@ -175,7 +181,7 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
                             <span className="flex items-center">
                               {selected === "default" ? (
                                 <span className="ml-3 block truncate">Default</span>
-                              ) : selected?.photo ? (
+                              ) : typeof selected !== "string" && selected?.photo ? (
                                 <img
                                   src={`${supabaseStorageBaseUrl}/${selected.photo}`}
                                   alt=""
@@ -184,12 +190,14 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
                               ) : (
                                 <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-zinc-700">
                                   <span className="text-xs uppercase text-white">
-                                    {getInitials(selected.name)}
+                                    {typeof selected !== "string"
+                                      ? getInitials(selected.name)
+                                      : ""}
                                   </span>
                                 </div>
                               )}
                               <span className="ml-3 block truncate">
-                                {selected?.name}
+                                {typeof selected !== "string" ? selected.name : ""}
                               </span>
                             </span>
                             <span className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
@@ -348,7 +356,16 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
                           ))}
                         </ul>
                       </li>
-                      <li></li>
+                      {slug && (
+                        <li className="">
+                          <hr className="my-2 border-t border-fadedgrey" />
+                          <Link href={`/${slug}`}>
+                            <div className="group flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-light hover:bg-primarydark">
+                              Visit Page
+                            </div>
+                          </Link>
+                        </li>
+                      )}
                       <li className="mt-auto">
                         <Link
                           href="#"
@@ -389,7 +406,7 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
                     <span className="flex items-center">
                       {selected === "default" ? (
                         <span className="ml-3 block truncate">Default</span>
-                      ) : selected?.photo ? (
+                      ) : typeof selected !== "string" && selected?.photo ? (
                         <img
                           src={`${supabaseStorageBaseUrl}/${selected.photo}`}
                           alt=""
@@ -398,11 +415,15 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
                       ) : (
                         <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-zinc-700">
                           <span className="shrink text-xs uppercase text-white">
-                            {getInitials(selected.name)}
+                            {typeof selected !== "string"
+                              ? getInitials(selected.name)
+                              : ""}
                           </span>
                         </div>
                       )}
-                      <span className="ml-3 block truncate">{selected?.name}</span>
+                      <span className="ml-3 block truncate">
+                        {typeof selected !== "string" ? selected.name : ""}
+                      </span>
                     </span>
                     <span className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
                       <ChevronUpDownIcon

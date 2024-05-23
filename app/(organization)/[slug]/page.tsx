@@ -61,11 +61,7 @@ export default async function OrganizationUserView({
   const postsPerPage = 6; // Set the number of posts per page
 
   // Fetch organization posts
-  const { data: posts, error: postsError } = await fetchPosts(
-    org.organizationid,
-    currentPage,
-    postsPerPage
-  );
+  const { data: posts, error: postsError } = await fetchPosts(org.organizationid);
 
   // Handle any errors from fetching posts
   if (postsError) {

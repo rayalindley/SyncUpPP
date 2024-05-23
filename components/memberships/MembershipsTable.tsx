@@ -1,13 +1,37 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
-import DataTable from "react-data-table-component";
-import OrganizationOptions from "./organization_options";
+import DataTable, { TableColumn } from "react-data-table-component";
 import MembershipOptions from "./membership_options";
 
-export default function MembershipsTable({ orgmems, allMembers }) {
-  const [selectedOrgId, setSelectedOrgId] = useState("");
-  const [tableData, setTableData] = useState([]);
-  const [filterText, setFilterText] = useState("");
+interface Membership {
+  membershipid: string;
+  membershipname: string;
+  registrationfee: number;
+  membership_count: number;
+  organizationid: string;
+  orgname: string;
+  members?: Member[];
+  open: boolean;
+  setOpen: (open: boolean) => void;
+}
+
+interface Member {
+  membershipid: string;
+  organizationid: string;
+}
+
+interface MembershipsTableProps {
+  orgmems: Membership[];
+  allMembers: Member[];
+}
+
+export default function MembershipsTable({
+  orgmems = [],
+  allMembers = [],
+}: MembershipsTableProps) {
+  const [selectedOrgId, setSelectedOrgId] = useState<string>("");
+  const [tableData, setTableData] = useState<Membership[]>([]);
+  const [filterText, setFilterText] = useState<string>("");
 
   const organizations = useMemo(() => {
     return Array.from(new Set(orgmems.map((mem) => mem.organizationid))).map((id) => {
@@ -25,7 +49,7 @@ export default function MembershipsTable({ orgmems, allMembers }) {
       (member) => member.organizationid === selectedOrgId || selectedOrgId === ""
     );
 
-    const membersByMembershipId = {};
+    const membersByMembershipId: { [key: string]: Member[] } = {};
     filteredMembers.forEach((member) => {
       if (!membersByMembershipId[member.membershipid]) {
         membersByMembershipId[member.membershipid] = [];
@@ -37,7 +61,7 @@ export default function MembershipsTable({ orgmems, allMembers }) {
       ...mem,
       members: membersByMembershipId[mem.membershipid] || [],
       open: false,
-      setOpen: (open) => {
+      setOpen: (open: boolean) => {
         setTableData((prevData) => {
           const newData = [...prevData];
           const index = newData.findIndex(
@@ -52,7 +76,7 @@ export default function MembershipsTable({ orgmems, allMembers }) {
     setTableData(data);
   }, [orgmems, allMembers, selectedOrgId]);
 
-  const columns = [
+  const columns: TableColumn<Membership>[] = [
     {
       name: "Membership",
       selector: (row) => row.membershipname,
@@ -81,7 +105,7 @@ export default function MembershipsTable({ orgmems, allMembers }) {
           selectedTier={row}
           open={row.open}
           setOpen={row.setOpen}
-          TierMembers={row.members}
+          TierMembers={row.members || []}
         />
       ),
       button: true,
@@ -140,7 +164,7 @@ export default function MembershipsTable({ orgmems, allMembers }) {
           <DataTable
             columns={columns}
             data={filteredData}
-            defaultSortField="membershipname"
+            defaultSortFieldId="membershipname"
             pagination
             highlightOnHover
             subHeader

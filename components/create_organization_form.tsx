@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 import countries from "@/lib/countries";
+import { IOptions } from "tailwind-datepicker-react/types/Options";
 
 // Define constants for types of organizations, industries, and sizes
 const ORGANIZATION_TYPES = [
@@ -95,7 +96,7 @@ const OrganizationSchema = z.object({
   twitterLink: z.string().url("Invalid URL format").optional().or(z.literal("")),
   linkedinLink: z.string().url("Invalid URL format").optional().or(z.literal("")),
 });
-const datepicker_options = {
+const datepicker_options: IOptions = {
   title: "Calendar",
   autoHide: true,
   todayBtn: true,
@@ -123,9 +124,9 @@ const datepicker_options = {
   inputIdProp: "date",
   inputPlaceholderProp: "Select Date",
   inputDateFormatProp: {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
+    day: "numeric" as "numeric", // Ensure correct type casting
+    month: "long" as "long", // Ensure correct type casting
+    year: "numeric" as "numeric", // Ensure correct type casting
   },
 };
 
@@ -249,10 +250,13 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
 
   const handleNext = async () => {
     const currentStepId = `step${current}`;
-    const fieldsInStep = document.querySelectorAll(`#${currentStepId} [name]`);
-    const fieldNames = Array.from(fieldsInStep).map((field) =>
-      field.getAttribute("name")
+    const fieldsInStep = document.querySelectorAll<HTMLInputElement>(
+      `#${currentStepId} [name]`
     );
+    const fieldNames = Array.from(fieldsInStep)
+      .map((field) => field.getAttribute("name"))
+      .filter((name): name is keyof OrganizationFormValues => name !== null);
+
     const result = await trigger(fieldNames);
 
     const slugValue = getValues("slug");

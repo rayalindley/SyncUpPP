@@ -3,16 +3,27 @@ import { useState, useEffect, useMemo } from "react";
 import DataTable, { TableColumn } from "react-data-table-component";
 import UserActionButton from "./user_action_button";
 import { useDebounce } from "use-debounce";
-import { User } from "@supabase/auth-js/src/lib/types";
+import { User } from "@supabase/auth-js/src/lib/types"; // Ensure this is the correct import path
+import { UserProfile } from "@/lib/types";
 
-import {
-  UserProfileData,
-  UserProfile,
-  UserTableData,
-  UsersTableProps,
-} from "@/types/users";
+interface UserProfileData {
+  first_name: string;
+  last_name: string;
+}
 
-const UsersTable: React.FC<UsersTableProps> = ({ users, userProfiles }) => {
+interface UserTableData {
+  user: User;
+  userProfile: UserProfile | null; // Allow null here
+  open: boolean;
+  setOpen: (open: boolean) => void;
+}
+
+interface UsersTableProps {
+  users: User[];
+  userProfiles: (UserProfile | null)[];
+}
+
+const UsersTable: React.FC<UsersTableProps> = ({ users, userProfiles = [] }) => {
   const [tableData, setTableData] = useState<UserTableData[]>([]);
   const [filterText, setFilterText] = useState<string>("");
   const [debouncedFilterText] = useDebounce(filterText, 300);
@@ -39,15 +50,15 @@ const UsersTable: React.FC<UsersTableProps> = ({ users, userProfiles }) => {
     {
       name: "Name",
       selector: (row) =>
-        `${row.userProfile?.data?.first_name ?? ""} ${row.userProfile?.data?.last_name ?? ""}`,
+        `${row.userProfile?.first_name ?? ""} ${row.userProfile?.last_name ?? ""}`,
       sortable: true,
       cell: (row) => (
         <span
           className="hover:cursor-pointer hover:text-primary"
           onClick={() => row.setOpen(true)}
         >
-          {row.userProfile?.data
-            ? `${row.userProfile.data?.first_name} ${row.userProfile.data?.last_name}`
+          {row.userProfile
+            ? `${row.userProfile.first_name} ${row.userProfile.last_name}`
             : "Loading..."}
         </span>
       ),
@@ -115,7 +126,7 @@ const UsersTable: React.FC<UsersTableProps> = ({ users, userProfiles }) => {
       cell: (row) => (
         <UserActionButton
           selectedUser={row.user}
-          userProfile={row.userProfile?.data}
+          userProfile={row.userProfile}
           open={row.open}
           setOpen={row.setOpen}
         />
@@ -128,7 +139,7 @@ const UsersTable: React.FC<UsersTableProps> = ({ users, userProfiles }) => {
     () =>
       tableData.filter((item) => {
         if (!debouncedFilterText) return true;
-        const name = `${item.userProfile?.data?.first_name ?? ""} ${item.userProfile?.data?.last_name ?? ""}`;
+        const name = `${item.userProfile?.first_name ?? ""} ${item.userProfile?.last_name ?? ""}`;
         return (
           name.toLowerCase().includes(debouncedFilterText.toLowerCase()) ||
           (item.user.email?.toLowerCase().includes(debouncedFilterText.toLowerCase()) ??
@@ -171,7 +182,6 @@ const UsersTable: React.FC<UsersTableProps> = ({ users, userProfiles }) => {
             highlightOnHover
             subHeader
             subHeaderComponent={subHeaderComponent}
-            className="bg-red-500"
             customStyles={{
               header: {
                 style: {
