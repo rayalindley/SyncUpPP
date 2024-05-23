@@ -24,7 +24,6 @@ const orgdata = [
   },
 ];
 
-
 const getInitials = (name: string): string => {
   const words = name.split(" ");
   if (words.length > 1) {
@@ -45,7 +44,7 @@ export default async function OrganizationUserView({
 
   const { slug } = params;
 
-  console.log("slug:", slug);
+  // console.log("slug:", slug);
 
   // ! GET Request on Get Organization by Slug, then display the data, pass it to the nested components
 
@@ -103,7 +102,7 @@ export default async function OrganizationUserView({
   // console.log("LinkedIn Link:", linkedinLink);
   // console.log("Org ID:", org.organizationid)
   // console.log("Memberships: ", memberships)
-  console.log(user?.id);
+  // console.log(user?.id)
 
   const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
 

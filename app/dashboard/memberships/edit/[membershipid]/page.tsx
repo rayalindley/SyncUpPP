@@ -29,7 +29,7 @@ export default function Example() {
           console.error(membershipResponse.error);
         } else {
           setMembership(membershipResponse.data);
-          console.log(membershipResponse.data);
+          // console.log(membershipResponse.data);
         }
       } catch (err) {
         console.error("Failed to fetch data:", err);
@@ -46,7 +46,7 @@ export default function Example() {
     return <div>Loading...</div>;
   }
 
-  console.log(membership);
+  // console.log(membership);
 
   
 

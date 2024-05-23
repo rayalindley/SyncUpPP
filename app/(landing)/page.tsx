@@ -16,7 +16,7 @@ export default async function Home() {
     .select("*")
     .range(0, 2);
 
-  console.log(organizations, error);
+  // console.log(organizations, error);
 
   return (
     <div className="bg-eerieblack">

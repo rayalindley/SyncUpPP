@@ -1,306 +1,249 @@
-import { useState, useEffect, Fragment } from "react";
-import { useParams } from "next/navigation";
-import { useForm, Controller, SubmitHandler } from "react-hook-form";
+import { useState, useEffect } from "react";
+import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Listbox, Transition } from "@headlessui/react";
-import {
-  CameraIcon,
-  GlobeAltIcon,
-  LockClosedIcon,
-  UserCircleIcon,
-  PhotoIcon,
-} from "@heroicons/react/16/solid";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 import { createClient } from "@/lib/supabase/client";
 import { insertPost, updatePost } from "@/lib/posts";
-import Divider from "./divider";
-
-interface OrganizationFormValues {
-  content: string;
-  privacyLevel: string;
-}
+import { PhotoIcon, XCircleIcon, UserCircleIcon } from "@heroicons/react/24/solid";
+import { getUserProfileById } from "@/lib/userActions";
+import { useUser } from "@/context/UserContext";
+import "react-toastify/dist/ReactToastify.css";
 
 const postSchema = z.object({
-  content: z.string().min(1, "Content is required"),
+  content: z
+    .string()
+    .min(1, "Content is required")
+    .max(500, "Content cannot exceed 500 characters"),
   privacyLevel: z.enum(["public", "private"]),
 });
 
 const privacyLevels = [
-  { name: "Public", value: "public", icon: GlobeAltIcon },
-  { name: "Private", value: "private", icon: LockClosedIcon },
+  { name: "Public", value: "public" },
+  { name: "Private", value: "private" },
 ];
 
-function classNames(...classes: string[]) {
-  return classes.filter(Boolean).join(" ");
-}
+const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
 
-export default function PostsTextArea({ organizationid, postsData, setPostsData }) {
-  const {
-    register,
-    handleSubmit,
-    control,
-    formState: { errors },
-    reset,
-  } = useForm<OrganizationFormValues>({
+export default function PostsTextArea({
+  organizationid,
+  postsData,
+  setPostsData,
+  editingPost,
+  cancelEdit,
+  setEditingPost,
+}) {
+  const { register, handleSubmit, control, watch, setValue, reset } = useForm({
     resolver: zodResolver(postSchema),
   });
+  const { user } = useUser();
   const [isLoading, setIsLoading] = useState(false);
-  const [photo, setPhoto] = useState<string | null>(null);
-  const [organization, setOrganization] = useState<any>(null);
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-  const { slug } = useParams();
-  const [isUpdate, setIsUpdate] = useState(false);
-  const [existingPost, setExistingPost] = useState<any>(null);
-  const [content, setContent] = useState<string>(""); // State to track textarea content
-  const [accordionOpen, setAccordionOpen] = useState(false); // State to manage accordion open/close
+  const [photos, setPhotos] = useState([]);
+  const [profilePicture, setProfilePicture] = useState(null);
 
   useEffect(() => {
-    setAccordionOpen(false); // Initialize accordion state to closed when component mounts
-  }, []);
+    if (editingPost) {
+      setValue("content", editingPost.content);
+      setValue("privacyLevel", editingPost.privacylevel);
+      setPhotos(editingPost.postphotos || []);
+    }
+  }, [editingPost, setValue]);
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (!file.type.startsWith("image/")) {
-        console.error("Please upload an image file");
-        return;
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user?.id) {
+        const { data, error } = await getUserProfileById(user.id);
+        if (data) {
+          setProfilePicture(
+            data.profilepicture
+              ? `${supabaseStorageBaseUrl}/${data.profilepicture}`
+              : null
+          );
+        } else {
+          console.error("Error fetching user profile:", error);
+        }
       }
+    };
+    fetchUserProfile();
+  }, [user]);
 
+  const handleFileChange = async (event) => {
+    const files = Array.from(event.target.files);
+    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+    const newPhotos = [...photos];
+
+    for (const file of imageFiles) {
       setIsLoading(true);
-
       const fileName = `post_${Date.now()}-${Math.random().toString(36).substring(7)}`;
       const { data: uploadResult, error } = await createClient()
         .storage.from("post-images")
-        .upload(fileName, file, {
-          cacheControl: "3600",
-          upsert: false,
-        });
+        .upload(fileName, file, { cacheControl: "3600", upsert: false });
 
       if (uploadResult) {
-        setPhoto(uploadResult.fullPath);
+        newPhotos.push(uploadResult.path);
       } else {
         console.error("Error uploading image:", error);
       }
-
-      setIsLoading(false);
     }
+
+    setPhotos(newPhotos);
+    setIsLoading(false);
   };
 
-  const onSubmit: SubmitHandler<OrganizationFormValues> = async (formData) => {
+  const handleRemovePhoto = (index) => {
+    const newPhotos = photos.filter((_, i) => i !== index);
+    setPhotos(newPhotos);
+  };
+
+  const resetForm = () => {
+    reset();
+    setPhotos([]);
+    setEditingPost(null);
+  };
+
+  const onSubmit = async (formData) => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      const postData = {
-        ...formData,
-        organizationid: organizationid,
-        postphoto: photo,
-      };
-
-      let postResponse;
-      let error;
-
-      if (isUpdate && existingPost) {
-        ({ data: postResponse, error } = await updatePost(postData));
-      } else {
-        ({ data: postResponse, error } = await insertPost(postData, organizationid));
-      }
+      const postData = { ...formData, organizationid, postphotos: photos };
+      const { data: postResponse, error } = editingPost
+        ? await updatePost({ ...postData, postid: editingPost.postid })
+        : await insertPost(postData, organizationid);
 
       if (!error) {
-        setPostsData([postResponse, ...postsData]);
-        setContent(""); // Clear the textarea value
-        setPhoto(null);
-        setIsUpdate(false);
-        setExistingPost(null);
+        if (editingPost) {
+          setPostsData(
+            postsData.map((post) =>
+              post.postid === postResponse.postid ? postResponse : post
+            )
+          );
+          toast.success("Post updated successfully");
+        } else {
+          setPostsData([postResponse, ...postsData]);
+          toast.success("Post created successfully");
+        }
+        resetForm();
       } else {
         throw new Error(error.message);
       }
     } catch (error) {
-      console.error("Error creating/updating post:", error.message);
       toast.error("Failed to create/update post. Please try again later.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Update content state when textarea content changes
-  const handleContentChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setContent(event.target.value);
-  };
-
-  // Toggle accordion open/close state
-  const toggleAccordion = () => {
-    setAccordionOpen(!accordionOpen);
-    if (accordionOpen) {
-      setAccordionOpen(true);
-    }
-  };
+  const contentValue = watch("content");
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="relative">
-      <div className="max-h-6xl border-t border-[#525252] px-3 py-2"></div>
-      <div className="rounded-lg">
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="relative rounded-2xl bg-[#3b3b3b] p-6 shadow-lg"
+    >
+      <div className="rounded-2xl">
         <label htmlFor="content" className="sr-only">
           Description
         </label>
-        <div className="flex flex-row" onClick={toggleAccordion}>
+        <div className="mb-4 flex items-center">
           <div>
-            <UserCircleIcon className="h-10 w-10 text-gray-500" aria-hidden="true" />
+            {profilePicture ? (
+              <img
+                src={profilePicture}
+                alt="Profile"
+                className="h-10 w-10 rounded-full object-cover"
+              />
+            ) : (
+              <UserCircleIcon className="h-10 w-10 text-white" />
+            )}
           </div>
-          <div className="flex-grow">
+          <div className="relative ml-4 flex-grow">
             <textarea
               id="content"
               {...register("content")}
-              className="min-h-4xl h-auto w-full resize-none overflow-hidden border-0 bg-[#1C1C1C] text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm sm:leading-6"
-              style={{ caretColor: "white", color: "white" }} // Change text color to white
+              className="min-h-[150px] w-full resize-none rounded-2xl border border-[#3d3d3d] bg-[#171717] p-3 text-white focus:ring-0"
               placeholder="Write a post..."
-              value={content}
-              onChange={handleContentChange}
             />
+            <div className="absolute bottom-2 right-2 text-sm text-[#bebebe]">
+              {contentValue?.length || 0}/500
+            </div>
           </div>
         </div>
-        <div>
-          <Transition
-            show={accordionOpen}
-            as={Fragment}
-            enter="transition ease-out duration-300"
-            enterFrom="transform opacity-0 scale-95"
-            enterTo="transform opacity-100 scale-100"
-            leave="transition ease-in duration-200"
-            leaveFrom="transform opacity-100 scale-100"
-            leaveTo="transform opacity-0 scale-95"
+        <div className="mb-4 flex items-center gap-2">
+          <Controller
+            name="privacyLevel"
+            control={control}
+            defaultValue={privacyLevels[0].value}
+            render={({ field }) => (
+              <select
+                value={field.value}
+                onChange={(e) => field.onChange(e.target.value)}
+                className="w-40 rounded-2xl border border-[#3d3d3d] bg-[#171717] p-3 text-white"
+              >
+                {privacyLevels.map((level) => (
+                  <option key={level.value} value={level.value}>
+                    {level.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          />
+          <input
+            type="file"
+            accept="image/*"
+            id="file-input"
+            multiple
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          <label htmlFor="file-input" className="cursor-pointer p-3">
+            <PhotoIcon className="h-6 w-6 text-white" />
+          </label>
+          <div className="flex-grow"></div>
+          <button
+            type="submit"
+            className={`rounded-2xl p-3 text-white shadow-lg ${isLoading || !(contentValue ?? "").trim() ? "cursor-not-allowed bg-[#171717]" : "bg-primary hover:bg-[#37996b]"}`}
+            disabled={isLoading || !(contentValue ?? "").trim()}
           >
-            <div className="relative ml-8 mt-2 border-b border-[#525252] px-3 py-4">
-              <Controller
-                name="privacyLevel"
-                control={control}
-                defaultValue={privacyLevels[0].value}
-                render={({ field }) => (
-                  <Listbox
-                    as="div"
-                    value={privacyLevels.find((level) => level.value === field.value)}
-                    onChange={(val) => field.onChange(val.value)}
-                    className="mt-2"
-                  >
-                    {({ open }) => (
-                      <>
-                        <Listbox.Button className="relative inline-flex items-center whitespace-nowrap rounded-full bg-gray-50 px-2 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 sm:px-3">
-                          {field.value === "public" ? (
-                            <GlobeAltIcon
-                              className="h-5 w-5 text-gray-500"
-                              aria-hidden="true"
-                            />
-                          ) : (
-                            <LockClosedIcon
-                              className="h-5 w-5 text-gray-500"
-                              aria-hidden="true"
-                            />
-                          )}
-                          <span className="hidden truncate sm:ml-2 sm:block">
-                            {
-                              privacyLevels.find((level) => level.value === field.value)
-                                .name
-                            }
-                          </span>
-                        </Listbox.Button>
-
-                        <Transition
-                          show={open}
-                          as={Fragment}
-                          enter="transition ease-out duration-100"
-                          enterFrom="opacity-0 scale-95"
-                          enterTo="opacity-100 scale-100"
-                          leave="transition ease-in duration-75"
-                          leaveFrom="opacity-100 scale-100"
-                          leaveTo="opacity-0 scale-95"
-                        >
-                          <Listbox.Options
-                            static
-                            className="absolute left-0 z-10 mt-1 max-h-56 w-52 overflow-auto rounded-lg border-b bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm"
-                          >
-                            {privacyLevels.map((level) => (
-                              <Listbox.Option
-                                key={level.value}
-                                className={({ active }) =>
-                                  classNames(
-                                    active ? "bg-gray-100" : "bg-white",
-                                    "relative cursor-default select-none px-3 py-1"
-                                  )
-                                }
-                                value={level}
-                              >
-                                {({ selected }) => (
-                                  <div className="flex items-center">
-                                    {level.icon === GlobeAltIcon ? (
-                                      <GlobeAltIcon
-                                        className="h-5 w-5 flex-shrink-0 text-gray-400"
-                                        aria-hidden="true"
-                                      />
-                                    ) : (
-                                      <LockClosedIcon
-                                        className="h-5 w-5 flex-shrink-0 text-gray-400"
-                                        aria-hidden="true"
-                                      />
-                                    )}
-                                    <span className="ml-2 block truncate font-normal">
-                                      {level.name}
-                                    </span>
-                                  </div>
-                                )}
-                              </Listbox.Option>
-                            ))}
-                          </Listbox.Options>
-                        </Transition>
-                      </>
-                    )}
-                  </Listbox>
-                )}
-              />
-            </div>
-          </Transition>
-        </div>
-
-        <div className="mt-2 flex flex-row border-b border-[#525252]">
-          {" "}
-          {/* Adjust border-t-2 to your desired size */}
-          <div>
-            <input
-              type="file"
-              accept="image/*"
-              id="file-input"
-              onChange={handleFileChange}
-              className="hidden"
-            />
-            <label
-              htmlFor="file-input"
-              className="group inline-flex cursor-pointer items-center rounded-full text-left text-gray-400"
+            {isLoading
+              ? editingPost
+                ? "Updating..."
+                : "Creating..."
+              : editingPost
+                ? "Update"
+                : "Create"}
+          </button>
+          {editingPost && (
+            <button
+              type="button"
+              onClick={() => {
+                cancelEdit();
+                resetForm();
+              }}
+              className="ml-2 rounded-2xl bg-red-600 p-3 text-white shadow-lg hover:bg-red-700"
             >
-              <PhotoIcon
-                className="ml-12 mt-4 h-6 w-6 text-gray-500 group-hover:text-gray-500"
-                aria-hidden="true"
+              Cancel
+            </button>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {photos.map((photo, index) => (
+            <div key={index} className="relative">
+              <img
+                src={`${supabaseStorageBaseUrl}/post-images/${photo}`}
+                alt={`Attachment ${index + 1}`}
+                className="h-20 w-20 rounded-md object-cover"
               />
-            </label>
-          </div>
-          <div className="flex-grow" /> {/* This pushes the button to the right */}
-          <div className="mb-2 rounded-md px-3">
-            <div className="flex items-center justify-end space-x-3 border-gray-200 px-2 py-2 sm:px-3">
-              <div className="flex-shrink-0">
-                <button
-                  type="submit"
-                  className={`inline-flex items-center rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm ${
-                    isLoading || !content.trim()
-                      ? "bg-primarydark" // Apply greyed-out style and disable cursor
-                      : "hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                  }`}
-                  disabled={isLoading || !content.trim()} // Disable button if content is empty
-                >
-                  Create
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => handleRemovePhoto(index)}
+                className="absolute right-0 top-0 rounded-full bg-black bg-opacity-75 p-1 text-white"
+              >
+                <XCircleIcon className="h-5 w-5" />
+              </button>
             </div>
-          </div>
+          ))}
         </div>
       </div>
+      <ToastContainer />
     </form>
   );
 }

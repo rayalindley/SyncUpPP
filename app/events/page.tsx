@@ -17,6 +17,7 @@ export default function EventsPublicView() {
   useEffect(() => {
     async function fetchUser() {
       const { user } = await getUser(); // Adjust this to your actual user fetching logic
+      // console.log(user);
       setUser(user);
     }
 
