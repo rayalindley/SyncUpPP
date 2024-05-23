@@ -18,6 +18,8 @@ export default function SettingsPage() {
       (async () => {
         try {
           const { data, error } = await fetchOrganizationBySlug(slug);
+
+          console.log(data, error);
           if (error) {
             setError(error.message);
             console.error(error);
@@ -30,7 +32,7 @@ export default function SettingsPage() {
         }
       })();
     }
-  }, [slug]);
+  }, []);
 
   const handleDeleteOrg = async () => {
     const confirmResult = await Swal.fire({
@@ -44,7 +46,8 @@ export default function SettingsPage() {
     });
 
     if (confirmResult.isConfirmed) {
-      const response = await deleteOrganization(formValues?.organizationid || "");
+      console.log(formValues?.organizationid);
+      const response = await deleteOrganization("");
 
       if (!response.error) {
         await Swal.fire({

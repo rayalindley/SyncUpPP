@@ -20,22 +20,37 @@ const TabsComponent = ({
   id: any;
 }) => {
   const { orgslug } = useParams();
-  const query = new URLSearchParams(window.location.search);
-  const initialTab = query.get("tab") || "posts";
-  const [activeTab, setActiveTab] = useState(initialTab);
+  const [activeTab, setActiveTab] = useState("posts");
 
   useEffect(() => {
-    const urlTab = query.get("tab");
-    if (urlTab && urlTab !== activeTab) {
-      setActiveTab(urlTab);
+    if (typeof window !== "undefined") {
+      const query = new URLSearchParams(window.location.search);
+      const initialTab = query.get("tab") || "posts";
+      setActiveTab(initialTab);
+
+      const handlePopState = () => {
+        const urlTab = query.get("tab");
+        if (urlTab && urlTab !== activeTab) {
+          setActiveTab(urlTab);
+        }
+      };
+
+      window.addEventListener("popstate", handlePopState);
+
+      return () => {
+        window.removeEventListener("popstate", handlePopState);
+      };
     }
-  }, [query.get("tab")]);
+  }, []);
 
   const handleTabChange = (tab: any) => {
     setActiveTab(tab);
-    query.set("tab", tab);
-    const newUrl = `${window.location.pathname}?${query.toString()}`;
-    window.history.pushState({}, "", newUrl);
+    if (typeof window !== "undefined") {
+      const query = new URLSearchParams(window.location.search);
+      query.set("tab", tab);
+      const newUrl = `${window.location.pathname}?${query.toString()}`;
+      window.history.pushState({}, "", newUrl);
+    }
   };
 
   let tabContent = null;

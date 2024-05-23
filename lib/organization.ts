@@ -170,3 +170,21 @@ export async function fetchOrganizationsForUser(userId: string) {
     };
   }
 }
+
+export async function getUserOrganizationInfo(userId: string, organizationId: string) {
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .rpc("get_user_organization_info", {
+      user_id: userId,
+      organization_id: organizationId,
+    })
+    .single();
+
+  if (error) {
+    console.error("Error calling RPC function:", error);
+    return null;
+  }
+
+  return data;
+}
