@@ -127,10 +127,10 @@ const PostsCard = ({ post, postsData, setPostsData, startEdit }) => {
 
   const calculateTimeElapsed = () => {
     const currentTime = new Date();
-    const postTime = new Date(createdat).toLocaleString("en-US", {
-      timeZone: "Asia/Manila",
-    });
-    const elapsedTime = currentTime - new Date(postTime);
+    const postTime = new Date(createdat);
+    postTime.setHours(postTime.getHours() + 8);
+    const elapsedTime = currentTime - postTime;
+    console.log(elapsedTime);
     const minutes = Math.floor(elapsedTime / 60000);
     if (minutes < 1) return "Just now";
     if (minutes < 60) return `${minutes}m`;
