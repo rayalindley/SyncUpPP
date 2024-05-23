@@ -5,8 +5,6 @@ import { fetchPosts } from "@/lib/posts";
 import { ArrowLongLeftIcon, ArrowLongRightIcon } from "@heroicons/react/20/solid";
 import Divider from "./divider";
 import { createClient } from "@/lib/supabase/client";
-import { toast, ToastContainer } from "react-toastify";
-import 'react-toastify/dist/ReactToastify.css';
 
 const OrganizationPostsComponent = ({ organizationid, posts }) => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -23,7 +21,6 @@ const OrganizationPostsComponent = ({ organizationid, posts }) => {
         setPostsData(data);
       } else {
         console.error("Error fetching posts:", error);
-        toast.error("Error fetching posts. Please try again later.");
       }
     };
     fetchData();
@@ -49,7 +46,6 @@ const OrganizationPostsComponent = ({ organizationid, posts }) => {
             setPostsData(data);
           } else {
             console.error("Error fetching posts:", error);
-            toast.error("Error fetching posts. Please try again later.");
           }
         }
       )
@@ -97,7 +93,7 @@ const OrganizationPostsComponent = ({ organizationid, posts }) => {
               {index !== postsData.length - 1 && <Divider />}
             </div>
           ))}
-        </div>
+        </div>{" "}
         {/* Pagination */}
         <div className="mt-2 w-full">
           <nav className="flex items-center justify-between border-t border-gray-200 px-4 sm:px-0">
@@ -153,7 +149,6 @@ const OrganizationPostsComponent = ({ organizationid, posts }) => {
           </nav>
         </div>
       </div>
-      <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
     </div>
   );
 };

@@ -58,11 +58,12 @@ export async function fetchPosts(
   }
 }
 
+
 export async function updatePost(updatedPost: {
   postid: string;
   content?: string;
   privacyLevel?: string;
-  postphoto?: string | null;
+  postphotos?: string[];
 }) {
   const supabase = createClient();
   try {
@@ -70,13 +71,14 @@ export async function updatePost(updatedPost: {
     const updateFields: any = {};
     if (updatedPost.content) updateFields.content = updatedPost.content;
     if (updatedPost.privacyLevel) updateFields.privacylevel = updatedPost.privacyLevel;
-    if (updatedPost.postphoto !== undefined) updateFields.postphoto = updatedPost.postphoto;
+    if (updatedPost.postphotos !== undefined) updateFields.postphotos = updatedPost.postphotos;
 
     const { data, error } = await supabase
       .from("posts")
       .update(updateFields)
       .eq("postid", updatedPost.postid)
-      .select().single();
+      .select()
+      .single();
 
     if (!error) {
       return { data, error: null };
@@ -91,6 +93,7 @@ export async function updatePost(updatedPost: {
     };
   }
 }
+
 
 export async function deletePost(postid: string, authorid: string) {
   const supabase = createClient();

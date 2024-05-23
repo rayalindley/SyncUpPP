@@ -4,12 +4,11 @@ import { Carousel } from 'react-responsive-carousel';
 import 'react-responsive-carousel/lib/styles/carousel.min.css';
 import { updatePost, deletePost, getAuthorDetails } from "@/lib/posts";
 import { getUser, createClient } from "@/lib/supabase/client";
-import { toast } from "react-toastify";
 import Comments from "./comments";
 import { fetchComments } from "@/lib/comments";
 
 const PostsCard = ({ post, postsData, setPostsData, startEdit }) => {
-  const { content, createdat, postphotos, authorid, postid, privacylevel } = post;
+  const { content, createdat, postphotos, authorid, postid, privacylevel, organizationid } = post;
   const [state, setState] = useState({
     showDeleteModal: false,
     isImageVisible: true,
@@ -22,7 +21,10 @@ const PostsCard = ({ post, postsData, setPostsData, startEdit }) => {
     },
     isCurrentUserAuthor: false,
     isLoading: false,
+    isMemberOfOrganization: false,
   });
+
+  const supabase = createClient();
 
   const handleInputChange = (key, value) => {
     setState((prevState) => ({ ...prevState, [key]: value }));
@@ -42,18 +44,51 @@ const PostsCard = ({ post, postsData, setPostsData, startEdit }) => {
     handleInputChange("isCurrentUserAuthor", currentUser?.user?.id === authorid);
   };
 
+  const checkIsMemberOfOrganization = async () => {
+    const currentUser = await getUser();
+    if (currentUser) {
+      const { data, error } = await supabase
+        .from("organizationmembers")
+        .select("*")
+        .eq("userid", currentUser.user.id)
+        .eq("organizationid", organizationid);
+      if (!error && data.length > 0) {
+        handleInputChange("isMemberOfOrganization", true);
+      }
+    }
+  };
+
   const loadComments = async () => {
     const { data, error } = await fetchComments(postid);
     if (!error) {
-      handleInputChange("comments", data);
+      const convertedData = data.map(comment => {
+        const philippineTime = new Date(comment.created_at).toLocaleString('en-US', { timeZone: 'Asia/Manila' });
+        return { ...comment, created_at: philippineTime };
+      }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      handleInputChange("comments", convertedData);
     }
   };
 
   useEffect(() => {
     handleAuthorDetails();
     checkIsCurrentUserAuthor();
+    checkIsMemberOfOrganization();
     loadComments();
-  }, [authorid, postid]);
+
+    const commentsChannel = supabase.channel('posts')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'posts' },
+        (payload) => {
+          loadComments();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      commentsChannel.unsubscribe();
+    };
+  }, [authorid, postid, organizationid]);
 
   const handleDelete = async () => {
     handleInputChange("showDeleteModal", true);
@@ -79,8 +114,8 @@ const PostsCard = ({ post, postsData, setPostsData, startEdit }) => {
 
   const calculateTimeElapsed = () => {
     const currentTime = new Date();
-    const postTime = new Date(createdat);
-    const elapsedTime = currentTime - postTime;
+    const postTime = new Date(createdat).toLocaleString('en-US', { timeZone: 'Asia/Manila' });
+    const elapsedTime = currentTime - new Date(postTime);
     const minutes = Math.floor(elapsedTime / 60000);
     if (minutes < 1) return "Just now";
     if (minutes < 60) return `${minutes}m`;
@@ -89,6 +124,10 @@ const PostsCard = ({ post, postsData, setPostsData, startEdit }) => {
   };
 
   const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
+
+  if (privacylevel === "private" && !state.isMemberOfOrganization && !state.isCurrentUserAuthor) {
+    return null;
+  }
 
   return (
     <div className="relative w-full overflow-hidden">

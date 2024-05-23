@@ -2,12 +2,13 @@ import { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 import { createClient } from "@/lib/supabase/client";
 import { insertPost, updatePost } from "@/lib/posts";
 import { PhotoIcon, XCircleIcon, UserCircleIcon } from "@heroicons/react/24/solid";
 import { getUserProfileById } from "@/lib/userActions";
 import { useUser } from "@/context/UserContext";
+import 'react-toastify/dist/ReactToastify.css';
 
 const postSchema = z.object({
   content: z.string().min(1, "Content is required").max(500, "Content cannot exceed 500 characters"),
@@ -65,7 +66,7 @@ export default function PostsTextArea({ organizationid, postsData, setPostsData,
         .upload(fileName, file, { cacheControl: "3600", upsert: false });
 
       if (uploadResult) {
-        newPhotos.push(uploadResult.fullPath);
+        newPhotos.push(uploadResult.path);
       } else {
         console.error("Error uploading image:", error);
       }
@@ -97,8 +98,10 @@ export default function PostsTextArea({ organizationid, postsData, setPostsData,
       if (!error) {
         if (editingPost) {
           setPostsData(postsData.map(post => (post.postid === postResponse.postid ? postResponse : post)));
+          toast.success("Post updated successfully");
         } else {
           setPostsData([postResponse, ...postsData]);
+          toast.success("Post created successfully");
         }
         resetForm();
       } else {
@@ -134,7 +137,7 @@ export default function PostsTextArea({ organizationid, postsData, setPostsData,
               className="min-h-[150px] w-full bg-[#171717] text-white border border-[#3d3d3d] rounded-2xl p-3 resize-none focus:ring-0"
               placeholder="Write a post..."
             />
-            <div className="absolute bottom-2 right-2 text-[#3d3d3d] text-sm">
+            <div className="absolute bottom-2 right-2 text-[#bebebe] text-sm">
               {contentValue?.length || 0}/500
             </div>
           </div>
@@ -202,6 +205,7 @@ export default function PostsTextArea({ organizationid, postsData, setPostsData,
           ))}
         </div>
       </div>
+      <ToastContainer />
     </form>
   );
 }
