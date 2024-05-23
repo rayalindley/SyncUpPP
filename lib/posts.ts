@@ -3,13 +3,13 @@ import { createClient, getUser } from "@/lib/supabase/server";
 
 export async function insertPost(formData: any, organizationid: string) {
   const supabase = createClient();
-  // console.log("Retrieved organizationid:", organizationid); // Log the retrieved organizationid
+
   try {
     const insertValues = {
       content: formData.content,
       organizationid: organizationid,
       privacylevel: formData.privacyLevel,
-      postphoto: formData.postphoto,
+      postphotos: formData.postphotos || [], // Ensure this is an array
     };
 
     const { data, error } = await supabase.from("posts").insert([insertValues]).select().single();
@@ -28,6 +28,7 @@ export async function insertPost(formData: any, organizationid: string) {
     };
   }
 }
+
 
 export async function fetchPosts(
   organizationid: string,

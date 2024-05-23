@@ -1,13 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import PostsCard from "./posts_card";
 import PostsTextArea from "./posts_textarea";
 import { fetchPosts } from "@/lib/posts";
 import { ArrowLongLeftIcon, ArrowLongRightIcon } from "@heroicons/react/20/solid";
 import Divider from "./divider";
+import { createClient } from "@/lib/supabase/client";
+import { toast, ToastContainer } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
 
 const OrganizationPostsComponent = ({ organizationid, posts }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [postsData, setPostsData] = useState(posts);
+  const [editingPost, setEditingPost] = useState(null);
+  const postsTextAreaRef = useRef(null); // Create a ref for the PostsTextArea
 
   const postsPerPage = 3;
 
@@ -18,14 +23,51 @@ const OrganizationPostsComponent = ({ organizationid, posts }) => {
         setPostsData(data);
       } else {
         console.error("Error fetching posts:", error);
+        toast.error("Error fetching posts. Please try again later.");
       }
     };
     fetchData();
   }, [organizationid, currentPage]);
 
+  useEffect(() => {
+    if (editingPost && postsTextAreaRef.current) {
+      const element = postsTextAreaRef.current;
+      const offset = element.getBoundingClientRect().top + window.pageYOffset - (window.innerHeight / 2) + (element.clientHeight / 2);
+      window.scrollTo({ top: offset, behavior: "smooth" });
+    }
+  }, [editingPost]);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.channel('posts')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'posts' },
+        async (payload) => {
+          const { data, error } = await fetchPosts(organizationid, currentPage, postsPerPage);
+          if (!error) {
+            setPostsData(data);
+          } else {
+            console.error("Error fetching posts:", error);
+            toast.error("Error fetching posts. Please try again later.");
+          }
+        }
+      )
+      .subscribe();
+
+  }, [organizationid, currentPage]);
+
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
   const isFirstPage = currentPage === 1;
   const isLastPage = postsData.length < postsPerPage;
+
+  const startEdit = (post) => {
+    setEditingPost(post);
+  };
+
+  const cancelEdit = () => {
+    setEditingPost(null);
+  };
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -33,23 +75,29 @@ const OrganizationPostsComponent = ({ organizationid, posts }) => {
         <h2 className="mb-8 text-center text-2xl font-semibold text-light">
           Organization Posts
         </h2>
-        <div>
+        <div ref={postsTextAreaRef}> {/* Add ref to the PostsTextArea container */}
           <PostsTextArea
             organizationid={organizationid}
             postsData={postsData}
             setPostsData={setPostsData}
+            editingPost={editingPost}
+            cancelEdit={cancelEdit}
+            setEditingPost={setEditingPost} // Pass the setEditingPost function
           />
         </div>
-
         <div className="isolate max-w-6xl lg:max-w-none">
           {postsData.map((post, index) => (
             <div key={index} className="mx-auto">
-              <PostsCard post={post} setPostsData={setPostsData} postsData={postsData} />
+              <PostsCard
+                post={post}
+                setPostsData={setPostsData}
+                postsData={postsData}
+                startEdit={startEdit}
+              />
               {index !== postsData.length - 1 && <Divider />}
             </div>
           ))}
         </div>
-
         {/* Pagination */}
         <div className="mt-2 w-full">
           <nav className="flex items-center justify-between border-t border-gray-200 px-4 sm:px-0">
@@ -105,6 +153,7 @@ const OrganizationPostsComponent = ({ organizationid, posts }) => {
           </nav>
         </div>
       </div>
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
     </div>
   );
 };
