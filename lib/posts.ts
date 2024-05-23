@@ -29,19 +29,13 @@ export async function insertPost(formData: any, organizationid: string) {
   }
 }
 
-
-export async function fetchPosts(
-  organizationid: string,
-  currentPage: number,
-  postsPerPage: number
-) {
+export async function fetchPosts(organizationid: string) {
   const supabase = createClient();
   try {
     const { data, error } = await supabase
       .from("posts")
       .select("*")
       .eq("organizationid", organizationid)
-      .range(currentPage * postsPerPage - postsPerPage, currentPage * postsPerPage)
       .order("createdat", { ascending: false });
 
     if (!error) {
@@ -57,6 +51,27 @@ export async function fetchPosts(
     };
   }
 }
+
+
+// lib/posts.ts
+
+export const checkIsMemberOfOrganization = async (organizationid: string) => {
+  const supabase = createClient();
+  const currentUser = await getUser();
+
+  if (currentUser) {
+    const { data, error } = await supabase
+      .from("organizationmembers")
+      .select("*")
+      .eq("userid", currentUser.user?.id)
+      .eq("organizationid", organizationid);
+      
+    if (!error && data.length > 0) {
+      return true;
+    }
+  }
+  return false;
+};
 
 
 export async function updatePost(updatedPost: {

@@ -1,9 +1,9 @@
+import React, { useState, useEffect, useCallback, memo } from "react";
 import { PencilIcon, TrashIcon, UserCircleIcon } from "@heroicons/react/24/solid";
-import { useState, useEffect } from "react";
 import { Carousel } from "react-responsive-carousel";
 import "react-responsive-carousel/lib/styles/carousel.min.css";
-import { updatePost, deletePost, getAuthorDetails } from "@/lib/posts";
-import { getUser, createClient } from "@/lib/supabase/client";
+import { deletePost, getAuthorDetails } from "@/lib/posts";
+import { getUser } from "@/lib/supabase/client";
 import Comments from "./comments";
 import { fetchComments } from "@/lib/comments";
 
@@ -29,44 +29,27 @@ const PostsCard = ({ post, postsData, setPostsData, startEdit }) => {
     },
     isCurrentUserAuthor: false,
     isLoading: false,
-    isMemberOfOrganization: false,
   });
-
-  const supabase = createClient();
 
   const handleInputChange = (key, value) => {
     setState((prevState) => ({ ...prevState, [key]: value }));
   };
 
-  const handleAuthorDetails = async () => {
+  const handleAuthorDetails = useCallback(async () => {
     const { first_name, last_name, profilepicture } = await getAuthorDetails(authorid);
     handleInputChange("authorDetails", {
       firstName: first_name,
       lastName: last_name,
       profilePicture: profilepicture,
     });
-  };
+  }, [authorid]);
 
-  const checkIsCurrentUserAuthor = async () => {
+  const checkIsCurrentUserAuthor = useCallback(async () => {
     const currentUser = await getUser();
     handleInputChange("isCurrentUserAuthor", currentUser?.user?.id === authorid);
-  };
+  }, [authorid]);
 
-  const checkIsMemberOfOrganization = async () => {
-    const currentUser = await getUser();
-    if (currentUser) {
-      const { data, error } = await supabase
-        .from("organizationmembers")
-        .select("*")
-        .eq("userid", currentUser.user.id)
-        .eq("organizationid", organizationid);
-      if (!error && data.length > 0) {
-        handleInputChange("isMemberOfOrganization", true);
-      }
-    }
-  };
-
-  const loadComments = async () => {
+  const loadComments = useCallback(async () => {
     const { data, error } = await fetchComments(postid);
     if (!error) {
       const convertedData = data
@@ -79,31 +62,15 @@ const PostsCard = ({ post, postsData, setPostsData, startEdit }) => {
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
       handleInputChange("comments", convertedData);
     }
-  };
+  }, [postid]);
 
   useEffect(() => {
     handleAuthorDetails();
     checkIsCurrentUserAuthor();
-    checkIsMemberOfOrganization();
     loadComments();
+  }, [handleAuthorDetails, checkIsCurrentUserAuthor, loadComments]);
 
-    const commentsChannel = supabase
-      .channel("posts")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "posts" },
-        (payload) => {
-          loadComments();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      commentsChannel.unsubscribe();
-    };
-  }, [authorid, postid, organizationid]);
-
-  const handleDelete = async () => {
+  const handleDelete = () => {
     handleInputChange("showDeleteModal", true);
   };
 
@@ -112,8 +79,7 @@ const PostsCard = ({ post, postsData, setPostsData, startEdit }) => {
     const { error } = await deletePost(postid, authorid);
 
     if (!error) {
-      const updatedPosts = postsData.filter((p) => p.postid !== postid);
-      setPostsData(updatedPosts);
+      setPostsData((prevPosts) => prevPosts.filter((p) => p.postid !== postid));
       handleInputChange("showDeleteModal", false);
     } else {
       console.error("Error deleting post:", error);
@@ -130,7 +96,6 @@ const PostsCard = ({ post, postsData, setPostsData, startEdit }) => {
     const postTime = new Date(createdat);
     postTime.setHours(postTime.getHours() + 8);
     const elapsedTime = currentTime - postTime;
-    console.log(elapsedTime);
     const minutes = Math.floor(elapsedTime / 60000);
     if (minutes < 1) return "Just now";
     if (minutes < 60) return `${minutes}m`;
@@ -139,14 +104,6 @@ const PostsCard = ({ post, postsData, setPostsData, startEdit }) => {
   };
 
   const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
-
-  if (
-    privacylevel === "private" &&
-    !state.isMemberOfOrganization &&
-    !state.isCurrentUserAuthor
-  ) {
-    return null;
-  }
 
   return (
     <div className="relative w-full overflow-hidden">
@@ -254,4 +211,4 @@ const PostsCard = ({ post, postsData, setPostsData, startEdit }) => {
   );
 };
 
-export default PostsCard;
+export default memo(PostsCard);

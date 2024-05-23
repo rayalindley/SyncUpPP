@@ -1,17 +1,28 @@
 import { useState, useEffect } from "react";
-import { insertComment, updateComment, deleteComment, fetchComments } from "@/lib/comments";
+import {
+  insertComment,
+  updateComment,
+  deleteComment,
+  fetchComments,
+} from "@/lib/comments";
 import { getUserProfileById } from "@/lib/userActions";
 import { useUser } from "@/context/UserContext";
 import { createClient } from "@/lib/supabase/client";
 import { UserCircleIcon } from "@heroicons/react/24/solid";
 import { z } from "zod";
-import { toast, ToastContainer } from "react-toastify";
-import 'react-toastify/dist/ReactToastify.css';
 
 const commentSchema = z.object({
-  postid: z.string(),
-  authorid: z.string(),
-  comment: z.string().min(1, "Comment cannot be empty").max(100, "Comment cannot exceed 100 characters")
+  commentText: z
+    .string()
+    .min(1, "Comment cannot be empty")
+    .max(100, "Comment cannot exceed 100 characters"),
+});
+
+const editCommentSchema = z.object({
+  editingText: z
+    .string()
+    .min(1, "Comment cannot be empty")
+    .max(100, "Comment cannot exceed 100 characters"),
 });
 
 const Comments = ({ postid }) => {
@@ -23,12 +34,19 @@ const Comments = ({ postid }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState(null);
   const [charCount, setCharCount] = useState({ comment: 0, editing: 0 });
+  const [errors, setErrors] = useState({ commentText: "", editingText: "" });
 
   const { user } = useUser();
-  const supabaseStorageBaseUrl = "https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public/";
+  const supabaseStorageBaseUrl =
+    "https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public/";
 
-  useEffect(() => setCharCount({ ...charCount, comment: commentText.length }), [commentText]);
-  useEffect(() => setCharCount({ ...charCount, editing: editingText.length }), [editingText]);
+  useEffect(() => {
+    setCharCount({ ...charCount, comment: commentText.length });
+  }, [commentText]);
+
+  useEffect(() => {
+    setCharCount({ ...charCount, editing: editingText.length });
+  }, [editingText]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -65,9 +83,10 @@ const Comments = ({ postid }) => {
 
   const handleSubmit = async () => {
     try {
-      const formData = { postid, authorid: user?.id, comment: commentText };
-      commentSchema.parse(formData);
+      commentSchema.parse({ commentText });
+      setErrors({ ...errors, commentText: "" });
       setIsLoading(true);
+      const formData = { postid, authorid: user?.id, comment: commentText };
       const { data: newComment } = await insertComment(formData);
       setComments([
         ...comments,
@@ -81,40 +100,37 @@ const Comments = ({ postid }) => {
         },
       ]);
       setCommentText("");
-      toast.success("Comment added successfully!");
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message);
-      } else {
-        toast.error("Failed to add comment.");
-      }
-    } finally {
       setIsLoading(false);
+    } catch (e) {
+      if (e instanceof z.ZodError) {
+        setErrors({ ...errors, commentText: e.errors[0].message });
+      }
     }
   };
 
   const handleEdit = async () => {
     try {
-      const formData = { commentid: editingCommentId, comment: editingText };
-      commentSchema.pick({ comment: true }).parse(formData);
+      editCommentSchema.parse({ editingText });
+      setErrors({ ...errors, editingText: "" });
       setIsLoading(true);
-      const { data } = await updateComment(formData);
+      const { data } = await updateComment({
+        commentid: editingCommentId,
+        comment: editingText,
+      });
       setComments(
         comments.map((comment) =>
-          comment.commentid === editingCommentId ? { ...comment, comment: data.comment } : comment
+          comment.commentid === editingCommentId
+            ? { ...comment, comment: data.comment }
+            : comment
         )
       );
       setEditingCommentId(null);
       setEditingText("");
-      toast.success("Comment edited successfully!");
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message);
-      } else {
-        toast.error("Failed to edit comment.");
-      }
-    } finally {
       setIsLoading(false);
+    } catch (e) {
+      if (e instanceof z.ZodError) {
+        setErrors({ ...errors, editingText: e.errors[0].message });
+      }
     }
   };
 
@@ -125,7 +141,6 @@ const Comments = ({ postid }) => {
     setShowDeleteModal(false);
     setCommentToDelete(null);
     setIsLoading(false);
-    toast.success("Comment deleted successfully!");
   };
 
   const toPhilippineTime = (date) => new Date(new Date(date).getTime() + 8 * 60 * 60000);
@@ -146,35 +161,41 @@ const Comments = ({ postid }) => {
 
   return (
     <div className="mx-auto max-w-xl p-4">
-      <ToastContainer />
-      <div className="mb-4">
-        <textarea
-          value={commentText}
-          onChange={(e) => setCommentText(e.target.value)}
-          placeholder="Enter your comment..."
-          rows={commentText.length > 50 ? 3 : 1}
-          maxLength={100}
-          className="w-full resize-none rounded-lg border border-[#424242] bg-[#1c1c1c] p-2 text-sm leading-5 text-white caret-white"
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              handleSubmit();
-            }
-          }}
-        />
-        <div className="mt-2 text-right text-xs text-[#424242]">
-          {charCount.comment}/100
+      {user ? (
+        <div className="mb-4">
+          <textarea
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            placeholder="Enter your comment..."
+            rows={commentText.length > 50 ? 3 : 1}
+            maxLength={100}
+            className="w-full resize-none rounded-lg border border-[#424242] bg-[#1c1c1c] p-2 text-sm leading-5 text-white caret-white"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSubmit();
+              }
+            }}
+          />
+          {errors.commentText && (
+            <div className="mt-1 text-xs text-red-500">{errors.commentText}</div>
+          )}
+          <div className="mt-2 text-right text-xs text-[#424242]">
+            {charCount.comment}/100
+          </div>
+          <button
+            onClick={handleSubmit}
+            disabled={isLoading}
+            className={`mt-2 rounded-lg px-4 py-2 text-sm font-semibold ${
+              isLoading ? "cursor-not-allowed bg-[#424242]" : "bg-primary text-white"
+            }`}
+          >
+            Submit
+          </button>
         </div>
-        <button
-          onClick={handleSubmit}
-          disabled={isLoading}
-          className={`mt-2 rounded-lg px-4 py-2 text-sm font-semibold ${
-            isLoading ? "cursor-not-allowed bg-[#424242]" : "bg-primary text-white"
-          }`}
-        >
-          Submit
-        </button>
-      </div>
+      ) : (
+        <div className="mb-4 text-sm text-[#858585]">You must be logged in to comment.</div>
+      )}
       <div>
         {comments.length === 0 && isLoading ? (
           <div className="rounded-lg bg-[#171717] p-5 text-center text-white">
@@ -220,6 +241,11 @@ const Comments = ({ postid }) => {
                           }
                         }}
                       />
+                      {errors.editingText && (
+                        <div className="mt-1 text-xs text-red-500">
+                          {errors.editingText}
+                        </div>
+                      )}
                       <div className="mt-1 text-right text-xs text-[#424242]">
                         {charCount.editing}/100
                       </div>

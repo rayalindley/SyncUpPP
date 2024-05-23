@@ -4,7 +4,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast, ToastContainer } from "react-toastify";
 import { createClient } from "@/lib/supabase/client";
-import { insertPost, updatePost } from "@/lib/posts";
+import { insertPost, updatePost, checkIsMemberOfOrganization } from "@/lib/posts";
 import { PhotoIcon, XCircleIcon, UserCircleIcon } from "@heroicons/react/24/solid";
 import { getUserProfileById } from "@/lib/userActions";
 import { useUser } from "@/context/UserContext";
@@ -40,6 +40,7 @@ export default function PostsTextArea({
   const [isLoading, setIsLoading] = useState(false);
   const [photos, setPhotos] = useState([]);
   const [profilePicture, setProfilePicture] = useState(null);
+  const [isMember, setIsMember] = useState(false);
 
   useEffect(() => {
     if (editingPost) {
@@ -66,6 +67,16 @@ export default function PostsTextArea({
     };
     fetchUserProfile();
   }, [user]);
+
+  useEffect(() => {
+    const checkMembership = async () => {
+      if (organizationid) {
+        const isMember = await checkIsMemberOfOrganization(organizationid);
+        setIsMember(isMember);
+      }
+    };
+    checkMembership();
+  }, [organizationid]);
 
   const handleFileChange = async (event) => {
     const files = Array.from(event.target.files);
@@ -133,6 +144,10 @@ export default function PostsTextArea({
   };
 
   const contentValue = watch("content");
+
+  if (!isMember) {
+    return null;
+  }
 
   return (
     <form
@@ -247,3 +262,4 @@ export default function PostsTextArea({
     </form>
   );
 }
+
