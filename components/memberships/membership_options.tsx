@@ -28,13 +28,14 @@ export default function MembershipOptions({
   selectedTier,
   open,
   setOpen,
-  TierMembers
+  TierMembers,
 }: {
   selectedTier: any;
   open: boolean;
   setOpen: any;
   TierMembers: any;
-}) { console.log(selectedTier.membershipid)
+}) {
+  // console.log(selectedTier.membershipid)
   const deleteBtn = () => {
     Swal.fire({
       title: "Are you sure?",
@@ -48,7 +49,7 @@ export default function MembershipOptions({
       if (result.isConfirmed) {
         const response = await deleteMembership(selectedTier.membershipid);
 
-        console.log(selectedTier.membershipid)
+        // console.log(selectedTier.membershipid)
 
         if (!response.error) {
           Swal.fire({
@@ -202,17 +203,19 @@ export default function MembershipOptions({
                         <table className="w-full table-auto ">
                           <tbody>
                             <tr>
-                              <td className="p-2 font-bold text-gray-400">Organization:</td>
+                              <td className="p-2 font-bold text-gray-400">
+                                Organization:
+                              </td>
                               <td className="p-2">{selectedTier.orgname}</td>
                             </tr>
                             <tr>
-                              <td className="p-2 font-bold text-gray-400">
-                                Membership:
-                              </td>
+                              <td className="p-2 font-bold text-gray-400">Membership:</td>
                               <td className="p-2">{selectedTier.membershipname}</td>
                             </tr>
                             <tr>
-                              <td className="p-2 font-bold text-gray-400">Description:</td>
+                              <td className="p-2 font-bold text-gray-400">
+                                Description:
+                              </td>
                               <td className="p-2">{selectedTier.description}</td>
                             </tr>
                             <tr>
@@ -222,26 +225,28 @@ export default function MembershipOptions({
                               <td className="p-2">{selectedTier.registrationfee}</td>
                             </tr>
                             <tr>
-                              <td className="p-2 font-bold text-gray-400 align-top">Features:</td>
+                              <td className="p-2 align-top font-bold text-gray-400">
+                                Features:
+                              </td>
                               <td className="p-2">
-                              <ul className="list-disc list-inside">
-                                {selectedTier.features ? (
+                                <ul className="list-inside list-disc">
+                                  {selectedTier.features ? (
                                     selectedTier.features.map((feature, index) => (
                                       <li key={index}>{feature}</li>
                                     ))
                                   ) : (
                                     <a>N/A</a>
                                   )}
-                                  </ul>
+                                </ul>
                               </td>
                             </tr>
                             <tr>
                               <td className="p-2 font-bold text-gray-400">Size:</td>
                               <td className="p-2">
                                 {selectedTier.membership_count === 0
-                                  ? '0 members'
+                                  ? "0 members"
                                   : `${selectedTier.membership_count} 
-                                  ${selectedTier.membership_count === 1 ? 'member' : 'members'}`}
+                                  ${selectedTier.membership_count === 1 ? "member" : "members"}`}
                               </td>
                             </tr>
                           </tbody>
@@ -271,21 +276,35 @@ export default function MembershipOptions({
                         <div className="mt-5">
                           {TierMembers.length > 0 ? (
                             <>
-                              <h2 className="text-lg font-semibold text-light mb-2">Members:</h2>
+                              <h2 className="mb-2 text-lg font-semibold text-light">
+                                Members:
+                              </h2>
                               <table className="mt-5 min-w-full divide-y divide-[#525252]">
                                 <thead className="bg-charleston ">
                                   <tr>
-                                    <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-light sm:pl-6">First Name</th>
-                                    <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-light sm:pl-6">Last Name</th>
-                                    <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-light sm:pl-6">Join Date</th>
+                                    <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-light sm:pl-6">
+                                      First Name
+                                    </th>
+                                    <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-light sm:pl-6">
+                                      Last Name
+                                    </th>
+                                    <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-light sm:pl-6">
+                                      Join Date
+                                    </th>
                                   </tr>
                                 </thead>
                                 <tbody>
                                   {TierMembers.map((member: any, index: number) => (
                                     <tr key={index}>
-                                      <td className="py-3.5 pl-4 pr-3 text-left text-sm text-light sm:pl-6">{member.first_name}</td>
-                                      <td className="py-3.5 pl-4 pr-3 text-left text-sm text-light sm:pl-6">{member.last_name}</td>
-                                      <td className="py-3.5 pl-4 pr-3 text-left text-sm text-light sm:pl-6">{member.joindate}</td>
+                                      <td className="py-3.5 pl-4 pr-3 text-left text-sm text-light sm:pl-6">
+                                        {member.first_name}
+                                      </td>
+                                      <td className="py-3.5 pl-4 pr-3 text-left text-sm text-light sm:pl-6">
+                                        {member.last_name}
+                                      </td>
+                                      <td className="py-3.5 pl-4 pr-3 text-left text-sm text-light sm:pl-6">
+                                        {member.joindate}
+                                      </td>
                                     </tr>
                                   ))}
                                 </tbody>
@@ -295,7 +314,6 @@ export default function MembershipOptions({
                             <p className="text-light">There are no members.</p>
                           )}
                         </div>
-
                       </div>
                     </div>
                   </Dialog.Panel>

@@ -147,3 +147,54 @@ export async function updateMembership(membershipId: string, formData: any) {
     return { data: null, error: { message: e.message || 'An unexpected error occurred' } };
   }
 }
+
+export async function fetchOrgMemBySlug(slug: string | string[]) {
+  const supabase = createClient();
+  let { data: org_memberships, error } = await supabase
+  .from('organization_memberships')
+  .select('*')
+  .eq('slug', slug)
+
+  if (error) {
+    console.error('Failed to fetch memberships:', error.message);
+    return []; 
+  }
+
+  return org_memberships || []; 
+}
+
+export async function fetchMembersBySlug(slug: string) {
+  const supabase = createClient();
+  try {
+    const { data: org, error: orgError } = await supabase
+      .from('organizations')
+      .select('organizationid')
+      .eq('slug', slug)
+      .single();
+
+    if (orgError) {
+      console.error('Failed to fetch organization:', orgError.message);
+      return [];
+    }
+
+    if (!org) {
+      console.error('Organization not found with slug:', slug);
+      return [];
+    }
+
+    const { data: members, error: memberError } = await supabase
+      .from('user_membership_info')
+      .select('*')
+      .eq('organizationid', org.organizationid);
+
+    if (memberError) {
+      console.error('Failed to fetch members:', memberError.message);
+      return [];
+    }
+
+    return members || [];
+  } catch (e: any) {
+    console.error('Unexpected error:', e);
+    return [];
+  }
+}

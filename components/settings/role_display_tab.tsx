@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { CirclePicker } from "react-color";
+import { useState, useEffect, ChangeEvent } from "react";
+import { CirclePicker, ColorResult } from "react-color";
 import * as z from "zod";
 
 // Zod schema for validation
@@ -11,11 +11,27 @@ const RoleSchema = z.object({
   color: z.string(),
 });
 
-export const RoleDisplay = ({ selectedRole, handleDeleteRole, handleSaveChanges }) => {
-  const [roleColor, setRoleColor] = useState(selectedRole.color || "Silver");
-  const [roleName, setRoleName] = useState(selectedRole.role);
-  const [hasChanges, setHasChanges] = useState(false);
-  const [errors, setErrors] = useState({ role: "" });
+type Role = {
+  role: string;
+  color: string;
+  deletable?: boolean;
+};
+
+type RoleDisplayProps = {
+  selectedRole: Role;
+  handleDeleteRole: (role: Role) => void;
+  handleSaveChanges: (role: Role) => void;
+};
+
+export const RoleDisplay = ({
+  selectedRole,
+  handleDeleteRole,
+  handleSaveChanges,
+}: RoleDisplayProps) => {
+  const [roleColor, setRoleColor] = useState<string>(selectedRole.color || "Silver");
+  const [roleName, setRoleName] = useState<string>(selectedRole.role);
+  const [hasChanges, setHasChanges] = useState<boolean>(false);
+  const [errors, setErrors] = useState<{ role: string }>({ role: "" });
 
   useEffect(() => {
     setRoleColor(selectedRole.color || "Silver");
@@ -24,12 +40,12 @@ export const RoleDisplay = ({ selectedRole, handleDeleteRole, handleSaveChanges 
     setErrors({ role: "" }); // Clear errors when a new role is selected
   }, [selectedRole]);
 
-  const handleColorChange = (color) => {
+  const handleColorChange = (color: ColorResult) => {
     setRoleColor(color.hex);
     setHasChanges(true);
   };
 
-  const handleNameChange = (event) => {
+  const handleNameChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { value } = event.target;
     if (value.length <= 20) {
       setRoleName(value);
@@ -47,8 +63,8 @@ export const RoleDisplay = ({ selectedRole, handleDeleteRole, handleSaveChanges 
       handleSaveChanges(updatedRole);
       setHasChanges(false);
       setErrors({ role: "" }); // Clear errors on successful save
-    } catch (e) {
-      const formattedErrors = e.errors.reduce((acc, curr) => {
+    } catch (e: any) {
+      const formattedErrors = e.errors.reduce((acc: any, curr: any) => {
         acc[curr.path[0]] = curr.message;
         return acc;
       }, {});

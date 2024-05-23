@@ -7,7 +7,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { StepsProvider } from "react-step-builder";
 import EditMembershipForm from "@/components/edit_membership_form";
-import CreateMembershipForm from "@/components/create_membership_form";
+import CreateMembershipForm from "@/components/memberships/create_membership_form";
 import { fetchMembershipById, getOrgMem } from "@/lib/memberships";
 
 export default function Example() {
@@ -29,7 +29,7 @@ export default function Example() {
           console.error(membershipResponse.error);
         } else {
           setMembership(membershipResponse.data);
-          console.log(membershipResponse.data);
+          // console.log(membershipResponse.data);
         }
       } catch (err) {
         console.error("Failed to fetch data:", err);
@@ -46,7 +46,7 @@ export default function Example() {
     return <div>Loading...</div>;
   }
 
-  console.log(membership);
+  // console.log(membership);
 
   
 

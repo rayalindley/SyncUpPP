@@ -5,8 +5,7 @@ import Header from "@/components/Header";
 import UserEvents from "@/components/user/user_events";
 import UserOrganizations from "@/components/user/user_organizations";
 import { fetchEventsForUser } from "@/lib/events";
-import { fetchOrganizationsForUser } from "@/lib/organization";
-import { getUser } from "@/lib/supabase/client";
+import { createClient, getUser } from "@/lib/supabase/client";
 import { Event, Organization, UserProfile } from "@/lib/types";
 import { updateUserProfileById } from "@/lib/userActions";
 import { PencilIcon } from "@heroicons/react/24/solid";
@@ -29,8 +28,10 @@ export default function ProfilePage() {
       const { user } = await getUser();
       setUser(user);
 
+      const supabase = createClient();
+
       if (user) {
-        const { data, error } = await updateUserProfileById(user.id, {});
+        const { data, error } = await updateUserProfileById(id, {});
         if (data) {
           setUserProfile(data);
         } else {
@@ -47,9 +48,11 @@ export default function ProfilePage() {
           console.error("Error fetching user events:", eventsError);
         }
 
-        // Fetch user organizations
-        const { data: organizationsData, error: organizationsError } =
-          await fetchOrganizationsForUser(user.id);
+        // Fetch user organizations using summary
+        const { data: organizationsData, error: organizationsError } = await supabase
+          .from("organization_summary")
+          .select("*")
+          .eq("adminid", user.id);
         if (organizationsData) {
           setUserOrganizations(organizationsData);
         } else {
@@ -79,18 +82,28 @@ export default function ProfilePage() {
   // Define the base URL for your Supabase storage bucket
   const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
 
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName.charAt(0)}${lastName.charAt(0)}`;
+  };
+
   return (
     <>
-      <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-6 lg:px-8">
+      <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-6 lg:px-4">
         <Header user={user} />
         <main className="flex min-h-full flex-1 flex-col items-center justify-center bg-eerieblack px-6 py-12 lg:px-8">
           {userProfile && (
             <div className="text-center">
-              <img
-                src={`${supabaseStorageBaseUrl}/${userProfile.profilepicture}`}
-                alt="Profile"
-                className="mx-auto h-32 w-32 rounded-full object-cover"
-              />
+              {userProfile.profilepicture ? (
+                <img
+                  src={`${supabaseStorageBaseUrl}/${userProfile.profilepicture}`}
+                  alt="Profile"
+                  className="mx-auto h-32 w-32 rounded-full object-cover"
+                />
+              ) : (
+                <div className="mx-auto flex h-32 w-32 items-center justify-center rounded-full bg-gray-500 text-5xl font-bold text-white">
+                  {getInitials(userProfile.first_name ?? "", userProfile.last_name ?? "")}
+                </div>
+              )}
               <div className="mt-4 flex items-center justify-center space-x-2">
                 <h1 className="text-2xl font-bold text-white">
                   {userProfile.first_name} {userProfile.last_name}

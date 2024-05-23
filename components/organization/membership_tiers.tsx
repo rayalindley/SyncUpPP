@@ -15,7 +15,7 @@ function classNames(...classes: string[]) {
 }
 
 const MembershipTiers: React.FC<MembershipsProps> = ({ memberships, userid }) => {
-  console.log("The view component membership ", memberships);
+  // console.log("The view component membership ", memberships);
 
   const [userMemberships, setUserMemberships] = useState<string[]>([]);
   useEffect(() => {
@@ -28,7 +28,7 @@ const MembershipTiers: React.FC<MembershipsProps> = ({ memberships, userid }) =>
         .from("organizationmembers")
         .select("membershipid")
         .eq("userid", userid);
-      
+
       if (error) {
         console.error("Error fetching user memberships: ", error);
         toast.error("Error fetching user memberships. Please try again later.");
@@ -36,7 +36,8 @@ const MembershipTiers: React.FC<MembershipsProps> = ({ memberships, userid }) =>
       }
 
       // Extract membership IDs from data
-      const userMemberships = userMembershipsData?.map((membership: any) => membership.membershipid) || [];
+      const userMemberships =
+        userMembershipsData?.map((membership: any) => membership.membershipid) || [];
       setUserMemberships(userMemberships);
     } catch (error) {
       console.error("Error: ", error);
@@ -47,7 +48,6 @@ const MembershipTiers: React.FC<MembershipsProps> = ({ memberships, userid }) =>
   const handleBuyPlan = useCallback(
     async (membershipId: string, organizationId: string) => {
       try {
-
         if (userMemberships.includes(membershipId)) {
           // If user already has the membership, notify and return
           toast.warning("You already have this membership.");
@@ -55,37 +55,37 @@ const MembershipTiers: React.FC<MembershipsProps> = ({ memberships, userid }) =>
         }
 
         const { data: rolesData, error: rolesError } = await supabase
-        .from("organization_roles")
-        .select("role_id")
-        .eq("org_id", organizationId)
-        .eq("role", "User")
-        .single();
-      
-  
-      if (rolesError) {
-        console.error("Error fetching role ID: ", rolesError);
-        return;
-      }
-      
-      const defaultRoleId = rolesData?.role_id;
+          .from("organization_roles")
+          .select("role_id")
+          .eq("org_id", organizationId)
+          .eq("role", "User")
+          .single();
 
-        const { data, error } = await supabase
-          .from("organizationmembers")
-          .insert([
-            {
-              userid: userid,
-              membershipid: membershipId,
-              organizationid: organizationId,
-              roleid: defaultRoleId,
-            },
-          ]);
+        if (rolesError) {
+          console.error("Error fetching role ID: ", rolesError);
+          return;
+        }
+
+        const defaultRoleId = rolesData?.role_id;
+
+        const { data, error } = await supabase.from("organizationmembers").insert([
+          {
+            userid: userid,
+            membershipid: membershipId,
+            organizationid: organizationId,
+            roleid: defaultRoleId,
+          },
+        ]);
 
         if (error) {
           console.error("Error inserting data: ", error);
         } else {
           toast.success("Congratulations! You've successfully purchased the membership.");
-          console.log("Data inserted successfully: ", data);
-          setUserMemberships(prevUserMemberships => [...prevUserMemberships, membershipId]);
+          // console.log("Data inserted successfully: ", data);
+          setUserMemberships((prevUserMemberships) => [
+            ...prevUserMemberships,
+            membershipId,
+          ]);
         }
       } catch (error) {
         console.error("Error: ", error);
@@ -130,7 +130,9 @@ const MembershipTiers: React.FC<MembershipsProps> = ({ memberships, userid }) =>
                     </p>
                   )}
                 </div>
-                <p className="mt-4 text-sm leading-6 text-light">{membership.description}</p>
+                <p className="mt-4 text-sm leading-6 text-light">
+                  {membership.description}
+                </p>
                 <p className="mt-6 flex items-baseline gap-x-1">
                   <span className="text-4xl font-bold tracking-tight text-light">
                     ${membership.registrationfee.toFixed(2)}
@@ -139,35 +141,48 @@ const MembershipTiers: React.FC<MembershipsProps> = ({ memberships, userid }) =>
                     /month
                   </span>
                 </p>
-                {membership.features && membership.features.some(feature => feature.trim() !== "") && (
-                  <ul role="list" className="mt-8 space-y-3 text-sm leading-6 text-light">
-                    {membership.features.map(feature => {
-                      if (feature.trim() !== "") {
-                        return (
-                          <li key={feature} className="flex gap-x-3">
-                            <CheckIcon className="h-6 w-5 flex-none text-primary" aria-hidden="true" />
-                            {feature}
-                          </li>
-                        );
-                      }
-                      return null;
-                    })}
-                  </ul>
-                )}
+                {membership.features &&
+                  membership.features.some((feature) => feature.trim() !== "") && (
+                    <ul
+                      role="list"
+                      className="mt-8 space-y-3 text-sm leading-6 text-light"
+                    >
+                      {membership.features.map((feature) => {
+                        if (feature.trim() !== "") {
+                          return (
+                            <li key={feature} className="flex gap-x-3">
+                              <CheckIcon
+                                className="h-6 w-5 flex-none text-primary"
+                                aria-hidden="true"
+                              />
+                              {feature}
+                            </li>
+                          );
+                        }
+                        return null;
+                      })}
+                    </ul>
+                  )}
               </div>
               <button
-                onClick={() => handleBuyPlan(membership.membershipid, membership.organizationid)}
+                onClick={() =>
+                  handleBuyPlan(membership.membershipid, membership.organizationid)
+                }
                 aria-describedby={membership.membershipid}
                 className={classNames(
                   membership.mostPopular
                     ? "bg-primary text-white shadow-sm hover:bg-primarydark"
                     : "text-primarydark ring-1 ring-inset ring-primarydark hover:text-primary hover:ring-primary",
-                  userMemberships.includes(membership.membershipid) ? "bg-gray-300 cursor-not-allowed" : "hover:bg-primarydark",
-                  "mt-8 block rounded-md px-3 py-2 text-center text-sm font-semibold leading-6",
+                  userMemberships.includes(membership.membershipid)
+                    ? "cursor-not-allowed bg-gray-300"
+                    : "hover:bg-primarydark",
+                  "mt-8 block rounded-md px-3 py-2 text-center text-sm font-semibold leading-6"
                 )}
                 disabled={userMemberships.includes(membership.membershipid)}
               >
-                {userMemberships.includes(membership.membershipid) ? "Already Purchased" : "Buy Plan"}
+                {userMemberships.includes(membership.membershipid)
+                  ? "Already Purchased"
+                  : "Buy Plan"}
               </button>
             </div>
           ))}
@@ -177,7 +192,6 @@ const MembershipTiers: React.FC<MembershipsProps> = ({ memberships, userid }) =>
       <ToastContainer position="bottom-right" autoClose={3000} />
     </div>
   );
-  
 };
 
 export default MembershipTiers;

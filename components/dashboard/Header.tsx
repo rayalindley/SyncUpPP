@@ -1,35 +1,35 @@
 "use client";
 import { signOut } from "@/lib/auth";
-import { Menu, Transition } from "@headlessui/react";
-import { ChevronDownIcon, MagnifyingGlassIcon } from "@heroicons/react/20/solid";
-import { formatDistanceToNow } from "date-fns";
-import { UserProfile } from "@/lib/types";
-import { getUserProfileById } from "@/lib/userActions";
-import useSidebarStore from "@/store/useSidebarStore";
-import { Bars3Icon, BellIcon } from "@heroicons/react/24/outline";
-import { type User } from "@supabase/supabase-js";
-import Link from "next/link";
 import {
   fetchNotifications,
   markAllAsRead,
   markNotificationAsRead,
 } from "@/lib/notifications";
-import {
-  CalendarIcon,
-  ExclamationCircleIcon,
-  UserIcon,
-  CurrencyDollarIcon,
-  HandRaisedIcon,
-} from "@heroicons/react/24/outline";
 import { createClient } from "@/lib/supabase/client";
-import { Fragment, useState, useEffect, useRef } from "react";
+import { UserProfile } from "@/lib/types";
+import { getUserProfileById } from "@/lib/userActions";
+import useSidebarStore from "@/store/useSidebarStore";
+import { Menu, Transition } from "@headlessui/react";
+import { ChevronDownIcon } from "@heroicons/react/20/solid";
+import {
+  Bars3Icon,
+  BellIcon,
+  CalendarIcon,
+  CurrencyDollarIcon,
+  ExclamationCircleIcon,
+  HandRaisedIcon,
+  UserIcon,
+} from "@heroicons/react/24/outline";
+import { type User } from "@supabase/supabase-js";
+import { formatDistanceToNow } from "date-fns";
+import Link from "next/link";
+import { Fragment, useEffect, useRef, useState } from "react";
 
 function classNames(...classes: any[]) {
   return classes?.filter(Boolean).join(" ");
 }
 
 function Header({ user }: { user: User }) {
-  console.log(user);
   const notificationLinkRef = useRef(null);
 
   const { sidebarOpen, setSidebarOpen } = useSidebarStore((state) => ({

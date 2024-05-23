@@ -1,7 +1,7 @@
-import StatisticsSection from "@/components/dashboard/StatisticsSection";
 import OrganizationsSection from "@/components/dashboard/OrganizationsSection";
+import StatisticsSection from "@/components/dashboard/StatisticsSection";
 
-import { getUser, createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 
 export default async function DashboardPage() {
   const { user } = await getUser();
@@ -11,7 +11,7 @@ export default async function DashboardPage() {
     user_uuid: user?.id,
   });
 
-  console.log(organizations, error);
+  // console.log(organizations, error);
 
   return (
     <>

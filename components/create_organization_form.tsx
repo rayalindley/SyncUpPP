@@ -50,7 +50,7 @@ const ORGANIZATION_SIZES = [
   "501-1000 employees",
   "1000+ employees",
 ] as const;
-const COUNTRIES = countries.map((x) => x.name);
+const COUNTRIES = countries.map((x) => x.name) as [string, ...string[]];
 
 interface OrganizationFormValues {
   name: string;
@@ -95,7 +95,6 @@ const OrganizationSchema = z.object({
   twitterLink: z.string().url("Invalid URL format").optional().or(z.literal("")),
   linkedinLink: z.string().url("Invalid URL format").optional().or(z.literal("")),
 });
-
 const datepicker_options = {
   title: "Calendar",
   autoHide: true,
@@ -168,12 +167,10 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
 
-  const SUPABASE_URL = "https://wnvzuxgxaygkrqzvwjjd.supabase.co"; // Replace with your actual Supabase URL
-  const SUPABASE_BUCKET = "public"; // Replace with your actual bucket name
-
-  const getImageUrl = (path) => {
-    return `${SUPABASE_URL}/storage/v1/object/${SUPABASE_BUCKET}/${path}`;
+  const getImageUrl = (path: string): string => {
+    return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${path}`;
   };
+
   const {
     register,
     handleSubmit,
@@ -318,7 +315,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
           });
 
         if (photoUploadResult) {
-          formData.photo = photoUploadResult.fullPath;
+          formData.photo = `organization-photos/${photoUploadResult.path}`;
         } else {
           console.error("Error uploading image:", photoError);
           toast.error("Error uploading image. Please try again.");
@@ -338,7 +335,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
           });
 
         if (bannerUploadResult) {
-          formData.banner = bannerUploadResult.fullPath;
+          formData.banner = `organization-banners/${bannerUploadResult.path}`;
         } else {
           console.error("Error uploading banner:", bannerError);
           toast.error("Error uploading banner. Please try again.");
@@ -384,7 +381,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
             progress: undefined,
             theme: "light",
           });
-          console.log(formData);
+          // console.log(formData);
           router.push("/dashboard");
           reset();
         } else if (error) {
@@ -392,8 +389,9 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
         }
       }
     } catch (error) {
+      const err = error as { message: string };
       if (
-        error.message.includes(
+        err.message.includes(
           'duplicate key value violates unique constraint "organizations_slug_key"'
         )
       ) {
@@ -401,7 +399,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
         toast.error("Slug is already taken. Please choose another.");
       } else {
         toast.error(
-          error.message || "An error occurred while processing the organization."
+          err.message || "An error occurred while processing the organization."
         );
       }
     }
@@ -412,7 +410,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
   // Date Picker
   const [show, setShow] = useState<boolean>(false);
   const handleChange = (selectedDate: Date) => {
-    console.log(selectedDate);
+    // console.log(selectedDate);
   };
   const handleClose = (state: boolean) => {
     setShow(state);
@@ -542,7 +540,8 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                   {...register("name")}
                   onKeyUp={(e) => {
                     if (!formValues) {
-                      const slugValue = slugify(e.target.value);
+                      const target = e.target as HTMLInputElement;
+                      const slugValue = slugify(target.value);
                       setValue("slug", slugValue);
                     }
                   }}

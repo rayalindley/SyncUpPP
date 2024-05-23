@@ -12,11 +12,11 @@ export default async function Home() {
 
   const supabase = createClient();
   const { data: organizations, error } = await supabase
-    .from("organizations")
+    .from("organization_summary")
     .select("*")
     .range(0, 2);
 
-  console.log(organizations, error);
+  // console.log(organizations, error);
 
   return (
     <div className="bg-eerieblack">

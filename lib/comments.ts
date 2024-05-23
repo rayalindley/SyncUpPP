@@ -101,7 +101,7 @@ export async function deleteComment(commentid: string, authorid: string) {
     // Check if the current user is the author of the comment
     if (comment.authorid !== authorid) {
       console.error("Unauthorized: Only the author can delete this comment");
-      return { data: null, error: { message: "Unauthorized: Only the author can delete this comment" } };
+      return { data: null, error: { message: `Unauthorized: Only the author can delete this comment` } };
     }
 
     // Delete the comment if the current user is the author

@@ -1,5 +1,5 @@
 "use client";
-import CreateMembershipForm from "@/components/create_membership_form";
+import CreateMembershipForm from "@/components/memberships/create_membership_form";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { useRouter } from "next/navigation";
 import { StepsProvider } from "react-step-builder";

@@ -1,8 +1,6 @@
 "use client";
-import CreateMembershipForm from "@/components/memberships/create_membership_form";
 import CreateOrganizationForm from "@/components/create_organization_form";
 import { fetchOrganizationBySlug } from "@/lib/organization";
-import { createClient } from "@/lib/supabase/client";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -13,37 +11,27 @@ export default function Example() {
 
   const { slug } = useParams();
 
-  const [organization, setOrganization] = useState(null);
+  const [formValues, setFormValues] = useState(null);
   const [error, setError] = useState(null);
-const [showModal, setShowModal] = useState(false);
-  
-  useEffect(() => {
-    const fetchOrganization = async () => {
-      try {
-        const { data, error } = await fetchOrganizationBySlug(slug);
-        if (error) {
-          setError(error);
-          console.error(error);
-        } else {
-          setOrganization(data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch organization:", err);
-        setError(err.message);
-      }
-    };
 
+  useEffect(() => {
     if (slug) {
-      fetchOrganization();
+      (async () => {
+        try {
+          const { data, error } = await fetchOrganizationBySlug(slug);
+          if (error) {
+            setError(error);
+            console.error(error);
+          } else {
+            setFormValues(data);
+          }
+        } catch (err) {
+          console.error("Failed to fetch organization:", err);
+          setError(err.message);
+        }
+      })();
     }
   }, [slug]);
-
-  if (!organization) {
-    return <div>Loading...</div>;
-  }
-
-
-  
 
   return (
     <>
@@ -60,15 +48,24 @@ const [showModal, setShowModal] = useState(false);
         <div className="sm:mx-auto sm:w-full sm:max-w-sm">
           <img className="mx-auto h-10 w-auto" src="/Symbian.png" alt="SyncUp" />
           <h2 className="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-white">
-            Create a Membership
+            Editing Organization
           </h2>
         </div>
 
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-lg">
           <StepsProvider>
-            {/* <CreateOrganizationForm formValues={formValues} /> */}
-            <CreateMembershipForm organizationId={organization.organizationid} />
+            <CreateOrganizationForm formValues={formValues} />
           </StepsProvider>
+
+          <p className="mt-10 text-center text-sm text-gray-400">
+            Not a member?{" "}
+            <a
+              href="#"
+              className="font-semibold leading-6 text-primarydark hover:text-primary"
+            >
+              Start a 14 day free trial
+            </a>
+          </p>
         </div>
       </div>
     </>

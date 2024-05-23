@@ -1,7 +1,4 @@
 "use server";
-import { redirect } from "next/navigation";
-import { headers } from "next/headers";
-import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { UserProfile } from "./types";
 
@@ -105,7 +102,7 @@ export async function updateUserProfileById(
     });
 
     if (!error && data) {
-      console.log("User profile updated successfully");
+      // console.log("User profile updated successfully");
       return { data: data[0], error: null }; // Assuming the data returned is an array and we need the first object.
     } else {
       console.error("Error updating user profile:", error);
@@ -138,6 +135,31 @@ export async function getUserEmailById(
       return { data: data[0], error: null }; // Assuming the data returned is an array and we need the first object.
     } else {
       return { data: null, error: error || { message: "No data found" } };
+    }
+  } catch (e: any) {
+    console.error("Unexpected error:", e);
+    return {
+      data: null,
+      error: { message: e.message || "An unexpected error occurred" },
+    };
+  }
+}
+
+// a function to get user by id
+export async function getUserById(userId: string) {
+  const supabase = createClient();
+
+  try {
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", userId)
+      .single(); // Use .single() to return only one record
+
+    if (!error && data) {
+      return { data, error: null };
+    } else {
+      return { data: null, error: { message: error?.message || "User not found" } };
     }
   } catch (e: any) {
     console.error("Unexpected error:", e);

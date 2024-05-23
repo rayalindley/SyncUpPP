@@ -1,4 +1,5 @@
 "use client";
+import { Organization } from "@/lib/types";
 import OrganizationCard from "./app/OrganizationCard";
 
 const people = [
@@ -34,7 +35,7 @@ const people = [
   },
 ];
 
-export default function OrgSection({ organizations }) {
+export default function OrgSection({ organizations }: { organizations: Organization[] }) {
   return (
     <div className="bg-eerieblack py-14 sm:py-20">
       <div className="mx-auto max-w-2xl lg:text-center">
@@ -49,9 +50,9 @@ export default function OrgSection({ organizations }) {
           engagement. Click to explore and connect.
         </p>
       </div>
-      <div className="mx-auto max-w-7xl px-6 text-center lg:px-8">
+      <div className="mx-auto max-w-7xl px-6 text-left lg:px-8">
         <ul className="mx-auto mt-20 grid max-w-2xl grid-cols-1 gap-6 sm:grid-cols-2 lg:mx-0 lg:max-w-none lg:grid-cols-3 lg:gap-8">
-          {organizations.map((org) => (
+          {organizations.map((org: Organization) => (
             <OrganizationCard
               key={org.id}
               name={org.name}
@@ -59,6 +60,10 @@ export default function OrgSection({ organizations }) {
               organization_size={org.organization_size}
               photo={org.photo}
               slug={org.slug}
+              banner={org.banner}
+              total_members={org.total_members}
+              total_posts={org.total_posts}
+              total_events={org.total_events}
             />
           ))}
         </ul>

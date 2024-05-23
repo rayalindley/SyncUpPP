@@ -60,13 +60,15 @@ export type CombinedUserData = {
 };
 
 export interface Membership {
+  // membershipname: string;
+  name: string;
   membershipid: string;
   organizationid: string;
-  name: string;
   description: string;
   registrationfee: number;
-  features?: string[];
-  mostPopular?: boolean;
+  features: string[];
+  mostPopular: boolean;
+  yearlydiscount: number;
 }
 
 export interface MembershipsProps {
@@ -127,4 +129,7 @@ export interface Organization {
   banner: string;
   slug: string;
   socials: string[];
+  total_members: number;
+  total_posts: number;
+  total_events: number;
 }

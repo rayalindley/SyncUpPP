@@ -2,13 +2,13 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import TabsComponent from "@/components/organization/organization_view_tabs";
 import SocialIcons from "@/components/organization/social_icons";
-import { fetchPosts } from "@/lib/posts";
 import { fetchEvents } from "@/lib/events";
 import { getMemberships } from "@/lib/memberships";
+import { fetchPosts } from "@/lib/posts";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { InboxIcon, UserGroupIcon } from "@heroicons/react/24/outline";
-import { ToastContainer } from "react-toastify";
 import Link from "next/link";
+import { ToastContainer } from "react-toastify";
 
 const orgdata = [
   {
@@ -24,7 +24,7 @@ const orgdata = [
   },
 ];
 
-const getInitials = (name) => {
+const getInitials = (name: string): string => {
   const words = name.split(" ");
   if (words.length > 1) {
     return words[0][0] + words[1][0];
@@ -44,7 +44,7 @@ export default async function OrganizationUserView({
 
   const { slug } = params;
 
-  console.log("slug:", slug);
+  // console.log("slug:", slug);
 
   // ! GET Request on Get Organization by Slug, then display the data, pass it to the nested components
 
@@ -102,7 +102,7 @@ export default async function OrganizationUserView({
   // console.log("LinkedIn Link:", linkedinLink);
   // console.log("Org ID:", org.organizationid)
   // console.log("Memberships: ", memberships)
-  console.log(user?.id);
+  // console.log(user?.id)
 
   const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
 
@@ -134,8 +134,8 @@ export default async function OrganizationUserView({
                     style={{ objectFit: "cover" }}
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center rounded-lg bg-zinc-200">
-                    <span className="text-5xl text-zinc-800">
+                  <div className="flex h-full w-full items-center justify-center rounded-lg bg-zinc-700">
+                    <span className="text-5xl font-medium uppercase text-light">
                       {getInitials(org.name)}
                     </span>
                   </div>
