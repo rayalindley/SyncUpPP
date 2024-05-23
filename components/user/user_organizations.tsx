@@ -29,7 +29,7 @@ const UserOrganizations = ({ organizations }: { organizations: Organization[] })
           My Organizations
         </p>
       </div>
-      <div className="isolate mx-auto mt-8 grid max-w-lg grid-cols-1 gap-x-2 gap-y-8 text-left sm:mt-12 lg:mx-0 lg:max-w-none lg:grid-cols-3">
+      <div className="isolate mx-auto mt-8 grid max-w-lg grid-cols-1 gap-x-5 gap-y-8 text-left sm:mt-12 lg:mx-0 lg:max-w-none lg:grid-cols-3">
         {currentOrganizations.map((organization) => (
           <OrganizationCard
             key={organization.id}

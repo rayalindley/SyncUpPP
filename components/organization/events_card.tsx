@@ -9,6 +9,8 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Swal from "sweetalert2";
 
+import Link from "next/link";
+
 const EventsCard = ({ event }: { event: Event }) => {
   const {
     eventid,
@@ -147,8 +149,9 @@ const EventsCard = ({ event }: { event: Event }) => {
   };
 
   return (
-    <div
-      onClick={handleCardClick}
+    <Link
+      // onClick={handleCardClick}
+      href={`/e/${event.eventslug}`}
       className="mb-4 flex max-h-96 cursor-pointer flex-col overflow-hidden rounded-md bg-eerieblack  transition duration-100 hover:scale-[1.01] hover:bg-raisinblack
       md:w-64 lg:w-64"
     >
@@ -184,7 +187,7 @@ const EventsCard = ({ event }: { event: Event }) => {
           <span>{registeredCount} attendees</span>
         </div>
       </div>
-    </div>
+    </Link>
   );
 };
 

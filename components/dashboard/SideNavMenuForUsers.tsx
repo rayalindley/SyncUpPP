@@ -358,9 +358,9 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
                       </li>
                       {slug && (
                         <li className="">
-                          <hr className="my-2 border-t border-fadedgrey" />
+                          <hr className="my-4 border-t border-fadedgrey" />
                           <Link href={`/${slug}`}>
-                            <div className="group flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-light hover:bg-primarydark">
+                            <div className="border-1 rounded-md border border-primary bg-primarydark p-1 px-2 text-center text-sm text-gray-100 hover:cursor-pointer">
                               Visit Page
                             </div>
                           </Link>
@@ -577,9 +577,9 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
               </li>
               {slug && (
                 <li className="">
-                  <hr className="my-2 border-t border-fadedgrey" />
+                  <hr className="mb-5 border-t border-fadedgrey" />
                   <Link href={`/${slug}`}>
-                    <div className="group flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-light hover:bg-primarydark">
+                    <div className="border-1 rounded-md border border-primary bg-primarydark p-1 px-2 text-center text-sm text-gray-100 hover:cursor-pointer">
                       Visit Page
                     </div>
                   </Link>

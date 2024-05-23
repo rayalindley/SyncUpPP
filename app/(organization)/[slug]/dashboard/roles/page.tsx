@@ -16,7 +16,7 @@ import { FiPlus } from "react-icons/fi";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-import { Role } from "@/types/roles";
+import { Role, Member } from "@/types/roles";
 interface Permission {
   perm_id: string;
   name: string;

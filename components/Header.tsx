@@ -9,9 +9,9 @@ import Link from "next/link";
 import { Fragment, useEffect, useState } from "react";
 
 const navigation = [
-  { name: "Home", href: "#" },
+  { name: "Home", href: "/" },
   { name: "Features", href: "#features" },
-  { name: "Community", href: "#community" },
+  { name: "Community", href: "./organizations" },
   { name: "Pricing", href: "#pricing" },
   { name: "Contact Us", href: "#contactus" },
 ];
@@ -78,7 +78,7 @@ export default function Header({ user = null }: { user: User | null }) {
           {navigation.map((item) => (
             <Link
               key={item.name}
-              href={`#${item.href.substring(1)}`} // Update the href to only include the section ID
+              href={`${item.href}`} // Update the href to only include the section ID
               onClick={(e) => {
                 e.preventDefault(); // Prevent default link behavior
                 handleNavClick(item.href); // Call handleNavClick with the href

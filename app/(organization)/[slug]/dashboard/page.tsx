@@ -32,12 +32,6 @@ export default function SettingsPage() {
     }
   }, [slug]);
 
-  const handleEditOrg = () => {
-    if (slug) {
-      router.push(`/${slug}/dashboard/edit`);
-    }
-  };
-
   const handleDeleteOrg = async () => {
     const confirmResult = await Swal.fire({
       title: "Are you sure?",
@@ -74,15 +68,15 @@ export default function SettingsPage() {
   return (
     <div className="min-h-full flex-1 flex-col justify-center bg-eerieblack px-6 py-12  lg:px-8">
       <StatisticsSection />
-      <div className="mt-4 flex justify-center">
-        <button
-          className="mr-4 rounded-md bg-primary px-4 py-2 text-white hover:bg-primarydark"
-          onClick={handleEditOrg}
+      <div className="mt-4 flex gap-2">
+        <a
+          className="border-1 rounded-md border border-primary bg-primarydark p-1 px-2 text-sm  text-gray-100 hover:cursor-pointer"
+          href={`/${slug}/dashboard/edit`}
         >
-          Edit Org
-        </button>
+          Edit Organization
+        </a>
         <button
-          className="rounded-md bg-red-500 px-4 py-2 text-white"
+          className="border-1 rounded-md border border-red-500 bg-red-600 p-1 px-2  text-sm text-gray-100 hover:cursor-pointer"
           onClick={handleDeleteOrg}
         >
           Delete Org
