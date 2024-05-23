@@ -34,7 +34,8 @@ export default function MembershipOptions({
   open: boolean;
   setOpen: any;
   TierMembers: any;
-}) { console.log(selectedTier.membershipid)
+}) { 
+  console.log("TierMembers: ", TierMembers)
   const deleteBtn = () => {
     Swal.fire({
       title: "Are you sure?",

@@ -1,55 +1,50 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { createClient } from "@/lib/supabase/client";
 import { z } from "zod";
-
-interface MembershipTier {
-  name: string;
-  registrationfee: number;
-  description: string;
-  organizationid: string;
-  features: string[];
-}
+import { Membership } from "@/lib/types";
 
 const membershipSchema = z.object({
   name: z.string(),
   registrationfee: z.number()
-  .min(0, "Registration Fee cannot be negative")
-  .refine((value) => {
-    if (!Number.isFinite(value) || Math.abs(value) > Number.MAX_SAFE_INTEGER) {
-      throw new Error("Registration Fee is too large");
-    }
-    return true;
-  }),
+    .min(0, "Registration Fee cannot be negative")
+    .refine((value) => {
+      if (!Number.isFinite(value) || Math.abs(value) > Number.MAX_SAFE_INTEGER) {
+        throw new Error("Registration Fee is too large");
+      }
+      return true;
+    }),
   description: z.string(),
   organizationid: z.string(),
   features: z.array(z.string()).nonempty("At least one feature is required"),
 });
 
-const CreateMembershipForm = ({
-  organizationId,
-  membership,
-}: {
-  organizationId: string;
-  membership?: MembershipTier;
-}) => {
-  const initialFormData = membership
-    ? membership
-    : {
-        name: "",
-        registrationfee: 0,
-        description: "",
-        organizationid: organizationId,
-        features: [""],
-      };
+const CreateMembershipForm = ({ organizationId, membership }: { organizationId: string; membership?: Membership; }) => {
+  const initialFormData: Membership = {
+    name: "",
+    membershipid: "",
+    organizationid: organizationId,
+    description: "",
+    registrationfee: 0,
+    features: [""],
+    mostPopular: false,
+  };
 
-  const [formData, setFormData] = useState<MembershipTier>(initialFormData);
+  const [formData, setFormData] = useState<Membership>(initialFormData);
+
+  useEffect(() => {
+    if (membership) {
+      setFormData(membership);
+    } else {
+      setFormData(initialFormData);
+    }
+  }, [membership]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     const newValue = name === 'registrationfee' ? parseFloat(value) : value; // Parse registration fee as a number
-    setFormData((prevData) => ({
+    setFormData(prevData => ({
       ...prevData,
       [name]: newValue,
     }));
@@ -58,27 +53,61 @@ const CreateMembershipForm = ({
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      const validatedData = membershipSchema.parse(formData);
+      // Filter out empty or whitespace-only feature fields
+      const filteredFeatures = formData.features.filter(feature => feature.trim() !== "");
+  
+      // Update the formData with filtered features
+      const updatedFormData = { ...formData, features: filteredFeatures };
+  
+      const validatedData = membershipSchema.parse(updatedFormData);
       const supabase = createClient();
-      const { data, error } = await supabase.from("memberships").insert([validatedData]);
-      if (error) {
-        throw error;
+  
+      if (membership) {
+        // Update existing membership
+        const { data, error } = await supabase
+          .from("memberships")
+          .update(validatedData)
+          .eq("membershipid", membership.membershipid);
+  
+        if (error) {
+          throw error;
+        }
+  
+        toast.success("Membership updated successfully", {
+          position: "bottom-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        });
+  
+        console.log(data);
+      } else {
+        // Insert new membership
+        const { data, error } = await supabase.from("memberships").insert([validatedData]);
+  
+        if (error) {
+          throw error;
+        }
+  
+        toast.success("Membership created successfully", {
+          position: "bottom-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        });
+  
+        console.log(data);
+        setFormData(initialFormData);
       }
-      console.log(data); // Log the response from Supabase
-      toast.success("Membership created successfully", {
-        position: "bottom-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-      });
-      setFormData(initialFormData);
     } catch (error) {
-      console.error("Error creating membership:", error.message);
+      console.error("Error creating/updating membership:", error.message);
       if (error.message === "Registration Fee is too large") {
-        // Display a specific toast message for number overflow
         toast.error("The registration fee entered is too large", {
           position: "bottom-right",
           autoClose: 3000,
@@ -89,8 +118,7 @@ const CreateMembershipForm = ({
           progress: undefined,
         });
       } else {
-        // Display a generic error message for other errors
-        toast.error("Failed to create membership", {
+        toast.error("Failed to create/update membership", {
           position: "bottom-right",
           autoClose: 3000,
           hideProgressBar: false,
@@ -102,37 +130,30 @@ const CreateMembershipForm = ({
       }
     }
   };
-
+  
   const handleFeatureChange = (index: number, value: string) => {
     const newFeatures = [...formData.features];
     newFeatures[index] = value;
-    setFormData((prevData) => ({
+    setFormData(prevData => ({
       ...prevData,
       features: newFeatures,
     }));
   };
 
   const handleAddFeature = () => {
-    if (formData.features.length === 0) {
-      setFormData((prevData) => ({
-        ...prevData,
-        features: [""], // Adding one feature field if there are no features
-      }));
-    } else {
-      setFormData((prevData) => ({
-        ...prevData,
-        features: [...prevData.features, ""], // Adding a new empty feature field
-      }));
-    }
+    setFormData(prevData => ({
+      ...prevData,
+      features: [...prevData.features, ""], // Adding a new empty feature field
+    }));
   };
 
-
   const handleDeleteFeature = (indexToDelete: number) => {
-    setFormData((prevData) => ({
+    setFormData(prevData => ({
       ...prevData,
       features: prevData.features.filter((_, index) => index !== indexToDelete),
     }));
   };
+
   return (
     <div className="space-y-6 text-white">
       <ToastContainer />

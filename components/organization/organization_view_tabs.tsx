@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import OrganizationEventsComponent from "./organization_events";
-import OrganizationMembershipsComponent from "./organization_membership";
+import OrganizationMembershipsComponent from "../memberships/organization_membership";
 import OrganizationPostsComponent from "./organization_posts";
 
 const TabsComponent = ({
