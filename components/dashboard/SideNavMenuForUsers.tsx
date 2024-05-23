@@ -86,11 +86,17 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
   }, [pathname]);
 
   useEffect(() => {
-    if (selected !== "default" && selected !== "create-org") {
-      router.push(`/${selected.slug}/dashboard`);
+    if (
+      selected !== "default" &&
+      selected !== "create-org" &&
+      typeof selected !== "string"
+    ) {
+      const currentSubpage = pathname.split("/").slice(2).join("/");
+      if (!pathname.startsWith(`/${selected.slug}`)) {
+        router.push(`/${selected.slug}/${currentSubpage}`);
+      }
     }
-  }, [selected, router]);
-
+  }, [selected, router, pathname]);
   return (
     <div>
       <Transition.Root show={sidebarOpen} as={Fragment}>
