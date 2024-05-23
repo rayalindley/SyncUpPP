@@ -6,8 +6,6 @@ function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(" ");
 }
 
-
-
 const MembershipCard = ({
   membership,
   index,
@@ -20,7 +18,7 @@ const MembershipCard = ({
   frequency,
 }) => {
   const isPurchased = userMemberships.includes(membership.membershipid);
-  
+
   const calculateDiscountedRegistrationFee = () => {
     const discountMultiplier = 1 - (membership.yearlydiscount ?? 0) / 100;
     const yearlyFee = membership.registrationfee * 12 * discountMultiplier;
@@ -33,12 +31,17 @@ const MembershipCard = ({
     <div
       key={membership.membershipid}
       className={classNames(
-        membership.mostPopular ? 'bg-white/5 ring-2 ring-primary' : 'ring-1 ring-white/10',
-        'rounded-3xl p-8 xl:p-10 min-w-80'
+        membership.mostPopular
+          ? "bg-white/5 ring-2 ring-primary"
+          : "ring-1 ring-white/10",
+        "min-w-80 rounded-3xl p-8 xl:p-10"
       )}
     >
       <div className="flex items-center justify-between gap-x-4">
-        <h3 id={membership.membershipid} className="text-lg font-semibold leading-8 text-white">
+        <h3
+          id={membership.membershipid}
+          className="text-lg font-semibold leading-8 text-white"
+        >
           {membership.name}
         </h3>
         {membership.mostPopular ? (
@@ -47,17 +50,22 @@ const MembershipCard = ({
           </p>
         ) : null}
       </div>
-      <p className="mt-4 text-sm leading-6 text-gray-300">
-        {membership.description}
-      </p>
-      <p className="mt-6 flex items-baseline gap-x-1">
-        <span className="text-4xl font-bold tracking-tight text-white">
+      <p className="mt-4 text-sm leading-6 text-gray-300">{membership.description}</p>
+      {calculateDiscountedRegistrationFee() <= 0 ? (
+        <p className="mt-6 flex items-baseline gap-x-1">
+          <span className="text-4xl font-bold tracking-tight text-white">Free</span>
+        </p>
+      ) : (
+        <p className="mt-6 flex items-baseline gap-x-1">
+          <span className="text-4xl font-bold tracking-tight text-white">
             ${calculateDiscountedRegistrationFee()}
-        </span>
-        <span className="text-sm font-semibold leading-6 text-gray-300">
-          {frequency.priceSuffix}
-        </span>
-      </p>
+          </span>
+          <span className="text-sm font-semibold leading-6 text-gray-300">
+            {frequency.priceSuffix}
+          </span>
+        </p>
+      )}
+
       {userid ? (
         <button
           onClick={() =>
@@ -65,25 +73,27 @@ const MembershipCard = ({
           }
           aria-describedby={membership.membershipid}
           className={classNames(
-            'mt-6 w-full block rounded-md py-2 px-3 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2',
+            "mt-6 block w-full rounded-md px-3 py-2 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2",
             isPurchased
-              ? 'cursor-not-allowed bg-gray-300 text-white'
+              ? "cursor-not-allowed bg-gray-300 text-white"
               : membership.mostPopular
-              ? 'bg-primary text-white shadow-sm hover:bg-primarydark focus-visible:outline-primary'
-              : 'bg-white/10 text-white hover:bg-white/20 focus-visible:outline-white'
+                ? "bg-primary text-white shadow-sm hover:bg-primarydark focus-visible:outline-primary"
+                : "bg-white/10 text-white hover:bg-white/20 focus-visible:outline-white"
           )}
-          disabled={userMemberships.includes(membership.membershipid)}
+          disabled={isPurchased}
         >
-          {userMemberships.includes(membership.membershipid)
-            ? "Already Purchased"
-            : "Buy Plan"}
+          {isPurchased
+            ? "Current Plan"
+            : calculateDiscountedRegistrationFee() <= 0
+              ? "Join Plan"
+              : "Buy Plan"}
         </button>
       ) : (
         <div className="flex flex-row gap-2">
           <button
             aria-describedby={membership.membershipid}
             onClick={() => handleEditMembership(membership, membership.organizationid)}
-            className="w-full bg-primary text-white shadow-sm hover:bg-primarydark focus-visible:outline-primary mt-6 block rounded-md py-2 px-3 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+            className="mt-6 block w-full rounded-md bg-primary px-3 py-2 text-center text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             Edit Membership
           </button>
@@ -91,9 +101,9 @@ const MembershipCard = ({
           <button
             aria-describedby={membership.membershipid}
             onClick={() => handleDeleteMembership(membership.membershipid)}
-            className="bg-red-900 text-white hover:bg-red-950 focus-visible:outline-rose-900 mt-6 block rounded-md py-2 px-3 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+            className="mt-6 block rounded-md bg-red-900 px-3 py-2 text-center text-sm font-semibold leading-6 text-white hover:bg-red-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-900"
           >
-            <TrashIcon className="text-white size-5"></TrashIcon>
+            <TrashIcon className="size-5 text-white"></TrashIcon>
           </button>
         </div>
       )}
