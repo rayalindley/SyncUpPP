@@ -46,9 +46,9 @@ export default async function OrganizationUserView({
 
   console.log(org);
 
-  // console.log(user?.id, org.organizationid);
+  // console.log(user?.id, org?.organizationid);
 
-  let userOrgInfo = await getUserOrganizationInfo(user?.id!, org.organizationid);
+  let userOrgInfo = await getUserOrganizationInfo(user?.id!, org?.organizationid);
 
   // console.log(userOrgInfo);
 
@@ -57,7 +57,7 @@ export default async function OrganizationUserView({
   const postsPerPage = 6; // Set the number of posts per page
 
   // Fetch organization posts
-  const { data: posts, error: postsError } = await fetchPosts(org.organizationid);
+  const { data: posts, error: postsError } = await fetchPosts(org?.organizationid);
 
   // Handle any errors from fetching posts
   if (postsError) {
@@ -68,7 +68,7 @@ export default async function OrganizationUserView({
   // Fetch events data
   const eventsPerPage = 6; // Set the number of events per page
   const { data: events, error: eventsError } = await fetchEvents(
-    org.organizationid,
+    org?.organizationid,
     currentPage,
     eventsPerPage
   );
@@ -79,7 +79,7 @@ export default async function OrganizationUserView({
     return; // Optionally, handle the error in your UI
   }
 
-  const memberships = await getMemberships(org.organizationid);
+  const memberships = await getMemberships(org?.organizationid);
 
   // Assuming `org` is an object retrieved from your database that contains the social media links object
   const socials = org?.socials || {}; // Use default empty object if `org.socials` is undefined or null
@@ -92,7 +92,7 @@ export default async function OrganizationUserView({
   // console.log("Facebook Link:", facebookLink);
   // console.log("Twitter Link:", twitterLink);
   // console.log("LinkedIn Link:", linkedinLink);
-  // console.log("Org ID:", org.organizationid)
+  // console.log("Org ID:", org?.organizationid)
   // console.log("Memberships: ", memberships)
   // console.log(user?.id)
 
@@ -169,7 +169,7 @@ export default async function OrganizationUserView({
             />
 
             <TabsComponent
-              organizationid={org.organizationid}
+              organizationid={org?.organizationid}
               memberships={memberships}
               events={events}
               posts={posts}
