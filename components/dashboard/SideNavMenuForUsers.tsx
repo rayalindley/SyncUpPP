@@ -9,6 +9,7 @@ import {
   HomeIcon,
   UsersIcon,
   XMarkIcon,
+  EnvelopeIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
@@ -75,7 +76,7 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
         selected === "default" || typeof selected === "string"
           ? `/dashboard/newsletter`
           : `/${selected.slug}/dashboard/newsletter`,
-      icon: CalendarIcon,
+      icon: EnvelopeIcon,
     },
     {
       name: "Events",
