@@ -14,7 +14,7 @@ import {
 
 import { AnalyticsDashboardProps, AnalyticsData } from "@/lib/types";
 
-const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ organizationId }) => {
+const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ organizationid }) => {
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData[]>([]);
   const [eventFilter, setEventFilter] = useState<string | null>(null);
   const [filteredRegistrations, setFilteredRegistrations] = useState<AnalyticsData[]>([]);
@@ -25,7 +25,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ organizationId 
       const { data, error } = await supabase
         .from("analytics_dashboard")
         .select("*")
-        .eq("organizationid", organizationId);
+        .eq("organizationid", organizationid);
 
       if (error) {
         console.error("Error fetching analytics data:", error.message);
@@ -47,7 +47,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ organizationId 
     };
 
     fetchData();
-  }, [organizationId]);
+  }, [organizationid]);
 
   useEffect(() => {
     if (eventFilter) {

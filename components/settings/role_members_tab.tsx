@@ -13,10 +13,10 @@ const supabase = createClient();
 
 type MembersProps = {
   selectedRole: Role;
-  organizationId: string;
+  organizationid: string;
 };
 
-export const Members = ({ selectedRole, organizationId }: MembersProps) => {
+export const Members = ({ selectedRole, organizationid }: MembersProps) => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [filteredMembers, setFilteredMembers] = useState<Member[]>(
     selectedRole.members || []
@@ -52,7 +52,7 @@ export const Members = ({ selectedRole, organizationId }: MembersProps) => {
       const { data, error } = await supabase
         .from("organizationmembers")
         .update({ roleid: null })
-        .eq("organizationid", organizationId)
+        .eq("organizationid", organizationid)
         .eq("userid", memberId);
 
       if (error) {

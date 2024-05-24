@@ -70,7 +70,7 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-full flex-1 flex-col justify-center bg-eerieblack px-6 py-12  lg:px-8">
-      <AnalyticsDashboard organizationId={formValues?.organizationid ?? ""} />
+      <AnalyticsDashboard organizationid={formValues?.organizationid ?? ""} />
       <div className="mt-4 flex gap-2">
         <a
           className="border-1 rounded-md border border-primary bg-primarydark p-1 px-2 text-sm  text-gray-100 hover:cursor-pointer"

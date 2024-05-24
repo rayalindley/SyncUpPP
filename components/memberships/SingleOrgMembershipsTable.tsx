@@ -96,7 +96,7 @@
 //       <MembershipModal
 //         isOpen={isModalOpen}
 //         onClose={closeModal}
-//         organizationId={selectedOrgId}
+//         organizationid={selectedOrgId}
 //         membership={null} // Pass existing membership object if editing
 //       />
 //     </div>

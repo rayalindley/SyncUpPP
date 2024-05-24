@@ -44,9 +44,9 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
   );
   const [frequency, setFrequency] = useState(frequencies[0]);
 
-  const handleEditMembership = (membership: Membership, organizationId: string) => {
+  const handleEditMembership = (membership: Membership, organizationid: string) => {
     setSelectedMembership(membership);
-    setSelectedOrganizationId(organizationId);
+    setSelectedOrganizationId(organizationid);
     setShowModal(true);
   };
 
@@ -81,7 +81,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
   };
 
   const handleBuyPlan = useCallback(
-    async (membershipId: string, organizationId: string) => {
+    async (membershipId: string, organizationid: string) => {
       try {
         if (userMemberships.includes(membershipId)) {
           toast.warning("You already have this membership.");
@@ -93,7 +93,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
         const { data: rolesData, error: rolesError } = await supabase
           .from("organization_roles")
           .select("role_id")
-          .eq("org_id", organizationId)
+          .eq("org_id", organizationid)
           .eq("role", "User")
           .single();
 
@@ -108,7 +108,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
           {
             userid: userid,
             membershipid: membershipId,
-            organizationid: organizationId,
+            organizationid: organizationid,
             roleid: defaultRoleId,
             months: months,
           },
@@ -238,7 +238,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
       <MembershipModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        organizationId={selectedOrganizationId || ""}
+        organizationid={selectedOrganizationId || ""}
         membership={selectedMembership}
       />
     </div>

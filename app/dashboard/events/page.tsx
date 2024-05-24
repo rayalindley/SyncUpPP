@@ -32,7 +32,7 @@ export default function DashboardPage() {
 
       setOrganizations(orgs);
 
-      // Assuming you have an 'organizationId' field in your events
+      // Assuming you have an 'organizationid' field in your events
       const { data: userEvents, error: eventsError } = await supabase
         .from("events")
         .select("*")

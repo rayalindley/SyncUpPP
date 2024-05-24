@@ -171,13 +171,13 @@ export async function fetchOrganizationsForUser(userId: string) {
   }
 }
 
-export async function getUserOrganizationInfo(userId: string, organizationId: string) {
+export async function getUserOrganizationInfo(userId: string, organizationid: string) {
   const supabase = createClient();
 
   const { data, error } = await supabase
     .rpc("get_user_organization_info", {
       user_id: userId,
-      organization_id: organizationId,
+      organization_id: organizationid,
     })
     .single();
 

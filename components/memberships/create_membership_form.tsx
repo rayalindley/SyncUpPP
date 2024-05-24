@@ -4,6 +4,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { createClient } from "@/lib/supabase/client";
 import { z } from "zod";
 import { Membership } from "@/lib/types";
+import { useRouter } from "next/navigation";
 
 const membershipSchema = z.object({
   name: z.string(),
@@ -17,21 +18,21 @@ const membershipSchema = z.object({
       return true;
     }),
   description: z.string(),
-  organizationId: z.string(),
+  organizationid: z.string(),
   features: z.array(z.string()).nonempty("At least one feature is required"),
 });
 
 const CreateMembershipForm = ({
-  organizationId = null,
+  organizationid = null,
   membership,
 }: {
-  organizationId: string | null;
+  organizationid: string | null;
   membership?: Membership;
 }) => {
   const initialFormData: Membership = {
     name: "",
     membershipid: "",
-    organizationId: "",
+    organizationid: organizationid || "",
     price: 0, // Add this property
     duration: "", // Add this property
     description: "",
@@ -41,6 +42,9 @@ const CreateMembershipForm = ({
   };
 
   const [formData, setFormData] = useState<Membership>(initialFormData);
+  const router = useRouter();
+
+  // console.log("membership", membership);
 
   useEffect(() => {
     if (membership) {
@@ -91,9 +95,10 @@ const CreateMembershipForm = ({
           pauseOnHover: true,
           draggable: true,
           progress: undefined,
+          onClose: () => router.back(),
         });
 
-        console.log(data);
+        // console.log(data);
       } else {
         // Insert new membership
         const { data, error } = await supabase
@@ -112,9 +117,10 @@ const CreateMembershipForm = ({
           pauseOnHover: true,
           draggable: true,
           progress: undefined,
+          onClose: () => router.back(),
         });
 
-        console.log(data);
+        // console.log(data);
         setFormData(initialFormData);
       }
     } catch (error) {

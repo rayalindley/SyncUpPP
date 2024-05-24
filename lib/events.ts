@@ -1,7 +1,7 @@
 "use server";
 import { createClient } from "@/lib/supabase/server";
 
-export async function insertEvent(formData: any, organizationId: string) {
+export async function insertEvent(formData: any, organizationid: string) {
   const insertValues = {
     title: formData.title,
     description: formData.description,
@@ -10,7 +10,7 @@ export async function insertEvent(formData: any, organizationId: string) {
     capacity: formData.capacity,
     registrationfee: formData.registrationfee,
     privacy: formData.privacy,
-    organizationid: organizationId, // Include organizationId in the insertValues object
+    organizationid: organizationid, // Include organizationid in the insertValues object
     eventphoto: formData.eventphoto,
     tags: formData.tags,
     eventslug: formData.slug,
@@ -35,7 +35,7 @@ export async function insertEvent(formData: any, organizationId: string) {
 }
 
 export async function fetchEvents(
-  organizationId: string,
+  organizationid: string,
   currentPage: number,
   eventsPerPage: number
 ) {
@@ -44,7 +44,7 @@ export async function fetchEvents(
     const { data, error } = await supabase
       .from("events")
       .select("*")
-      .eq("organizationid", organizationId)
+      .eq("organizationid", organizationid)
       .range(currentPage * eventsPerPage - eventsPerPage, currentPage * eventsPerPage)
       .order("createdat", { ascending: false });
 
@@ -511,7 +511,7 @@ export async function isEventFull(eventId: string) {
   }
 }
 
-export async function checkMembership(userId: string, organizationId: string) {
+export async function checkMembership(userId: string, organizationid: string) {
   const supabase = createClient();
 
   try {
@@ -519,7 +519,7 @@ export async function checkMembership(userId: string, organizationId: string) {
       .from("organizationmembers")
       .select("organizationmemberid")
       .eq("userid", userId)
-      .eq("organizationid", organizationId)
+      .eq("organizationid", organizationid)
       .single();
 
     if (error && error.code !== "PGRST116") {

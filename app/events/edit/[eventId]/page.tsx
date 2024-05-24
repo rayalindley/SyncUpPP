@@ -57,7 +57,7 @@ export default function EditEventPage() {
           </h2>
         </div>
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-lg">
-          <CreateEventForm organizationId="" event={event} />
+          <CreateEventForm organizationid="" event={event} />
         </div>
       </div>
     </>

@@ -65,7 +65,7 @@ export interface Membership {
   description?: string | undefined;
   price?: number;
   duration?: string;
-  organizationId?: string;
+  organizationid?: string;
   registrationfee: number; // Ensure this is always a number
   yearlydiscount?: number;
   mostPopular?: boolean;
@@ -363,7 +363,7 @@ export interface Organizationmembers {
 }
 
 export interface AnalyticsDashboardProps {
-  organizationId: string;
+  organizationid: string;
 }
 
 export interface AnalyticsData {
