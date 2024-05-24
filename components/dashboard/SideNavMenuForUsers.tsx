@@ -3,24 +3,18 @@ import { Organizations as Organization } from "@/lib/types"; // Ensure the corre
 import useSidebarStore from "@/store/useSidebarStore";
 import { Dialog, Listbox, Transition } from "@headlessui/react";
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/20/solid";
-import {
-  CalendarIcon,
-  Cog6ToothIcon,
-  HomeIcon,
-  UsersIcon,
-  XMarkIcon,
-} from "@heroicons/react/24/outline";
+import { Cog6ToothIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { Fragment, useEffect, useState } from "react";
 
-import { EnvelopeIcon } from "@heroicons/react/24/outline"; // Import the icon
-import { TbUserStar } from "react-icons/tb";
-import { VscOrganization } from "react-icons/vsc";
-import { IoMailUnreadOutline } from "react-icons/io5";
-import { IoShieldCheckmarkOutline } from "react-icons/io5";
-import { TbBrandGoogleAnalytics } from "react-icons/tb";
 import { IoIosAnalytics } from "react-icons/io";
+import {
+  IoCalendarOutline,
+  IoMailUnreadOutline,
+  IoShieldCheckmarkOutline,
+} from "react-icons/io5";
+import { TbUserStar } from "react-icons/tb";
 
 function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
@@ -84,6 +78,14 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
           ? `/dashboard/newsletter`
           : `/${selected.slug}/dashboard/newsletter`,
       icon: IoMailUnreadOutline,
+    },
+    {
+      name: "Events",
+      href:
+        selected === "default" || typeof selected === "string"
+          ? `/dashboard/events`
+          : `/${selected.slug}/dashboard/events`,
+      icon: IoCalendarOutline,
     },
   ];
 
