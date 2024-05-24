@@ -28,6 +28,7 @@ interface MembershipTiersProps {
   onCreateClick?: () => void;
   onDelete?: (membershipId: string) => void;
   onEdit?: (membership: Membership) => void; // Add onEdit prop
+  editable?: boolean;
 }
 
 function classNames(...classes: string[]) {
@@ -41,6 +42,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
   onCreateClick = undefined,
   onDelete = () => {},
   onEdit = () => {},
+  editable = false,
 }) => {
   const [userMemberships, setUserMemberships] = useState<string[]>([]);
   const [frequency, setFrequency] = useState(frequencies[0]);
@@ -191,7 +193,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
           </RadioGroup>
         </div>
         <div className="isolate mx-8 mt-16 flex max-w-md flex-wrap justify-center justify-items-center gap-x-8 gap-y-8 sm:mt-20 lg:max-w-none">
-          {isAuthenticated && (
+          {editable && (
             <div className="mr-16 w-full sm:w-64">
               <PlusCircleIcon
                 className={classNames(
@@ -217,6 +219,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
               handleEditMembership={() => onEdit(membership)} // Use onEdit from props
               handleDeleteMembership={onDelete} // Use onDelete from props
               frequency={frequency}
+              editable={editable}
             />
           ))}
         </div>

@@ -19,6 +19,7 @@ interface MembershipCardProps {
   handleEditMembership: (membership: Membership, organizationid: string) => void;
   handleDeleteMembership: (membershipId: string) => void;
   frequency: Frequency;
+  editable?: boolean; // Add isEditable prop
 }
 
 function classNames(...classes: string[]) {
@@ -36,6 +37,7 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
   handleEditMembership,
   handleDeleteMembership,
   frequency,
+  editable = false,
 }) => {
   const isPurchased = userMemberships.includes(membership.membershipid);
 
@@ -107,7 +109,7 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
         </button>
       ) : null}
 
-      {isAuthenticated ? (
+      {editable ? (
         <div className="flex flex-row gap-2">
           <button
             aria-describedby={membership.membershipid}
