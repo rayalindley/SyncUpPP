@@ -103,6 +103,7 @@ export async function updateOrganization(organizationid: string, formData: any) 
 export async function fetchOrganizationBySlug(slug: string) {
   const supabase = createClient();
 
+  console.log("slug", slug);
   try {
     const { data, error } = await supabase
       .from("organizations")

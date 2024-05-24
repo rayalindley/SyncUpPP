@@ -13,6 +13,7 @@ interface MembershipCardProps {
   index: number;
   totalMemberships: number;
   userid?: string;
+  isAuthenticated?: boolean; // Add isAuthenticated prop
   userMemberships: string[];
   handleBuyPlan: (membershipId: string, organizationid: string) => void;
   handleEditMembership: (membership: Membership, organizationid: string) => void;
@@ -29,6 +30,7 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
   index,
   totalMemberships,
   userid,
+  isAuthenticated = false, // Default to false
   userMemberships,
   handleBuyPlan,
   handleEditMembership,
@@ -103,7 +105,9 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
         >
           {isPurchased ? "Current Plan" : isFree ? "Join Plan" : "Buy Plan"}
         </button>
-      ) : (
+      ) : null}
+
+      {isAuthenticated ? (
         <div className="flex flex-row gap-2">
           <button
             aria-describedby={membership.membershipid}
@@ -123,7 +127,8 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
             <TrashIcon className="size-5 text-white"></TrashIcon>
           </button>
         </div>
-      )}
+      ) : null}
+
       <ul role="list" className="mt-8 space-y-3 text-sm leading-6 text-gray-300 xl:mt-10">
         {membership.features &&
           membership.features.map((feature) => (
