@@ -38,13 +38,14 @@ export default function DashboardPage() {
         .select("*")
         .in(
           "organizationid",
-          orgs.map((org: Organization) => org.organizationid)
+          orgs.map((org: Organization) => org.organization_id)
         );
 
       if (eventsError) {
         console.error("Error fetching events:", eventsError);
       } else {
         setEvents(userEvents);
+        console.log("Fetched events:", userEvents);
       }
       setLoading(false);
     }
