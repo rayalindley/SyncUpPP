@@ -28,13 +28,15 @@ const OrganizationPostsComponent = ({
   const fetchData = useCallback(async () => {
     const { data, error } = await fetchPosts(organizationid);
     if (!error) {
-      const visibleData = data.filter((post) => post.privacylevel !== "private");
+      const visibleData = isMemberOfOrganization
+        ? data
+        : data.filter((post) => post.privacylevel !== "private");
       setPostsData(visibleData);
     } else {
       console.error("Error fetching posts:", error);
     }
     setLoading(false);
-  }, [organizationid]);
+  }, [organizationid, isMemberOfOrganization]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -42,7 +44,7 @@ const OrganizationPostsComponent = ({
       if (user) {
         const userOrgInfo = await getUserOrganizationInfo(user.id, organizationid);
         setUserOrgInfo(userOrgInfo);
-        setIsMemberOfOrganization(true);
+        setIsMemberOfOrganization(userOrgInfo == null ? false : true);
         fetchData();
       }
     };
