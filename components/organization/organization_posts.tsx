@@ -25,11 +25,12 @@ const OrganizationPostsComponent = ({
   const postsTextAreaRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (isMember: boolean) => {
     const { data, error } = await fetchPosts(organizationid);
     if (!error) {
-      const visibleData = data.filter((post) => post.privacylevel !== "private");
+      const visibleData = isMember ? data : data.filter((post) => post.privacylevel !== "private");
       setPostsData(visibleData);
+      console.log("isMemberOfOrganization", isMember);
     } else {
       console.error("Error fetching posts:", error);
     }
@@ -42,8 +43,9 @@ const OrganizationPostsComponent = ({
       if (user) {
         const userOrgInfo = await getUserOrganizationInfo(user.id, organizationid);
         setUserOrgInfo(userOrgInfo);
-        setIsMemberOfOrganization(true);
-        fetchData();
+        const isMember = userOrgInfo != null;
+        setIsMemberOfOrganization(isMember);
+        fetchData(isMember);
       }
     };
 
@@ -52,14 +54,14 @@ const OrganizationPostsComponent = ({
     const postsChannel = supabase
       .channel("posts")
       .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => {
-        fetchData();
+        fetchData(isMemberOfOrganization);
       })
       .subscribe();
 
     return () => {
       postsChannel.unsubscribe();
     };
-  }, [organizationid, fetchData, supabase]);
+  }, [organizationid, fetchData, supabase, isMemberOfOrganization]);
 
   useEffect(() => {
     if (editingPost && postsTextAreaRef.current) {
@@ -113,17 +115,26 @@ const OrganizationPostsComponent = ({
             </div>
           )}
           <div className="isolate max-w-6xl lg:max-w-none">
-            {currentPosts.map((post, index) => (
-              <div key={post.postid} className="mx-auto">
-                <PostsCard
-                  post={post}
-                  setPostsData={setPostsData}
-                  postsData={postsData}
-                  startEdit={startEdit}
-                />
-                {index !== currentPosts.length - 1 && <Divider />}
+            {currentPosts.length > 0 ? (
+              currentPosts.map((post, index) => (
+                <div key={post.postid} className="mx-auto">
+                  <PostsCard
+                    post={post}
+                    setPostsData={setPostsData}
+                    postsData={postsData}
+                    startEdit={startEdit}
+                  />
+                  {index !== currentPosts.length - 1 && <Divider />}
+                </div>
+              ))
+            ) : (
+              <div
+                className="mb-4 rounded-lg bg-gray-800 p-4 text-sm text-blue-400"
+                role="alert"
+              >
+                The organization has no posts available for you.
               </div>
-            ))}
+            )}
           </div>
           <div className="mt-2 w-full">
             <nav className="flex items-center justify-between border-t border-gray-200 px-4 sm:px-0">

@@ -149,7 +149,8 @@ const AdminAnalyticsDashboard = ({ userId }: { userId: string }) => {
               <Legend />
               <Line
                 type="monotone"
-                dataKey="Total Registrations"
+                dataKey="total_registrations"
+                name="Total Registrations"
                 stroke="#37996b"
                 activeDot={{ r: 8 }}
               />

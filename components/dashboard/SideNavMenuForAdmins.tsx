@@ -15,6 +15,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Fragment, useEffect, useState } from "react";
 import { EnvelopeIcon } from "@heroicons/react/24/outline"; // Import the icon
+import { TbUserStar } from "react-icons/tb";
+import { VscOrganization } from "react-icons/vsc";
+import { IoMailUnreadOutline } from "react-icons/io5";
 
 function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
@@ -26,12 +29,11 @@ const navigation = [
   {
     name: "Organizations",
     href: "/dashboard/organizations",
-    icon: UsersIcon,
+    icon: VscOrganization,
   },
+  { name: "Memberships", href: "/dashboard/memberships", icon: TbUserStar },
   { name: "Events", href: "/dashboard/events", icon: CalendarIcon },
-  // { name: "Calendar", href: "#", icon: CalendarIcon },
-  { name: "Newsletter", href: "/dashboard/newsletter", icon: EnvelopeIcon },
-  { name: "Memberships", href: "/dashboard/memberships", icon: CalendarIcon },
+  { name: "Newsletter", href: "/dashboard/newsletter", icon: IoMailUnreadOutline },
 ];
 
 const SideNavMenuForAdmins = () => {

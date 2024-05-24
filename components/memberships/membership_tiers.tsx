@@ -3,12 +3,10 @@ import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import MembershipModal from "./create_membership_modal";
-import MembershipCard from "./membership_card"; // Adjust the import path as needed
-import Swal from "sweetalert2";
+import MembershipCard from "./membership_card";
 import { PlusCircleIcon } from "@heroicons/react/24/outline";
 import { RadioGroup } from "@headlessui/react";
-import { Membership } from "@/lib/types"; // Import Membership type from central location
+import { Membership } from "@/lib/types";
 
 const supabase = createClient();
 
@@ -26,29 +24,26 @@ const frequencies: Frequency[] = [
 interface MembershipTiersProps {
   memberships: Membership[];
   userid?: string;
+  isAuthenticated?: boolean; // Add isAuthenticated prop
   onCreateClick?: () => void;
+  onDelete?: (membershipId: string) => void;
+  onEdit?: (membership: Membership) => void; // Add onEdit prop
+}
+
+function classNames(...classes: string[]) {
+  return classes.filter(Boolean).join(" ");
 }
 
 const MembershipTiers: React.FC<MembershipTiersProps> = ({
   memberships,
   userid,
+  isAuthenticated = false, // Default to false
   onCreateClick = undefined,
+  onDelete = () => {},
+  onEdit = () => {},
 }) => {
   const [userMemberships, setUserMemberships] = useState<string[]>([]);
-  const [showModal, setShowModal] = useState(false);
-  const [selectedMembership, setSelectedMembership] = useState<Membership | undefined>(
-    undefined
-  );
-  const [selectedOrganizationId, setSelectedOrganizationId] = useState<string | null>(
-    null
-  );
   const [frequency, setFrequency] = useState(frequencies[0]);
-
-  const handleEditMembership = (membership: Membership, organizationid: string) => {
-    setSelectedMembership(membership);
-    setSelectedOrganizationId(organizationid);
-    setShowModal(true);
-  };
 
   useEffect(() => {
     if (userid) {
@@ -83,12 +78,18 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
   const handleBuyPlan = useCallback(
     async (membershipId: string, organizationid: string) => {
       try {
-        if (userMemberships.includes(membershipId)) {
-          toast.warning("You already have this membership.");
+        const { data: userMembershipData, error: fetchError } = await supabase
+          .from("organizationmembers")
+          .select("membershipid, roleid")
+          .eq("userid", userid)
+          .eq("organizationid", organizationid)
+          .single();
+
+        if (fetchError && fetchError.code !== "PGRST116") {
+          console.error("Error fetching user membership: ", fetchError);
+          toast.error("Error fetching user membership. Please try again later.");
           return;
         }
-
-        const months = frequency.value === "monthly" ? 12 : 1;
 
         const { data: rolesData, error: rolesError } = await supabase
           .from("organization_roles")
@@ -104,70 +105,55 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
 
         const defaultRoleId = rolesData?.role_id;
 
-        const { data, error } = await supabase.from("organizationmembers").insert([
-          {
-            userid: userid,
-            membershipid: membershipId,
-            organizationid: organizationid,
-            roleid: defaultRoleId,
-            months: months,
-          },
-        ]);
+        if (userMembershipData) {
+          // User is already a member, update the roleid
+          const { error: updateError } = await supabase
+            .from("organizationmembers")
+            .update({ roleid: defaultRoleId })
+            .eq("userid", userid)
+            .eq("organizationid", organizationid);
 
-        if (error) {
-          console.error("Error inserting data: ", error);
+          if (updateError) {
+            console.error("Error updating membership role: ", updateError);
+            toast.error("Error updating membership role. Please try again later.");
+            return;
+          }
+
+          toast.success("Membership role updated successfully.");
         } else {
+          // User is not a member, insert new membership
+          const { error: insertError } = await supabase
+            .from("organizationmembers")
+            .insert([
+              {
+                userid: userid,
+                membershipid: membershipId,
+                organizationid: organizationid,
+                roleid: defaultRoleId,
+                months: frequency.value === "monthly" ? 12 : 1,
+              },
+            ]);
+
+          if (insertError) {
+            console.error("Error inserting membership: ", insertError);
+            toast.error("Error inserting membership. Please try again later.");
+            return;
+          }
+
           toast.success("Congratulations! You've successfully purchased the membership.");
-          setUserMemberships((prevUserMemberships) => [
-            ...prevUserMemberships,
-            membershipId,
-          ]);
         }
+
+        setUserMemberships((prevUserMemberships) => [
+          ...prevUserMemberships,
+          membershipId,
+        ]);
       } catch (error) {
         console.error("Error: ", error);
+        toast.error("An error occurred. Please try again later.");
       }
     },
     [userid, userMemberships, frequency]
   );
-
-  const handleDeleteMembership = useCallback(async (membershipId: string) => {
-    try {
-      const result = await Swal.fire({
-        title: "Are you sure?",
-        text: "You are about to delete this membership. This action cannot be undone.",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#d33",
-        cancelButtonColor: "#3085d6",
-        confirmButtonText: "Yes, delete it!",
-      });
-
-      if (result.isConfirmed) {
-        const { error } = await supabase
-          .from("memberships")
-          .delete()
-          .eq("membershipid", membershipId);
-
-        if (error) {
-          console.error("Error deleting membership: ", error);
-          toast.error("Error deleting membership. Please try again later.");
-          return;
-        }
-
-        toast.success("Membership deleted successfully.");
-        setUserMemberships((prevUserMemberships) =>
-          prevUserMemberships.filter((id) => id !== membershipId)
-        );
-      }
-    } catch (error) {
-      console.error("Error: ", error);
-      toast.error("An error occurred. Please try again later.");
-    }
-  }, []);
-
-  function classNames(...classes: string[]) {
-    return classes.filter(Boolean).join(" ");
-  }
 
   return (
     <div>
@@ -205,7 +191,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
           </RadioGroup>
         </div>
         <div className="isolate mx-8 mt-16 flex max-w-md flex-wrap justify-center justify-items-center gap-x-8 gap-y-8 sm:mt-20 lg:max-w-none">
-          {!userid && (
+          {isAuthenticated && (
             <div className="mr-16 w-full sm:w-64">
               <PlusCircleIcon
                 className={classNames(
@@ -225,22 +211,17 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
               index={index + 1}
               totalMemberships={memberships.length + 1}
               userid={userid}
+              isAuthenticated={isAuthenticated}
               userMemberships={userMemberships}
               handleBuyPlan={handleBuyPlan}
-              handleEditMembership={handleEditMembership}
-              handleDeleteMembership={handleDeleteMembership}
+              handleEditMembership={() => onEdit(membership)} // Use onEdit from props
+              handleDeleteMembership={onDelete} // Use onDelete from props
               frequency={frequency}
             />
           ))}
         </div>
       </div>
       <ToastContainer position="bottom-right" autoClose={3000} />
-      <MembershipModal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        organizationid={selectedOrganizationId || ""}
-        membership={selectedMembership}
-      />
     </div>
   );
 };
