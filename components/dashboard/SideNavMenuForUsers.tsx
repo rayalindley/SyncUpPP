@@ -14,6 +14,14 @@ import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { Fragment, useEffect, useState } from "react";
 
+import { EnvelopeIcon } from "@heroicons/react/24/outline"; // Import the icon
+import { TbUserStar } from "react-icons/tb";
+import { VscOrganization } from "react-icons/vsc";
+import { IoMailUnreadOutline } from "react-icons/io5";
+import { IoShieldCheckmarkOutline } from "react-icons/io5";
+import { TbBrandGoogleAnalytics } from "react-icons/tb";
+import { IoIosAnalytics } from "react-icons/io";
+
 function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
 }
@@ -51,7 +59,7 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
         selected === "default" || typeof selected === "string"
           ? `/dashboard`
           : `/${selected.slug}/dashboard`,
-      icon: HomeIcon,
+      icon: IoIosAnalytics,
     },
     {
       name: "Roles",
@@ -59,7 +67,7 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
         selected === "default" || typeof selected === "string"
           ? `/dashboard/roles`
           : `/${selected.slug}/dashboard/roles`,
-      icon: UsersIcon,
+      icon: IoShieldCheckmarkOutline,
     },
     {
       name: "Memberships",
@@ -67,7 +75,7 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
         selected === "default" || typeof selected === "string"
           ? `/dashboard/memberships`
           : `/${selected.slug}/dashboard/memberships`,
-      icon: UsersIcon,
+      icon: TbUserStar,
     },
     {
       name: "Newsletter",
@@ -75,15 +83,7 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
         selected === "default" || typeof selected === "string"
           ? `/dashboard/newsletter`
           : `/${selected.slug}/dashboard/newsletter`,
-      icon: CalendarIcon,
-    },
-    {
-      name: "Calendar",
-      href:
-        selected === "default" || typeof selected === "string"
-          ? `/dashboard/calendar`
-          : `/${selected.slug}/dashboard/calendar`,
-      icon: CalendarIcon,
+      icon: IoMailUnreadOutline,
     },
   ];
 

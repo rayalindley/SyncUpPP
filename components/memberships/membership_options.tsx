@@ -35,7 +35,6 @@ export default function MembershipOptions({
   setOpen: any;
   TierMembers: any;
 }) {
-  // console.log(selectedTier.membershipid)
   const deleteBtn = () => {
     Swal.fire({
       title: "Are you sure?",
@@ -48,8 +47,6 @@ export default function MembershipOptions({
     }).then(async (result) => {
       if (result.isConfirmed) {
         const response = await deleteMembership(selectedTier.membershipid);
-
-        // console.log(selectedTier.membershipid)
 
         if (!response.error) {
           Swal.fire({
@@ -210,7 +207,7 @@ export default function MembershipOptions({
                             </tr>
                             <tr>
                               <td className="p-2 font-bold text-gray-400">Membership:</td>
-                              <td className="p-2">{selectedTier.membershipname}</td>
+                              <td className="p-2">{selectedTier.name}</td>
                             </tr>
                             <tr>
                               <td className="p-2 font-bold text-gray-400">
@@ -245,22 +242,22 @@ export default function MembershipOptions({
                             <tr>
                               <td className="p-2 font-bold text-gray-400">Size:</td>
                               <td className="p-2">
-                                {selectedTier.membership_count === 0
+                                {selectedTier.total_members === 0
                                   ? "0 members"
-                                  : `${selectedTier.membership_count} 
-                                  ${selectedTier.membership_count === 1 ? "member" : "members"}`}
+                                  : `${selectedTier.total_members} 
+                                  ${selectedTier.total_members === 1 ? "member" : "members"}`}
                               </td>
                             </tr>
                           </tbody>
                         </table>
 
                         <div className="mt-5 flex gap-2">
-                          <Link
+                          {/* <Link
                             className="group flex items-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-light text-white shadow-sm hover:bg-opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                             href={`/${selectedTier.slug}`}
                           >
                             Visit Page
-                          </Link>
+                          </Link> */}
                           <Link
                             className="group flex items-center rounded-md bg-blue-500 px-4 py-2 text-sm font-semibold text-light text-white shadow-sm hover:bg-opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                             href={`/dashboard/memberships/edit/${selectedTier.membershipid}`}
@@ -305,7 +302,7 @@ export default function MembershipOptions({
                                         {member.last_name}
                                       </td>
                                       <td className="py-3.5 pl-4 pr-3 text-left text-sm text-light sm:pl-6">
-                                        {member.joindate}
+                                        {member.updatedat}
                                       </td>
                                     </tr>
                                   ))}
