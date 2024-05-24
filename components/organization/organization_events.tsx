@@ -48,6 +48,15 @@ const OrganizationEventsComponent = ({ events }: { events: Event[] }) => {
           />
         ))}
       </div>
+
+      {currentEvents.length <= 0 && (
+        <div
+          className="mb-4 rounded-lg bg-gray-800 p-4 text-center text-sm text-blue-400"
+          role="alert"
+        >
+          The organization has no events available for you.
+        </div>
+      )}
       <nav className="flex items-center justify-between border-t border-gray-200 px-4 sm:px-0">
         <div className="-mt-px flex w-0 flex-1">
           <button

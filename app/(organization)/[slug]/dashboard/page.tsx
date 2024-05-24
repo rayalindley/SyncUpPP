@@ -14,6 +14,7 @@ export default function SettingsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log(slug);
     if (slug) {
       (async () => {
         try {
@@ -34,7 +35,9 @@ export default function SettingsPage() {
     }
   }, []);
 
-  const handleDeleteOrg = async () => {
+  const handleDeleteOrg = async (orgID: string) => {
+    console.log(orgID);
+
     const confirmResult = await Swal.fire({
       title: "Are you sure?",
       text: "You won't be able to revert this!",
@@ -46,16 +49,13 @@ export default function SettingsPage() {
     });
 
     if (confirmResult.isConfirmed) {
-      console.log(formValues?.organizationid);
-      const response = await deleteOrganization("");
-
+      const response = await deleteOrganization(orgID);
       if (!response.error) {
         await Swal.fire({
           title: "Deleted!",
           text: "The organization was successfully deleted.",
           icon: "success",
         });
-
         // Redirect to /dashboard after successful deletion
         router.push("/dashboard");
       } else {
@@ -80,7 +80,7 @@ export default function SettingsPage() {
         </a>
         <button
           className="border-1 rounded-md border border-red-500 bg-red-600 p-1 px-2  text-sm text-gray-100 hover:cursor-pointer"
-          onClick={handleDeleteOrg}
+          onClick={() => handleDeleteOrg(formValues?.organizationid ?? "")}
         >
           Delete Org
         </button>

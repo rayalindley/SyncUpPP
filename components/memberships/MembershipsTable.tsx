@@ -3,88 +3,123 @@ import { useState, useEffect, useMemo } from "react";
 import DataTable, { TableColumn } from "react-data-table-component";
 import MembershipOptions from "./membership_options";
 
-interface Membership {
-  membershipid: string;
-  membershipname: string;
-  registrationfee: number;
-  membership_count: number;
-  organizationid: string;
-  orgname: string;
-  members?: Member[];
-  open: boolean;
-  setOpen: (open: boolean) => void;
+interface Address {
+  addressLine1: string;
+  addressLine2: string;
+  city: string;
+  stateProvince: string;
+  country: string;
+}
+
+interface Socials {
+  facebook: string;
+  twitter: string;
+  linkedin: string;
 }
 
 interface Member {
+  id: number;
+  gender: string | null;
+  userid: string;
+  company: string | null;
+  website: string | null;
+  last_name: string;
+  updatedat: string;
+  first_name: string;
+  dateofbirth: string | null;
+  description: string | null;
+  profilepicture: string | null;
+}
+
+interface Membership {
+  name: string;
+  members: Member[];
+  features: string[];
+  description: string;
   membershipid: string;
+  total_members: number;
+  yearlydiscount: number;
+  registrationfee: number;
+  open?: boolean; // Make these properties optional
+  setOpen?: (open: boolean) => void; // Make these properties optional
+  orgname?: string; // Make these properties optional
+}
+
+interface OrganizationMembershipsView {
   organizationid: string;
+  name: string;
+  description: string;
+  adminid: string;
+  created_at: string;
+  organization_type: string;
+  industry: string;
+  organization_size: string;
+  website: string;
+  date_established: string;
+  address: Address;
+  socials: Socials;
+  slug: string;
+  photo: string | null;
+  banner: string | null;
+  memberships: Membership[];
 }
 
 interface MembershipsTableProps {
-  orgmems: Membership[];
-  allMembers: Member[];
+  orgsMemView: OrganizationMembershipsView[];
 }
 
-export default function MembershipsTable({
-  orgmems = [],
-  allMembers = [],
-}: MembershipsTableProps) {
+export default function MembershipsTable({ orgsMemView = [] }: MembershipsTableProps) {
   const [selectedOrgId, setSelectedOrgId] = useState<string>("");
   const [tableData, setTableData] = useState<Membership[]>([]);
   const [filterText, setFilterText] = useState<string>("");
 
   const organizations = useMemo(() => {
-    return Array.from(new Set(orgmems.map((mem) => mem.organizationid))).map((id) => {
-      const found = orgmems.find((mem) => mem.organizationid === id);
-      return { id: found?.organizationid, name: found?.orgname };
-    });
-  }, [orgmems]);
+    return orgsMemView.map((org) => ({
+      id: org.organizationid,
+      name: org.name,
+    }));
+  }, [orgsMemView]);
 
   useEffect(() => {
-    const filteredMemberships = orgmems.filter(
-      (mem) => mem.organizationid === selectedOrgId || selectedOrgId === ""
+    const filteredOrganizations = selectedOrgId
+      ? orgsMemView.filter((org) => org.organizationid === selectedOrgId)
+      : orgsMemView;
+
+    const data = filteredOrganizations.flatMap((org) =>
+      org.memberships.map((mem) => ({
+        ...mem,
+        orgname: org.name,
+        organizationid: org.organizationid,
+        open: mem.open ?? false,
+        setOpen:
+          mem.setOpen ??
+          ((open: boolean) => {
+            setTableData((prevData) => {
+              const newData = [...prevData];
+              const index = newData.findIndex(
+                (item) => item.membershipid === mem.membershipid
+              );
+              if (index !== -1) {
+                newData[index] = { ...newData[index], open };
+              }
+              return newData;
+            });
+          }),
+      }))
     );
-
-    const filteredMembers = allMembers.filter(
-      (member) => member.organizationid === selectedOrgId || selectedOrgId === ""
-    );
-
-    const membersByMembershipId: { [key: string]: Member[] } = {};
-    filteredMembers.forEach((member) => {
-      if (!membersByMembershipId[member.membershipid]) {
-        membersByMembershipId[member.membershipid] = [];
-      }
-      membersByMembershipId[member.membershipid].push(member);
-    });
-
-    const data = filteredMemberships.map((mem) => ({
-      ...mem,
-      members: membersByMembershipId[mem.membershipid] || [],
-      open: false,
-      setOpen: (open: boolean) => {
-        setTableData((prevData) => {
-          const newData = [...prevData];
-          const index = newData.findIndex(
-            (item) => item.membershipid === mem.membershipid
-          );
-          newData[index].open = open;
-          return newData;
-        });
-      },
-    }));
 
     setTableData(data);
-  }, [orgmems, allMembers, selectedOrgId]);
+  }, [orgsMemView, selectedOrgId]);
 
   const columns: TableColumn<Membership>[] = [
     {
       name: "Membership",
-      selector: (row) => row.membershipname,
+      selector: (row) => row.name,
       sortable: true,
     },
     {
       name: "Organization",
-      selector: (row) => row.orgname,
+      selector: (row) => row.orgname || "",
       sortable: true,
       omit: selectedOrgId !== "",
     },
@@ -95,7 +130,7 @@ export default function MembershipsTable({
     },
     {
       name: "Members",
-      selector: (row) => row.membership_count,
+      selector: (row) => row.total_members,
       sortable: true,
     },
     {
@@ -103,8 +138,8 @@ export default function MembershipsTable({
       cell: (row) => (
         <MembershipOptions
           selectedTier={row}
-          open={row.open}
-          setOpen={row.setOpen}
+          open={row.open ?? false}
+          setOpen={row.setOpen ?? (() => {})}
           TierMembers={row.members || []}
         />
       ),
@@ -117,9 +152,9 @@ export default function MembershipsTable({
       tableData.filter((item) => {
         if (!filterText) return true;
         return (
-          item.membershipname.toLowerCase().includes(filterText.toLowerCase()) ||
+          item.name.toLowerCase().includes(filterText.toLowerCase()) ||
           (selectedOrgId === "" &&
-            item.orgname.toLowerCase().includes(filterText.toLowerCase()))
+            item.orgname?.toLowerCase().includes(filterText.toLowerCase()))
         );
       }),
     [filterText, tableData, selectedOrgId]

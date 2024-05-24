@@ -6,12 +6,12 @@ import { createClient } from "@/lib/supabase/client";
 import { z } from "zod";
 import { Membership } from "@/lib/types";
 
-// Define props types
 interface CreateMembershipModalProps {
   organizationid: string;
   membership?: Membership;
   isOpen: boolean;
   onClose: () => void;
+  onSubmit?: () => void; // Add onSubmit prop
 }
 
 const membershipSchema = z.object({
@@ -26,7 +26,7 @@ const membershipSchema = z.object({
       return true;
     }),
   description: z.string(),
-  organizationid: z.string(), // updated to use camelCase
+  organizationid: z.string(),
   features: z.array(z.string()).nonempty("At least one feature is required"),
   yearlydiscount: z
     .number()
@@ -56,6 +56,7 @@ const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
   membership,
   isOpen,
   onClose,
+  onSubmit, // Add onSubmit to destructuring
 }) => {
   const initialFormData: Membership = {
     name: "",
@@ -131,6 +132,7 @@ const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
         setFormData(initialFormData);
       }
       onClose();
+      if (onSubmit) onSubmit(); // Call onSubmit after successful submission
     } catch (error: any) {
       console.error("Error creating/updating membership:", error.message);
       if (error.message === "Registration Fee is too large") {

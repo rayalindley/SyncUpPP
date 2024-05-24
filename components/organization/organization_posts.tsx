@@ -113,17 +113,26 @@ const OrganizationPostsComponent = ({
             </div>
           )}
           <div className="isolate max-w-6xl lg:max-w-none">
-            {currentPosts.map((post, index) => (
-              <div key={post.postid} className="mx-auto">
-                <PostsCard
-                  post={post}
-                  setPostsData={setPostsData}
-                  postsData={postsData}
-                  startEdit={startEdit}
-                />
-                {index !== currentPosts.length - 1 && <Divider />}
+            {currentPosts.length > 0 ? (
+              currentPosts.map((post, index) => (
+                <div key={post.postid} className="mx-auto">
+                  <PostsCard
+                    post={post}
+                    setPostsData={setPostsData}
+                    postsData={postsData}
+                    startEdit={startEdit}
+                  />
+                  {index !== currentPosts.length - 1 && <Divider />}
+                </div>
+              ))
+            ) : (
+              <div
+                className="mb-4 rounded-lg bg-gray-800 p-4 text-sm text-blue-400"
+                role="alert"
+              >
+                The organization has no posts available for you.
               </div>
-            ))}
+            )}
           </div>
           <div className="mt-2 w-full">
             <nav className="flex items-center justify-between border-t border-gray-200 px-4 sm:px-0">
