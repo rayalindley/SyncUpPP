@@ -25,18 +25,17 @@ const OrganizationPostsComponent = ({
   const postsTextAreaRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (isMember: boolean) => {
     const { data, error } = await fetchPosts(organizationid);
     if (!error) {
-      const visibleData = isMemberOfOrganization
-        ? data
-        : data.filter((post) => post.privacylevel !== "private");
+      const visibleData = isMember ? data : data.filter((post) => post.privacylevel !== "private");
       setPostsData(visibleData);
+      console.log("isMemberOfOrganization", isMember);
     } else {
       console.error("Error fetching posts:", error);
     }
     setLoading(false);
-  }, [organizationid, isMemberOfOrganization]);
+  }, [organizationid]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -44,8 +43,9 @@ const OrganizationPostsComponent = ({
       if (user) {
         const userOrgInfo = await getUserOrganizationInfo(user.id, organizationid);
         setUserOrgInfo(userOrgInfo);
-        setIsMemberOfOrganization(userOrgInfo == null ? false : true);
-        fetchData();
+        const isMember = userOrgInfo != null;
+        setIsMemberOfOrganization(isMember);
+        fetchData(isMember);
       }
     };
 
@@ -54,14 +54,14 @@ const OrganizationPostsComponent = ({
     const postsChannel = supabase
       .channel("posts")
       .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => {
-        fetchData();
+        fetchData(isMemberOfOrganization);
       })
       .subscribe();
 
     return () => {
       postsChannel.unsubscribe();
     };
-  }, [organizationid, fetchData, supabase]);
+  }, [organizationid, fetchData, supabase, isMemberOfOrganization]);
 
   useEffect(() => {
     if (editingPost && postsTextAreaRef.current) {
