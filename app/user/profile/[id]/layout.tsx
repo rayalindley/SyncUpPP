@@ -1,6 +1,7 @@
 import { UserProvider } from "@/context/UserContext";
 import { getUser } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import Header from "@/components/Header";
 
 export default async function ProfilePage({
   children,
@@ -16,6 +17,7 @@ export default async function ProfilePage({
   return (
     <UserProvider>
       <main className="bg-gray">
+        <Header user={user} />
         <div className="px-4 sm:px-6 lg:px-8">{children}</div>
       </main>
     </UserProvider>

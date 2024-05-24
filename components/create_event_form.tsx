@@ -51,7 +51,7 @@ interface EventFormValues {
   capacity?: number | null;
   registrationfee?: number | null;
   privacy: "public" | "private";
-  organizationId: string;
+  organizationid: string;
   eventphoto: string | null;
   tags: string[];
   eventslug?: string;
@@ -62,10 +62,10 @@ type TagData = {
   [key: string]: any;
 };
 const CreateEventForm = ({
-  organizationId,
+  organizationid,
   event,
 }: {
-  organizationId: string;
+  organizationid: string;
   event?: EventFormValues;
 }) => {
   const [eventphoto, setEventPhoto] = useState<string | null>(event?.eventphoto || null);
@@ -214,7 +214,7 @@ const CreateEventForm = ({
 
     const { data, error } = event
       ? await updateEvent(event.eventid!, completeFormData)
-      : await insertEvent(completeFormData, organizationId);
+      : await insertEvent(completeFormData, organizationid);
 
     if (data) {
       toast.success(

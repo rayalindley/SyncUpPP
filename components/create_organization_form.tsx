@@ -365,7 +365,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
             draggable: true,
             progress: undefined,
             theme: "light",
-            onClose: () => router.push("/dashboard"),
+            onClose: () => router.back(),
           });
           reset();
         } else if (error) {
@@ -384,9 +384,10 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
             draggable: true,
             progress: undefined,
             theme: "light",
+            onClose: () => router.back(),
           });
           // console.log(formData);
-          router.push("/dashboard");
+
           reset();
         } else if (error) {
           throw error;

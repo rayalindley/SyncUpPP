@@ -12,7 +12,11 @@ export async function insertPost(formData: any, organizationid: string) {
       postphotos: formData.postphotos || [], // Ensure this is an array
     };
 
-    const { data, error } = await supabase.from("posts").insert([insertValues]).select().single();
+    const { data, error } = await supabase
+      .from("posts")
+      .insert([insertValues])
+      .select()
+      .single();
 
     if (!error) {
       return { data, error: null };
@@ -52,7 +56,6 @@ export async function fetchPosts(organizationid: string) {
   }
 }
 
-
 // lib/posts.ts
 
 export const checkIsMemberOfOrganization = async (organizationid: string) => {
@@ -65,14 +68,13 @@ export const checkIsMemberOfOrganization = async (organizationid: string) => {
       .select("*")
       .eq("userid", currentUser.user?.id)
       .eq("organizationid", organizationid);
-      
+
     if (!error && data.length > 0) {
       return true;
     }
   }
   return false;
 };
-
 
 export async function updatePost(updatedPost: {
   postid: string;
@@ -86,7 +88,8 @@ export async function updatePost(updatedPost: {
     const updateFields: any = {};
     if (updatedPost.content) updateFields.content = updatedPost.content;
     if (updatedPost.privacyLevel) updateFields.privacylevel = updatedPost.privacyLevel;
-    if (updatedPost.postphotos !== undefined) updateFields.postphotos = updatedPost.postphotos;
+    if (updatedPost.postphotos !== undefined)
+      updateFields.postphotos = updatedPost.postphotos;
 
     const { data, error } = await supabase
       .from("posts")
@@ -109,7 +112,6 @@ export async function updatePost(updatedPost: {
   }
 }
 
-
 export async function deletePost(postid: string, authorid: string) {
   const supabase = createClient();
   try {
@@ -117,14 +119,14 @@ export async function deletePost(postid: string, authorid: string) {
     const currentUser = await getUser();
     if (!currentUser || currentUser.user?.id !== authorid) {
       console.error("Unauthorized: Only the author can delete this post");
-      return { data: null, error: { message: "Unauthorized: Only the author can delete this post" } };
+      return {
+        data: null,
+        error: { message: "Unauthorized: Only the author can delete this post" },
+      };
     }
 
     // Delete the post if the current user is the author
-    const { data, error } = await supabase
-      .from("posts")
-      .delete()
-      .eq("postid", postid);
+    const { data, error } = await supabase.from("posts").delete().eq("postid", postid);
 
     if (!error) {
       return { data, error: null };
@@ -135,7 +137,9 @@ export async function deletePost(postid: string, authorid: string) {
     console.error("Unexpected error:", e);
     return {
       data: null,
-      error: { message: e.message || "An unexpected error occurred while deleting the post" },
+      error: {
+        message: e.message || "An unexpected error occurred while deleting the post",
+      },
     };
   }
 }
@@ -144,11 +148,12 @@ export async function getAuthorDetails(authorid: string) {
   const supabase = createClient();
   try {
     // Fetch the author's first name and profile picture
-    const { data, error } = await supabase.from("userprofiles")
+    const { data, error } = await supabase
+      .from("userprofiles")
       .select("first_name, last_name, profilepicture")
       .eq("userid", authorid)
       .single();
-    
+
     if (error) {
       console.error("Error fetching author's details:", error.message);
       return { first_name: null, last_name: null, profilepicture: null };
@@ -157,14 +162,14 @@ export async function getAuthorDetails(authorid: string) {
     return {
       first_name: data?.first_name || null,
       last_name: data?.last_name || null,
-      profilepicture: data?.profilepicture || null
+      profilepicture: data?.profilepicture || null,
     };
   } catch (e: any) {
     console.error("Unexpected error:", e);
     return {
       first_name: null,
       last_name: null,
-      profilepicture: null
+      profilepicture: null,
     };
   }
 }

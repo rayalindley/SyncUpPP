@@ -1,9 +1,10 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import PostsCard from "./posts_card";
 import PostsTextArea from "./posts_textarea";
-import { fetchPosts, checkIsMemberOfOrganization } from "@/lib/posts";
+import { fetchPosts } from "@/lib/posts";
 import Divider from "./divider";
-import { createClient } from "@/lib/supabase/client";
+import { createClient, getUser } from "@/lib/supabase/client";
+import { getUserOrganizationInfo } from "@/lib/organization";
 import { ArrowLeftIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
 import { Posts } from "@/types/posts"; // Ensure this import matches your actual types
 
@@ -20,27 +21,30 @@ const OrganizationPostsComponent = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [postsPerPage] = useState(5);
   const [loading, setLoading] = useState(true);
+  const [userOrgInfo, setUserOrgInfo] = useState<any>(null);
   const postsTextAreaRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
 
   const fetchData = useCallback(async () => {
     const { data, error } = await fetchPosts(organizationid);
     if (!error) {
-      const visibleData = isMemberOfOrganization
-        ? data
-        : data.filter((post) => post.privacylevel !== "private");
+      const visibleData = data.filter((post) => post.privacylevel !== "private");
       setPostsData(visibleData);
     } else {
       console.error("Error fetching posts:", error);
     }
     setLoading(false);
-  }, [organizationid, isMemberOfOrganization]);
+  }, [organizationid]);
 
   useEffect(() => {
     const loadData = async () => {
-      const isMember = await checkIsMemberOfOrganization(organizationid);
-      setIsMemberOfOrganization(isMember);
-      fetchData();
+      const { user } = await getUser();
+      if (user) {
+        const userOrgInfo = await getUserOrganizationInfo(user.id, organizationid);
+        setUserOrgInfo(userOrgInfo);
+        setIsMemberOfOrganization(true);
+        fetchData();
+      }
     };
 
     loadData();
@@ -96,16 +100,18 @@ const OrganizationPostsComponent = ({
           <h2 className="mb-8 text-center text-2xl font-semibold text-light">
             Organization Posts
           </h2>
-          <div ref={postsTextAreaRef}>
-            <PostsTextArea
-              organizationid={organizationid}
-              postsData={postsData}
-              setPostsData={setPostsData}
-              editingPost={editingPost}
-              cancelEdit={cancelEdit}
-              setEditingPost={setEditingPost}
-            />
-          </div>
+          {userOrgInfo && (
+            <div ref={postsTextAreaRef}>
+              <PostsTextArea
+                organizationid={organizationid}
+                postsData={postsData}
+                setPostsData={setPostsData}
+                editingPost={editingPost}
+                cancelEdit={cancelEdit}
+                setEditingPost={setEditingPost}
+              />
+            </div>
+          )}
           <div className="isolate max-w-6xl lg:max-w-none">
             {currentPosts.map((post, index) => (
               <div key={post.postid} className="mx-auto">

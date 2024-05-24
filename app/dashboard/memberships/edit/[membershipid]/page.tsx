@@ -69,7 +69,7 @@ export default function Example() {
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-lg">
           <StepsProvider>
             {/* <CreateOrganizationForm formValues={formValues} /> */}
-            <CreateMembershipForm organizationId={null} membership={membership} />
+            <CreateMembershipForm organizationid={null} membership={membership} />
           </StepsProvider>
         </div>
       </div>

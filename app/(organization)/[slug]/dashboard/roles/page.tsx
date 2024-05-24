@@ -16,7 +16,7 @@ import { FiPlus } from "react-icons/fi";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-import { Role } from "@/types/roles";
+import { Role, Member } from "@/types/roles";
 interface Permission {
   perm_id: string;
   name: string;
@@ -519,7 +519,7 @@ export default function SettingsRolesPage() {
                 </Tab.Panel>
                 <Tab.Panel>
                   {selectedRole && orgID && (
-                    <Members selectedRole={selectedRole} organizationId={orgID} />
+                    <Members selectedRole={selectedRole} organizationid={orgID} />
                   )}
                 </Tab.Panel>
               </Tab.Panels>

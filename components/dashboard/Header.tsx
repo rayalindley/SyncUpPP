@@ -45,9 +45,11 @@ function Header({ user }: { user: User }) {
   useEffect(() => {
     const supabase = createClient();
     const loadNotifications = async () => {
-      const { data, unreadCount } = await fetchNotifications(user.id);
+      const response = await fetchNotifications(user.id);
 
-      if (data) {
+      if (response && response.data) {
+        const { data, unreadCount } = response;
+
         // Sort notifications by unread status first, then alphabetically
         const sortedData = data.sort((a, b) => {
           if (a.isread === b.isread) {
@@ -57,9 +59,8 @@ function Header({ user }: { user: User }) {
         });
 
         setNotifications(sortedData);
+        setUnreadCount(unreadCount);
       }
-
-      setUnreadCount(unreadCount);
     };
 
     loadNotifications();
@@ -79,12 +80,18 @@ function Header({ user }: { user: User }) {
         }
       )
       .subscribe();
+
+    return () => {
+      supabase.removeChannel(channels);
+    };
   }, [user]);
 
   const loadNotifications = async () => {
-    const { data, unreadCount } = await fetchNotifications(user.id);
+    const response = await fetchNotifications(user.id);
 
-    if (data) {
+    if (response && response.data) {
+      const { data, unreadCount } = response;
+
       // Sort notifications by unread status first, then alphabetically
       const sortedData = data.sort((a, b) => {
         if (a.isread === b.isread) {
@@ -94,9 +101,8 @@ function Header({ user }: { user: User }) {
       });
 
       setNotifications(sortedData);
+      setUnreadCount(unreadCount);
     }
-
-    setUnreadCount(unreadCount);
   };
 
   const handleMarkAllAsRead = async () => {

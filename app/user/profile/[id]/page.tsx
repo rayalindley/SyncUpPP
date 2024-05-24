@@ -88,11 +88,10 @@ export default function ProfilePage() {
 
   return (
     <>
-      <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-6 lg:px-4">
-        <Header user={user} />
-        <main className="flex min-h-full flex-1 flex-col items-center justify-center bg-eerieblack px-6 py-12 lg:px-8">
+      <div className="flex min-h-screen flex-col">
+        <main className="flex w-full flex-1 flex-col items-center justify-center bg-eerieblack px-6 py-12 lg:px-8">
           {userProfile && (
-            <div className="text-center">
+            <div className="w-full max-w-7xl text-center">
               {userProfile.profilepicture ? (
                 <img
                   src={`${supabaseStorageBaseUrl}/${userProfile.profilepicture}`}
@@ -104,20 +103,20 @@ export default function ProfilePage() {
                   {getInitials(userProfile.first_name ?? "", userProfile.last_name ?? "")}
                 </div>
               )}
-              <div className="mt-4 flex items-center justify-center space-x-2">
+              <div className="mb-4 mt-4 flex items-center justify-center space-x-2">
                 <h1 className="text-2xl font-bold text-white">
                   {userProfile.first_name} {userProfile.last_name}
                 </h1>
-                <Link href={`/user/edit/${user?.id}`}>
-                  <PencilIcon className="h-4 w-4 text-gray-400 hover:text-primary" />
-                </Link>
+
+                {user?.id === id && (
+                  <Link href={`/user/edit/${user?.id}`}>
+                    <PencilIcon className="h-4 w-4 text-gray-400 hover:text-primary" />
+                  </Link>
+                )}
               </div>
+              <div className="text-sm text-light">{userProfile.description}</div>
               <div className="mt-8 border-b border-gray-700">
-                <nav
-                  className="-mb-px flex justify-center space-x-8 px-4 sm:px-6"
-                  aria-label="Tabs"
-                  style={{ minWidth: "500px" }} // Set a minimum width here
-                >
+                <nav className="-mb-px flex justify-center space-x-8" aria-label="Tabs">
                   <button
                     onClick={() => handleTabChange("events")}
                     className={`whitespace-nowrap border-b-2 px-1 py-4 text-base font-medium ${
@@ -140,7 +139,7 @@ export default function ProfilePage() {
                   </button>
                 </nav>
               </div>
-              <div className="mt-8 min-h-[400px] min-w-[500px]">{tabContent()}</div>
+              <div className="mt-8 w-full">{tabContent()}</div>
             </div>
           )}
         </main>

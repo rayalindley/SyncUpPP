@@ -10,19 +10,7 @@ import { CalendarIcon, InboxIcon, UserGroupIcon } from "@heroicons/react/24/outl
 import Link from "next/link";
 import { ToastContainer } from "react-toastify";
 
-const orgdata = [
-  {
-    name: "Lorem Ipsum",
-    members: "123",
-    posts: "132",
-    description:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
-    facebook: "#",
-    twitter: "#",
-    instagram: "#",
-    image: "https://via.placeholder.com/150",
-  },
-];
+import { getUserOrganizationInfo } from "@/lib/organization";
 
 const getInitials = (name: string): string => {
   const words = name.split(" ");
@@ -55,6 +43,14 @@ export default async function OrganizationUserView({
     .select("*")
     .eq("slug", slug)
     .single();
+
+  console.log(org);
+
+  // console.log(user?.id, org.organizationid);
+
+  let userOrgInfo = await getUserOrganizationInfo(user?.id!, org.organizationid);
+
+  // console.log(userOrgInfo);
 
   // Inside your component
   const currentPage = 1; // Set the current page
@@ -138,12 +134,14 @@ export default async function OrganizationUserView({
                 )}
               </div>
               <div className="mt-4 sm:mt-0">
-                <Link
-                  className="rounded-lg bg-primary px-4 py-2 text-white hover:bg-primarydark"
-                  href={`${slug}/dashboard`}
-                >
-                  Settings
-                </Link>
+                {org.adminid === user?.id && (
+                  <Link
+                    className="rounded-lg bg-primary px-4 py-2 text-white hover:bg-primarydark"
+                    href={`${slug}/dashboard`}
+                  >
+                    Manage
+                  </Link>
+                )}
               </div>
             </div>
           </div>

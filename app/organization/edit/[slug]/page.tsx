@@ -57,7 +57,7 @@ export default function Example() {
           <StepsProvider>
             <CreateOrganizationForm formValues={formValues} />
           </StepsProvider>
-
+          {/* 
           <p className="mt-10 text-center text-sm text-gray-400">
             Not a member?{" "}
             <a
@@ -66,7 +66,7 @@ export default function Example() {
             >
               Start a 14 day free trial
             </a>
-          </p>
+          </p> */}
         </div>
       </div>
     </>

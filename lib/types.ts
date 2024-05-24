@@ -65,7 +65,7 @@ export interface Membership {
   description?: string | undefined;
   price?: number;
   duration?: string;
-  organizationId?: string;
+  organizationid?: string;
   registrationfee: number; // Ensure this is always a number
   yearlydiscount?: number;
   mostPopular?: boolean;
@@ -360,4 +360,41 @@ export interface Organizationmembers {
   combined_user_data?: Combined_user_data;
   memberships?: Memberships;
   organization_roles?: Organization_roles;
+}
+
+export interface AnalyticsDashboardProps {
+  organizationid: string;
+}
+
+export interface AnalyticsData {
+  day_joined: string;
+  members_joined: number;
+  total_members: number;
+  total_posts: number;
+  total_events: number;
+  event_title: string;
+  total_registrations: number;
+  postid: string;
+  total_comments: number;
+  eventid: string;
+  day_registered: string;
+  registrations_count: number;
+}
+
+export interface TotalStats {
+  total_orgs: number;
+  total_events: number;
+  total_members: number;
+}
+
+export interface TopOrg {
+  name: string;
+  total_events: number;
+  total_posts: number;
+  total_members: number;
+}
+
+export interface Registration {
+  registration_date: string;
+  total_registrations: number;
 }

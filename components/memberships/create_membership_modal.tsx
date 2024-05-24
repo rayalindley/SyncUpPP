@@ -8,7 +8,7 @@ import { Membership } from "@/lib/types";
 
 // Define props types
 interface CreateMembershipModalProps {
-  organizationId: string;
+  organizationid: string;
   membership?: Membership;
   isOpen: boolean;
   onClose: () => void;
@@ -26,7 +26,7 @@ const membershipSchema = z.object({
       return true;
     }),
   description: z.string(),
-  organizationId: z.string(), // updated to use camelCase
+  organizationid: z.string(), // updated to use camelCase
   features: z.array(z.string()).nonempty("At least one feature is required"),
   yearlydiscount: z
     .number()
@@ -39,12 +39,12 @@ const membershipSchema = z.object({
     }),
 });
 
-const fetchData = async (organizationId: string) => {
+const fetchData = async (organizationid: string) => {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("memberships")
     .select("*")
-    .eq("organizationid", organizationId);
+    .eq("organizationid", organizationid);
   if (error) {
     throw error;
   }
@@ -52,7 +52,7 @@ const fetchData = async (organizationId: string) => {
 };
 
 const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
-  organizationId,
+  organizationid,
   membership,
   isOpen,
   onClose,
@@ -60,7 +60,7 @@ const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
   const initialFormData: Membership = {
     name: "",
     membershipid: "",
-    organizationId: organizationId,
+    organizationid: organizationid,
     description: "",
     registrationfee: 0,
     features: [""],

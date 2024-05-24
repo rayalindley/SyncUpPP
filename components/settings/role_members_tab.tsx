@@ -13,10 +13,10 @@ const supabase = createClient();
 
 type MembersProps = {
   selectedRole: Role;
-  organizationId: string;
+  organizationid: string;
 };
 
-export const Members = ({ selectedRole, organizationId }: MembersProps) => {
+export const Members = ({ selectedRole, organizationid }: MembersProps) => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [filteredMembers, setFilteredMembers] = useState<Member[]>(
     selectedRole.members || []
@@ -52,7 +52,7 @@ export const Members = ({ selectedRole, organizationId }: MembersProps) => {
       const { data, error } = await supabase
         .from("organizationmembers")
         .update({ roleid: null })
-        .eq("organizationid", organizationId)
+        .eq("organizationid", organizationid)
         .eq("userid", memberId);
 
       if (error) {
@@ -68,6 +68,10 @@ export const Members = ({ selectedRole, organizationId }: MembersProps) => {
     }
   };
 
+  const handleAddMember = () => {
+    console.log("Add Member");
+  };
+
   return (
     <div className="p-2">
       <div className="my-4 flex gap-4">
@@ -79,7 +83,7 @@ export const Members = ({ selectedRole, organizationId }: MembersProps) => {
           className="flex-grow rounded-md border border-raisinblack bg-charleston p-2 px-4 text-sm text-light placeholder-opacity-50 placeholder:text-light "
         />
         <button
-          onClick={() => console.log("Add new member")}
+          onClick={() => handleAddMember()}
           className="rounded-md bg-primary p-2 px-4 text-sm hover:bg-primarydark"
         >
           Add Member

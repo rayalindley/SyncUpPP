@@ -46,7 +46,7 @@ const MembershipTiers: React.FC<MembershipsProps> = ({ memberships, userid }) =>
   };
 
   const handleBuyPlan = useCallback(
-    async (membershipId: string, organizationId: string) => {
+    async (membershipId: string, organizationid: string) => {
       try {
         if (userMemberships.includes(membershipId)) {
           // If user already has the membership, notify and return
@@ -57,7 +57,7 @@ const MembershipTiers: React.FC<MembershipsProps> = ({ memberships, userid }) =>
         const { data: rolesData, error: rolesError } = await supabase
           .from("organization_roles")
           .select("role_id")
-          .eq("org_id", organizationId)
+          .eq("org_id", organizationid)
           .eq("role", "User")
           .single();
 
@@ -72,7 +72,7 @@ const MembershipTiers: React.FC<MembershipsProps> = ({ memberships, userid }) =>
           {
             userid: userid,
             membershipid: membershipId,
-            organizationid: organizationId,
+            organizationid: organizationid,
             roleid: defaultRoleId,
           },
         ]);
@@ -166,7 +166,7 @@ const MembershipTiers: React.FC<MembershipsProps> = ({ memberships, userid }) =>
               </div>
               <button
                 onClick={() =>
-                  handleBuyPlan(membership.membershipid, membership.organizationId || "")
+                  handleBuyPlan(membership.membershipid, membership.organizationid || "")
                 }
                 aria-describedby={membership.membershipid}
                 className={classNames(

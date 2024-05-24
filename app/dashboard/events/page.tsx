@@ -32,19 +32,20 @@ export default function DashboardPage() {
 
       setOrganizations(orgs);
 
-      // Assuming you have an 'organizationId' field in your events
+      // Assuming you have an 'organizationid' field in your events
       const { data: userEvents, error: eventsError } = await supabase
         .from("events")
         .select("*")
         .in(
           "organizationid",
-          orgs.map((org: Organization) => org.organizationid)
+          orgs.map((org: Organization) => org.organization_id)
         );
 
       if (eventsError) {
         console.error("Error fetching events:", eventsError);
       } else {
         setEvents(userEvents);
+        console.log("Fetched events:", userEvents);
       }
       setLoading(false);
     }

@@ -99,7 +99,7 @@ export default function Example() {
         <MembershipModal
           isOpen={showModal}
           onClose={() => setShowModal(false)}
-          organizationId={organization.organizationid}
+          organizationid={organization.organizationid}
           membership={undefined}
         />
 

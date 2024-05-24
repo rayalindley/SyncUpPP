@@ -14,8 +14,8 @@ interface MembershipCardProps {
   totalMemberships: number;
   userid?: string;
   userMemberships: string[];
-  handleBuyPlan: (membershipId: string, organizationId: string) => void;
-  handleEditMembership: (membership: Membership, organizationId: string) => void;
+  handleBuyPlan: (membershipId: string, organizationid: string) => void;
+  handleEditMembership: (membership: Membership, organizationid: string) => void;
   handleDeleteMembership: (membershipId: string) => void;
   frequency: Frequency;
 }
@@ -88,7 +88,7 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
       {userid ? (
         <button
           onClick={() =>
-            handleBuyPlan(membership.membershipid, membership.organizationId || "")
+            handleBuyPlan(membership.membershipid, membership.organizationid || "")
           }
           aria-describedby={membership.membershipid}
           className={classNames(
@@ -108,7 +108,7 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
           <button
             aria-describedby={membership.membershipid}
             onClick={() =>
-              handleEditMembership(membership, membership.organizationId || "")
+              handleEditMembership(membership, membership.organizationid || "")
             }
             className="mt-6 block w-full rounded-md bg-primary px-3 py-2 text-center text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >

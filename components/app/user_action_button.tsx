@@ -422,13 +422,20 @@ export default function UserActionButton({
                           </table>
                           <div className="mt-5 flex gap-2">
                             <Link
-                              className="group flex items-center rounded-md bg-primary px-4 py-2 text-sm font-semibold  text-white shadow-sm hover:bg-opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                              className="font-regular text-foreground relative inline-flex h-[26px] cursor-pointer items-center justify-center space-x-2 rounded-md border-[1px] border-zinc-600 bg-zinc-800 px-3 py-1 text-center text-xs hover:bg-opacity-60"
+                              href={`/user/profile/${selectedUser.id}`}
+                              target="_blank"
+                            >
+                              View Profile
+                            </Link>
+                            <Link
+                              className="font-regular text-foreground relative inline-flex h-[26px] cursor-pointer items-center justify-center space-x-2 rounded-md border-[1px] border-zinc-600 bg-zinc-800 px-3 py-1 text-center text-xs hover:bg-opacity-60"
                               href={`/user/edit/${selectedUser.id}`}
                             >
-                              Edit
+                              Edit Profile
                             </Link>
                             <button
-                              className="group flex items-center rounded-lg bg-raisinblack px-4 py-2 text-sm text-light hover:bg-opacity-50 focus-visible:outline"
+                              className="font-regular text-foreground relative inline-flex h-[26px] cursor-pointer items-center justify-center space-x-2 rounded-md border-[1px] border-zinc-600 bg-zinc-800 px-3 py-1 text-center text-xs hover:bg-opacity-60"
                               onClick={async () => {
                                 const response = await sendPasswordRecovery(
                                   selectedUser.email!
@@ -460,7 +467,7 @@ export default function UserActionButton({
                               Send password recovery
                             </button>
                             <button
-                              className="group flex items-center rounded-md bg-rose-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                              className="font-regular text-foreground relative inline-flex h-[26px] cursor-pointer items-center justify-center space-x-2 rounded-md border-[1px] border-red-300 bg-red-500 px-3 py-1 text-center text-xs hover:bg-opacity-60"
                               onClick={deleteBtn}
                             >
                               Delete

@@ -61,7 +61,7 @@ export default function CreateEventPage() {
         </div>
 
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-lg">
-          <CreateEventForm organizationId={(organization as any)?.organizationid} />
+          <CreateEventForm organizationid={(organization as any)?.organizationid} />
         </div>
       </div>
     </>

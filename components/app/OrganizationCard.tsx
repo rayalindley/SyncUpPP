@@ -1,6 +1,7 @@
 "use client";
 import { CalendarIcon, InboxIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 interface OrganizationCardProps {
   name: string;
@@ -48,8 +49,9 @@ const OrganizationCard: React.FC<OrganizationCardProps> = ({
   };
 
   return (
-    <div
-      onClick={handleCardClick}
+    <Link
+      // onClick={handleCardClick}
+      href={`/${slug}`}
       className="mx-auto max-w-2xl transform rounded-2xl border border-[#2e2e2e] bg-[#232323] transition duration-200 hover:scale-[1.03] hover:bg-charleston lg:mx-0 lg:max-w-none"
     >
       <div className="relative">
@@ -96,7 +98,7 @@ const OrganizationCard: React.FC<OrganizationCardProps> = ({
         </div>
         <p className="mt-4 text-base font-normal text-light">{truncatedDescription}</p>
       </div>
-    </div>
+    </Link>
   );
 };
 export default OrganizationCard;
