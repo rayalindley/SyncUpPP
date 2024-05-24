@@ -10,8 +10,8 @@ export default async function MembershipsPage() {
 
   let organizationsQuery = supabase.from("organizations_memberships_view").select("*");
 
-  if (user.role !== "superadmin") {
-    organizationsQuery = organizationsQuery.eq("adminid", user.id);
+  if (user?.role !== "superadmin") {
+    organizationsQuery = organizationsQuery.eq("adminid", user?.id);
   }
 
   const { data: organizations_memberships_view, error: orgsMemError } =

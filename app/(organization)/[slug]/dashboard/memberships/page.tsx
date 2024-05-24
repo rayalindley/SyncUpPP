@@ -150,6 +150,7 @@ export default function Example() {
           onCreateClick={handleCreateClick}
           onDelete={handleDeleteMembership}
           onEdit={handleEditMembership} // Pass handleEditMembership to MembershipTiers
+          editable={true}
         />
         <MemberTable members={members} />
       </div>
