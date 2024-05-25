@@ -2,7 +2,7 @@
 import { Event, Organization } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import EventOptions from "./event_options"; // Assuming you have EventOptions component\\
+import EventOptions from "./event_options"; // Assuming you have EventOptions component
 
 export default function EventsTable({
   organizations,
@@ -14,21 +14,28 @@ export default function EventsTable({
   const [selectedOrgId, setSelectedOrgId] = useState("");
   const router = useRouter();
 
+  // Debugging: Log the selected organization ID and events
+  console.log("Selected Organization ID:", selectedOrgId);
+  console.log("All Events:", events);
+
   // Filter events based on the selected organization ID
   const filteredEvents = selectedOrgId
     ? events.filter((event) => event.organizationid === selectedOrgId)
     : events; // If no organization is selected, show all events
 
+  console.log("Filtered Events:", filteredEvents);
+
   // Redirect to the create event page for the selected organization
   const handleCreateEvent = () => {
     // Find the slug for the selected organization
     const selectedOrgSlug = organizations.find(
-      (org) => org.organization_id === selectedOrgId
+      (org) => org.organizationid === selectedOrgId
     )?.slug;
     if (selectedOrgSlug) {
       router.push(`/events/create/${selectedOrgSlug}`);
     }
   };
+
   return (
     <div className="px-4 sm:px-6 lg:px-8">
       <div className="justify-between sm:flex sm:items-center">
@@ -48,7 +55,7 @@ export default function EventsTable({
           >
             <option value="">All Organizations</option>
             {organizations.map((org) => (
-              <option key={org.organization_id} value={org.organization_id}>
+              <option key={org.organizationid} value={org.organizationid}>
                 {org.name}
               </option>
             ))}
@@ -80,7 +87,7 @@ export default function EventsTable({
                       scope="col"
                       className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-light sm:pl-6"
                     >
-                      Titlqwee
+                      Title
                     </th>
                     <th
                       scope="col"
@@ -139,6 +146,7 @@ export default function EventsTable({
 
 function EventRow({ event }: { event: Event }) {
   const [open, setOpen] = useState(false);
+
   // Convert eventdatetime to PST
   const formattedDateTime = (utcDateString: string) => {
     const date = new Date(utcDateString);
@@ -155,6 +163,7 @@ function EventRow({ event }: { event: Event }) {
   // Call the formattedDateTime function with the event's datetime
   const startEventDateTimePST = formattedDateTime(event.starteventdatetime.toString());
   const endEventDateTimePST = formattedDateTime(event.endeventdatetime.toString());
+
   return (
     <tr key={event.id}>
       <td
