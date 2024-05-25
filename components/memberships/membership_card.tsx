@@ -19,7 +19,7 @@ interface MembershipCardProps {
   handleEditMembership: (membership: Membership, organizationid: string) => void;
   handleDeleteMembership: (membershipId: string) => void;
   frequency: Frequency;
-  editable?: boolean;
+  editable?: boolean; // Add isEditable prop
 }
 
 function classNames(...classes: string[]) {

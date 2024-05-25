@@ -15,6 +15,15 @@ import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { Fragment, useEffect, useState } from "react";
 
+import { IoIosAnalytics } from "react-icons/io";
+import {
+  IoCalendarOutline,
+  IoMailUnreadOutline,
+  IoShieldCheckmarkOutline,
+} from "react-icons/io5";
+import { TbUserStar } from "react-icons/tb";
+
+
 function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
 }
@@ -85,6 +94,14 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
           ? `/dashboard/events`
           : `/${selected.slug}/dashboard/events`,
       icon: CalendarIcon,
+    },
+    {
+      name: "Events",
+      href:
+        selected === "default" || typeof selected === "string"
+          ? `/dashboard/events`
+          : `/${selected.slug}/dashboard/events`,
+      icon: IoCalendarOutline,
     },
   ];
 

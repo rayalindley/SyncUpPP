@@ -28,7 +28,7 @@ interface MembershipTiersProps {
   onCreateClick?: () => void;
   onDelete?: (membershipId: string) => void;
   onEdit?: (membership: Membership) => void; // Add onEdit prop
-  editable?: boolean; // Add isEditable
+  editable?: boolean;
 }
 
 function classNames(...classes: string[]) {
