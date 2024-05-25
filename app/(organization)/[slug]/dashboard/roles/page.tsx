@@ -92,7 +92,7 @@ export default function SettingsRolesPage() {
                   rp: { role_id: string; perm_key: string }
                 ) => {
                   acc[rp.role_id] = acc[rp.role_id] || {};
-                  acc[rp.role_id][rp.perm_key] = true;
+                  acc[rp.perm_key] = true;
                   return acc;
                 },
                 {}
@@ -105,8 +105,8 @@ export default function SettingsRolesPage() {
               }
             }
 
-            setRolesData(organization.roles);
-            setFilteredRoles(organization.roles);
+            setRolesData(organization.roles as Role[]);
+            setFilteredRoles(organization.roles as Role[]);
           } else {
             // console.log("Error:", orgError);
           }
@@ -373,7 +373,7 @@ export default function SettingsRolesPage() {
         } else if (role.role_id === newRoleId) {
           return {
             ...role,
-            members: [...(role.members || []), { userid: memberId }],
+            members: [...(role.members || []), { userid: memberId } as Member],
           };
         }
         return role;
