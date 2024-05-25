@@ -10,7 +10,7 @@ import { CalendarIcon, InboxIcon, UserGroupIcon } from "@heroicons/react/24/outl
 import Link from "next/link";
 import { ToastContainer } from "react-toastify";
 
-import { getUserOrganizationInfo } from "@/lib/organization";
+import { check_permissions, getUserOrganizationInfo } from "@/lib/organization";
 
 const getInitials = (name: string): string => {
   const words = name.split(" ");
@@ -44,7 +44,7 @@ export default async function OrganizationUserView({
     .eq("slug", slug)
     .single();
 
-  console.log(org);
+  // console.log(org);
 
   // console.log(user?.id, org?.organizationid);
 
@@ -92,12 +92,18 @@ export default async function OrganizationUserView({
   // console.log("Facebook Link:", facebookLink);
   // console.log("Twitter Link:", twitterLink);
   // console.log("LinkedIn Link:", linkedinLink);
+  // console.log("Org ID:", org.organizationid);
+  // console.log("Memberships: ", memberships);
+  // console.log(user?.id);
   // console.log("Org ID:", org?.organizationid)
   // console.log("Memberships: ", memberships)
   // console.log(user?.id)
 
   const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
 
+  console.log(
+    await check_permissions(user?.id || "", org.organizationid, "view_dashboard")
+  );
   return (
     <div>
       <Header user={user} />
@@ -134,7 +140,11 @@ export default async function OrganizationUserView({
                 )}
               </div>
               <div className="mt-4 sm:mt-0">
-                {org.adminid === user?.id && (
+                {(await check_permissions(
+                  user?.id || "",
+                  org.organizationid,
+                  "view_dashboard"
+                )) && (
                   <Link
                     className="rounded-lg bg-primary px-4 py-2 text-white hover:bg-primarydark"
                     href={`${slug}/dashboard`}
