@@ -24,10 +24,10 @@ const frequencies: Frequency[] = [
 interface MembershipTiersProps {
   memberships: Membership[];
   userid?: string;
-  isAuthenticated?: boolean; // Add isAuthenticated prop
+  isAuthenticated?: boolean;
   onCreateClick?: () => void;
   onDelete?: (membershipId: string) => void;
-  onEdit?: (membership: Membership) => void; // Add onEdit prop
+  onEdit?: (membership: Membership) => void;
   editable?: boolean;
 }
 
@@ -38,13 +38,14 @@ function classNames(...classes: string[]) {
 const MembershipTiers: React.FC<MembershipTiersProps> = ({
   memberships,
   userid,
-  isAuthenticated = false, // Default to false
+  isAuthenticated = false,
   onCreateClick = undefined,
   onDelete = () => {},
   onEdit = () => {},
   editable = false,
 }) => {
   const [userMemberships, setUserMemberships] = useState<string[]>([]);
+  const [currentMembershipId, setCurrentMembershipId] = useState<string | null>(null);
   const [frequency, setFrequency] = useState(frequencies[0]);
 
   useEffect(() => {
@@ -71,6 +72,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
           (membership: { membershipid: string }) => membership.membershipid
         ) || [];
       setUserMemberships(userMemberships);
+      setCurrentMembershipId(userMemberships.length > 0 ? userMemberships[0] : null);
     } catch (error) {
       console.error("Error: ", error);
       toast.error("An error occurred. Please try again later.");
@@ -82,7 +84,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
       try {
         const { data: userMembershipData, error: fetchError } = await supabase
           .from("organizationmembers")
-          .select("membershipid, roleid")
+          .select("membershipid")
           .eq("userid", userid)
           .eq("organizationid", organizationid)
           .single();
@@ -108,20 +110,20 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
         const defaultRoleId = rolesData?.role_id;
 
         if (userMembershipData) {
-          // User is already a member, update the roleid
+          // User is already a member, update the membershipid
           const { error: updateError } = await supabase
             .from("organizationmembers")
-            .update({ roleid: defaultRoleId })
+            .update({ membershipid: membershipId })
             .eq("userid", userid)
             .eq("organizationid", organizationid);
 
           if (updateError) {
-            console.error("Error updating membership role: ", updateError);
-            toast.error("Error updating membership role. Please try again later.");
+            console.error("Error updating membership ID: ", updateError);
+            toast.error("Error updating membership. Please try again later.");
             return;
           }
 
-          toast.success("Membership role updated successfully.");
+          toast.success("Membership updated successfully.");
         } else {
           // User is not a member, insert new membership
           const { error: insertError } = await supabase
@@ -132,7 +134,6 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
                 membershipid: membershipId,
                 organizationid: organizationid,
                 roleid: defaultRoleId,
-                months: frequency.value === "monthly" ? 12 : 1,
               },
             ]);
 
@@ -149,6 +150,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
           ...prevUserMemberships,
           membershipId,
         ]);
+        setCurrentMembershipId(membershipId); // Update current membership ID
       } catch (error) {
         console.error("Error: ", error);
         toast.error("An error occurred. Please try again later.");
@@ -216,10 +218,11 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
               isAuthenticated={isAuthenticated}
               userMemberships={userMemberships}
               handleBuyPlan={handleBuyPlan}
-              handleEditMembership={onEdit} // Use onEdit from props
-              handleDeleteMembership={onDelete} // Use onDelete from props
+              handleEditMembership={onEdit}
+              handleDeleteMembership={onDelete}
               frequency={frequency}
               editable={editable}
+              isCurrentPlan={currentMembershipId === membership.membershipid} // Check if this is the current plan
             />
           ))}
         </div>
