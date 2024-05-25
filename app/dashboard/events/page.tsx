@@ -1,14 +1,17 @@
 "use client";
-import EventsTable from "@/components/app/EventsTable";
+import EventsTableUser from "@/components/app/EventsTableUser";
+import { fetchOrganizationBySlug } from "@/lib/organization";
 import { createClient, getUser } from "@/lib/supabase/client";
-import { Organization } from "@/lib/types";
+import { Event, Organization } from "@/lib/types";
 import { User } from "@/node_modules/@supabase/auth-js/src/lib/types";
+import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function DashboardPage() {
+  const { slug } = useParams() as { slug: string };
   const [user, setUser] = useState<User | null>(null);
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [events, setEvents] = useState<any[]>([]); // Replace 'any' with your actual event type if available
+  const [organization, setOrganization] = useState<Organization | null>(null);
+  const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -17,49 +20,65 @@ export default function DashboardPage() {
       setUser(userData.user);
 
       const supabase = createClient();
-      const { data: orgs, error: orgError } = await supabase.rpc(
-        "get_user_organizations",
-        {
-          user_uuid: userData.user?.id,
+      try {
+        const { data, error } = await fetchOrganizationBySlug(slug);
+        if (error) {
+          console.error("Error fetching organization:", error);
+          setLoading(false);
+          return;
+        } else {
+          setOrganization(data);
+          console.log("Fetched organization:", data);
         }
-      );
-
-      if (orgError) {
-        console.error("Error fetching organizations:", orgError);
+      } catch (error) {
+        console.error("Error fetching organization:", error);
         setLoading(false);
         return;
       }
-
-      setOrganizations(orgs);
-
-      // Assuming you have an 'organizationid' field in your events
-      const { data: userEvents, error: eventsError } = await supabase
-        .from("events")
-        .select("*")
-        .in(
-          "organizationid",
-          orgs.map((org: Organization) => org.organization_id)
-        );
-
-      if (eventsError) {
-        console.error("Error fetching events:", eventsError);
-      } else {
-        setEvents(userEvents);
-        console.log("Fetched events:", userEvents);
-      }
-      setLoading(false);
     }
 
     fetchData();
-  }, []);
+  }, [slug]);
+
+  useEffect(() => {
+    if (!organization) return; // Exit early if organization is not set
+
+    async function fetchEvents() {
+      const supabase = createClient();
+      try {
+        const { data: userEvents, error: eventsError } = await supabase
+          .from("events")
+          .select("*")
+          .eq("organizationid", organization?.organizationid);
+
+        if (eventsError) {
+          console.error("Error fetching events:", eventsError);
+        } else {
+          setEvents(userEvents);
+          console.log("Fetched events:", userEvents);
+          console.log("Organization ID:", organization?.organizationid);
+        }
+      } catch (error) {
+        console.error("Error fetching events:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchEvents();
+  }, [organization]);
 
   if (loading) {
     return <div>Loading...</div>;
   }
 
+  if (!organization) {
+    return <div>Organization not found</div>;
+  }
+
   return (
     <>
-      <EventsTable organizations={organizations} events={events} />
+      <EventsTableUser organization={organization} events={events} />
     </>
   );
 }
