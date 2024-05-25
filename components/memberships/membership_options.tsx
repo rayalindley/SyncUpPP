@@ -1,4 +1,3 @@
-"use client";
 import { deleteMembership } from "@/lib/memberships";
 import { Dialog, Menu, Transition } from "@headlessui/react";
 import { ChevronDownIcon, TrashIcon, UserIcon } from "@heroicons/react/20/solid";
@@ -8,7 +7,7 @@ import Swal from "sweetalert2";
 import { FaRegEdit } from "react-icons/fa";
 import JSONPretty from "react-json-pretty";
 import Link from "next/link";
-import { useOpenStore } from "@/store/useOpenStore";
+import CreateMembershipModal from "./create_membership_modal"; // Importing the modal component
 
 const jsonTheme = {
   main: "line-height:1.3;color:#383a42;background:#ffffff;overflow:hidden;word-wrap:break-word;white-space: pre-wrap;word-wrap: break-word; ",
@@ -35,6 +34,16 @@ export default function MembershipOptions({
   setOpen: any;
   TierMembers: any;
 }) {
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  const handleCreateModalClose = () => {
+    setIsCreateModalOpen(false);
+  };
+
+  const handleCreateModalSubmit = () => {
+    setIsCreateModalOpen(false);
+  };
+
   const deleteBtn = () => {
     Swal.fire({
       title: "Are you sure?",
@@ -121,6 +130,24 @@ export default function MembershipOptions({
                     />
                     Edit Membership
                   </Link>
+                )}
+              </Menu.Item>
+              <Menu.Item>
+                {({ active }) => (
+                  <a
+                    href="#"
+                    className={classNames(
+                      active ? "bg-raisinblack text-light" : "text-light",
+                      "group flex items-center px-4 py-2 text-sm"
+                    )}
+                    onClick={() => setIsCreateModalOpen(true)} // Open the create/edit modal
+                  >
+                    <FaRegEdit
+                      className="mr-3 h-5 w-5 text-light group-hover:text-light"
+                      aria-hidden="true"
+                    />
+                    Create/Edit Membership
+                  </a>
                 )}
               </Menu.Item>
             </div>
@@ -322,6 +349,14 @@ export default function MembershipOptions({
           </div>
         </Dialog>
       </Transition.Root>
+
+      <CreateMembershipModal
+        organizationid={selectedTier.organizationid}
+        membership={selectedTier}
+        isOpen={isCreateModalOpen}
+        onClose={handleCreateModalClose}
+        onSubmit={handleCreateModalSubmit}
+      />
     </>
   );
 }
