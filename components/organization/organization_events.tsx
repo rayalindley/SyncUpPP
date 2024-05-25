@@ -2,14 +2,25 @@
 import { createClient } from "@/lib/supabase/client";
 import { EventProps } from "@/lib/types";
 import { ArrowLongLeftIcon, ArrowLongRightIcon } from "@heroicons/react/20/solid";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import EventsCard from "./events_card";
 
-const OrganizationEventsComponent: React.FC<EventProps> = ({ events, userid }) => {
+interface OrganizationEventsComponentProps extends EventProps {
+  organizationId: string; // Add this prop
+}
+
+const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = ({
+  events,
+  userid,
+  organizationId,
+}) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [organizationSlug, setOrganizationSlug] = useState<string | null>(null);
   const eventsPerPage = 6;
   const supabase = createClient();
+  const router = useRouter();
 
   // Calculate the indices for the current page's events
   const indexOfLastEvent = currentPage * eventsPerPage;
@@ -25,19 +36,19 @@ const OrganizationEventsComponent: React.FC<EventProps> = ({ events, userid }) =
   useEffect(() => {
     const fetchOrganizationData = async () => {
       try {
-        if (events.length > 0) {
-          const organizationId = events[0].organizationid;
-          const { data: organization, error } = await supabase
-            .from("organizations")
-            .select("adminid")
-            .eq("organizationid", organizationId)
-            .single();
+        const { data: organization, error } = await supabase
+          .from("organizations")
+          .select("adminid, slug")
+          .eq("organizationid", organizationId)
+          .single();
 
-          if (error) {
-            throw error;
-          }
+        if (error) {
+          throw error;
+        }
 
-          if (organization && organization.adminid === userid) {
+        if (organization) {
+          setOrganizationSlug(organization.slug);
+          if (organization.adminid === userid) {
             setIsAdmin(true);
           }
         }
@@ -47,7 +58,13 @@ const OrganizationEventsComponent: React.FC<EventProps> = ({ events, userid }) =
     };
 
     fetchOrganizationData();
-  }, [events, userid]);
+  }, [organizationId, userid]);
+
+  const handleCreateEvent = () => {
+    if (organizationSlug) {
+      router.push(`/events/create/${organizationSlug}`);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-7xl px-6 lg:px-8">
@@ -58,7 +75,10 @@ const OrganizationEventsComponent: React.FC<EventProps> = ({ events, userid }) =
       </div>
       {isAdmin && (
         <div className="my-4 text-right">
-          <button className="rounded-lg bg-primary px-4 py-2 font-bold text-white hover:bg-primarydark">
+          <button
+            onClick={handleCreateEvent}
+            className="rounded-lg bg-primary px-4 py-2  text-white hover:bg-primarydark"
+          >
             Create Event
           </button>
         </div>
