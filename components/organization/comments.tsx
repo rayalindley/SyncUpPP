@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import {
   insertComment,
   updateComment,
@@ -10,7 +10,7 @@ import { useUser } from "@/context/UserContext";
 import { createClient } from "@/lib/supabase/client";
 import { UserCircleIcon } from "@heroicons/react/24/solid";
 import { z } from "zod";
-import { adjustDate } from "@/lib/utils";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 const commentSchema = z.object({
   commentText: z
@@ -50,36 +50,25 @@ const Comments: React.FC<CommentsProps> = ({ postid }) => {
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
   const [charCount, setCharCount] = useState({ comment: 0, editing: 0 });
   const [errors, setErrors] = useState({ commentText: "", editingText: "" });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   const { user } = useUser();
-  const editTextareaRef = useRef<HTMLTextAreaElement>(null);
 
+  console.log(user);
   const supabaseStorageBaseUrl =
     "https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public/";
 
   useEffect(() => {
     setCharCount((prev) => ({ ...prev, comment: commentText.length }));
-    setErrors((prev) => ({ ...prev, commentText: "" })); // Clear error on typing
   }, [commentText]);
 
   useEffect(() => {
     setCharCount((prev) => ({ ...prev, editing: editingText.length }));
-    setErrors((prev) => ({ ...prev, editingText: "" })); // Clear error on typing
-    if (editTextareaRef.current) {
-      editTextareaRef.current.style.height = "auto";
-      editTextareaRef.current.style.height = `${editTextareaRef.current.scrollHeight}px`;
-    }
   }, [editingText]);
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       const { data: commentsData } = await fetchComments(postid);
-
-      console.log("Fetched comments data:", commentsData);
 
       if (!commentsData) {
         setComments([]);
@@ -92,7 +81,6 @@ const Comments: React.FC<CommentsProps> = ({ postid }) => {
           const { data: authorData } = await getUserProfileById(comment.authorid);
           return {
             ...comment,
-            created_at: adjustDate(comment.created_at),
             authorFirstName: authorData?.first_name ?? "",
             authorLastName: authorData?.last_name ?? "",
             authorProfilePicture: authorData?.profilepicture
@@ -120,18 +108,15 @@ const Comments: React.FC<CommentsProps> = ({ postid }) => {
 
   const handleSubmit = async () => {
     try {
-      setIsSubmitting(true);
       commentSchema.parse({ commentText });
       setErrors((prev) => ({ ...prev, commentText: "" }));
+      setIsLoading(true);
       const formData = { postid, authorid: user?.id, comment: commentText };
       const { data: newComment } = await insertComment(formData);
-
-      // Optimistically add the new comment to the list
-      setComments((prevComments) => [
-        ...prevComments,
+      setComments([
+        ...comments,
         {
           ...newComment,
-          created_at: adjustDate(newComment.created_at),
           authorFirstName: user?.first_name,
           authorLastName: user?.last_name,
           authorProfilePicture: user?.profilepicture
@@ -140,9 +125,8 @@ const Comments: React.FC<CommentsProps> = ({ postid }) => {
         },
       ]);
       setCommentText("");
-      setIsSubmitting(false);
+      setIsLoading(false);
     } catch (e) {
-      setIsSubmitting(false);
       if (e instanceof z.ZodError) {
         setErrors((prev) => ({ ...prev, commentText: e.errors[0].message }));
       }
@@ -151,9 +135,9 @@ const Comments: React.FC<CommentsProps> = ({ postid }) => {
 
   const handleEdit = async () => {
     try {
-      setIsSaving(true);
       editCommentSchema.parse({ editingText });
       setErrors((prev) => ({ ...prev, editingText: "" }));
+      setIsLoading(true);
       const { data } = await updateComment({
         commentid: editingCommentId!,
         comment: editingText,
@@ -167,9 +151,8 @@ const Comments: React.FC<CommentsProps> = ({ postid }) => {
       );
       setEditingCommentId(null);
       setEditingText("");
-      setIsSaving(false);
+      setIsLoading(false);
     } catch (e) {
-      setIsSaving(false);
       if (e instanceof z.ZodError) {
         setErrors((prev) => ({ ...prev, editingText: e.errors[0].message }));
       }
@@ -177,75 +160,63 @@ const Comments: React.FC<CommentsProps> = ({ postid }) => {
   };
 
   const handleDelete = async () => {
-    try {
-      setIsDeleting(true);
-      await deleteComment(commentToDelete!, user?.id!);
-      setComments((prevComments) =>
-        prevComments.filter((comment) => comment.commentid !== commentToDelete)
-      );
-      setShowDeleteModal(false);
-      setCommentToDelete(null);
-      setIsDeleting(false);
-    } catch (e) {
-      setIsDeleting(false);
-    }
+    setIsLoading(true);
+    await deleteComment(commentToDelete!, user?.id!);
+    setComments(comments.filter((comment) => comment.commentid !== commentToDelete));
+    setShowDeleteModal(false);
+    setCommentToDelete(null);
+    setIsLoading(false);
   };
 
+  const toPhilippineTime = (date: string) =>
+    new Date(new Date(date).getTime() + 8 * 60 * 60000);
   const timeElapsed = (date: string) => {
-    const elapsed = Date.now() - new Date(date).getTime();
-    const minute = 60000;
-    const hour = 3600000;
-    const day = 86400000;
-    const month = day * 30;
-    const year = day * 365;
-
-    if (elapsed < minute) {
-      return "just now";
-    } else if (elapsed < hour) {
-      return `${Math.floor(elapsed / minute)} minute${Math.floor(elapsed / minute) !== 1 ? "s" : ""} ago`;
-    } else if (elapsed < day) {
-      return `${Math.floor(elapsed / hour)} hour${Math.floor(elapsed / hour) !== 1 ? "s" : ""} ago`;
-    } else if (elapsed < month) {
-      return `${Math.floor(elapsed / day)} day${Math.floor(elapsed / day) !== 1 ? "s" : ""} ago`;
-    } else if (elapsed < year) {
-      return `${Math.floor(elapsed / month)} month${Math.floor(elapsed / month) !== 1 ? "s" : ""} ago`;
-    } else {
-      return `${Math.floor(elapsed / year)} year${Math.floor(elapsed / year) !== 1 ? "s" : ""} ago`;
+    const elapsed = Date.now() - toPhilippineTime(date).getTime();
+    const units = [
+      { label: "d", value: 86400000 },
+      { label: "h", value: 3600000 },
+      { label: "m", value: 60000 },
+      { label: "s", value: 1000 },
+    ];
+    for (let { label, value } of units) {
+      const result = Math.floor(elapsed / value);
+      if (result > 0) return `${result}${label} ago`;
     }
+    return "just now";
   };
 
   return (
     <div className="mx-auto max-w-xl p-4">
       {user ? (
         <div className="mb-4">
-          <div className="relative">
-            <textarea
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              placeholder="Enter your comment..."
-              rows={commentText.length > 50 ? 3 : 1}
-              maxLength={100}
-              className="w-full resize-none rounded-lg border border-[#424242] bg-[#1c1c1c] p-2 text-sm leading-5 text-white caret-white focus:border-primary"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSubmit();
-                }
-              }}
-            />
-            <div className="absolute bottom-2 right-2 text-xs text-[#858585]">
-              {charCount.comment}/100
-            </div>
-          </div>
+          <textarea
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            placeholder="Enter your comment..."
+            rows={commentText.length > 50 ? 3 : 1}
+            maxLength={100}
+            className="w-full resize-none rounded-lg border border-[#424242] bg-[#1c1c1c] p-2 text-sm leading-5 text-white caret-white"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSubmit();
+              }
+            }}
+          />
           {errors.commentText && (
             <div className="mt-1 text-xs text-red-500">{errors.commentText}</div>
           )}
+          <div className="mt-2 text-right text-xs text-[#424242]">
+            {charCount.comment}/100
+          </div>
           <button
             onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="mt-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white"
+            disabled={isLoading}
+            className={`mt-2 rounded-lg px-4 py-2 text-sm font-semibold ${
+              isLoading ? "cursor-not-allowed bg-[#424242]" : "bg-primary text-white"
+            }`}
           >
-            {isSubmitting ? "Submitting..." : "Submit"}
+            Submit
           </button>
         </div>
       ) : (
@@ -255,7 +226,7 @@ const Comments: React.FC<CommentsProps> = ({ postid }) => {
       )}
       <div>
         {comments.length === 0 && isLoading ? (
-          <div className="p-5 text-center text-[#858585]">
+          <div className="rounded-lg bg-[#171717] p-5 text-center text-white">
             Loading comments...
           </div>
         ) : (
@@ -274,24 +245,23 @@ const Comments: React.FC<CommentsProps> = ({ postid }) => {
                   </div>
                 )}
               </div>
-              <div className="flex-1 break-all">
+              <div className="flex-1">
                 <div className="text-sm text-white">
                   {comment.authorFirstName} {comment.authorLastName}
-                  <span className="ml-2 text-xs text-[#858585]">
+                  <span className="ml-2 text-xs text-[#424242]">
                     • {timeElapsed(comment.created_at)}
                   </span>
                 </div>
-                <div className="mt-1 text-sm text-white whitespace-pre-wrap break-all">
+                <div className="mt-1 text-sm text-white">
                   {editingCommentId === comment.commentid ? (
-                    <div className="relative">
+                    <div>
                       <textarea
-                        ref={editTextareaRef}
                         value={editingText}
                         onChange={(e) => setEditingText(e.target.value)}
                         placeholder="Enter your comment..."
                         rows={1}
                         maxLength={100}
-                        className="w-full resize-none overflow-hidden rounded-lg border border-[#424242] bg-[#1c1c1c] p-2 text-sm leading-5 text-white caret-white focus:border-primary"
+                        className="w-full resize-none rounded-lg border border-[#424242] bg-[#1c1c1c] p-2 text-sm leading-5 text-white caret-white"
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && !e.shiftKey) {
                             e.preventDefault();
@@ -299,55 +269,53 @@ const Comments: React.FC<CommentsProps> = ({ postid }) => {
                           }
                         }}
                       />
-                      <div className="absolute bottom-2 right-2 text-xs text-[#858585]">
-                        {charCount.editing}/100
-                      </div>
                       {errors.editingText && (
                         <div className="mt-1 text-xs text-red-500">
                           {errors.editingText}
                         </div>
                       )}
+                      <div className="mt-1 text-right text-xs text-[#424242]">
+                        {charCount.editing}/100
+                      </div>
                       <button
                         onClick={handleEdit}
-                        disabled={isSaving}
-                        className="mr-2 mt-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white"
+                        className="mr-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white"
                       >
-                        {isSaving ? "Saving..." : "Save"}
+                        Save
                       </button>
                       <button
                         onClick={() => setEditingCommentId(null)}
-                        className="mt-2 rounded-lg bg-[#424242] px-4 py-2 text-sm font-semibold text-white"
+                        className="rounded-lg bg-[#424242] px-4 py-2 text-sm font-semibold text-white"
                       >
                         Cancel
                       </button>
                     </div>
                   ) : (
-                    <p className="whitespace-pre-wrap break-all">{comment.comment}</p>
+                    <p>{comment.comment}</p>
                   )}
                 </div>
-                {user?.id === comment.authorid &&
-                  editingCommentId !== comment.commentid && (
-                    <div className="mt-1 flex gap-2">
-                      <button
-                        onClick={() => {
-                          setEditingCommentId(comment.commentid);
-                          setEditingText(comment.comment);
-                        }}
-                        className="cursor-pointer text-sm text-primary"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowDeleteModal(true);
-                          setCommentToDelete(comment.commentid);
-                        }}
-                        className="cursor-pointer text-sm text-red-500"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  )}
+                {user?.id === comment.authorid && (
+                  <div className="mt-1 flex gap-2">
+                    <button
+                      onClick={() => {
+                        setEditingCommentId(comment.commentid);
+                        setEditingText(comment.comment);
+                      }}
+                      className="cursor-pointer text-sm text-[#424242]"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowDeleteModal(true);
+                        setCommentToDelete(comment.commentid);
+                      }}
+                      className="cursor-pointer text-sm text-red-500"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ))
@@ -357,16 +325,15 @@ const Comments: React.FC<CommentsProps> = ({ postid }) => {
         <div className="fixed inset-0 z-10 flex items-center justify-center bg-black bg-opacity-75">
           <div className="rounded-lg bg-[#1c1c1c] p-4 shadow-lg">
             <h2 className="mb-2 text-lg font-semibold text-white">Delete Comment</h2>
-            <p className="mb-4 text-white">
+            <p className="mb-4 text-[#424242]">
               Are you sure you want to delete this comment?
             </p>
             <div className="flex gap-4">
               <button
                 onClick={handleDelete}
-                disabled={isDeleting}
                 className="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white"
               >
-                {isDeleting ? "Deleting..." : "Delete"}
+                Delete
               </button>
               <button
                 onClick={() => setShowDeleteModal(false)}
