@@ -139,3 +139,13 @@ body {
   border-bottom-right-radius: 8px;
   /* Add rounded edges to the bottom right of the table */
 }
+
+
+
+.ql-toolbar.ql-snow svg {
+  filter: invert(1);
+}
+
+.ql-picker-label {
+  color: white;
+}
