@@ -1,16 +1,17 @@
 "use client";
-import React, { useState, useEffect } from "react";
+
+import React, { useState, useEffect, useRef } from "react";
+import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useUser } from "@/context/UserContext";
-import { CombinedUserData, Email, Event, Organizations } from "@/lib/types";
+import { CombinedUserData, Email, Event } from "@/lib/types";
 import {
-  fetchMembersByAdmin,
-  fetchOrganizationsByAdmin,
-  fetchEventsByAdmin,
   fetchMembersByOrganization,
-  fetchMembersByEvent,
+  fetchEventsByOrganization,
   sendNewsletter,
   fetchSentEmailsByAdmin,
+  fetchMembersByEvent,
+  fetchOrganizationBySlug,
 } from "@/lib/newsletterActions";
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 import "react-quill/dist/quill.snow.css";
@@ -19,53 +20,46 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { getCombinedUserDataById } from "@/lib/userActions";
 import EmailsTable from "@/components/EmailsTable";
-import { createClient } from "@/lib/supabase/client";
-import OrganizationsTable from "@/components/OrganizationTable";
 import EventsTable from "@/components/EventsTable";
 import CombinedUserDataTable from "@/components/CombinedUserDataTable";
+import { createClient } from "@/lib/supabase/client";
 
 const newsletterSchema = z.object({
-  from: z
+  subject: z
     .string()
-    .nullable()
-    .refine((val) => val !== null && val !== "", {
-      message: "From field is required",
-    }),
-  subject: z.string().nonempty({ message: "Subject field is required" }),
-  content: z.string().nonempty({ message: "Content field is required" }),
+    .nonempty({ message: "Subject field is required" })
+    .max(100, { message: "Subject cannot exceed 100 characters" }),
+  content: z
+    .string()
+    .refine(
+      (val) => val.replace(/<(.|\n)*?>/g, '').trim().length >= 10 && val.replace(/<(.|\n)*?>/g, '').length <= 1000,
+      {
+        message: "Content must be between 10 and 1000 characters long (excluding HTML tags)",
+      }
+    ),
 });
 
 export default function NewsletterPage() {
   const { user } = useUser();
+  const params = useParams();
+  const orgSlug = params.slug; // Make sure to use the correct parameter name
+
   const [editorState, setEditorState] = useState("");
   const [subject, setSubject] = useState("");
+  const [subjectLength, setSubjectLength] = useState(0);
+  const [contentLength, setContentLength] = useState(0);
   const [attachments, setAttachments] = useState<
     Array<{ filename: string; content: string | ArrayBuffer | null }>
   >([]);
-  const [organizations, setOrganizations] = useState<Organizations[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [users, setUsers] = useState<CombinedUserData[]>([]);
-  const [selectedFromOrgName, setSelectedFromOrgName] = useState<string | null>(null);
   const [sentEmails, setSentEmails] = useState<Email[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [fileError, setFileError] = useState("");
   const [sending, setSending] = useState(false);
 
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout | null = null;
-    if (sending) {
-      timeoutId = setTimeout(() => {
-        toast.error(
-          "Sending the newsletter is taking longer than expected. Please check your internet connection."
-        );
-        setSending(false);
-      }, 30000);
-    } else {
-      clearTimeout(timeoutId!);
-    }
-    return () => clearTimeout(timeoutId!);
-  }, [sending]);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -77,7 +71,9 @@ export default function NewsletterPage() {
         async (payload) => {
           if (user) {
             const emailsData = await fetchSentEmailsByAdmin(user.id || "");
-            setSentEmails(emailsData);
+            // Sort emails by date_created in descending order before setting the state
+            const sortedEmails = sortEmails(emailsData, "date_created", "desc");
+            setSentEmails(sortedEmails);
           }
         }
       )
@@ -86,35 +82,33 @@ export default function NewsletterPage() {
 
   useEffect(() => {
     async function fetchData() {
-      if (user) {
-        const organizationsData = await fetchOrganizationsByAdmin(user.id || "");
-        const eventsData = await fetchEventsByAdmin(user.id || "");
-        const usersData = await fetchMembersByAdmin(user.id || "");
-        const emailsData = await fetchSentEmailsByAdmin(user.id || "");
+      if (user && orgSlug) {
+        const organization = await fetchOrganizationBySlug(orgSlug as string);
+        if (organization) {
+          const eventsData = await fetchEventsByOrganization(organization.organizationid);
+          const usersData = await fetchMembersByOrganization(organization.organizationid);
+          const emailsData = await fetchSentEmailsByAdmin(user.id || "");
 
-        const organizationsWithSelected = organizationsData.map((org: Organizations) => ({
-          ...org,
-          id: org.organizationid,
-          selected: false,
-        }));
-        const eventsWithSelected = eventsData.map((event: Event) => ({
-          ...event,
-          id: event.eventid,
-          selected: false,
-        }));
-        const usersWithSelected = usersData.map((user: CombinedUserData) => ({
-          ...user,
-          selected: false,
-        }));
+          const eventsWithSelected = eventsData.map((event: Event) => ({
+            ...event,
+            id: event.eventid,
+            selected: false,
+          }));
+          const usersWithSelected = usersData.map((user: CombinedUserData) => ({
+            ...user,
+            selected: false,
+          }));
 
-        setOrganizations(organizationsWithSelected);
-        setEvents(eventsWithSelected);
-        setUsers(usersWithSelected);
-        setSentEmails(emailsData);
+          // Sort emails by date_created in descending order before setting the state
+          const sortedEmails = sortEmails(emailsData, "date_created", "desc");
+          setEvents(eventsWithSelected);
+          setUsers(usersWithSelected);
+          setSentEmails(sortedEmails);
+        }
       }
     }
     fetchData();
-  }, [user]);
+  }, [user, orgSlug]);
 
   const transformUserData = (userDataArray: Array<{ data: CombinedUserData }>) => {
     return userDataArray.map(({ data }) => ({
@@ -136,17 +130,10 @@ export default function NewsletterPage() {
 
   const handleSendNewsletter = async () => {
     setSending(true);
-    const selectedOrgIds = organizations
-      .filter((org) => org.selected)
-      .map((org) => org.organizationid);
     const selectedEventIds = events
       .filter((event) => event.selected)
       .map((event) => event.eventid);
     const selectedUserIds = users.filter((user) => user.selected).map((user) => user.id);
-
-    const orgMembers = await Promise.all(
-      selectedOrgIds.map((orgId) => fetchMembersByOrganization(orgId))
-    );
 
     const eventMembers = await Promise.all(
       selectedEventIds.map((eventId) => fetchMembersByEvent(eventId))
@@ -158,13 +145,9 @@ export default function NewsletterPage() {
 
     const transformedUsers = transformUserData(selectedUsers);
 
-    const allUsers = [
-      ...new Set([...orgMembers.flat(), ...eventMembers.flat(), ...transformedUsers]),
-    ].map((item) => item);
-
-    if (selectedFromOrgName) {
-      setFormErrors((prevErrors) => ({ ...prevErrors, from: "" }));
-    }
+    const allUsers = [...new Set([...eventMembers.flat(), ...transformedUsers])].map(
+      (item) => item
+    );
 
     if (subject.trim()) {
       setFormErrors((prevErrors) => ({ ...prevErrors, subject: "" }));
@@ -176,14 +159,13 @@ export default function NewsletterPage() {
 
     try {
       newsletterSchema.parse({
-        from: selectedFromOrgName,
         subject: subject,
         content: editorState,
       });
       if (allUsers.length === 0) {
         setSending(false);
         toast.error(
-          "Please select at least one recipient. The event or organization you selected may not have any members."
+          "Please select at least one recipient. The event you selected may not have any members."
         );
         return;
       }
@@ -193,7 +175,7 @@ export default function NewsletterPage() {
         editorState,
         allUsers,
         attachments,
-        selectedFromOrgName ?? ""
+        orgSlug as string
       );
 
       const { successCount, failures } = await sendNewsletterPromise;
@@ -203,7 +185,9 @@ export default function NewsletterPage() {
 
         if (user) {
           const emailsData = await fetchSentEmailsByAdmin(user.id || "");
-          setSentEmails(emailsData);
+          // Sort emails by date_created in descending order before setting the state
+          const sortedEmails = sortEmails(emailsData, "date_created", "desc");
+          setSentEmails(sortedEmails);
         }
       }
 
@@ -230,22 +214,19 @@ export default function NewsletterPage() {
       setSending(false);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        // Transform the fieldErrors to match the expected type for setFormErrors
         const fieldErrors = error.flatten().fieldErrors;
         const transformedErrors: Record<string, string> = {};
 
         Object.keys(fieldErrors).forEach((key) => {
-          // Check if fieldErrors[key] is not undefined before calling join
           if (fieldErrors[key] !== undefined) {
-            // Since we've checked for undefined, we don't need the optional chaining operator
             transformedErrors[key] = fieldErrors[key]!.join(", ");
           } else {
-            // Handle the case where fieldErrors[key] is undefined
             transformedErrors[key] = "No error message provided.";
           }
         });
 
         setFormErrors(transformedErrors);
+        setSending(false);
         toast.error("Please fill in all required fields");
       }
     }
@@ -265,27 +246,24 @@ export default function NewsletterPage() {
   };
 
   const handleSubjectChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSubject(event.target.value);
+    const value = event.target.value;
+    setSubject(value);
+    setSubjectLength(value.length);
+    setFormErrors((prevErrors) => ({ ...prevErrors, subject: "" }));
   };
 
   const onEditorStateChange = (value: string) => {
-    setEditorState(value);
+    if (value.length <= 1007) {
+      setEditorState(value);
+      setContentLength(value.replace(/<(.|\n)*?>/g, '').length);
+    }
+    setFormErrors((prevErrors) => ({ ...prevErrors, content: "" }));
   };
 
   const toggleSelection = (
     list: Array<{ id: string; selected: boolean }>,
     id: string
   ) => {
-    return list.map((item) => ({
-      ...item,
-      selected: item.id === id ? !item.selected : item.selected,
-    }));
-  };
-
-  const toggleOrganizationSelection = (
-    list: Organizations[],
-    id: string
-  ): Organizations[] => {
     return list.map((item) => ({
       ...item,
       selected: item.id === id ? !item.selected : item.selected,
@@ -309,6 +287,17 @@ export default function NewsletterPage() {
     }));
   };
 
+  if (!orgSlug) {
+    return (
+      <div className="bg-raisin flex min-h-screen items-center justify-center p-10 font-sans text-white">
+        <div className="text-center">
+          <h1 className="mb-4 text-3xl">Newsletter Creation</h1>
+          <p className="text-lg">Please select an organization to create a newsletter.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <ToastContainer
@@ -323,46 +312,38 @@ export default function NewsletterPage() {
         pauseOnHover
         theme="dark"
       />
-      <div className="bg-raisin mb-40 max-w-full space-y-6 rounded-lg p-10 font-sans text-white">
+      <div
+        ref={scrollRef}
+        className="bg-raisin mb-40 max-w-full space-y-6 rounded-lg p-10 font-sans text-white"
+      >
         <h1 className="border-b-2 border-primary pb-4 text-3xl">Newsletter Creation</h1>
         <div className="space-y-4">
-          <select
-            className="w-full rounded border border-primary bg-charleston p-4 text-base"
-            id="fromOrg"
-            value={selectedFromOrgName || ""}
-            onChange={(e) => setSelectedFromOrgName(e.target.value)}
-            title="Select a sender organization"
-          >
-            <option value="">Select a sender organization</option>
-            {organizations.map((org) => (
-              <option key={org.id} value={org.name}>
-                {org.name}
-              </option>
-            ))}
-          </select>
-          {formErrors.from && <p className="text-sm text-red-500">{formErrors.from}</p>}
-        </div>
-
-        <div className="space-y-4">
-          <input
-            className="w-full rounded border border-primary bg-charleston p-4 text-base"
-            type="text"
-            placeholder="Subject*"
-            value={subject}
-            onChange={handleSubjectChange}
-          />
+          <div className="relative w-full">
+            <input
+              className="w-full rounded border focus:border-primary bg-charleston p-4 text-base"
+              type="text"
+              placeholder="Subject*"
+              value={subject}
+              onChange={handleSubjectChange}
+              maxLength={100}
+              style={{ paddingRight: "50px" }} // reserve space for the character count
+            />
+            <p className="absolute bottom-1 right-3 text-sm text-gray-400">
+              {subjectLength}/100
+            </p>
+          </div>
           {formErrors.subject && (
             <p className="text-sm text-red-500">{formErrors.subject}</p>
           )}
         </div>
-        <div className="space-y-4 bg-light text-black">
+        <div className="space-y-4 text-white relative">
           <ReactQuill
             theme="snow"
-            placeholder="Newsletter Body*"
             value={editorState}
             onChange={onEditorStateChange}
-            className="rounded border border-primary p-2"
+            className="rounded border border-primary p-2 text-white"
           />
+          <p className="text-sm text-gray-400 absolute bottom-3 right-5">{contentLength}/1000</p>
         </div>
         {formErrors.content && (
           <p className="text-sm text-red-500">{formErrors.content}</p>
@@ -399,20 +380,6 @@ export default function NewsletterPage() {
         <div className="h-12"></div>
         <h2 className="border-b-2 border-primary pb-4 text-2xl">Select Recipients</h2>
         <div className="space-y-4 rounded-lg bg-[#2a2a2a] p-6">
-          <details className="mb-4">
-            <summary className="cursor-pointer text-lg">
-              <strong>Organizations</strong> (Select an organization to send emails to all
-              its members)
-            </summary>
-            <div className="overflow-x-auto rounded-lg bg-[#2a2a2a] p-6">
-              <OrganizationsTable
-                organizations={organizations}
-                setOrganizations={setOrganizations}
-                toggleSelection={toggleOrganizationSelection}
-              />
-            </div>
-          </details>
-          <hr className="my-6" />
           <details className="mb-4">
             <summary className="cursor-pointer text-lg">
               <strong>Events</strong> (Select an event to send emails to all its
@@ -458,3 +425,19 @@ export default function NewsletterPage() {
     </>
   );
 }
+
+// Utility function to sort emails
+const sortEmails = (emails: Email[], column: string, direction: string) => {
+  return emails.sort((a, b) => {
+    if (a[column] === null) return 1;
+    if (b[column] === null) return -1;
+    if (a[column] === b[column]) return 0;
+    return direction === "asc"
+      ? a[column] > b[column]
+        ? 1
+        : -1
+      : a[column] < b[column]
+        ? 1
+        : -1;
+  });
+};

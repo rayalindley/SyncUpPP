@@ -129,7 +129,7 @@ const OrganizationPostsComponent = ({
               ))
             ) : (
               <div
-                className="mb-4 rounded-lg bg-gray-800 p-4 text-sm text-blue-400"
+                className="mb-4 rounded-lg bg-gray-800 p-4 text-sm text-blue-400 mt-5"
                 role="alert"
               >
                 The organization has no posts available for you.

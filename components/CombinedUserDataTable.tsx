@@ -20,11 +20,7 @@ const CombinedUserDataTable = ({
 
   useEffect(() => {
     if (!sortColumn && !sortDirection) {
-      setUsers((prevUsers) =>
-        [...prevUsers].sort((a, b) =>
-          (a.first_name ?? "").localeCompare(b.first_name ?? "")
-        )
-      );
+      setUsers((prevUsers) => [...prevUsers].sort((a, b) => (a.first_name ?? "").localeCompare(b.first_name ?? "")));
     }
   }, [sortColumn, sortDirection, setUsers]);
 
@@ -33,32 +29,19 @@ const CombinedUserDataTable = ({
     const startIndex = (currentPage - 1) * usersPerPage;
     const filtered = users
       .filter((user) =>
-        [
-          "first_name",
-          "last_name",
-          "email",
-          "role",
-          "gender",
-          "description",
-          "company",
-          "website",
-        ].some(
+        ["first_name", "last_name", "email", "role", "gender", "description", "company", "website"].some(
           (field) =>
-            user[field as keyof CombinedUserData] &&
-            user[field as keyof CombinedUserData]
-              ?.toString()
-              .toLowerCase()
-              .includes(search)
+            user[field as keyof CombinedUserData]?.toString().toLowerCase().includes(search)
         )
       )
       .slice(startIndex, startIndex + usersPerPage);
-
     setFilteredUsers(filtered);
   }, [searchTerm, users, currentPage]);
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectAll(e.target.checked);
-    setUsers(users.map((user) => ({ ...user, selected: e.target.checked })));
+    const checked = e.target.checked;
+    setSelectAll(checked);
+    setUsers(users.map((user) => ({ ...user, selected: checked })));
   };
 
   const handleSelectRow = (id: string) => {
@@ -66,83 +49,58 @@ const CombinedUserDataTable = ({
   };
 
   const handleSort = (column: keyof CombinedUserData) => {
-    const direction =
-      sortColumn !== column ? "asc" : sortDirection === "asc" ? "desc" : "asc";
+    const direction = sortColumn !== column ? "asc" : sortDirection === "asc" ? "desc" : "asc";
     setSortColumn(column);
     setSortDirection(direction);
     setFilteredUsers(
       [...filteredUsers].sort((a, b) => {
         if (a[column] === undefined) return 1;
         if (b[column] === undefined) return -1;
-        return direction === "asc"
-          ? (a[column] ?? "") > (b[column] ?? "")
-            ? 1
-            : -1
-          : (a[column] ?? "") < (b[column] ?? "")
-            ? 1
-            : -1;
+        return direction === "asc" ? (a[column] ?? "") > (b[column] ?? "") ? 1 : -1 : (a[column] ?? "") < (b[column] ?? "") ? 1 : -1;
       })
     );
   };
 
-  const formatDate = (date: Date | string) => {
+  const formatDate = (date: Date | string | undefined) => {
+    if (!date) return "";
     const d = new Date(date);
-    return `${d.getFullYear()}-${("0" + (d.getMonth() + 1)).slice(-2)}-${d.getDate()}`;
+    return !isNaN(d.getTime()) ? `${d.getFullYear()}-${("0" + (d.getMonth() + 1)).slice(-2)}-${("0" + d.getDate()).slice(-2)}` : "";
   };
 
-  const SortIcon = ({ direction }: { direction: "asc" | "desc" | null }) => (
-    <span style={{ marginLeft: "auto" }}>
-      {direction === "asc" ? "🡩" : direction === "desc" ? "🡣" : null}
-    </span>
-  );
-
-  const handlePageChange = (newPage: number) => {
-    setCurrentPage(newPage);
+  const truncateText = (text: string, maxLength: number) => {
+    return text.length > maxLength ? text.slice(0, maxLength) + "..." : text;
   };
+
+  const SortIcon = ({ direction }: { direction: "asc" | "desc" | null }) => <span style={{ marginLeft: "auto" }}>{direction === "asc" ? "🡩" : "🡣"}</span>;
+
+  const handlePageChange = (newPage: number) => setCurrentPage(newPage);
 
   const renderPageNumbers = () => {
     const search = searchTerm.toLowerCase();
     const filtered = users.filter((user) =>
-      Object.values(user).some(
-        (value) =>
-          value === null ||
-          value === undefined ||
-          value.toString().toLowerCase().includes(search)
-      )
+      Object.values(user).some((value) => value?.toString().toLowerCase().includes(search))
     );
     const pageCount = Math.ceil(filtered.length / usersPerPage);
-    if (pageCount <= 1) {
-      return null;
-    }
-    const prevPage = currentPage > 1 ? currentPage - 1 : null;
-    const nextPage = currentPage < pageCount ? currentPage + 1 : null;
+    if (pageCount <= 1) return null;
 
     return (
       <div className="flex items-center justify-center space-x-1">
-        {prevPage && (
-          <button
-            className="rounded-full bg-[#505050] p-2 text-white hover:bg-[#404040]"
-            onClick={() => handlePageChange(prevPage)}
-          >
+        {currentPage > 1 && (
+          <button className="rounded-full bg-[#505050] p-2 text-white hover:bg-[#404040]" onClick={() => handlePageChange(currentPage - 1)}>
             {"<"}
           </button>
         )}
         {Array.from({ length: pageCount }, (_, index) => index + 1).map((number) => (
           <button
             key={number}
-            className={`rounded-full px-3 py-2 text-white hover:bg-[#404040] ${
-              currentPage === number ? "bg-[#303030]" : "bg-[#505050]"
-            }`}
+            className={`rounded-full px-3 py-2 text-white hover:bg-[#404040] ${currentPage === number ? "bg-[#303030]" : "bg-[#505050]"}`}
             onClick={() => handlePageChange(number)}
           >
             {number}
           </button>
         ))}
-        {nextPage && (
-          <button
-            className="rounded-full bg-[#505050] p-2 text-white hover:bg-[#404040]"
-            onClick={() => handlePageChange(nextPage)}
-          >
+        {currentPage < pageCount && (
+          <button className="rounded-full bg-[#505050] p-2 text-white hover:bg-[#404040]" onClick={() => handlePageChange(currentPage + 1)}>
             {">"}
           </button>
         )}
@@ -161,7 +119,7 @@ const CombinedUserDataTable = ({
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
-              setCurrentPage(1); // Reset page number
+              setCurrentPage(1);
             }}
             aria-label="Search users"
           />
@@ -174,12 +132,7 @@ const CombinedUserDataTable = ({
             <thead className="bg-[#505050]">
               <tr>
                 <th style={{ width: "30px" }}>
-                  <input
-                    type="checkbox"
-                    checked={selectAll}
-                    onChange={handleSelectAll}
-                    aria-label="Select all users"
-                  />
+                  <input type="checkbox" checked={selectAll} onChange={handleSelectAll} aria-label="Select all users" />
                 </th>
                 {[
                   { key: "last_name", title: "Last Name" },
@@ -198,13 +151,7 @@ const CombinedUserDataTable = ({
                     key={key}
                     className="cursor-pointer border-b border-[#404040] p-3 text-left"
                     onClick={() => handleSort(key as keyof CombinedUserData)}
-                    style={{
-                      whiteSpace: "nowrap",
-                      minWidth: "150px",
-                      maxWidth: "150px",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
+                    style={{ whiteSpace: "nowrap", minWidth: "150px", maxWidth: "150px", overflow: "hidden", textOverflow: "ellipsis" }}
                   >
                     <div className="flex items-center justify-start">
                       {title}
@@ -216,36 +163,27 @@ const CombinedUserDataTable = ({
             </thead>
             <tbody className="bg-[#404040]">
               {filteredUsers.map((user, index) => (
-                <tr
-                  key={user.id}
-                  className={`${index % 2 === 0 ? "bg-[#505050]" : "bg-[#404040]"} cursor-pointer`}
-                  onClick={() => handleSelectRow(user.id || "")}
-                >
+                <tr key={user.id} className={`${index % 2 === 0 ? "bg-[#505050]" : "bg-[#404040]"} cursor-pointer`} onClick={() => handleSelectRow(user.id || "")}>
                   <td className="border-b border-[#404040] p-3">
-                    <input
-                      type="checkbox"
-                      checked={user.selected || false}
-                      onChange={() => handleSelectRow(user.id || "")}
-                      aria-label={`Select ${user.first_name}`}
-                    />
+                    <input type="checkbox" checked={user.selected || false} onChange={() => handleSelectRow(user.id || "")} aria-label={`Select ${user.first_name}`} />
                   </td>
-                  <td className="border-b border-[#404040] p-3">{user.last_name}</td>
-                  <td className="border-b border-[#404040] p-3">{user.first_name}</td>
-                  <td className="border-b border-[#404040] p-3">{user.email}</td>
-                  <td className="border-b border-[#404040] p-3">{user.role}</td>
-                  <td className="border-b border-[#404040] p-3">
-                    {formatDate(user.created_at ?? "")}
-                  </td>
-                  <td className="border-b border-[#404040] p-3">
-                    {formatDate(user.created_at ?? "")}
-                  </td>
-                  <td className="border-b border-[#404040] p-3">{user.gender}</td>
-                  <td className="border-b border-[#404040] p-3">
-                    {formatDate(user.created_at ?? "")}
-                  </td>
-                  <td className="border-b border-[#404040] p-3">{user.description}</td>
-                  <td className="border-b border-[#404040] p-3">{user.company}</td>
-                  <td className="border-b border-[#404040] p-3">{user.website}</td>
+                  {[
+                    truncateText(user.last_name ?? "", 30),
+                    truncateText(user.first_name ?? "", 30),
+                    truncateText(user.email ?? "", 30),
+                    truncateText(user.role ?? "", 30),
+                    formatDate(user.created_at),
+                    formatDate(user.updated_at),
+                    truncateText(user.gender ?? "", 30),
+                    formatDate(user.dateofbirth),
+                    truncateText(user.description ?? "", 30),
+                    truncateText(user.company ?? "", 30),
+                    truncateText(user.website ?? "", 30),
+                  ].map((value, i) => (
+                    <td key={i} className="border-b border-[#404040] p-3">
+                      {value}
+                    </td>
+                  ))}
                 </tr>
               ))}
             </tbody>
