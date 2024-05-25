@@ -91,8 +91,10 @@ export default function SettingsRolesPage() {
                   acc: { [role_id: string]: { [perm_key: string]: boolean } },
                   rp: { role_id: string; perm_key: string }
                 ) => {
-                  acc[rp.role_id] = acc[rp.role_id] || {};
-                  acc[rp.perm_key] = true;
+                  if (!acc[rp.role_id]) {
+                    acc[rp.role_id] = {};
+                  }
+                  acc[rp.role_id][rp.perm_key] = true;
                   return acc;
                 },
                 {}
