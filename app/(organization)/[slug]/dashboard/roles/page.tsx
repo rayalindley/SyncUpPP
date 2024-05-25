@@ -17,6 +17,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import { Role, Member } from "@/types/roles";
+
 interface Permission {
   perm_key: string;
   name: string;
@@ -36,7 +37,6 @@ export default function SettingsRolesPage() {
   const [filteredRoles, setFilteredRoles] = useState<Role[] | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
-
   const [orgID, setOrgID] = useState<string | null>(null);
   const { slug } = useParams();
 
@@ -118,6 +118,7 @@ export default function SettingsRolesPage() {
   }, [slug]);
 
   const handleRoleClick = (role: Role) => {
+    console.log(role);
     setSelectedRole(role);
     setSelectedIndex(1);
   };
@@ -311,6 +312,84 @@ export default function SettingsRolesPage() {
     setSelectedIndex(2);
   };
 
+  const handleRoleMembersUpdate = (updatedMembers: Member[], roleId: string) => {
+    setRolesData((prevRolesData) =>
+      prevRolesData
+        ? prevRolesData.map((role) =>
+            role.role_id === roleId ? { ...role, members: updatedMembers } : role
+          )
+        : null
+    );
+    setFilteredRoles((prevRolesData) =>
+      prevRolesData
+        ? prevRolesData.map((role) =>
+            role.role_id === roleId ? { ...role, members: updatedMembers } : role
+          )
+        : null
+    );
+    if (selectedRole && selectedRole.role_id === roleId) {
+      setSelectedRole((prevRole) =>
+        prevRole ? { ...prevRole, members: updatedMembers } : null
+      );
+    }
+  };
+
+  const handleMoveMember = async (memberId: string, newRoleId: string) => {
+    const supabase = createClient();
+
+    // Remove the member from their current role
+    const { error: removeError } = await supabase
+      .from("organizationmembers")
+      .update({ roleid: null })
+      .eq("organizationid", orgID)
+      .eq("userid", memberId);
+
+    if (removeError) {
+      console.error("Error removing member from previous role:", removeError);
+      return;
+    }
+
+    // Add the member to the new role
+    const { error: addError } = await supabase
+      .from("organizationmembers")
+      .update({ roleid: newRoleId })
+      .eq("organizationid", orgID)
+      .eq("userid", memberId);
+
+    if (addError) {
+      console.error("Error adding member to new role:", addError);
+      return;
+    }
+
+    setRolesData((prevRolesData) => {
+      if (!prevRolesData) return null;
+
+      const updatedRoles = prevRolesData.map((role) => {
+        if (role.members?.some((member) => member.userid === memberId)) {
+          return {
+            ...role,
+            members: role.members.filter((member) => member.userid !== memberId),
+          };
+        } else if (role.role_id === newRoleId) {
+          return {
+            ...role,
+            members: [...(role.members || []), { userid: memberId }],
+          };
+        }
+        return role;
+      });
+
+      if (selectedRole) {
+        const updatedSelectedRole = updatedRoles.find(
+          (role) => role.role_id === selectedRole.role_id
+        );
+        setSelectedRole(updatedSelectedRole || null);
+      }
+
+      return updatedRoles;
+    });
+  };
+
   return (
     <div className="bg-eerieblack p-6 text-white">
       <ToastContainer />
@@ -367,7 +446,7 @@ export default function SettingsRolesPage() {
                 >
                   <div className="flex items-center">
                     <UsersIcon className="mr-2 h-6 w-6" />
-                    {role.member_count || 0}
+                    {role.members ? role.members.length : 0}
                   </div>
                 </td>
                 <td className="px-4 py-4 text-center">
@@ -521,7 +600,12 @@ export default function SettingsRolesPage() {
                 </Tab.Panel>
                 <Tab.Panel>
                   {selectedRole && orgID && (
-                    <Members selectedRole={selectedRole} organizationid={orgID} />
+                    <Members
+                      selectedRole={selectedRole}
+                      organizationid={orgID}
+                      onRoleMembersUpdate={handleRoleMembersUpdate}
+                      onMoveMember={handleMoveMember}
+                    />
                   )}
                 </Tab.Panel>
               </Tab.Panels>
