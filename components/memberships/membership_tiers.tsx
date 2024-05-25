@@ -216,7 +216,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
               isAuthenticated={isAuthenticated}
               userMemberships={userMemberships}
               handleBuyPlan={handleBuyPlan}
-              handleEditMembership={() => onEdit(membership)} // Use onEdit from props
+              handleEditMembership={onEdit} // Use onEdit from props
               handleDeleteMembership={onDelete} // Use onDelete from props
               frequency={frequency}
               editable={editable}

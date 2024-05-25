@@ -31,7 +31,7 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
   index,
   totalMemberships,
   userid,
-  isAuthenticated = false, // Default to false
+  isAuthenticated = false,
   userMemberships,
   handleBuyPlan,
   handleEditMembership,

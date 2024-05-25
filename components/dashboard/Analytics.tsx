@@ -54,7 +54,13 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ organizationid 
       const filtered = analyticsData.filter((item) => item.eventid === eventFilter);
       const uniqueFiltered = Array.from(
         new Map(
-          filtered.map((item) => [`${item.eventid}-${item.day_registered}`, item])
+          filtered.map((item) => [
+            `${item.eventid}-${item.day_registered || item.day_joined}`,
+            {
+              ...item,
+              day_registered: item.day_registered || item.day_joined,
+            },
+          ])
         ).values()
       );
       console.log("Filtered and unique data:", uniqueFiltered);
