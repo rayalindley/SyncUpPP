@@ -5,7 +5,8 @@ export async function insertEvent(formData: any, organizationid: string) {
   const insertValues = {
     title: formData.title,
     description: formData.description,
-    eventdatetime: formData.eventdatetime, // Assuming this is a time string in HH:MM format
+    starteventdatetime: formData.starteventdatetime,
+    endeventdatetime: formData.endeventdatetime,
     location: formData.location,
     capacity: formData.capacity,
     registrationfee: formData.registrationfee,
@@ -65,7 +66,8 @@ export async function updateEvent(eventId: string, formData: any) {
   const updateValues = {
     title: formData.title,
     description: formData.description,
-    eventdatetime: formData.eventdatetime, // Assuming this is a time string in HH:MM format
+    starteventdatetime: formData.starteventdatetime,
+    endeventdatetime: formData.endeventdatetime,
     location: formData.location,
     capacity: formData.capacity,
     registrationfee: formData.registrationfee,

@@ -102,7 +102,8 @@ export interface Event {
   title: string;
   description: string;
   registrationfee: number;
-  eventdatetime: Date;
+  starteventdatetime: Date;
+  endeventdatetime: Date;
   location: string;
   capacity: number;
   organizationid: string;

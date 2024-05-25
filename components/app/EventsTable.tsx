@@ -80,13 +80,19 @@ export default function EventsTable({
                       scope="col"
                       className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-light sm:pl-6"
                     >
-                      Title
+                      Titlqwee
                     </th>
                     <th
                       scope="col"
                       className="px-3 py-3.5 text-left text-sm font-semibold text-light"
                     >
-                      Date & Time
+                      Start Date & Time
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-3 py-3.5 text-left text-sm font-semibold text-light"
+                    >
+                      End Date & Time
                     </th>
                     <th
                       scope="col"
@@ -147,7 +153,8 @@ function EventRow({ event }: { event: Event }) {
   };
 
   // Call the formattedDateTime function with the event's datetime
-  const eventDateTimePST = formattedDateTime(event.eventdatetime.toString());
+  const startEventDateTimePST = formattedDateTime(event.starteventdatetime.toString());
+  const endEventDateTimePST = formattedDateTime(event.endeventdatetime.toString());
   return (
     <tr key={event.id}>
       <td
@@ -159,7 +166,10 @@ function EventRow({ event }: { event: Event }) {
         </a>
       </td>
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-        {eventDateTimePST}
+        {startEventDateTimePST}
+      </td>
+      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
+        {endEventDateTimePST}
       </td>
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">{event.location}</td>
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">

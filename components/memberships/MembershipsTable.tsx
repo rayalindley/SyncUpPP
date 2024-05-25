@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import DataTable, { TableColumn } from "react-data-table-component";
 import MembershipOptions from "./membership_options";
 
@@ -125,7 +125,10 @@ export default function MembershipsTable({ orgsMemView = [] }: MembershipsTableP
     },
     {
       name: "Fee",
-      selector: (row) => `$ ${row.registrationfee.toFixed(2)}`,
+      selector: (row) =>
+        row.registrationfee !== null && row.registrationfee !== undefined
+          ? `$ ${row.registrationfee.toFixed(2)}`
+          : "",
       sortable: true,
     },
     {

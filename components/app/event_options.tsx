@@ -98,7 +98,12 @@ export default function EventOptions({
   };
 
   // Format the event date time and created at date
-  const eventDateTimePST = formattedDateTime(selectedEvent.eventdatetime.toString()); // Convert Date object to string
+  const startEventDateTimePST = formattedDateTime(
+    selectedEvent.starteventdatetime.toString()
+  ); // Convert Date object to string
+  const endEventDateTimePST = formattedDateTime(
+    selectedEvent.endeventdatetime.toString()
+  ); // Convert Date object to string
   const createdAtPST = formattedDateTime(selectedEvent.createdat.toString()); // Convert Date object to string
 
   // Function to check if the location is a URL
@@ -366,9 +371,15 @@ export default function EventOptions({
                                 </tr>
                                 <tr>
                                   <td className="p-2 font-bold text-gray-400">
-                                    Event Date Time:
+                                    Start Event Date Time:
                                   </td>
-                                  <td className="p-2">{eventDateTimePST}</td>
+                                  <td className="p-2">{startEventDateTimePST}</td>
+                                </tr>
+                                <tr>
+                                  <td className="p-2 font-bold text-gray-400">
+                                    End Event Date Time:
+                                  </td>
+                                  <td className="p-2">{endEventDateTimePST}</td>
                                 </tr>
                                 <tr>
                                   <td className="p-2 font-bold text-gray-400">
@@ -450,7 +461,7 @@ export default function EventOptions({
                                 <div key={index} className="flex items-center space-x-3">
                                   <div className="relative h-8 w-8 flex-shrink-0">
                                     <img
-                                      className="h-8 w-8 rounded-full"
+                                      className="h-8 w-8 rounded-full object-cover"
                                       src={`${supabaseStorageBaseUrl}/${attendee.profilepicture}`}
                                       alt={`${attendee.first_name} ${attendee.last_name}`}
                                     />

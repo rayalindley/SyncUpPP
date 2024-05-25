@@ -20,33 +20,44 @@ const isFutureDate = (value: Date) => {
   return false;
 };
 
-const EventSchema = z.object({
-  title: z.string().min(3, "Event Title is required"),
-  description: z.string().min(3, "Description is required"),
-  eventdatetime: z.date().refine((value) => isFutureDate(value), {
-    message: "Event Date & Time should be in the future",
-  }),
-  location: z.string().min(3, "Location is required"),
-  capacity: z
-    .number()
-    .int()
-    .min(1, "Capacity must be at least 1")
-    .refine((value) => value !== 0, "Capacity cannot be zero")
-    .optional()
-    .nullable(),
-  registrationfee: z
-    .number()
-    .nonnegative("Registration Fee cannot be negative")
-    .optional()
-    .nullable(),
-  privacy: z.enum(["public", "private"]),
-});
+const isValidEventPeriod = (start: Date, end: Date) => {
+  return start < end;
+};
+
+const EventSchema = z
+  .object({
+    title: z.string().min(3, "Event Title is required"),
+    description: z.string().min(3, "Description is required"),
+    starteventdatetime: z.date().refine((value) => isFutureDate(value), {
+      message: "Start Event Date & Time should be in the future",
+    }),
+    endeventdatetime: z.date(),
+    location: z.string().min(3, "Location is required"),
+    capacity: z
+      .number()
+      .int()
+      .min(1, "Capacity must be at least 1")
+      .refine((value) => value !== 0, "Capacity cannot be zero")
+      .optional()
+      .nullable(),
+    registrationfee: z
+      .number()
+      .nonnegative("Registration Fee cannot be negative")
+      .optional()
+      .nullable(),
+    privacy: z.enum(["public", "private"]),
+  })
+  .refine((data) => isValidEventPeriod(data.starteventdatetime, data.endeventdatetime), {
+    message: "End Event Date & Time should be after Start Event Date & Time",
+    path: ["endeventdatetime"],
+  });
 
 interface EventFormValues {
   eventid?: string; // Make eventid optional
   title: string;
   description: string;
-  eventdatetime: Date;
+  starteventdatetime: Date;
+  endeventdatetime: Date;
   location: string;
   capacity?: number | null;
   registrationfee?: number | null;
@@ -182,7 +193,12 @@ const CreateEventForm = ({
       setPreviousPhotoUrl(null);
     }
 
-    const eventDateTimeWithTimezone = new Date(formData.eventdatetime).toISOString();
+    const startEventDateTimeWithTimezone = new Date(
+      formData.starteventdatetime
+    ).toISOString();
+    const endEventDateTimeWithTimezone = new Date(
+      formData.endeventdatetime
+    ).toISOString();
     const formattedTags = `{${tags.map((tag) => `"${tag}"`).join(",")}}`;
 
     let slug;
@@ -205,7 +221,8 @@ const CreateEventForm = ({
     const completeFormData = {
       ...formData,
       eventphoto: imageUrl,
-      eventdatetime: eventDateTimeWithTimezone,
+      starteventdatetime: startEventDateTimeWithTimezone,
+      endeventdatetime: endEventDateTimeWithTimezone,
       capacity: finalCapacityValue,
       registrationfee: finalRegistrationFeeValue,
       tags: formattedTags,
@@ -269,18 +286,18 @@ const CreateEventForm = ({
   useEffect(() => {
     if (event) {
       (Object.keys(event) as (keyof typeof event)[]).forEach((key) => {
-        if (key === "eventdatetime") {
+        if (key === "starteventdatetime" || key === "endeventdatetime") {
           const formattedDate = formatDateForInput(
-            new Date(event[key] as unknown as string)
-          ); // Explicitly cast to unknown first, then to string
-          setValue(key as keyof EventFormValues, formattedDate);
+            new Date(event[key] as unknown as string) // Converts the datetime to a Date and formats it
+          );
+          setValue(key as keyof EventFormValues, formattedDate); // Sets the formatted date in the form
         } else {
-          setValue(key as keyof EventFormValues, event[key] as any); // Ensure correct type casting
+          setValue(key as keyof EventFormValues, event[key] as any); // Sets other fields directly
         }
       });
-      setPreviousPhotoUrl(event.eventphoto || null);
+      setPreviousPhotoUrl(event.eventphoto || null); // Sets the existing event photo URL, if any
     }
-  }, [event, setValue]);
+  }, [event, setValue]); // Re-run if event or setValue changes
 
   useEffect(() => {
     if (event && event.eventphoto) {
@@ -442,21 +459,65 @@ const CreateEventForm = ({
               <p className="text-sm text-red-500">{errors.description.message}</p>
             )}
           </div>
-          <div className="space-y-1 text-light">
-            <label htmlFor="eventdatetime" className="text-sm font-medium text-white">
-              Event Date & Time
-            </label>
-            <input
-              type="datetime-local"
-              id="eventdatetime"
-              min={currentDateTimeLocal}
-              className="mt-1 block w-full rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
-              {...register("eventdatetime", { valueAsDate: true })}
-            />
-            {errors.eventdatetime && (
-              <p className="text-sm text-red-500">{errors.eventdatetime.message}</p>
-            )}
+          <div className="col-span-6 flex flex-wrap gap-4">
+            <div className="min-w-[200px] flex-1">
+              <label
+                htmlFor="starteventdatetime"
+                className="block text-sm font-medium text-white"
+              >
+                Start Event Date & Time
+              </label>
+              <input
+                type="datetime-local"
+                id="starteventdatetime"
+                min={currentDateTimeLocal}
+                className={`mt-1 block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm ${
+                  errors.starteventdatetime ? "border-red-500" : ""
+                }`}
+                {...register("starteventdatetime", {
+                  valueAsDate: true,
+                  setValueAs: (value) => new Date(value),
+                })}
+                defaultValue={
+                  event ? formatDateForInput(new Date(event.starteventdatetime)) : ""
+                }
+              />
+              {errors.starteventdatetime && (
+                <p className="mt-2 text-sm text-red-600">
+                  {errors.starteventdatetime.message}
+                </p>
+              )}
+            </div>
+
+            <div className="min-w-[200px] flex-1">
+              <label
+                htmlFor="endeventdatetime"
+                className="block text-sm font-medium text-white"
+              >
+                End Event Date & Time
+              </label>
+              <input
+                type="datetime-local"
+                id="endeventdatetime"
+                className={`mt-1 block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm ${
+                  errors.endeventdatetime ? "border-red-500" : ""
+                }`}
+                {...register("endeventdatetime", {
+                  valueAsDate: true,
+                  setValueAs: (value) => new Date(value),
+                })}
+                defaultValue={
+                  event ? formatDateForInput(new Date(event.endeventdatetime)) : ""
+                }
+              />
+              {errors.endeventdatetime && (
+                <p className="mt-2 text-sm text-red-600">
+                  {errors.endeventdatetime.message}
+                </p>
+              )}
+            </div>
           </div>
+
           <div className="space-y-1 text-light">
             <label htmlFor="location" className="text-sm font-medium text-white">
               Location

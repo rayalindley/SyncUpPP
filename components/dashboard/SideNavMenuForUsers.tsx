@@ -4,25 +4,17 @@ import useSidebarStore from "@/store/useSidebarStore";
 import { Dialog, Listbox, Transition } from "@headlessui/react";
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/20/solid";
 import {
-  CalendarIcon,
   Cog6ToothIcon,
+  EnvelopeIcon,
   HomeIcon,
   UsersIcon,
   XMarkIcon,
-  EnvelopeIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { Fragment, useEffect, useState } from "react";
 
-import { IoIosAnalytics } from "react-icons/io";
-import {
-  IoCalendarOutline,
-  IoMailUnreadOutline,
-  IoShieldCheckmarkOutline,
-} from "react-icons/io5";
-import { TbUserStar } from "react-icons/tb";
-
+import { IoCalendarOutline } from "react-icons/io5";
 
 function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
@@ -86,14 +78,6 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
           ? `/dashboard/newsletter`
           : `/${selected.slug}/dashboard/newsletter`,
       icon: EnvelopeIcon,
-    },
-    {
-      name: "Events",
-      href:
-        selected === "default" || typeof selected === "string"
-          ? `/dashboard/events`
-          : `/${selected.slug}/dashboard/events`,
-      icon: CalendarIcon,
     },
     {
       name: "Events",

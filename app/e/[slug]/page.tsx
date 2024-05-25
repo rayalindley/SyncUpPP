@@ -313,14 +313,25 @@ const EventPage = () => {
                 <CalendarIcon className="mr-2 h-10 w-10 text-primary" />
                 <div>
                   <span className="text-base font-medium leading-tight">
-                    {new Date(event.eventdatetime).toLocaleDateString("en-US", {
-                      weekday: "long",
-                      month: "long",
+                    {new Date(event.starteventdatetime).toLocaleDateString("en-US", {
+                      weekday: "short",
+                      month: "short",
                       day: "numeric",
                     })}
-                  </span>
-                  <span className="block text-sm leading-tight">
-                    {new Date(event.eventdatetime).toLocaleTimeString("en-US", {
+                    ,{" "}
+                    {new Date(event.starteventdatetime).toLocaleTimeString("en-US", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: true,
+                    })}
+                    &nbsp; - &nbsp;
+                    {new Date(event.endeventdatetime).toLocaleDateString("en-US", {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                    ,{" "}
+                    {new Date(event.endeventdatetime).toLocaleTimeString("en-US", {
                       hour: "2-digit",
                       minute: "2-digit",
                       hour12: true,
@@ -328,6 +339,7 @@ const EventPage = () => {
                   </span>
                 </div>
               </div>
+
               <div className="mb-2 mt-2 flex items-center text-base">
                 <MapPinIcon className="mr-2 h-10 w-10 text-primary" />
                 {isUrl(event.location) ? (

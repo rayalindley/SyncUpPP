@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
 import { Event } from "@/lib/types";
+import React, { useEffect, useState } from "react";
 
 const EventsTable = ({
   events,
@@ -147,8 +147,10 @@ const EventsTable = ({
 
   const formatTitle = (title: string) => {
     switch (title) {
-      case "eventdatetime":
-        return "Event Date Time";
+      case "starteventdatetime":
+        return "Start Event Date Time";
+      case "endeventdatetime":
+        return "End Event Date Time";
       case "registrationfee":
         return "Registration Fee";
       case "createdat":
@@ -240,7 +242,10 @@ const EventsTable = ({
                   <td className="border-b border-[#404040] p-3">{event.title}</td>
                   <td className="border-b border-[#404040] p-3">{event.description}</td>
                   <td className="border-b border-[#404040] p-3">
-                    {formatDate(event.eventdatetime)}
+                    {formatDate(event.starteventdatetime)}
+                  </td>
+                  <td className="border-b border-[#404040] p-3">
+                    {formatDate(event.endeventdatetime)}
                   </td>
                   <td className="border-b border-[#404040] p-3">{event.location}</td>
                   <td className="border-b border-[#404040] p-3">
