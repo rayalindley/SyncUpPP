@@ -284,7 +284,7 @@ export const Members = ({
                         <input
                           type="text"
                           placeholder="Search all members..."
-                          className="w-full rounded-md border border-raisinblack bg-charleston p-2 px-4 text-sm text-light placeholder-opacity-50 placeholder:text-light"
+                          className="w-full rounded-md border border-raisinblack bg-charleston p-2 px-4 text-sm text-light placeholder-opacity-50 placeholder:text-light "
                           onChange={(e: ChangeEvent<HTMLInputElement>) =>
                             setSearchQuery(e.target.value)
                           }
@@ -335,7 +335,7 @@ export const Members = ({
                   <div className="mt-5 sm:mt-6 sm:flex sm:justify-end sm:gap-3">
                     <button
                       type="button"
-                      className="inline-flex w-full justify-center rounded-md bg-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 sm:w-auto"
+                      className="inline-flex w-full justify-center rounded-md bg-transparent px-3 py-2 text-sm font-semibold text-gray-200 shadow-sm hover:text-gray-400  focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 sm:w-auto"
                       onClick={() => setModalIsOpen(false)}
                     >
                       Cancel
