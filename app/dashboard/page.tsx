@@ -37,9 +37,11 @@ export default async function DashboardPage() {
       .then((response) => response.data as Organizations[]);
   }
 
+  console.log(user);
+
   return (
     <>
-      <AdminAnalyticsDashboard userId={user?.id ?? ""} />
+      {user && <AdminAnalyticsDashboard user={user} />}
       <OrganizationsSection organizations={organizations as OrgSummary[]} />
       {/* <pre>{JSON.stringify(user, null, 2)}</pre> */}
     </>
