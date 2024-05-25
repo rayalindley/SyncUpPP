@@ -43,6 +43,8 @@ const EventPage = () => {
   const [attendeesCount, setAttendeesCount] = useState(0);
   const [eventFull, setEventFull] = useState(false);
   const [isOrgMember, setIsOrgMember] = useState(false);
+  const [eventFinished, setEventFinished] = useState(false);
+  const [registrationClosed, setRegistrationClosed] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -98,8 +100,15 @@ const EventPage = () => {
         if (user && eventData) {
           const { isMember } = await checkMembership(user.id, eventData.organizationid);
           setIsOrgMember(isMember);
-          console.log(eventData.organizationid, user.id);
-          console.log("isOrgMember", isOrgMember);
+          console.log("isMember", isMember);
+        }
+
+        // Check if the event is finished or registration is closed
+        const now = new Date();
+        if (new Date(eventData.endeventdatetime) < now) {
+          setEventFinished(true);
+        } else if (new Date(eventData.starteventdatetime) <= now) {
+          setRegistrationClosed(true);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -388,6 +397,8 @@ const EventPage = () => {
                 <div className="p-2">
                   <button
                     className={`mt-2 w-full rounded-md px-6 py-3 text-white ${
+                      eventFinished ||
+                      registrationClosed ||
                       (event.privacy === "private" && !isMember) ||
                       (eventFull && !isRegistered)
                         ? "cursor-not-allowed bg-fadedgrey"
@@ -399,17 +410,23 @@ const EventPage = () => {
                       isRegistered ? handleEventUnregistration : handleEventRegistration
                     }
                     disabled={
+                      eventFinished ||
+                      registrationClosed ||
                       (event.privacy === "private" && !isMember) ||
                       (eventFull && !isRegistered)
                     }
                   >
-                    {event.privacy === "private" && !isMember
-                      ? "Event for Org Members Only"
-                      : eventFull && !isRegistered
-                        ? "Event Full"
-                        : isRegistered
-                          ? "Unregister"
-                          : "Register"}
+                    {eventFinished
+                      ? "Event Finished"
+                      : registrationClosed
+                        ? "Registration Closed"
+                        : event.privacy === "private" && !isMember
+                          ? "Event for Org Members Only"
+                          : eventFull && !isRegistered
+                            ? "Event Full"
+                            : isRegistered
+                              ? "Unregister"
+                              : "Register"}
                   </button>
                 </div>
               </div>
