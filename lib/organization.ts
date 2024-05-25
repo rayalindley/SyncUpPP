@@ -189,3 +189,24 @@ export async function getUserOrganizationInfo(userId: string, organizationid: st
 
   return data;
 }
+
+export async function check_permissions(
+  userid: string,
+  org_id: string,
+  perm_key: string
+) {
+  const supabase = createClient();
+
+  const { data, error } = await supabase.rpc("check_org_permissions", {
+    p_user_id: userid,
+    p_org_id: org_id,
+    p_perm_key: perm_key,
+  });
+
+  if (error) {
+    console.error("Error checking permissions", error);
+    return null;
+  }
+
+  return data;
+}
