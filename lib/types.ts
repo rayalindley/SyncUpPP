@@ -166,6 +166,9 @@ export interface Organizations {
   photo?: string | null;
   banner?: string | null;
   combined_user_data?: Combined_user_data;
+  total_members: number;
+  total_posts: number;
+  total_events: number;
 }
 
 export interface Organization_roles {
