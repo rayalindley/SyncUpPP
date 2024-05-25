@@ -12,7 +12,7 @@ const navigation = [
   { name: "Home", href: "/" },
   { name: "Features", href: "#features" },
   { name: "Community", href: "/organizations" }, // Updated href
-  { name: "Pricing", href: "#pricing" },
+  { name: "Events", href: "/events" },
   { name: "Contact Us", href: "#contactus" },
 ];
 
@@ -104,7 +104,7 @@ export default function Header({ user = null }: { user: User | null }) {
                 <Menu.Button className="-m-1.5 flex items-center p-1.5">
                   <span className="sr-only">Open user menu</span>
                   <img
-                    className="h-10 w-10 rounded-full bg-gray-50"
+                    className="h-10 w-10 rounded-full bg-gray-50 object-cover"
                     src={
                       userProfile?.profilepicture
                         ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${userProfile.profilepicture}`

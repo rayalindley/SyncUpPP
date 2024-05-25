@@ -160,7 +160,7 @@ const EventsCard = ({ event }: { event: Event }) => {
             className="h-full w-full rounded-lg object-cover"
           />
         ) : (
-          <div className="h-full w-[262px] rounded-lg bg-fadedgrey" />
+          <div className="h-full w-[288px] rounded-lg bg-fadedgrey" />
         )}
         <span
           className={`absolute right-2 top-2 rounded-full bg-opacity-75 px-2	py-1 text-xs font-medium shadow-2xl ${privacy === "public" ? "bg-green-500 text-white" : "bg-red-500 text-white"}`}
