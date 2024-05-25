@@ -184,8 +184,14 @@ export default function PostsTextArea({
             <textarea
               id="content"
               {...register("content")}
-              className="min-h-[150px] w-full resize-none rounded-2xl border border-[#3d3d3d] bg-[#171717] p-3 text-white focus:ring-0"
+              className="min-h-[150px] w-full resize-none rounded-2xl border border-[#3d3d3d] bg-[#171717] p-3 text-white focus:ring-0 overflow-hidden focus:border-primary"
               placeholder="Write a post..."
+              maxLength={500}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                target.style.height = "auto";
+                target.style.height = `${target.scrollHeight}px`;
+              }}
             />
             <div className="absolute bottom-2 right-2 text-sm text-[#bebebe]">
               {contentValue?.length || 0}/500
@@ -201,8 +207,7 @@ export default function PostsTextArea({
               <select
                 value={field.value}
                 onChange={(e) => field.onChange(e.target.value)}
-                className="w-40 rounded-2xl border border-[#3d3d3d] bg-[#171717] p-3 text-white"
-              >
+                className="w-40 rounded-2xl border border-[#3d3d3d] bg-[#171717] p-3 text-white focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary">
                 {privacyLevels.map((level) => (
                   <option key={level.value} value={level.value}>
                     {level.name}
@@ -261,6 +266,7 @@ export default function PostsTextArea({
                 type="button"
                 onClick={() => handleRemovePhoto(index)}
                 className="absolute right-0 top-0 rounded-full bg-black bg-opacity-75 p-1 text-white"
+                title="Remove Photo"
               >
                 <XCircleIcon className="h-5 w-5" />
               </button>
