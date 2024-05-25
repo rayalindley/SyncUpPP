@@ -18,7 +18,7 @@ import "react-toastify/dist/ReactToastify.css";
 
 import { Role, Member } from "@/types/roles";
 interface Permission {
-  perm_id: string;
+  perm_key: string;
   name: string;
   category: string;
   description: string;
@@ -30,7 +30,7 @@ export default function SettingsRolesPage() {
     {}
   );
   const [permissionsEnabled, setPermissionsEnabled] = useState<{
-    [role_id: string]: { [perm_id: string]: boolean };
+    [role_id: string]: { [perm_key: string]: boolean };
   }>({});
   const [rolesData, setRolesData] = useState<Role[] | null>(null);
   const [filteredRoles, setFilteredRoles] = useState<Role[] | null>(null);
@@ -88,11 +88,11 @@ export default function SettingsRolesPage() {
             if (rolePermissions) {
               const permissionsEnabledState = rolePermissions.reduce(
                 (
-                  acc: { [role_id: string]: { [perm_id: string]: boolean } },
-                  rp: { role_id: string; perm_id: string }
+                  acc: { [role_id: string]: { [perm_key: string]: boolean } },
+                  rp: { role_id: string; perm_key: string }
                 ) => {
                   acc[rp.role_id] = acc[rp.role_id] || {};
-                  acc[rp.role_id][rp.perm_id] = true;
+                  acc[rp.role_id][rp.perm_key] = true;
                   return acc;
                 },
                 {}
@@ -228,26 +228,28 @@ export default function SettingsRolesPage() {
     }
   };
 
-  const handlePermissionToggle = async (permId: string) => {
+  const handlePermissionToggle = async (permKey: string) => {
     const supabase = createClient();
 
     if (selectedRole) {
+      const isEnabled = permissionsEnabled[selectedRole.role_id]?.[permKey] || false;
+
       setPermissionsEnabled((prev) => {
         const updatedPermissions = {
           ...prev,
           [selectedRole.role_id]: {
             ...prev[selectedRole.role_id],
-            [permId]: !prev[selectedRole.role_id]?.[permId],
+            [permKey]: !isEnabled,
           },
         };
 
         return updatedPermissions;
       });
 
-      if (!permissionsEnabled[selectedRole.role_id]?.[permId]) {
+      if (!isEnabled) {
         const { data, error } = await supabase
           .from("role_permissions")
-          .insert([{ role_id: selectedRole.role_id, perm_id: permId }])
+          .insert([{ role_id: selectedRole.role_id, perm_key: permKey }])
           .select()
           .single();
 
@@ -259,7 +261,7 @@ export default function SettingsRolesPage() {
           .from("role_permissions")
           .delete()
           .eq("role_id", selectedRole.role_id)
-          .eq("perm_id", permId)
+          .eq("perm_key", permKey)
           .select()
           .single();
 
@@ -484,7 +486,7 @@ export default function SettingsRolesPage() {
                       </h3>
                       {permissions.map((perm) => (
                         <div
-                          key={perm.perm_id}
+                          key={perm.perm_key}
                           className="mb-6 flex items-center justify-between border-b border-[#525252] pb-4"
                         >
                           <div className="flex-grow">
@@ -493,12 +495,12 @@ export default function SettingsRolesPage() {
                           </div>
                           <Switch
                             checked={
-                              permissionsEnabled[selectedRole.role_id]?.[perm.perm_id] ||
+                              permissionsEnabled[selectedRole.role_id]?.[perm.perm_key] ||
                               false
                             }
-                            onChange={() => handlePermissionToggle(perm.perm_id)}
+                            onChange={() => handlePermissionToggle(perm.perm_key)}
                             className={`${
-                              permissionsEnabled[selectedRole.role_id]?.[perm.perm_id]
+                              permissionsEnabled[selectedRole.role_id]?.[perm.perm_key]
                                 ? "bg-primary"
                                 : "bg-gray-200"
                             } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2`}
@@ -506,7 +508,7 @@ export default function SettingsRolesPage() {
                             <span className="sr-only">Use setting</span>
                             <span
                               className={`${
-                                permissionsEnabled[selectedRole.role_id]?.[perm.perm_id]
+                                permissionsEnabled[selectedRole.role_id]?.[perm.perm_key]
                                   ? "translate-x-5"
                                   : "translate-x-0"
                               } pointer-events-none relative inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
