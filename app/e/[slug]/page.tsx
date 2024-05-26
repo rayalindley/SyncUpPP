@@ -31,7 +31,8 @@ import Swal from "sweetalert2";
 
 const EventPage = () => {
   const router = useRouter();
-  const { slug } = useParams();
+  const params = useParams() as { slug: string };
+  const slug = params.slug;
   const [event, setEvent] = useState<Event | null>(null);
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);

@@ -10,7 +10,7 @@ import { StepsProvider } from "react-step-builder";
 export default function Example() {
   const router = useRouter();
 
-  const { slug } = useParams();
+  const { slug } = useParams() as { slug: string };
 
   const [formValues, setFormValues] = useState(null);
   const [error, setError] = useState<string | null>(null);

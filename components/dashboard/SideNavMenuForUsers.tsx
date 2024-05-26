@@ -23,7 +23,6 @@ import {
 } from "react-icons/io5";
 import { TbUserStar } from "react-icons/tb";
 
-
 function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
 }
@@ -44,7 +43,8 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
     setSidebarOpen: state.setSidebarOpen,
   }));
   const router = useRouter();
-  const { slug } = useParams();
+
+  const { slug } = useParams() as { slug: string };
 
   const pathname = usePathname();
   const [currentItem, setCurrentItem] = useState(pathname);
@@ -128,10 +128,10 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
       selected !== "create-org" &&
       typeof selected !== "string"
     ) {
-      const newSlugPath = pathname.startsWith(`/${selected.slug}`)
+      const newSlugPath = pathname?.startsWith(`/${selected.slug}`)
         ? pathname
         : `/${selected.slug}/dashboard`;
-      router.push(newSlugPath);
+      router.push(newSlugPath ?? "/");
     }
   }, [selected, slug, pathname, router]);
 
