@@ -4,6 +4,8 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { createClient } from "@/lib/supabase/client";
 import { z } from "zod";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Membership } from "@/lib/types";
 
 interface CreateMembershipModalProps {
@@ -11,11 +13,11 @@ interface CreateMembershipModalProps {
   membership?: Membership;
   isOpen: boolean;
   onClose: () => void;
-  onSubmit?: () => void; // Add onSubmit prop
+  onSubmit?: () => void;
 }
 
 const membershipSchema = z.object({
-  name: z.string(),
+  name: z.string().nonempty("Name is required"),
   registrationfee: z
     .number()
     .min(0, "Registration Fee cannot be negative")
@@ -25,9 +27,9 @@ const membershipSchema = z.object({
       }
       return true;
     }),
-  description: z.string(),
+  description: z.string().nonempty("Description is required"),
   organizationid: z.string(),
-  features: z.array(z.string()).nonempty("At least one feature is required"),
+  features: z.array(z.string()).optional(),
   yearlydiscount: z
     .number()
     .min(0, "Discount cannot be negative")
@@ -56,7 +58,7 @@ const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
   membership,
   isOpen,
   onClose,
-  onSubmit, // Add onSubmit to destructuring
+  onSubmit,
 }) => {
   const initialFormData: Membership = {
     name: "",
@@ -64,52 +66,38 @@ const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
     organizationid: organizationid,
     description: "",
     registrationfee: 0,
-    features: [""],
+    features: [],
     mostPopular: false,
     yearlydiscount: 0,
   };
 
-  const [formData, setFormData] = useState<Membership>(initialFormData);
-
-  const handleTypeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { value } = e.target;
-    setFormData((prevData) => ({
-      ...prevData,
-      type: value,
-    }));
-  };
+  const {
+    register,
+    handleSubmit,
+    control,
+    setValue,
+    reset,
+    formState: { errors },
+  } = useForm<Membership>({
+    resolver: zodResolver(membershipSchema),
+    defaultValues: initialFormData,
+  });
 
   useEffect(() => {
     if (membership) {
-      setFormData(membership);
+      reset(membership);
     } else {
-      setFormData(initialFormData);
+      reset(initialFormData);
     }
-  }, [membership]);
+  }, [membership, reset]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    const parsedValue =
-      name === "registrationfee" || name === "yearlydiscount" ? parseFloat(value) : value;
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: parsedValue,
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const onSubmitForm = async (data: Membership) => {
     try {
-      const filteredFeatures =
-        formData.features?.filter((feature) => feature.trim() !== "") || [];
-      const updatedFormData = { ...formData, features: filteredFeatures };
-
-      const validatedData = membershipSchema.parse(updatedFormData);
       const supabase = createClient();
       if (membership) {
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from("memberships")
-          .update(validatedData)
+          .update(data)
           .eq("membershipid", membership.membershipid);
         if (error) {
           throw error;
@@ -119,9 +107,7 @@ const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
           autoClose: 3000,
         });
       } else {
-        const { data, error } = await supabase
-          .from("memberships")
-          .insert([validatedData]);
+        const { error } = await supabase.from("memberships").insert([data]);
         if (error) {
           throw error;
         }
@@ -129,58 +115,18 @@ const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
           position: "bottom-right",
           autoClose: 3000,
         });
-        setFormData(initialFormData);
+        reset(initialFormData);
       }
       onClose();
-      if (onSubmit) onSubmit(); // Call onSubmit after successful submission
+      if (onSubmit) onSubmit();
     } catch (error: any) {
       console.error("Error creating/updating membership:", error.message);
-      if (error.message === "Registration Fee is too large") {
-        toast.error("The registration fee entered is too large", {
-          position: "bottom-right",
-          autoClose: 3000,
-        });
-      } else {
-        toast.error("Failed to create/update membership", {
-          position: "bottom-right",
-          autoClose: 3000,
-        });
-      }
+      toast.error("Failed to create/update membership", {
+        position: "bottom-right",
+        autoClose: 3000,
+      });
     }
   };
-
-  const handleFeatureChange = (index: number, value: string) => {
-    const newFeatures = [...(formData.features || [])];
-    newFeatures[index] = value;
-    setFormData((prevData) => ({
-      ...prevData,
-      features: newFeatures,
-    }));
-
-    if (index === 0) {
-      setTopmostFeatureEmpty(value.trim() === "");
-    }
-  };
-
-  const handleAddFeature = () => {
-    setFormData((prevData) => ({
-      ...prevData,
-      features: ["", ...(prevData.features || [])],
-    }));
-  };
-
-  const handleDeleteFeature = (indexToDelete: number) => {
-    setFormData((prevData) => ({
-      ...prevData,
-      features: prevData.features?.filter((_, index) => index !== indexToDelete),
-    }));
-  };
-
-  const [topmostFeatureEmpty, setTopmostFeatureEmpty] = useState(true);
-
-  useEffect(() => {
-    setTopmostFeatureEmpty((formData.features || [])[0]?.trim() === "");
-  }, [formData.features]);
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
@@ -224,7 +170,10 @@ const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
                 </Dialog.Title>
                 <div className="mt-2 space-y-6 text-white">
                   <ToastContainer />
-                  <form className="space-y-6 text-white" onSubmit={handleSubmit}>
+                  <form
+                    className="space-y-6 text-white"
+                    onSubmit={handleSubmit(onSubmitForm)}
+                  >
                     <div>
                       <label
                         htmlFor="name"
@@ -236,12 +185,12 @@ const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
                         <input
                           type="text"
                           id="name"
-                          name="name"
-                          value={formData.name}
-                          onChange={handleChange}
-                          required
+                          {...register("name")}
                           className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                         />
+                        {errors.name && (
+                          <p className="text-sm text-red-500">{errors.name.message}</p>
+                        )}
                       </div>
                     </div>
                     <div>
@@ -258,35 +207,38 @@ const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
                         <input
                           type="number"
                           id="registrationfee"
-                          name="registrationfee"
-                          value={formData.registrationfee}
-                          onChange={handleChange}
-                          required
-                          pattern="[0-9]*[.]?[0-9]*"
-                          title="Please enter a valid registration fee"
+                          {...register("registrationfee", { valueAsNumber: true })}
                           className="block w-full rounded-md border-0 bg-white/5 py-1.5 pl-12 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                         />
+                        {errors.registrationfee && (
+                          <p className="text-sm text-red-500">
+                            {errors.registrationfee.message}
+                          </p>
+                        )}
                       </div>
-                      <div>
-                        <label
-                          htmlFor="yearlydiscount"
-                          className="block text-sm font-medium leading-6 text-white"
-                        >
-                          Yearly Discount (%):
-                        </label>
-                        <div className="relative mt-2">
-                          <input
-                            type="number"
-                            id="yearlydiscount"
-                            name="yearlydiscount"
-                            value={formData.yearlydiscount}
-                            onChange={handleChange}
-                            className="block w-full rounded-md border-0 bg-white/5 py-1.5 pr-12 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-                          />
-                          <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-sm text-white">
-                            %
-                          </span>
-                        </div>
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="yearlydiscount"
+                        className="block text-sm font-medium leading-6 text-white"
+                      >
+                        Yearly Discount (%):
+                      </label>
+                      <div className="relative mt-2">
+                        <input
+                          type="number"
+                          id="yearlydiscount"
+                          {...register("yearlydiscount", { valueAsNumber: true })}
+                          className="block w-full rounded-md border-0 bg-white/5 py-1.5 pr-12 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                        />
+                        <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-sm text-white">
+                          %
+                        </span>
+                        {errors.yearlydiscount && (
+                          <p className="text-sm text-red-500">
+                            {errors.yearlydiscount.message}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div>
@@ -300,11 +252,14 @@ const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
                         <input
                           type="text"
                           id="description"
-                          name="description"
-                          value={formData.description}
-                          onChange={handleChange}
+                          {...register("description")}
                           className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                         />
+                        {errors.description && (
+                          <p className="text-sm text-red-500">
+                            {errors.description.message}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div>
@@ -314,45 +269,48 @@ const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
                       >
                         Features:
                       </label>
-                      <div>
-                        <div className="relative mt-2">
-                          <input
-                            type="text"
-                            value={formData.features?.[0] || ""}
-                            onChange={(e) => handleFeatureChange(0, e.target.value)}
-                            className="block w-full rounded-md border-0 bg-white/5 py-1.5 pr-20 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-                          />
-                          <button
-                            type="button"
-                            onClick={handleAddFeature}
-                            disabled={topmostFeatureEmpty}
-                            className="absolute right-2 top-1/2 flex size-5 -translate-y-1/2 transform items-center justify-center rounded-md bg-primary text-white hover:bg-primarydark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-opacity-50"
-                          >
-                            +
-                          </button>
-                        </div>
-                        {formData.features?.slice(1).map((feature, index) => (
-                          <div key={index + 1} className="relative mt-2">
-                            <input
-                              type="text"
-                              value={feature}
-                              onChange={(e) =>
-                                handleFeatureChange(index + 1, e.target.value)
-                              }
-                              className="block w-full rounded-md border-0 bg-white/5 py-1.5 pr-20 text-sm font-bold text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-                            />
+                      <Controller
+                        control={control}
+                        name="features"
+                        render={({ field }) => (
+                          <div>
+                            {(field.value ?? []).map((feature, index) => (
+                              <div key={index} className="relative mt-2">
+                                <input
+                                  type="text"
+                                  value={feature}
+                                  onChange={(e) => {
+                                    const newFeatures = [...(field.value ?? [])];
+                                    newFeatures[index] = e.target.value;
+                                    field.onChange(newFeatures);
+                                  }}
+                                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 pr-20 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newFeatures = (field.value ?? []).filter(
+                                      (_, i) => i !== index
+                                    );
+                                    field.onChange(newFeatures);
+                                  }}
+                                  className="absolute right-2 top-2/4 size-5 -translate-y-2/4 rounded-md bg-red-500 text-xs text-white hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-opacity-50"
+                                >
+                                  x
+                                </button>
+                              </div>
+                            ))}
                             <button
                               type="button"
-                              onClick={() => handleDeleteFeature(index + 1)}
-                              className="absolute right-2 top-2/4 size-5 -translate-y-2/4 rounded-md bg-red-500 text-xs text-white hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-opacity-50"
+                              onClick={() => field.onChange([...(field.value ?? []), ""])}
+                              className="mt-2 rounded-md bg-primary px-3 py-1 text-white hover:bg-primarydark"
                             >
-                              x
+                              Add Feature
                             </button>
                           </div>
-                        ))}
-                      </div>
+                        )}
+                      />
                     </div>
-                    <div className="mt-2"></div>
                     <div className="flex items-center justify-end">
                       <button
                         type="submit"

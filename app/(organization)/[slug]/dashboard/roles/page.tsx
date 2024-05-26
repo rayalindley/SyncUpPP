@@ -38,7 +38,9 @@ export default function SettingsRolesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [orgID, setOrgID] = useState<string | null>(null);
-  const { slug } = useParams();
+  const params = useParams() as { slug: string };
+
+  const slug = params.slug;
 
   useEffect(() => {
     const supabase = createClient();
@@ -91,8 +93,10 @@ export default function SettingsRolesPage() {
                   acc: { [role_id: string]: { [perm_key: string]: boolean } },
                   rp: { role_id: string; perm_key: string }
                 ) => {
-                  acc[rp.role_id] = acc[rp.role_id] || {};
-                  acc[rp.perm_key] = true;
+                  if (!acc[rp.role_id]) {
+                    acc[rp.role_id] = {};
+                  }
+                  acc[rp.role_id][rp.perm_key] = true;
                   return acc;
                 },
                 {}

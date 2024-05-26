@@ -83,7 +83,8 @@ const SideNavMenu = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState("");
   const router = useRouter();
-  const { slug } = useParams();
+  const { slug } = useParams() as { slug: string };
+
   const [selected, setSelected] = useState(people[3]);
 
   const navigation = [

@@ -1,3 +1,4 @@
+
 "use client";
 import { check_permissions } from "@/lib/organization";
 import { createClient } from "@/lib/supabase/client";
@@ -85,6 +86,7 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
           Our Events
         </p>
       </div>
+
       <div className="my-4 text-right">
         {canCreateEvents && (
           <Link
@@ -95,16 +97,17 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
           </Link>
         )}
       </div>
+
       <div className="isolate mx-auto mt-8 grid max-w-lg grid-cols-1 justify-items-center gap-x-1 gap-y-8 sm:mt-12 md:mx-auto md:max-w-lg md:grid-cols-2 md:gap-x-4 lg:mx-0 lg:max-w-none lg:grid-cols-4">
         {currentEvents.map((event, index) => (
           <EventsCard
             key={index}
             event={{
-              id: event.eventid,
-              eventid: event.eventid,
-              eventphoto: event.eventphoto,
-              capacity: event.capacity,
-              organizationid: event.organizationid,
+              id: event.eventid, // Add the missing 'id' property
+              eventid: event.eventid, // Add the missing 'eventid' property
+              eventphoto: event.eventphoto, // Add the missing 'eventphoto' property
+              capacity: event.capacity, // Add the missing 'capacity' property
+              organizationid: event.organizationid, // Add the missing 'organizationid' property
               imageUrl: event.eventphoto,
               title: event.title,
               description: event.description,
@@ -113,13 +116,22 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
               endeventdatetime: event.endeventdatetime,
               location: event.location,
               eventslug: event.eventslug,
-              tags: event.tags,
-              privacy: event.privacy,
-              createdat: event.createdat,
+              tags: event.tags, // Add the missing 'tags' property
+              privacy: event.privacy, // Add the missing 'privacy' property
+              createdat: event.createdat, // Add the missing 'createdat' property
             }}
           />
         ))}
       </div>
+
+      {currentEvents.length <= 0 && (
+        <div
+          className="mb-4 rounded-lg bg-gray-800 p-4 text-center text-sm text-blue-400"
+          role="alert"
+        >
+          The organization has no events available for you.
+        </div>
+      )}
       <nav className="flex items-center justify-between border-t border-gray-200 px-4 sm:px-0">
         <div className="-mt-px flex w-0 flex-1">
           <button

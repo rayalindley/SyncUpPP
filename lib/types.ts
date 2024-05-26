@@ -193,11 +193,6 @@ export interface Memberships {
   organizations?: Organizations;
 }
 
-export interface EventProps {
-  events: Event[];
-  userid: string;
-}
-
 export interface Permissions {
   perm_id: string /* primary key */;
   category?: string;

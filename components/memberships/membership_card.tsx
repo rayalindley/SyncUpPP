@@ -13,13 +13,14 @@ interface MembershipCardProps {
   index: number;
   totalMemberships: number;
   userid?: string;
-  isAuthenticated?: boolean; // Add isAuthenticated prop
+  isAuthenticated?: boolean;
   userMemberships: string[];
-  handleBuyPlan: (membershipId: string, organizationid: string) => void;
+  handleBuyPlan: (membershipId: string, organizationid: string, amount: number) => void;
   handleEditMembership: (membership: Membership, organizationid: string) => void;
   handleDeleteMembership: (membershipId: string) => void;
   frequency: Frequency;
-  editable?: boolean; // Add isEditable prop
+  editable?: boolean;
+  isCurrentPlan: boolean; // Add this prop
 }
 
 function classNames(...classes: string[]) {
@@ -31,13 +32,14 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
   index,
   totalMemberships,
   userid,
-  isAuthenticated = false,
+  isAuthenticated = false, // Default to false
   userMemberships,
   handleBuyPlan,
   handleEditMembership,
   handleDeleteMembership,
   frequency,
   editable = false,
+  isCurrentPlan,
 }) => {
   const isPurchased = userMemberships.includes(membership.membershipid);
 
@@ -92,20 +94,24 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
       {userid ? (
         <button
           onClick={() =>
-            handleBuyPlan(membership.membershipid, membership.organizationid || "")
+            handleBuyPlan(
+              membership.membershipid,
+              membership.organizationid || "",
+              registrationFee
+            )
           }
           aria-describedby={membership.membershipid}
           className={classNames(
             "mt-6 block w-full rounded-md px-3 py-2 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2",
-            isPurchased
+            isCurrentPlan
               ? "cursor-not-allowed bg-gray-300 text-white"
               : membership.mostPopular
                 ? "bg-primary text-white shadow-sm hover:bg-primarydark focus-visible:outline-primary"
                 : "bg-white/10 text-white hover:bg-white/20 focus-visible:outline-white"
           )}
-          disabled={isPurchased}
+          disabled={isCurrentPlan}
         >
-          {isPurchased ? "Current Plan" : isFree ? "Join Plan" : "Buy Plan"}
+          {isCurrentPlan ? "Current Plan" : isFree ? "Join Plan" : "Buy Plan"}
         </button>
       ) : null}
 

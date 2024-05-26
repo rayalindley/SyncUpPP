@@ -9,7 +9,8 @@ import { useEffect, useState } from "react";
 
 export default function EditEventPage() {
   const router = useRouter();
-  const { eventId } = useParams(); // Assume eventId is part of the URL params
+  const params = useParams() as { eventId: string };
+  const eventId = params.eventId;
   const [event, setEvent] = useState(null); // State to hold the event data
   const [error, setError] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState(false);

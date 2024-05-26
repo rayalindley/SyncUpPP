@@ -78,7 +78,8 @@ export const RoleDisplay = ({
           placeholder="Role Name"
           value={roleName}
           onChange={handleNameChange}
-          className="mt-2 w-64 flex-grow rounded-sm border-b border-raisinblack bg-charleston text-sm text-light placeholder-opacity-50 placeholder:text-light"
+          className="mt-2 w-64 flex-grow rounded-md border-b border-raisinblack bg-charleston text-sm text-light placeholder-opacity-50 placeholder:text-light "
+          disabled={!selectedRole.editable}
         />
         {errors.role && <p className="mt-2 text-sm text-red-600">{errors.role}</p>}
       </div>

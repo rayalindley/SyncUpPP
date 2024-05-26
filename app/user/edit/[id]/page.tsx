@@ -6,7 +6,7 @@ import { deleteUser, sendPasswordRecovery } from "@/lib/userActions";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 
 export default function EditProfilePage() {
-  const { id } = useParams<{ id: string }>();
+  const { id } = useParams() as { id: string };
 
   const deleteBtn = async () => {
     Swal.fire({

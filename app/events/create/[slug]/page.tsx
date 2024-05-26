@@ -8,7 +8,8 @@ import { useEffect, useState } from "react";
 
 export default function CreateEventPage() {
   const router = useRouter();
-  const { slug } = useParams();
+  const params = useParams() as { slug: string };
+  const slug = params.slug;
   const [organization, setOrganization] = useState(null);
   const [error, setError] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState(false);

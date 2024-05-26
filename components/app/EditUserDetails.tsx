@@ -58,7 +58,7 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
     clearBtn: true,
     maxDate: new Date(),
     theme: {
-      background: "bg-[#158A70]", //not working when modified
+      background: "bg-[#158A70] ", //not working when modified
       text: "text-white", // Use the CSS class for light text color
       todayBtn: "", //not working, only text color changes when modified
       clearBtn: "",
@@ -78,8 +78,8 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
     inputIdProp: "date",
     inputPlaceholderProp: "Select Date",
     inputDateFormatProp: {
-      day: "2-digit",
-      month: "2-digit",
+      day: "numeric",
+      month: "long",
       year: "numeric",
     },
   };
@@ -351,16 +351,13 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                           inputDateFormatProp: {
                             ...datepicker_options.inputDateFormatProp,
                             year: "numeric",
-                            month: "2-digit",
-                            day: "2-digit",
+                            month: "2-digit", // Update the month property to a valid value
+                            day: "2-digit", // Update the day property to a valid value
                           },
                         }}
                         onChange={(selectedDate) => {
-                          // Add 8 hours to the selected date
-                          const adjustedDate = new Date(
-                            selectedDate.getTime() + 8 * 60 * 60 * 1000
-                          );
-                          const formattedDate = adjustedDate.toISOString().split("T")[0];
+                          // Format the date object to a string in the format 'yyyy-mm-dd'
+                          const formattedDate = selectedDate.toISOString().split("T")[0];
                           field.onChange(formattedDate);
                         }}
                         show={show}
