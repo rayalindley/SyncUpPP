@@ -23,5 +23,6 @@ export interface Role {
   member_count?: number;
   org_id: string;
   deletable: boolean;
+  editable?: boolean;
   members?: Member[];
 }
