@@ -1,23 +1,20 @@
-"use server";
-import { createClient } from "@/lib/supabase/server";
-// Fetch notifications for the user
+"use client";
+import { createClient } from "@/lib/supabase/client";
+
 export async function fetchNotifications(userId: string) {
-  console.log("Hello from notifications.ts");
+  // console.log("Hello from notifications.ts");
   const supabase = createClient();
   try {
     let { data, error } = await supabase
       .from('notifications')
       .select('*')
       .eq('userid', userId)
-      .order('created_on', { ascending: false })
+      .order('created_on', { ascending: false });
 
     if (!error) {
-      console.log("Notifications data:", data);
-      // Check if data is not null
+      // console.log("Notifications data:", data);
       if (data !== null) {
-        // Count unread notifications
         const unreadCount = data.filter(notification => !notification.isread).length;
-        // Return data with unread count
         return { data, unreadCount, error: null };
       } else {
         return { data: null, unreadCount: 0, error: null };
