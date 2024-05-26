@@ -38,9 +38,10 @@ interface Comment {
 
 interface CommentsProps {
   postid: string;
+  canComment: boolean;
 }
 
-const Comments: React.FC<CommentsProps> = ({ postid }) => {
+const Comments: React.FC<CommentsProps> = ({ postid, canComment }) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -216,7 +217,7 @@ const Comments: React.FC<CommentsProps> = ({ postid }) => {
 
   return (
     <div className="mx-auto max-w-xl p-4">
-      {user ? (
+      {canComment && user ? (
         <div className="mb-4">
           <div className="relative">
             <textarea
@@ -250,14 +251,14 @@ const Comments: React.FC<CommentsProps> = ({ postid }) => {
         </div>
       ) : (
         <div className="mb-4 text-sm text-[#858585]">
-          You must be logged in to comment.
+          {user
+            ? "You don't have permission to comment."
+            : "You must be logged in to comment."}
         </div>
       )}
       <div>
         {comments.length === 0 && isLoading ? (
-          <div className="p-5 text-center text-[#858585]">
-            Loading comments...
-          </div>
+          <div className="p-5 text-center text-[#858585]">Loading comments...</div>
         ) : (
           comments.map((comment) => (
             <div key={comment.commentid} className="flex border-t border-[#424242] py-2">
@@ -281,7 +282,7 @@ const Comments: React.FC<CommentsProps> = ({ postid }) => {
                     • {timeElapsed(comment.created_at)}
                   </span>
                 </div>
-                <div className="mt-1 text-sm text-white whitespace-pre-wrap break-all">
+                <div className="mt-1 whitespace-pre-wrap break-all text-sm text-white">
                   {editingCommentId === comment.commentid ? (
                     <div className="relative">
                       <textarea

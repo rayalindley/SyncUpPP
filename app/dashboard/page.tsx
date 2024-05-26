@@ -1,28 +1,104 @@
+"use client";
+
+import React, { useEffect, useState, useRef } from "react";
+import { createClient } from "@/lib/supabase/client";
 import AdminAnalyticsDashboard from "@/components/dashboard/AdminAnalyticsDashboard";
 import OrganizationsSection from "@/components/dashboard/OrganizationsSection";
+import { getUser } from "@/lib/supabase/client";
 
-import { createClient, getUser } from "@/lib/supabase/server";
+const supabase = createClient();
 
-export default async function DashboardPage() {
-  const { user } = await getUser();
+const DashboardPage = () => {
+  const [organizations, setOrganizations] = useState<any[]>([]);
+  const [user, setUser] = useState<{ id: string } | null>(null);
+  const dashboardRef = useRef(null);
+  const scrollPosition = useRef(0);
 
-  const supabase = createClient();
-  // const { data: organizations, error } = await supabase.rpc("get_user_organizations", {
-  //   user_uuid: user?.id,
-  // });
+  useEffect(() => {
+    const fetchUserAndOrganizations = async () => {
+      const { user } = await getUser();
 
-  const { data: organizations, error } = await supabase
-    .from("organization_summary")
-    .select("*")
-    .eq("adminid", user?.id);
+      const { data: organizations, error } = await supabase
+        .from("organization_summary")
+        .select("*")
+        .eq("adminid", user?.id);
+      setOrganizations(organizations ?? []);
+    };
 
-  // console.log(organizations, error);
+    fetchUserAndOrganizations();
+
+    const handleDatabaseChange = () => {
+      fetchUserAndOrganizations();
+    };
+
+    const organizationMembersChannel = supabase
+      .channel("organizationmembers")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "organizationmembers" },
+        handleDatabaseChange
+      )
+      .subscribe();
+
+    const eventsChannel = supabase
+      .channel("events")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "events" },
+        handleDatabaseChange
+      )
+      .subscribe();
+
+    const postsChannel = supabase
+      .channel("posts")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "posts" },
+        handleDatabaseChange
+      )
+      .subscribe();
+
+    const commentsChannel = supabase
+      .channel("comments")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "post_comments" },
+        handleDatabaseChange
+      )
+      .subscribe();
+
+    return () => {
+      organizationMembersChannel.unsubscribe();
+      eventsChannel.unsubscribe();
+      postsChannel.unsubscribe();
+      commentsChannel.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      scrollPosition.current = window.scrollY;
+    };
+
+    window.addEventListener("scroll", handleScroll);
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (dashboardRef.current) {
+      window.scrollTo(0, scrollPosition.current);
+    }
+  }, [organizations]);
 
   return (
-    <>
+    <div ref={dashboardRef}>
       <AdminAnalyticsDashboard userId={user?.id ?? ""} />
-      <OrganizationsSection organizations={organizations ?? []} />
-      {/* <pre>{JSON.stringify(user, null, 2)}</pre> */}
-    </>
+      <OrganizationsSection organizations={organizations} />
+    </div>
   );
-}
+};
+
+export default DashboardPage;

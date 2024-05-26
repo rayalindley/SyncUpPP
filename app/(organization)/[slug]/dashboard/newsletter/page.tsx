@@ -23,6 +23,7 @@ import EmailsTable from "@/components/EmailsTable";
 import EventsTable from "@/components/EventsTable";
 import CombinedUserDataTable from "@/components/CombinedUserDataTable";
 import { createClient } from "@/lib/supabase/client";
+import { check_permissions } from "@/lib/organization";
 
 const newsletterSchema = z.object({
   subject: z
@@ -58,6 +59,7 @@ export default function NewsletterPage() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [fileError, setFileError] = useState("");
   const [sending, setSending] = useState(false);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -107,7 +109,19 @@ export default function NewsletterPage() {
         }
       }
     }
+
+    async function checkPermission() {
+      if (user && orgSlug) {
+        const organization = await fetchOrganizationBySlug(orgSlug as string);
+        if (organization) {
+          const hasPermission = await check_permissions(user.id || "", organization.organizationid, "send_newsletters");
+          setHasPermission(hasPermission);
+        }
+      }
+    }
+
     fetchData();
+    checkPermission();
   }, [user, orgSlug]);
 
   const transformUserData = (userDataArray: Array<{ data: CombinedUserData }>) => {
@@ -286,6 +300,27 @@ export default function NewsletterPage() {
       selected: item.id === id ? !item.selected : item.selected,
     }));
   };
+
+  if (hasPermission === null) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-semibold text-light">Loading...</h2>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasPermission) {
+    return (
+      <div className="bg-raisin flex min-h-screen items-center justify-center p-10 font-sans text-white">
+        <div className="text-center">
+          <h1 className="mb-4 text-3xl">Newsletter Creation</h1>
+          <p className="text-lg">You do not have permission to create newsletters for this organization.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!orgSlug) {
     return (

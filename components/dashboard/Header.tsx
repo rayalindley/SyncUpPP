@@ -19,6 +19,8 @@ import {
   ExclamationCircleIcon,
   HandRaisedIcon,
   UserIcon,
+  ChatBubbleLeftEllipsisIcon, // Importing the comment icon
+  PencilSquareIcon // Importing the post icon
 } from "@heroicons/react/24/outline";
 import { type User } from "@supabase/supabase-js";
 import { formatDistanceToNow } from "date-fns";
@@ -41,6 +43,8 @@ function Header({ user }: { user: User }) {
 
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+
+  console.log("notifications", notifications);
 
   useEffect(() => {
     const supabase = createClient();
@@ -65,7 +69,7 @@ function Header({ user }: { user: User }) {
 
     loadNotifications();
 
-    const channels = supabase
+    supabase
       .channel("notifications")
       .on(
         "postgres_changes",
@@ -80,10 +84,6 @@ function Header({ user }: { user: User }) {
         }
       )
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channels);
-    };
   }, [user]);
 
   const loadNotifications = async () => {
@@ -130,6 +130,10 @@ function Header({ user }: { user: User }) {
         return "/" + `${notification.path}`;
       case "welcome":
         return "/" + `${notification.path}`;
+      case "post":
+        return "/" + `${notification.path}`;
+      case "comment":
+        return "/" + `${notification.path}`;
       case "payment":
         return null;
       default:
@@ -148,6 +152,10 @@ function Header({ user }: { user: User }) {
         return <HandRaisedIcon className="h-6 w-6 text-light" />;
       case "payment":
         return <CurrencyDollarIcon className="h-6 w-6 text-light" />;
+      case "post":
+        return <PencilSquareIcon className="h-6 w-6 text-light" />; // Post icon
+      case "comment":
+        return <ChatBubbleLeftEllipsisIcon className="h-6 w-6 text-light" />; // Comment icon
       default:
         return <ExclamationCircleIcon className="h-6 w-6 text-light" />;
     }
@@ -239,15 +247,16 @@ function Header({ user }: { user: User }) {
                   msOverflowStyle: "none",
                 }}
               >
-                <div className="overflow-y-auto">
-                  <div className="px-4 py-3">
+                <div className="notification-container">
+                  <div className="h-80 overflow-y-auto px-4 py-3">
                     <p className="mb-2 text-sm font-medium text-light">Notifications</p>
                     {notifications.length > 0 ? (
                       notifications.map((notification) => (
                         <a
                           key={notification.notificationid}
-                          ref={notificationLinkRef}
-                          className={`my-1 flex items-center gap-x-2 rounded-lg px-4 py-2 hover:bg-[#525252] ${notification.isread ? "bg-gray" : "bg-[#232323]"} cursor-pointer`}
+                          className={`my-1 flex items-center gap-x-2 rounded-lg px-4 py-2 hover:bg-[#525252] ${
+                            notification.isread ? "bg-gray" : "bg-[#232323]"
+                          } cursor-pointer`}
                           onClick={() => {
                             handleNotificationClick(notification.notificationid);
                             window.location.href =
@@ -273,6 +282,7 @@ function Header({ user }: { user: User }) {
                     )}
                   </div>
                 </div>
+
                 <div className="border-t border-[#525252]">
                   <button
                     className="my-3 block w-full text-center text-sm text-[#32805c] hover:text-[#285a47]"

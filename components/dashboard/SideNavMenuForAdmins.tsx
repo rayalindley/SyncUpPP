@@ -5,7 +5,6 @@ import {
   CalendarIcon,
   ChartPieIcon,
   Cog6ToothIcon,
-  EnvelopeIcon,
   HomeIcon,
   UsersIcon,
   XMarkIcon,
@@ -27,8 +26,6 @@ const navigation = [
     icon: UsersIcon,
   },
   { name: "Events", href: "/dashboard/events", icon: CalendarIcon },
-  // { name: "Calendar", href: "#", icon: CalendarIcon },
-  { name: "Newsletter", href: "/dashboard/newsletter", icon: EnvelopeIcon },
   { name: "Memberships", href: "/dashboard/memberships", icon: CalendarIcon },
   { name: "Reports", href: "/dashboard/reports", icon: ChartPieIcon },
 ];

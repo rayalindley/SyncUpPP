@@ -3,8 +3,11 @@ import AnalyticsDashboard from "@/components/dashboard/Analytics";
 import { deleteOrganization, fetchOrganizationBySlug } from "@/lib/organization";
 import { Organization } from "@/lib/types";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Swal from "sweetalert2";
+import { createClient } from "@/lib/supabase/client";
+
+const supabase = createClient();
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -12,6 +15,28 @@ export default function SettingsPage() {
 
   const [formValues, setFormValues] = useState<Organization | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reloadFlag, setReloadFlag] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const saveScrollPosition = () => {
+    if (scrollRef.current) {
+      const { scrollTop } = scrollRef.current;
+      localStorage.setItem("scrollPosition", scrollTop.toString());
+    }
+  };
+
+  const restoreScrollPosition = () => {
+    if (scrollRef.current) {
+      const scrollPosition = localStorage.getItem("scrollPosition");
+      if (scrollPosition) {
+        scrollRef.current.scrollTop = parseInt(scrollPosition, 10);
+      }
+    }
+  };
+
+  useEffect(() => {
+    restoreScrollPosition();
+  }, []);
 
   useEffect(() => {
     console.log(slug);
@@ -33,7 +58,29 @@ export default function SettingsPage() {
         }
       })();
     }
+  }, [slug]);
+
+  useEffect(() => {
+    const channels = ["organizationmembers", "events", "posts", "comments"];
+    channels.forEach((channel) => {
+      supabase
+        .channel(channel)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: channel },
+          (payload) => {
+            console.log("Change received!", payload);
+            saveScrollPosition();
+            setReloadFlag((prev) => !prev); // Toggle the flag to force re-render
+          }
+        )
+        .subscribe();
+    });
   }, []);
+
+  useEffect(() => {
+    restoreScrollPosition();
+  }, [reloadFlag]);
 
   const handleDeleteOrg = async (orgID: string) => {
     console.log(orgID);
@@ -69,17 +116,17 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-full flex-1 flex-col justify-center bg-eerieblack px-6 py-12  lg:px-8">
+    <div ref={scrollRef} className="min-h-full flex-1 flex-col justify-center bg-eerieblack px-6 py-12 lg:px-8">
       <AnalyticsDashboard organizationid={formValues?.organizationid ?? ""} />
       <div className="mt-4 flex gap-2">
         <a
-          className="border-1 rounded-md border border-primary bg-primarydark p-1 px-2 text-sm  text-gray-100 hover:cursor-pointer"
+          className="border-1 rounded-md border border-primary bg-primarydark p-1 px-2 text-sm text-gray-100 hover:cursor-pointer"
           href={`/${slug}/dashboard/edit`}
         >
           Edit Organization
         </a>
         <button
-          className="border-1 rounded-md border border-red-500 bg-red-600 p-1 px-2  text-sm text-gray-100 hover:cursor-pointer"
+          className="border-1 rounded-md border border-red-500 bg-red-600 p-1 px-2 text-sm text-gray-100 hover:cursor-pointer"
           onClick={() => handleDeleteOrg(formValues?.organizationid ?? "")}
         >
           Delete Org
