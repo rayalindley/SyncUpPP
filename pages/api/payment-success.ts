@@ -51,8 +51,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .from("organizationmembers")
         .insert([
           {
+            userid: paymentData.payerId,
             organizationid: paymentData.organizationId,
             membershipid: paymentData.target_id, // use the target_id for membership
+            roleid: "default",
             months: 1, // replace with the appropriate duration in months
           },
         ])
