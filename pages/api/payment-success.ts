@@ -1,3 +1,4 @@
+import { registerForEvent } from "@/lib/events";
 import { createClient } from "@/lib/supabase/client";
 import { NextApiRequest, NextApiResponse } from "next";
 
@@ -32,17 +33,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (paymentData.type === "events") {
-    const { data: registrationData, error: registrationError } = await supabase
-      .from("eventregistrations")
-      .insert([
-        {
-          eventid: paymentData.target_id,
-          organizationid: paymentData.organizationId,
-          userid: paymentData.payerId,
-        },
-      ])
-      .select()
-      .single();
+    const { data: registrationData, error: registrationError } = await registerForEvent(
+      paymentData.target_id,
+      paymentData.payerId
+    );
 
     if (registrationError) {
       console.error("Error registering for event:", registrationError);
