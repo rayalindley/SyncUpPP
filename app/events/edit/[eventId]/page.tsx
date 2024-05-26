@@ -1,6 +1,8 @@
 "use client";
 import CreateEventForm from "@/components/create_event_form";
 import { fetchEventById } from "@/lib/events";
+import { check_permissions } from "@/lib/organization";
+import { getUser } from "@/lib/supabase/client";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -11,7 +13,7 @@ export default function EditEventPage() {
   const eventId = params.eventId;
   const [event, setEvent] = useState(null); // State to hold the event data
   const [error, setError] = useState<string | null>(null);
-
+  const [hasPermission, setHasPermission] = useState(false);
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -33,10 +35,46 @@ export default function EditEventPage() {
     if (eventId) {
       fetchData();
     }
+    async function checkPermissions() {
+      const { user } = await getUser();
+      try {
+        const events = await fetchEventById(eventId as string);
+        if ("organizationid" in events.data) {
+          const permission = await check_permissions(
+            user?.id || "",
+            events.data.organizationid,
+            "edit_events"
+          );
+          setHasPermission(permission);
+        }
+      } catch (error) {
+        console.error("Failed to check permissions", error);
+      }
+    }
+    checkPermissions();
   }, [eventId]);
 
-  if (!event) {
-    return <div>Loading...</div>;
+  if (!event || hasPermission == null) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-semibold text-light">Loading...</h2>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasPermission) {
+    return (
+      <div className="bg-raisin flex min-h-screen items-center justify-center p-10 font-sans text-white">
+        <div className="text-center">
+          <h1 className="mb-4 text-3xl">Event Modification</h1>
+          <p className="text-lg">
+            You do not have permission to modify events for this organization.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (

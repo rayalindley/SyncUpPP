@@ -3,7 +3,7 @@ import AnalyticsDashboard from "@/components/dashboard/Analytics";
 import { deleteOrganization, fetchOrganizationBySlug } from "@/lib/organization";
 import { Organization } from "@/lib/types";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Swal from "sweetalert2";
 
 export default function SettingsPage() {
@@ -13,31 +13,27 @@ export default function SettingsPage() {
   const [formValues, setFormValues] = useState<Organization | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    console.log(slug);
-    if (slug) {
-      (async () => {
-        try {
-          const { data, error } = await fetchOrganizationBySlug(slug);
+  const fetchOrganization = async () => {
+    try {
+      const { data, error } = await fetchOrganizationBySlug(slug);
 
-          console.log(data, error);
-          if (error) {
-            setError(error.message);
-            console.error(error);
-          } else {
-            setFormValues(data);
-          }
-        } catch (err) {
-          console.error("Failed to fetch organization:", err);
-          setError((err as Error).message);
-        }
-      })();
+      if (error) {
+        setError(error.message);
+        console.error(error);
+      } else {
+        setFormValues(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch organization:", err);
+      setError((err as Error).message);
     }
-  }, []);
+  };
+
+  if (!formValues && !error) {
+    fetchOrganization();
+  }
 
   const handleDeleteOrg = async (orgID: string) => {
-    console.log(orgID);
-
     const confirmResult = await Swal.fire({
       title: "Are you sure?",
       text: "You won't be able to revert this!",
@@ -69,17 +65,17 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-full flex-1 flex-col justify-center bg-eerieblack px-6 py-12  lg:px-8">
+    <div className="min-h-full flex-1 flex-col justify-center bg-eerieblack px-6 py-12 lg:px-8">
       <AnalyticsDashboard organizationid={formValues?.organizationid ?? ""} />
       <div className="mt-4 flex gap-2">
         <a
-          className="border-1 rounded-md border border-primary bg-primarydark p-1 px-2 text-sm  text-gray-100 hover:cursor-pointer"
+          className="border-1 rounded-md border border-primary bg-primarydark p-1 px-2 text-sm text-gray-100 hover:cursor-pointer"
           href={`/${slug}/dashboard/edit`}
         >
           Edit Organization
         </a>
         <button
-          className="border-1 rounded-md border border-red-500 bg-red-600 p-1 px-2  text-sm text-gray-100 hover:cursor-pointer"
+          className="border-1 rounded-md border border-red-500 bg-red-600 p-1 px-2 text-sm text-gray-100 hover:cursor-pointer"
           onClick={() => handleDeleteOrg(formValues?.organizationid ?? "")}
         >
           Delete Org

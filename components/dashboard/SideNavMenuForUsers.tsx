@@ -3,11 +3,18 @@ import { Organizations as Organization } from "@/lib/types"; // Ensure the corre
 import useSidebarStore from "@/store/useSidebarStore";
 import { Dialog, Listbox, Transition } from "@headlessui/react";
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/20/solid";
-import { Cog6ToothIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import {
+  Cog6ToothIcon,
+  EnvelopeIcon,
+  HomeIcon,
+  UsersIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { Fragment, useEffect, useState } from "react";
 
+import { IoCalendarOutline } from "react-icons/io5";
 import { IoIosAnalytics } from "react-icons/io";
 import {
   IoCalendarOutline,
@@ -78,7 +85,7 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
         selected === "default" || typeof selected === "string"
           ? `/dashboard/newsletter`
           : `/${selected.slug}/dashboard/newsletter`,
-      icon: IoMailUnreadOutline,
+      icon: EnvelopeIcon,
     },
     {
       name: "Events",
