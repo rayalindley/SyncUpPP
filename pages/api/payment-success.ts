@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
 import { NextApiRequest, NextApiResponse } from "next";
-import { getUser } from "@/lib/supabase/client";
 
 const supabase = createClient();
 
@@ -15,10 +14,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: "No data received." });
   }
 
-  console.log("Body: ", body);
+  // console.log("Body: ", body);
 
   // Get user data
-  const { user } = await getUser();
 
   // Update payment status and invoiceData
   const { data: paymentData, error: paymentError } = await supabase
@@ -27,22 +25,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       status: "COMPLETED",
       invoiceData: body.data, // assuming body.data contains the invoice data you want to update
     })
-    .eq("invoiceid", body.id)
+    .eq("invoiceId", body.id)
     .select()
     .single();
 
   if (paymentError) {
     console.error("Error updating payment:", paymentError);
-    return res.status(500).json({ error: "Failed to update payment status" });
+    return res
+      .status(500)
+      .json({ error: "Failed to update payment status", paymentError });
   }
 
   if (paymentData.type === "membership") {
     // Update or insert organization member
     const { data: memberData, error: memberError } = await supabase
       .from("organizationmembers")
-      .select("organizationmemberid")
-      .eq("userid", user?.id)
-      .eq("organizationid", paymentData.organizationid)
+      .select("*")
+      .eq("userid", paymentData.payerId)
+      .eq("organizationid", paymentData.organizationId)
       .single();
 
     if (memberError) {
@@ -51,10 +51,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .from("organizationmembers")
         .insert([
           {
-            userid: user?.id,
-            organizationid: paymentData.organizationid,
+            userid: paymentData.payerId,
+            organizationid: paymentData.organizationId,
             membershipid: paymentData.target_id, // use the target_id for membership
-            joindate: new Date().toISOString(),
             months: 1, // replace with the appropriate duration in months
           },
         ])
@@ -62,30 +61,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .single();
 
       if (newMemberError) {
-        console.error("Error inserting new member:", newMemberError);
-        return res.status(500).json({ error: "Failed to insert new member" });
+        return res
+          .status(500)
+          .json({ error: "Failed to insert new member", newMemberError });
       }
 
       return res
         .status(200)
-        .json({ success: "PAYMENT SUCCESSFUL!", memberData: newMemberData });
+        .json({ success: "CREATED & PAYMENT SUCCESSFUL!", memberData: newMemberData });
     } else {
       // Update existing member
       const { data: updatedMemberData, error: updateMemberError } = await supabase
         .from("organizationmembers")
         .update({ membershipid: paymentData.target_id }) // use the target_id for membership
-        .eq("organizationmemberid", memberData.organizationmemberid)
+        .eq("userid", paymentData.payerId)
+        .eq("organizationid", memberData.organizationid)
         .select()
         .single();
 
       if (updateMemberError) {
         console.error("Error updating member:", updateMemberError);
-        return res.status(500).json({ error: "Failed to update member" });
+        return res.status(500).json({
+          error: "Failed to update member",
+          updateMemberError,
+          target_id: paymentData.target_id,
+          payerId: paymentData.payerId,
+          userid: memberData.userid,
+        });
       }
 
-      return res
-        .status(200)
-        .json({ success: "PAYMENT SUCCESSFUL!", memberData: updatedMemberData });
+      return res.status(200).json({
+        success: "UPDATED & PAYMENT SUCCESSFUL!",
+        memberData: updatedMemberData,
+      });
     }
   } else if (paymentData.type === "event") {
     // Handle event type if needed
