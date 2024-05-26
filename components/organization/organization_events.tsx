@@ -1,15 +1,16 @@
-
 "use client";
 import { check_permissions } from "@/lib/organization";
 import { createClient } from "@/lib/supabase/client";
-import { EventProps } from "@/lib/types";
+// import { EventProps } from "@/lib/types";
 import { ArrowLongLeftIcon, ArrowLongRightIcon } from "@heroicons/react/20/solid";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import EventsCard from "./events_card";
 
-interface OrganizationEventsComponentProps extends EventProps {
+interface OrganizationEventsComponentProps {
+  events: any;
+  userid: string;
   organizationId: string;
 }
 
@@ -99,7 +100,7 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
       </div>
 
       <div className="isolate mx-auto mt-8 grid max-w-lg grid-cols-1 justify-items-center gap-x-1 gap-y-8 sm:mt-12 md:mx-auto md:max-w-lg md:grid-cols-2 md:gap-x-4 lg:mx-0 lg:max-w-none lg:grid-cols-4">
-        {currentEvents.map((event, index) => (
+        {currentEvents.map((event: any, index: number) => (
           <EventsCard
             key={index}
             event={{
