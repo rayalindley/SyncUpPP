@@ -14,7 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: "No data received." });
   }
 
-  console.log("Body: ", body);
+  // console.log("Body: ", body);
 
   // Get user data
 
@@ -80,9 +80,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (updateMemberError) {
         console.error("Error updating member:", updateMemberError);
-        return res
-          .status(500)
-          .json({ error: "Failed to update member", updateMemberError });
+        return res.status(500).json({
+          error: "Failed to update member",
+          updateMemberError,
+          target_id: paymentData.target_id,
+          payerId: paymentData.payerId,
+          userid: memberData.userid,
+        });
       }
 
       return res.status(200).json({
