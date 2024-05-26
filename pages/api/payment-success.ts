@@ -70,7 +70,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       return res
         .status(200)
-        .json({ success: "PAYMENT SUCCESSFUL!", memberData: newMemberData });
+        .json({ success: "CREATED & PAYMENT SUCCESSFUL!", memberData: newMemberData });
     } else {
       // Update existing member
       const { data: updatedMemberData, error: updateMemberError } = await supabase
@@ -86,9 +86,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(500).json({ error: "Failed to update member" });
       }
 
-      return res
-        .status(200)
-        .json({ success: "PAYMENT SUCCESSFUL!", memberData: updatedMemberData });
+      return res.status(200).json({
+        success: "UPDATED & PAYMENT SUCCESSFUL!",
+        memberData: updatedMemberData,
+      });
     }
   } else if (paymentData.type === "event") {
     // Handle event type if needed
