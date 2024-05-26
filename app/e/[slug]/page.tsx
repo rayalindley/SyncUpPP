@@ -10,7 +10,7 @@ import {
   registerForEvent,
   unregisterFromEvent,
 } from "@/lib/events";
-import { createClient, getUser } from "@/lib/supabase/client"; // Ensure you have this import for Supabase client
+import { createClient, getUser } from "@/lib/supabase/client";
 import { Event, Organization } from "@/lib/types";
 import { User } from "@/node_modules/@supabase/auth-js/src/lib/types";
 import {
@@ -28,6 +28,17 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import remarkGfm from "remark-gfm";
 import Swal from "sweetalert2";
+import { Xendit, Invoice as InvoiceClient } from "xendit-node";
+import type { CreateInvoiceRequest, Invoice } from "xendit-node/invoice/models";
+
+const xenditClient = new Xendit({
+  secretKey: process.env.NEXT_PUBLIC_XENDIT_SECRET_KEY!,
+});
+const { Invoice } = xenditClient;
+
+const xenditInvoiceClient = new InvoiceClient({
+  secretKey: process.env.NEXT_PUBLIC_XENDIT_SECRET_KEY!,
+});
 
 const EventPage = () => {
   const router = useRouter();
@@ -133,7 +144,7 @@ const EventPage = () => {
 
   const handleEventRegistration = async () => {
     if (isRegistered || !isMember) return;
-    // Confirmation dialog with SweetAlert
+
     const result = await Swal.fire({
       title: "Are you sure?",
       text: "Do you want to join the event?",
@@ -145,7 +156,6 @@ const EventPage = () => {
     });
 
     if (result.isConfirmed) {
-      // Retrieve the current user's data
       const { user } = await getUser();
       const userId = user?.id;
 
@@ -155,20 +165,63 @@ const EventPage = () => {
         return;
       }
 
-      // Call the new registerForEvent function
-      const { data, error } = await registerForEvent(event.eventid, userId);
+      // Check if the event registration is free or paid
+      if (event.registrationfee > 0) {
+        try {
+          // Create Xendit invoice
 
-      if (error) {
-        console.error("Registration failed:", error);
-        toast.error(`Registration failed: ${error.message}`);
+          const data: CreateInvoiceRequest = {
+            amount: event.registrationfee,
+            payerEmail: user.email,
+            externalId: `${event.eventid}-${event.title}-${new Date().toISOString()}`,
+            description: `${organization?.name} Registration fee for ${event.title}: ${event.description}`,
+            successRedirectUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/e/${event.eventslug}`,
+          };
+
+          const invoice: Invoice = await xenditInvoiceClient.createInvoice({
+            data,
+          });
+
+          // Insert payment data into the payments table
+          const { error: paymentError } = await supabase.from("payments").insert([
+            {
+              amount: event.registrationfee,
+              invoiceId: invoice.id,
+              type: "events",
+              target_id: event.eventid,
+              organizationId: event.organizationid,
+              invoiceUrl: invoice.invoiceUrl,
+              invoiceData: invoice,
+            },
+          ]);
+
+          if (paymentError) {
+            console.error("Error creating payment record:", paymentError);
+            toast.error(`Registration failed: ${paymentError.message}`);
+            return;
+          }
+
+          // Redirect to the invoice URL
+          window.location.href = invoice.invoiceUrl;
+        } catch (error) {
+          console.error("Error creating invoice:", error);
+          toast.error("Failed to create invoice. Please try again.");
+        }
       } else {
-        // console.log("Registration successful:", data);
-        toast.success("You have successfully joined the event!");
-        setIsRegistered(true);
-        setAttendeesCount((prevCount) => prevCount + 1);
+        // Free registration
+        const { data, error } = await registerForEvent(event.eventid, userId);
 
-        if (event.capacity && attendeesCount + 1 >= event.capacity) {
-          setEventFull(true);
+        if (error) {
+          console.error("Registration failed:", error);
+          toast.error(`Registration failed: ${error.message}`);
+        } else {
+          toast.success("You have successfully joined the event!");
+          setIsRegistered(true);
+          setAttendeesCount((prevCount) => prevCount + 1);
+
+          if (event.capacity && attendeesCount + 1 >= event.capacity) {
+            setEventFull(true);
+          }
         }
       }
     }
@@ -201,11 +254,10 @@ const EventPage = () => {
         console.error("Unregistration failed:", error);
         toast.error(`Unregistration failed: ${error.message}`);
       } else {
-        // console.log("Unregistration successful:", data);
         toast.success("You have successfully cancelled your registration!");
-        setIsRegistered(false); // Update the state to reflect the unregistration
+        setIsRegistered(false);
         setAttendeesCount((prevCount) => prevCount - 1);
-        setEventFull(false); // Allow registration again if user cancels
+        setEventFull(false);
       }
     }
   };
@@ -219,7 +271,6 @@ const EventPage = () => {
     }
   };
 
-  // Define the base URL for your Supabase storage bucket
   const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
 
   return (
@@ -272,7 +323,6 @@ const EventPage = () => {
                         <button
                           className="rounded-full bg-primary px-4 py-2 text-sm text-white hover:bg-primarydark"
                           onClick={() => {
-                            // Redirect to the membership page
                             router.push(`/${organization.slug}?tab=membership`);
                           }}
                         >
@@ -302,7 +352,6 @@ const EventPage = () => {
               )}
               <hr className="my-4 border-t border-fadedgrey opacity-50" />
 
-              {/* Render tags if they exist */}
               {event.tags && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   <h3 className="w-full text-lg font-semibold">Tags</h3>
