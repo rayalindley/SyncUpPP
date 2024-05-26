@@ -19,7 +19,8 @@ const TabsComponent = ({
   posts: any;
   id: any;
 }) => {
-  const { orgslug } = useParams();
+  const { orgslug } = useParams() as { orgslug: string };
+
   const [activeTab, setActiveTab] = useState("posts");
 
   useEffect(() => {

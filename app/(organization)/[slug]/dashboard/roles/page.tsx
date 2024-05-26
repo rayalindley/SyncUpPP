@@ -17,8 +17,9 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import { Role, Member } from "@/types/roles";
+
 interface Permission {
-  perm_id: string;
+  perm_key: string;
   name: string;
   category: string;
   description: string;
@@ -30,15 +31,16 @@ export default function SettingsRolesPage() {
     {}
   );
   const [permissionsEnabled, setPermissionsEnabled] = useState<{
-    [role_id: string]: { [perm_id: string]: boolean };
+    [role_id: string]: { [perm_key: string]: boolean };
   }>({});
   const [rolesData, setRolesData] = useState<Role[] | null>(null);
   const [filteredRoles, setFilteredRoles] = useState<Role[] | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
-
   const [orgID, setOrgID] = useState<string | null>(null);
-  const { slug } = useParams();
+  const params = useParams() as { slug: string };
+
+  const slug = params.slug;
 
   useEffect(() => {
     const supabase = createClient();
@@ -88,11 +90,13 @@ export default function SettingsRolesPage() {
             if (rolePermissions) {
               const permissionsEnabledState = rolePermissions.reduce(
                 (
-                  acc: { [role_id: string]: { [perm_id: string]: boolean } },
-                  rp: { role_id: string; perm_id: string }
+                  acc: { [role_id: string]: { [perm_key: string]: boolean } },
+                  rp: { role_id: string; perm_key: string }
                 ) => {
-                  acc[rp.role_id] = acc[rp.role_id] || {};
-                  acc[rp.role_id][rp.perm_id] = true;
+                  if (!acc[rp.role_id]) {
+                    acc[rp.role_id] = {};
+                  }
+                  acc[rp.role_id][rp.perm_key] = true;
                   return acc;
                 },
                 {}
@@ -105,8 +109,8 @@ export default function SettingsRolesPage() {
               }
             }
 
-            setRolesData(organization.roles);
-            setFilteredRoles(organization.roles);
+            setRolesData(organization.roles as Role[]);
+            setFilteredRoles(organization.roles as Role[]);
           } else {
             // console.log("Error:", orgError);
           }
@@ -118,6 +122,7 @@ export default function SettingsRolesPage() {
   }, [slug]);
 
   const handleRoleClick = (role: Role) => {
+    console.log(role);
     setSelectedRole(role);
     setSelectedIndex(1);
   };
@@ -228,26 +233,28 @@ export default function SettingsRolesPage() {
     }
   };
 
-  const handlePermissionToggle = async (permId: string) => {
+  const handlePermissionToggle = async (permKey: string) => {
     const supabase = createClient();
 
     if (selectedRole) {
+      const isEnabled = permissionsEnabled[selectedRole.role_id]?.[permKey] || false;
+
       setPermissionsEnabled((prev) => {
         const updatedPermissions = {
           ...prev,
           [selectedRole.role_id]: {
             ...prev[selectedRole.role_id],
-            [permId]: !prev[selectedRole.role_id]?.[permId],
+            [permKey]: !isEnabled,
           },
         };
 
         return updatedPermissions;
       });
 
-      if (!permissionsEnabled[selectedRole.role_id]?.[permId]) {
+      if (!isEnabled) {
         const { data, error } = await supabase
           .from("role_permissions")
-          .insert([{ role_id: selectedRole.role_id, perm_id: permId }])
+          .insert([{ role_id: selectedRole.role_id, perm_key: permKey }])
           .select()
           .single();
 
@@ -259,7 +266,7 @@ export default function SettingsRolesPage() {
           .from("role_permissions")
           .delete()
           .eq("role_id", selectedRole.role_id)
-          .eq("perm_id", permId)
+          .eq("perm_key", permKey)
           .select()
           .single();
 
@@ -307,6 +314,84 @@ export default function SettingsRolesPage() {
   const handleMemberClick = (role: Role) => {
     setSelectedRole(role);
     setSelectedIndex(2);
+  };
+
+  const handleRoleMembersUpdate = (updatedMembers: Member[], roleId: string) => {
+    setRolesData((prevRolesData) =>
+      prevRolesData
+        ? prevRolesData.map((role) =>
+            role.role_id === roleId ? { ...role, members: updatedMembers } : role
+          )
+        : null
+    );
+    setFilteredRoles((prevRolesData) =>
+      prevRolesData
+        ? prevRolesData.map((role) =>
+            role.role_id === roleId ? { ...role, members: updatedMembers } : role
+          )
+        : null
+    );
+    if (selectedRole && selectedRole.role_id === roleId) {
+      setSelectedRole((prevRole) =>
+        prevRole ? { ...prevRole, members: updatedMembers } : null
+      );
+    }
+  };
+
+  const handleMoveMember = async (memberId: string, newRoleId: string) => {
+    const supabase = createClient();
+
+    // Remove the member from their current role
+    const { error: removeError } = await supabase
+      .from("organizationmembers")
+      .update({ roleid: null })
+      .eq("organizationid", orgID)
+      .eq("userid", memberId);
+
+    if (removeError) {
+      console.error("Error removing member from previous role:", removeError);
+      return;
+    }
+
+    // Add the member to the new role
+    const { error: addError } = await supabase
+      .from("organizationmembers")
+      .update({ roleid: newRoleId })
+      .eq("organizationid", orgID)
+      .eq("userid", memberId);
+
+    if (addError) {
+      console.error("Error adding member to new role:", addError);
+      return;
+    }
+
+    setRolesData((prevRolesData) => {
+      if (!prevRolesData) return null;
+
+      const updatedRoles = prevRolesData.map((role) => {
+        if (role.members?.some((member) => member.userid === memberId)) {
+          return {
+            ...role,
+            members: role.members.filter((member) => member.userid !== memberId),
+          };
+        } else if (role.role_id === newRoleId) {
+          return {
+            ...role,
+            members: [...(role.members || []), { userid: memberId } as Member],
+          };
+        }
+        return role;
+      });
+
+      if (selectedRole) {
+        const updatedSelectedRole = updatedRoles.find(
+          (role) => role.role_id === selectedRole.role_id
+        );
+        setSelectedRole(updatedSelectedRole || null);
+      }
+
+      return updatedRoles;
+    });
   };
 
   return (
@@ -365,7 +450,7 @@ export default function SettingsRolesPage() {
                 >
                   <div className="flex items-center">
                     <UsersIcon className="mr-2 h-6 w-6" />
-                    {role.member_count || 0}
+                    {role.members ? role.members.length : 0}
                   </div>
                 </td>
                 <td className="px-4 py-4 text-center">
@@ -484,7 +569,7 @@ export default function SettingsRolesPage() {
                       </h3>
                       {permissions.map((perm) => (
                         <div
-                          key={perm.perm_id}
+                          key={perm.perm_key}
                           className="mb-6 flex items-center justify-between border-b border-[#525252] pb-4"
                         >
                           <div className="flex-grow">
@@ -493,12 +578,12 @@ export default function SettingsRolesPage() {
                           </div>
                           <Switch
                             checked={
-                              permissionsEnabled[selectedRole.role_id]?.[perm.perm_id] ||
+                              permissionsEnabled[selectedRole.role_id]?.[perm.perm_key] ||
                               false
                             }
-                            onChange={() => handlePermissionToggle(perm.perm_id)}
+                            onChange={() => handlePermissionToggle(perm.perm_key)}
                             className={`${
-                              permissionsEnabled[selectedRole.role_id]?.[perm.perm_id]
+                              permissionsEnabled[selectedRole.role_id]?.[perm.perm_key]
                                 ? "bg-primary"
                                 : "bg-gray-200"
                             } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2`}
@@ -506,7 +591,7 @@ export default function SettingsRolesPage() {
                             <span className="sr-only">Use setting</span>
                             <span
                               className={`${
-                                permissionsEnabled[selectedRole.role_id]?.[perm.perm_id]
+                                permissionsEnabled[selectedRole.role_id]?.[perm.perm_key]
                                   ? "translate-x-5"
                                   : "translate-x-0"
                               } pointer-events-none relative inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
@@ -519,7 +604,12 @@ export default function SettingsRolesPage() {
                 </Tab.Panel>
                 <Tab.Panel>
                   {selectedRole && orgID && (
-                    <Members selectedRole={selectedRole} organizationid={orgID} />
+                    <Members
+                      selectedRole={selectedRole}
+                      organizationid={orgID}
+                      onRoleMembersUpdate={handleRoleMembersUpdate}
+                      onMoveMember={handleMoveMember}
+                    />
                   )}
                 </Tab.Panel>
               </Tab.Panels>
