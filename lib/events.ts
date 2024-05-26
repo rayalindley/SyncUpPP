@@ -5,7 +5,8 @@ export async function insertEvent(formData: any, organizationid: string) {
   const insertValues = {
     title: formData.title,
     description: formData.description,
-    eventdatetime: formData.eventdatetime, // Assuming this is a time string in HH:MM format
+    starteventdatetime: formData.starteventdatetime,
+    endeventdatetime: formData.endeventdatetime,
     location: formData.location,
     capacity: formData.capacity,
     registrationfee: formData.registrationfee,
@@ -65,7 +66,8 @@ export async function updateEvent(eventId: string, formData: any) {
   const updateValues = {
     title: formData.title,
     description: formData.description,
-    eventdatetime: formData.eventdatetime, // Assuming this is a time string in HH:MM format
+    starteventdatetime: formData.starteventdatetime,
+    endeventdatetime: formData.endeventdatetime,
     location: formData.location,
     capacity: formData.capacity,
     registrationfee: formData.registrationfee,
@@ -534,6 +536,48 @@ export async function checkMembership(userId: string, organizationid: string) {
     return {
       isMember: false,
       error: { message: e.message || "An unexpected error occurred" },
+    };
+  }
+}
+
+export async function fetchEventsForUserAdmin(userId: string) {
+  const supabase = createClient();
+
+  try {
+    // Fetch event IDs from the eventregistrations table for the given user
+    const { data: registrations, error: registrationsError } = await supabase
+      .from("eventregistrations")
+      .select("eventid")
+      .eq("adminid", userId);
+
+    if (registrationsError) {
+      throw registrationsError;
+    }
+
+    // Extract event IDs from registrations
+    const eventIds = registrations.map((registration: any) => registration.eventid);
+
+    // If no event IDs are found, return an empty array
+    if (eventIds.length === 0) {
+      return { data: [], error: null };
+    }
+
+    // Fetch event details from the events table for the registered events
+    const { data: events, error: eventsError } = await supabase
+      .from("events")
+      .select("*")
+      .in("eventid", eventIds);
+
+    if (eventsError) {
+      throw eventsError;
+    }
+
+    return { data: events, error: null };
+  } catch (error: any) {
+    console.error("Error fetching events for user:", error);
+    return {
+      data: null,
+      error: { message: error.message || "An unexpected error occurred" },
     };
   }
 }

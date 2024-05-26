@@ -19,7 +19,8 @@ const EventsCard = ({ event }: { event: Event }) => {
     description,
     registrationfee,
     location,
-    eventdatetime,
+    starteventdatetime,
+    endeventdatetime,
     capacity,
     eventslug,
     privacy,
@@ -44,9 +45,6 @@ const EventsCard = ({ event }: { event: Event }) => {
       minute: "2-digit",
     });
   };
-
-  // Use this function to format your event.eventdatetime
-  const eventDateTimePST = formattedDateTime(eventdatetime.toString());
 
   // Determine if the location is a URL and create a clickable link
   const locationContent =
@@ -119,7 +117,6 @@ const EventsCard = ({ event }: { event: Event }) => {
   // Format date and time
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = {
-      weekday: "short",
       month: "short",
       day: "numeric",
       hour: "2-digit",
@@ -153,7 +150,7 @@ const EventsCard = ({ event }: { event: Event }) => {
       // onClick={handleCardClick}
       href={`/e/${event.eventslug}`}
       className="mb-4 flex max-h-96 cursor-pointer flex-col overflow-hidden rounded-md bg-eerieblack  transition duration-100 hover:scale-[1.01] hover:bg-raisinblack
-      md:w-64 lg:w-64"
+      md:w-72 lg:w-72"
     >
       <div className="relative h-40 overflow-hidden">
         {imageUrl ? (
@@ -163,7 +160,7 @@ const EventsCard = ({ event }: { event: Event }) => {
             className="h-full w-full rounded-lg object-cover"
           />
         ) : (
-          <div className="h-full w-[262px] rounded-lg bg-fadedgrey" />
+          <div className="h-full w-[288px] rounded-lg bg-fadedgrey" />
         )}
         <span
           className={`absolute right-2 top-2 rounded-full bg-opacity-75 px-2	py-1 text-xs font-medium shadow-2xl ${privacy === "public" ? "bg-green-500 text-white" : "bg-red-500 text-white"}`}
@@ -175,8 +172,9 @@ const EventsCard = ({ event }: { event: Event }) => {
         <div>
           <h3 className="text-lg font-semibold text-light">{title}</h3>
           <p className="mt-2 text-sm text-light">
-            {formatDate(eventdatetime.toString())}
+            {`${formatDate(starteventdatetime.toString())} - ${formatDate(endeventdatetime.toString())}`}
           </p>
+
           <p className="text-sm text-light">{locationContent}</p>
           <p className="mt-2 inline-block rounded-full border border-primary px-3 py-1 text-sm font-medium text-light">
             {formatFee(registrationfee)}
