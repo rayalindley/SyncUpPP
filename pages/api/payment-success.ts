@@ -27,13 +27,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       status: "COMPLETED",
       invoiceData: body.data, // assuming body.data contains the invoice data you want to update
     })
-    .eq("invoiceid", body.id)
+    .eq("invoiceId", body.id)
     .select()
     .single();
 
   if (paymentError) {
     console.error("Error updating payment:", paymentError);
-    return res.status(500).json({ error: "Failed to update payment status", body });
+    return res
+      .status(500)
+      .json({ error: "Failed to update payment status", paymentError });
   }
 
   if (paymentData.type === "membership") {
