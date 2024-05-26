@@ -1,25 +1,46 @@
 "use client";
+import { check_permissions } from "@/lib/organization";
 import { Event, Organization } from "@/lib/types";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import EventOptions from "./event_options"; // Assuming you have EventOptions component
 
 export default function EventsTableUser({
   organization,
   events,
+  userId,
 }: {
   organization: Organization;
   events: Event[];
+  userId: string;
 }) {
   const router = useRouter();
+  const [canCreateEvents, setCanCreateEvents] = useState(false);
 
   // Redirect to the create event page for the selected organization
   const handleCreateEvent = () => {
     router.push(`/events/create/${organization.slug}`);
   };
 
+  useEffect(() => {
+    const checkPermissions = async () => {
+      try {
+        const permission = await check_permissions(
+          userId || "",
+          organization.organizationid,
+          "create_events"
+        );
+        setCanCreateEvents(permission);
+      } catch (error) {
+        console.error("Failed to check permissions", error);
+      }
+    };
+
+    checkPermissions();
+  }, [userId, organization.organizationid]);
+
   return (
-    <div className="px-4 sm:px-6 lg:px-8">
+    <div className="py-4 sm:px-6 lg:px-8">
       <div className="justify-between sm:flex sm:items-center">
         <div className="sm:flex-auto">
           <h1 className="text-base font-semibold leading-6 text-light">Events</h1>
@@ -29,13 +50,14 @@ export default function EventsTableUser({
           </p>
         </div>
         <div className="mt-4 sm:flex sm:items-center sm:space-x-2">
-          {/* Create event button */}
-          <button
-            onClick={handleCreateEvent}
-            className="rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-primarydark"
-          >
-            Create Event
-          </button>
+          {canCreateEvents && (
+            <button
+              onClick={handleCreateEvent}
+              className="rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-primarydark"
+            >
+              Create Event
+            </button>
+          )}
         </div>
       </div>
 
@@ -56,7 +78,13 @@ export default function EventsTableUser({
                       scope="col"
                       className="px-3 py-3.5 text-left text-sm font-semibold text-light"
                     >
-                      Date & Time
+                      Start Date & Time
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-3 py-3.5 text-left text-sm font-semibold text-light"
+                    >
+                      End Date & Time
                     </th>
                     <th
                       scope="col"
@@ -89,7 +117,7 @@ export default function EventsTableUser({
                 </thead>
                 <tbody className="divide-y divide-[#525252] bg-raisinblack">
                   {events.map((event, index) => (
-                    <EventRow key={index} event={event} />
+                    <EventRow key={index} event={event} userId={userId} />
                   ))}
                 </tbody>
               </table>
@@ -101,7 +129,7 @@ export default function EventsTableUser({
   );
 }
 
-function EventRow({ event }: { event: Event }) {
+function EventRow({ event, userId }: { event: Event; userId: string }) {
   const [open, setOpen] = useState(false);
   // Convert eventdatetime to PST
   const formattedDateTime = (utcDateString: string) => {
@@ -117,7 +145,8 @@ function EventRow({ event }: { event: Event }) {
   };
 
   // Call the formattedDateTime function with the event's datetime
-  const eventDateTimePST = formattedDateTime(event.eventdatetime.toString());
+  const startEventDateTimePST = formattedDateTime(event.starteventdatetime.toString());
+  const endEventDateTimePST = formattedDateTime(event.endeventdatetime.toString());
   return (
     <tr key={event.id}>
       <td
@@ -129,7 +158,10 @@ function EventRow({ event }: { event: Event }) {
         </a>
       </td>
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-        {eventDateTimePST}
+        {startEventDateTimePST}
+      </td>
+      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
+        {endEventDateTimePST}
       </td>
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">{event.location}</td>
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
@@ -140,7 +172,12 @@ function EventRow({ event }: { event: Event }) {
       </td>
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">{event.privacy}</td>
       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-        <EventOptions selectedEvent={event} open={open} setOpen={setOpen} />
+        <EventOptions
+          selectedEvent={event}
+          open={open}
+          setOpen={setOpen}
+          userId={userId}
+        />
       </td>
     </tr>
   );

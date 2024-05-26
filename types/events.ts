@@ -6,7 +6,6 @@ export interface Events {
   organizationid: string /* foreign key to organizations.organizationid */;
   title: string;
   description?: string;
-  eventdatetime: string;
   location?: string;
   registrationfee?: any; // type unknown;
   createdat?: string;

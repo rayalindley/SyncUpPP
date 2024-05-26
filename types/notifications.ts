@@ -7,6 +7,8 @@ export interface Notifications {
   eventid?: string /* foreign key to events.eventid */;
   title?: string;
   eventdatetime?: string;
+  starteventdatetime?: string;
+  endeventdatetime?: string;
   orgname?: string;
   isread?: boolean;
   userid?: string;

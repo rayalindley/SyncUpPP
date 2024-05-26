@@ -1,5 +1,6 @@
 "use client";
 import { createClient } from "@/lib/supabase/client";
+import { User } from "@/node_modules/@supabase/auth-js/src/lib/types";
 import { useEffect, useState } from "react";
 import {
   Bar,
@@ -16,11 +17,11 @@ import {
 
 import { Registration, TopOrg, TotalStats } from "@/lib/types";
 
-const AdminAnalyticsDashboard = ({ userId }: { userId: string }) => {
+const AdminAnalyticsDashboard = ({ user }: { user: User }) => {
   const [totalStats, setTotalStats] = useState<TotalStats | null>(null);
   const [topOrgs, setTopOrgs] = useState<TopOrg[]>([]);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
-
+  const userId = user.id;
   const [filter, setFilter] = useState("total_events");
   const supabase = createClient();
 
@@ -33,39 +34,95 @@ const AdminAnalyticsDashboard = ({ userId }: { userId: string }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch total stats
-        const { data: totalStats, error: totalStatsError } = await supabase
-          .from("admin_analytics_dashboard")
-          .select("*")
-          .eq("adminid", userId)
-          .single();
-        if (totalStatsError) throw totalStatsError;
+        let totalStatsData;
+        let topOrgsData;
+        let registrationsData;
 
-        // Ensure null or undefined values are displayed as 0
-        setTotalStats({
-          total_orgs: totalStats.total_orgs ?? 0,
-          total_events: totalStats.total_events ?? 0,
-          total_members: totalStats.total_members ?? 0,
-        });
+        if (user.role === "superadmin") {
+          // Fetch all admin analytics data for superadmin
+          const { data: allAdminData, error: allAdminError } = await supabase
+            .from("admin_analytics_dashboard")
+            .select("*");
 
-        // Fetch top performing organizations
-        const { data: topOrgs, error: topOrgsError } = await supabase
-          .from("top_performing_orgs")
-          .select("*")
-          .eq("adminid", userId)
-          .order(filter, { ascending: false })
-          .limit(3);
-        if (topOrgsError) throw topOrgsError;
+          if (allAdminError) throw allAdminError;
 
-        // Fetch member registrations per day
-        const { data: registrations, error: registrationsError } = await supabase
-          .from("member_registrations_per_day_org")
-          .select("*")
-          .eq("adminid", userId);
-        if (registrationsError) throw registrationsError;
+          // Aggregate the stats across all organizations
+          const aggregatedStats = allAdminData.reduce(
+            (acc, orgStats) => {
+              acc.total_orgs += orgStats.total_orgs || 0;
+              acc.total_events += orgStats.total_events || 0;
+              acc.total_members += orgStats.total_members || 0;
+              return acc;
+            },
+            { total_orgs: 0, total_events: 0, total_members: 0 }
+          );
 
-        setTopOrgs(topOrgs);
-        setRegistrations(registrations);
+          totalStatsData = aggregatedStats;
+
+          // Fetch top performing organizations across all admins
+          const { data: allTopOrgs, error: allTopOrgsError } = await supabase
+            .from("top_performing_orgs")
+            .select("*")
+            .order(filter, { ascending: false })
+            .limit(3);
+          if (allTopOrgsError) throw allTopOrgsError;
+
+          topOrgsData = allTopOrgs;
+
+          // Fetch member registrations per day across all admins
+          const { data: allRegistrations, error: allRegistrationsError } = await supabase
+            .from("member_registrations_per_day_org")
+            .select("*");
+          if (allRegistrationsError) throw allRegistrationsError;
+
+          registrationsData = allRegistrations;
+        } else {
+          // Fetch specific admin analytics data for regular user
+          const { data: userAdminData, error: userAdminError } = await supabase
+            .from("admin_analytics_dashboard")
+            .select("*")
+            .eq("adminid", userId);
+
+          if (userAdminError) throw userAdminError;
+
+          // Aggregate the stats across the organizations managed by the user
+          const aggregatedStats = userAdminData.reduce(
+            (acc, orgStats) => {
+              acc.total_orgs += orgStats.total_orgs || 0;
+              acc.total_events += orgStats.total_events || 0;
+              acc.total_members += orgStats.total_members || 0;
+              return acc;
+            },
+            { total_orgs: 0, total_events: 0, total_members: 0 }
+          );
+
+          totalStatsData = aggregatedStats;
+
+          // Fetch top performing organizations for the specific admin
+          const { data: userTopOrgs, error: userTopOrgsError } = await supabase
+            .from("top_performing_orgs")
+            .select("*")
+            .eq("adminid", userId)
+            .order(filter, { ascending: false })
+            .limit(3);
+          if (userTopOrgsError) throw userTopOrgsError;
+
+          topOrgsData = userTopOrgs;
+
+          // Fetch member registrations per day for the specific admin
+          const { data: userRegistrations, error: userRegistrationsError } =
+            await supabase
+              .from("member_registrations_per_day_org")
+              .select("*")
+              .eq("adminid", userId);
+          if (userRegistrationsError) throw userRegistrationsError;
+
+          registrationsData = userRegistrations;
+        }
+
+        setTotalStats(totalStatsData);
+        setTopOrgs(topOrgsData);
+        setRegistrations(registrationsData);
       } catch (error) {
         console.error("Error fetching data:", error);
       }

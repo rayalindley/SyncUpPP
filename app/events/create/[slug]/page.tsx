@@ -1,6 +1,7 @@
 "use client";
 import CreateEventForm from "@/components/create_event_form";
-import { fetchOrganizationBySlug } from "@/lib/organization";
+import { check_permissions, fetchOrganizationBySlug } from "@/lib/organization";
+import { getUser } from "@/lib/supabase/client";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -11,7 +12,7 @@ export default function CreateEventPage() {
   const slug = params.slug;
   const [organization, setOrganization] = useState(null);
   const [error, setError] = useState<string | null>(null);
-
+  const [hasPermission, setHasPermission] = useState(false);
   useEffect(() => {
     const fetchOrganization = async () => {
       if (typeof slug !== "string") {
@@ -36,12 +37,49 @@ export default function CreateEventPage() {
     if (slug) {
       fetchOrganization();
     }
+
+    async function checkPermissions() {
+      const { user } = await getUser();
+      try {
+        const organization = await fetchOrganizationBySlug(slug as string);
+        if (organization && organization.data) {
+          const permission = await check_permissions(
+            user?.id || "",
+            organization.data.organizationid,
+            "create_events"
+          );
+          setHasPermission(permission);
+          console.log(organization.data.organizationid, permission);
+        }
+      } catch (error) {
+        console.error("Failed to check permissions", error);
+      }
+    }
+    checkPermissions();
   }, [slug]);
 
-  if (!organization) {
-    return <div>Loading...</div>;
+  if (!organization || hasPermission == null) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-semibold text-light">Loading...</h2>
+        </div>
+      </div>
+    );
   }
 
+  if (!hasPermission) {
+    return (
+      <div className="bg-raisin flex min-h-screen items-center justify-center p-10 font-sans text-white">
+        <div className="text-center">
+          <h1 className="mb-4 text-3xl">Events Creation</h1>
+          <p className="text-lg">
+            You do not have permission to create events for this organization.
+          </p>
+        </div>
+      </div>
+    );
+  }
   return (
     <>
       <div className="flex min-h-full flex-1 flex-col justify-center bg-eerieblack px-6 py-12  lg:px-8">

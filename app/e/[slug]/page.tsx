@@ -44,6 +44,8 @@ const EventPage = () => {
   const [attendeesCount, setAttendeesCount] = useState(0);
   const [eventFull, setEventFull] = useState(false);
   const [isOrgMember, setIsOrgMember] = useState(false);
+  const [eventFinished, setEventFinished] = useState(false);
+  const [registrationClosed, setRegistrationClosed] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -99,8 +101,15 @@ const EventPage = () => {
         if (user && eventData) {
           const { isMember } = await checkMembership(user.id, eventData.organizationid);
           setIsOrgMember(isMember);
-          console.log(eventData.organizationid, user.id);
-          console.log("isOrgMember", isOrgMember);
+          console.log("isMember", isMember);
+        }
+
+        // Check if the event is finished or registration is closed
+        const now = new Date();
+        if (new Date(eventData.endeventdatetime) < now) {
+          setEventFinished(true);
+        } else if (new Date(eventData.starteventdatetime) <= now) {
+          setRegistrationClosed(true);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -314,14 +323,25 @@ const EventPage = () => {
                 <CalendarIcon className="mr-2 h-10 w-10 text-primary" />
                 <div>
                   <span className="text-base font-medium leading-tight">
-                    {new Date(event.eventdatetime).toLocaleDateString("en-US", {
-                      weekday: "long",
-                      month: "long",
+                    {new Date(event.starteventdatetime).toLocaleDateString("en-US", {
+                      weekday: "short",
+                      month: "short",
                       day: "numeric",
                     })}
-                  </span>
-                  <span className="block text-sm leading-tight">
-                    {new Date(event.eventdatetime).toLocaleTimeString("en-US", {
+                    ,{" "}
+                    {new Date(event.starteventdatetime).toLocaleTimeString("en-US", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: true,
+                    })}
+                    &nbsp; - &nbsp;
+                    {new Date(event.endeventdatetime).toLocaleDateString("en-US", {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                    ,{" "}
+                    {new Date(event.endeventdatetime).toLocaleTimeString("en-US", {
                       hour: "2-digit",
                       minute: "2-digit",
                       hour12: true,
@@ -329,6 +349,7 @@ const EventPage = () => {
                   </span>
                 </div>
               </div>
+
               <div className="mb-2 mt-2 flex items-center text-base">
                 <MapPinIcon className="mr-2 h-10 w-10 text-primary" />
                 {isUrl(event.location) ? (
@@ -377,6 +398,8 @@ const EventPage = () => {
                 <div className="p-2">
                   <button
                     className={`mt-2 w-full rounded-md px-6 py-3 text-white ${
+                      eventFinished ||
+                      registrationClosed ||
                       (event.privacy === "private" && !isMember) ||
                       (eventFull && !isRegistered)
                         ? "cursor-not-allowed bg-fadedgrey"
@@ -388,17 +411,23 @@ const EventPage = () => {
                       isRegistered ? handleEventUnregistration : handleEventRegistration
                     }
                     disabled={
+                      eventFinished ||
+                      registrationClosed ||
                       (event.privacy === "private" && !isMember) ||
                       (eventFull && !isRegistered)
                     }
                   >
-                    {event.privacy === "private" && !isMember
-                      ? "Event for Org Members Only"
-                      : eventFull && !isRegistered
-                        ? "Event Full"
-                        : isRegistered
-                          ? "Unregister"
-                          : "Register"}
+                    {eventFinished
+                      ? "Event Finished"
+                      : registrationClosed
+                        ? "Registration Closed"
+                        : event.privacy === "private" && !isMember
+                          ? "Event for Org Members Only"
+                          : eventFull && !isRegistered
+                            ? "Event Full"
+                            : isRegistered
+                              ? "Unregister"
+                              : "Register"}
                   </button>
                 </div>
               </div>

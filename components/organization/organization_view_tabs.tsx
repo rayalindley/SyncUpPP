@@ -62,7 +62,13 @@ const TabsComponent = ({
       <OrganizationMembershipsComponent memberships={memberships} userid={id} />
     );
   } else if (activeTab === "events") {
-    tabContent = <OrganizationEventsComponent events={events} />;
+    tabContent = (
+      <OrganizationEventsComponent
+        events={events}
+        userid={id}
+        organizationId={organizationid}
+      />
+    );
   }
 
   return (

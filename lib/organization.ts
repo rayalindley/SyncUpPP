@@ -210,3 +210,17 @@ export async function check_permissions(
 
   return data;
 }
+
+// fetch all orgs
+export async function fetchAllOrganizations() {
+  const supabase = createClient();
+
+  const { data, error } = await supabase.from("organizations").select("*");
+
+  if (error) {
+    console.error("Error fetching organizations:", error);
+    return null;
+  }
+
+  return data;
+}

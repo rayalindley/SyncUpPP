@@ -28,7 +28,6 @@ export default function DashboardPage() {
           return;
         } else {
           setOrganization(data);
-          console.log("Fetched organization:", data);
         }
       } catch (error) {
         console.error("Error fetching organization:", error);
@@ -55,8 +54,6 @@ export default function DashboardPage() {
           console.error("Error fetching events:", eventsError);
         } else {
           setEvents(userEvents);
-          console.log("Fetched events:", userEvents);
-          console.log("Organization ID:", organization?.organizationid);
         }
       } catch (error) {
         console.error("Error fetching events:", error);
@@ -76,9 +73,13 @@ export default function DashboardPage() {
     return <div>Organization not found</div>;
   }
 
+  if (!user) {
+    return <div>Loading user...</div>;
+  }
+
   return (
     <>
-      <EventsTableUser organization={organization} events={events} />
+      <EventsTableUser organization={organization} events={events} userId={user?.id} />
     </>
   );
 }
