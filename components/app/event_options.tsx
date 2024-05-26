@@ -1,5 +1,6 @@
 "use client";
 import { deleteEvent, fetchRegisteredUsersForEvent } from "@/lib/events"; // Assuming you have deleteEvent function
+import { check_permissions } from "@/lib/organization";
 import { Event, UserProfile } from "@/lib/types";
 import { Dialog, Menu, Transition } from "@headlessui/react";
 import {
@@ -40,14 +41,18 @@ export default function EventOptions({
   selectedEvent,
   open,
   setOpen,
+  userId,
 }: {
   selectedEvent: Event;
   open: boolean;
   setOpen: (open: boolean) => void;
+  userId: string;
 }) {
   const [currentTab, setCurrentTab] = useState("Info");
   const [attendees, setAttendees] = useState<UserProfile | null>(null);
   const [loadingAttendees, setLoadingAttendees] = useState(false);
+  const [canEditEvents, setCanEditEvents] = useState(false);
+  const [canDeleteEvents, setCanDeleteEvents] = useState(false);
 
   const deleteBtn = () => {
     Swal.fire({
@@ -153,6 +158,30 @@ export default function EventOptions({
     }
   }, [currentTab, selectedEvent.eventid]);
 
+  useEffect(() => {
+    const checkPermissions = async () => {
+      try {
+        const editPermission = await check_permissions(
+          userId || "",
+          selectedEvent.organizationid,
+          "edit_events"
+        );
+        setCanEditEvents(editPermission);
+
+        const deletePermission = await check_permissions(
+          userId || "",
+          selectedEvent.organizationid,
+          "delete_events"
+        );
+        setCanDeleteEvents(deletePermission);
+      } catch (error) {
+        console.error("Failed to check permissions", error);
+      }
+    };
+
+    checkPermissions();
+  }, [userId, selectedEvent.organizationid]);
+
   return (
     <>
       <Menu as="div" className="relative inline-block text-left">
@@ -195,23 +224,25 @@ export default function EventOptions({
                   </a>
                 )}
               </Menu.Item>
-              <Menu.Item>
-                {({ active }) => (
-                  <Link
-                    className={classNames(
-                      active ? "bg-raisinblack text-light" : "text-light",
-                      "group flex items-center px-4 py-2 text-sm"
-                    )}
-                    href={`/events/edit/${selectedEvent.eventid}`} // Assuming id is used for events
-                  >
-                    <FaRegEdit
-                      className="mr-3 h-5 w-5 text-light group-hover:text-light"
-                      aria-hidden="true"
-                    />
-                    Edit Event
-                  </Link>
-                )}
-              </Menu.Item>
+              {canEditEvents && (
+                <Menu.Item>
+                  {({ active }) => (
+                    <Link
+                      className={classNames(
+                        active ? "bg-raisinblack text-light" : "text-light",
+                        "group flex items-center px-4 py-2 text-sm"
+                      )}
+                      href={`/events/edit/${selectedEvent.eventid}`} // Assuming id is used for events
+                    >
+                      <FaRegEdit
+                        className="mr-3 h-5 w-5 text-light group-hover:text-light"
+                        aria-hidden="true"
+                      />
+                      Edit Event
+                    </Link>
+                  )}
+                </Menu.Item>
+              )}
               <Menu.Item>
                 {({ active }) => (
                   <a
@@ -235,24 +266,26 @@ export default function EventOptions({
               </Menu.Item>
             </div>
             <div className="py-1">
-              <Menu.Item>
-                {({ active }) => (
-                  <a
-                    href="#"
-                    className={classNames(
-                      active ? "bg-raisinblack text-light" : "text-light",
-                      "group flex items-center px-4 py-2 text-sm"
-                    )}
-                    onClick={deleteBtn}
-                  >
-                    <TrashIcon
-                      className="mr-3 h-5 w-5 text-light group-hover:text-light"
-                      aria-hidden="true"
-                    />
-                    Delete
-                  </a>
-                )}
-              </Menu.Item>
+              {canDeleteEvents && (
+                <Menu.Item>
+                  {({ active }) => (
+                    <a
+                      href="#"
+                      className={classNames(
+                        active ? "bg-raisinblack text-light" : "text-light",
+                        "group flex items-center px-4 py-2 text-sm"
+                      )}
+                      onClick={deleteBtn}
+                    >
+                      <TrashIcon
+                        className="mr-3 h-5 w-5 text-light group-hover:text-light"
+                        aria-hidden="true"
+                      />
+                      Delete Event
+                    </a>
+                  )}
+                </Menu.Item>
+              )}
             </div>
           </Menu.Items>
         </Transition>
@@ -437,18 +470,22 @@ export default function EventOptions({
                               >
                                 View Event
                               </Link>
-                              <Link
-                                href={`/events/edit/${selectedEvent.eventid}`}
-                                className="flex-1 rounded-md bg-charleston px-4 py-2 text-center text-white hover:bg-raisinblack"
-                              >
-                                Edit Event
-                              </Link>
-                              <button
-                                onClick={deleteBtn}
-                                className="flex-1 rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700"
-                              >
-                                Delete
-                              </button>
+                              {canEditEvents && (
+                                <Link
+                                  className="flex-1 rounded-md bg-charleston px-4 py-2 text-center text-white hover:bg-raisinblack"
+                                  href={`/events/edit/${selectedEvent.eventid}`}
+                                >
+                                  Edit Event
+                                </Link>
+                              )}
+                              {canDeleteEvents && (
+                                <button
+                                  onClick={deleteBtn}
+                                  className="flex-1 rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+                                >
+                                  Delete
+                                </button>
+                              )}
                             </div>
                           </>
                         )}

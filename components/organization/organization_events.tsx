@@ -1,13 +1,15 @@
 "use client";
+import { check_permissions } from "@/lib/organization";
 import { createClient } from "@/lib/supabase/client";
 import { EventProps } from "@/lib/types";
 import { ArrowLongLeftIcon, ArrowLongRightIcon } from "@heroicons/react/20/solid";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import EventsCard from "./events_card";
 
 interface OrganizationEventsComponentProps extends EventProps {
-  organizationId: string; // Add this prop
+  organizationId: string;
 }
 
 const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = ({
@@ -18,18 +20,17 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
   const [currentPage, setCurrentPage] = useState(1);
   const [isAdmin, setIsAdmin] = useState(false);
   const [organizationSlug, setOrganizationSlug] = useState<string | null>(null);
+  const [canCreateEvents, setCanCreateEvents] = useState(false);
   const eventsPerPage = 6;
   const supabase = createClient();
   const router = useRouter();
 
-  // Calculate the indices for the current page's events
   const indexOfLastEvent = currentPage * eventsPerPage;
   const indexOfFirstEvent = indexOfLastEvent - eventsPerPage;
   const currentEvents = events.slice(indexOfFirstEvent, indexOfLastEvent);
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
-  // Determine if the current page is the first or the last
   const isFirstPage = currentPage === 1;
   const isLastPage = indexOfLastEvent >= events.length;
 
@@ -60,11 +61,22 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
     fetchOrganizationData();
   }, [organizationId, userid]);
 
-  const handleCreateEvent = () => {
-    if (organizationSlug) {
-      router.push(`/events/create/${organizationSlug}`);
-    }
-  };
+  useEffect(() => {
+    const checkPermissions = async () => {
+      try {
+        const permission = await check_permissions(
+          userid || "",
+          organizationId,
+          "create_events"
+        );
+        setCanCreateEvents(permission);
+      } catch (error) {
+        console.error("Failed to check permissions", error);
+      }
+    };
+
+    checkPermissions();
+  }, [userid, organizationId]);
 
   return (
     <div className="mx-auto max-w-7xl px-6 lg:px-8">
@@ -73,16 +85,16 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
           Our Events
         </p>
       </div>
-      {isAdmin && (
-        <div className="my-4 text-right">
-          <button
-            onClick={handleCreateEvent}
-            className="rounded-lg bg-primary px-4 py-2  text-white hover:bg-primarydark"
+      <div className="my-4 text-right">
+        {canCreateEvents && (
+          <Link
+            className="rounded-lg bg-primary px-4 py-2 text-white hover:bg-primarydark"
+            href={`/events/create/${organizationSlug}`}
           >
             Create Event
-          </button>
-        </div>
-      )}
+          </Link>
+        )}
+      </div>
       <div className="isolate mx-auto mt-8 grid max-w-lg grid-cols-1 justify-items-center gap-x-1 gap-y-8 sm:mt-12 md:mx-auto md:max-w-lg md:grid-cols-2 md:gap-x-4 lg:mx-0 lg:max-w-none lg:grid-cols-4">
         {currentEvents.map((event, index) => (
           <EventsCard

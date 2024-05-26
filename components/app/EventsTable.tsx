@@ -1,18 +1,22 @@
 "use client";
+import { check_permissions } from "@/lib/organization";
 import { Event, Organization } from "@/lib/types";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import EventOptions from "./event_options"; // Assuming you have EventOptions component
 
 export default function EventsTable({
   organizations,
   events,
+  userId,
 }: {
   organizations: Organization[];
   events: Event[];
+  userId: string;
 }) {
   const [selectedOrgId, setSelectedOrgId] = useState("");
   const router = useRouter();
+  const [canCreateEvents, setCanCreateEvents] = useState(false);
 
   // Debugging: Log the selected organization ID and events
   console.log("Selected Organization ID:", selectedOrgId);
@@ -35,6 +39,23 @@ export default function EventsTable({
       router.push(`/events/create/${selectedOrgSlug}`);
     }
   };
+
+  useEffect(() => {
+    const checkPermissions = async () => {
+      try {
+        const permission = await check_permissions(
+          userId || "",
+          selectedOrgId,
+          "create_events"
+        );
+        setCanCreateEvents(permission);
+      } catch (error) {
+        console.error("Failed to check permissions", error);
+      }
+    };
+
+    checkPermissions();
+  }, [userId, selectedOrgId]);
 
   return (
     <div className="px-4 sm:px-6 lg:px-8">
@@ -60,19 +81,19 @@ export default function EventsTable({
               </option>
             ))}
           </select>
-
-          {/* Create event button */}
-          <button
-            onClick={handleCreateEvent}
-            disabled={!selectedOrgId} // Button is disabled if no organization is selected
-            className={`rounded-md px-4 py-2 text-sm text-white ${
-              selectedOrgId
-                ? "bg-primary hover:bg-primarydark"
-                : "cursor-not-allowed bg-gray-500"
-            }`}
-          >
-            Create Event
-          </button>
+          {canCreateEvents && (
+            <button
+              onClick={handleCreateEvent}
+              disabled={!selectedOrgId} // Button is disabled if no organization is selected
+              className={`rounded-md px-4 py-2 text-sm text-white ${
+                selectedOrgId
+                  ? "bg-primary hover:bg-primarydark"
+                  : "cursor-not-allowed bg-gray-500"
+              }`}
+            >
+              Create Event
+            </button>
+          )}
         </div>
       </div>
 
@@ -132,7 +153,7 @@ export default function EventsTable({
                 </thead>
                 <tbody className="divide-y divide-[#525252] bg-raisinblack">
                   {filteredEvents.map((event, index) => (
-                    <EventRow key={index} event={event} />
+                    <EventRow key={index} event={event} userId={userId} />
                   ))}
                 </tbody>
               </table>
@@ -144,7 +165,7 @@ export default function EventsTable({
   );
 }
 
-function EventRow({ event }: { event: Event }) {
+function EventRow({ event, userId }: { event: Event; userId: string }) {
   const [open, setOpen] = useState(false);
 
   // Convert eventdatetime to PST
@@ -189,7 +210,12 @@ function EventRow({ event }: { event: Event }) {
       </td>
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">{event.privacy}</td>
       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-        <EventOptions selectedEvent={event} open={open} setOpen={setOpen} />
+        <EventOptions
+          selectedEvent={event}
+          open={open}
+          setOpen={setOpen}
+          userId={userId}
+        />
       </td>
     </tr>
   );

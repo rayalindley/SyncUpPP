@@ -30,7 +30,7 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <EventsTable organizations={organizations} events={events} />
+      <EventsTable organizations={organizations} events={events} userId={user.id} />
     </>
   );
 }
