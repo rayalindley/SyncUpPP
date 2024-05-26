@@ -74,7 +74,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .from("organizationmembers")
         .update({ membershipid: paymentData.target_id }) // use the target_id for membership
         .eq("userid", paymentData.payerId)
-        .eq("organizationid", memberData.organizationId)
+        .eq("organizationid", memberData.organizationid)
         .select()
         .single();
 
