@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
 import { NextApiRequest, NextApiResponse } from "next";
-import { getUser } from "@/lib/supabase/client";
 
 const supabase = createClient();
 
@@ -18,7 +17,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   console.log("Body: ", body);
 
   // Get user data
-  const { user } = await getUser();
 
   // Update payment status and invoiceData
   const { data: paymentData, error: paymentError } = await supabase
@@ -43,7 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { data: memberData, error: memberError } = await supabase
       .from("organizationmembers")
       .select("*")
-      .eq("userid", user?.id)
+      .eq("userid", paymentData.payerId)
       .eq("organizationid", paymentData.organizationId)
       .single();
 
@@ -75,7 +73,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const { data: updatedMemberData, error: updateMemberError } = await supabase
         .from("organizationmembers")
         .update({ membershipid: paymentData.target_id }) // use the target_id for membership
-        .eq("userid", memberData.payerId)
+        .eq("userid", paymentData.payerId)
         .eq("organizationid", memberData.organizationId)
         .select()
         .single();
