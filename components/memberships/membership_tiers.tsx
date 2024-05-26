@@ -188,13 +188,19 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
           ]);
           setCurrentMembershipId(membershipId);
         } else {
+          let { data: orgData, error } = await supabase
+            .from("organizations")
+            .select("*")
+            .eq("organizationid", organizationid)
+            .single();
+
           const data: CreateInvoiceRequest = {
             amount: amount,
             externalId: `${userid}-${membershipId}-${new Date().toISOString()}`,
-            description: `Payment for ${membershipName} membership in ${organizationid}: ${membershipDescription}`,
+            description: `Payment for ${membershipName} membership in ${orgData.name}: ${membershipDescription}`,
             currency: "PHP",
             reminderTime: 1,
-            successRedirectUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/api/payment-success`,
+            successRedirectUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/${orgData.slug}?tab=membership`,
             payerEmail: user?.email ?? "",
           };
 
@@ -206,7 +212,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
             toast.error("Error creating invoice. Please try again later.");
             return;
           } else {
-            toast.error("Invoice created successfully.");
+            toast.success("Invoice created successfully.");
 
             console.log({
               amount: amount,
@@ -226,6 +232,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
                   type: "membership",
                   invoiceUrl: invoice.invoiceUrl,
                   invoiceData: invoice,
+                  target_id: membershipId,
                 },
               ])
               .select();
