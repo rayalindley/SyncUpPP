@@ -53,10 +53,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .from("organizationmembers")
         .insert([
           {
-            userid: user?.id,
             organizationid: paymentData.organizationId,
             membershipid: paymentData.target_id, // use the target_id for membership
-            joindate: new Date().toISOString(),
             months: 1, // replace with the appropriate duration in months
           },
         ])
@@ -64,8 +62,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .single();
 
       if (newMemberError) {
-        console.error("Error inserting new member:", newMemberError);
-        return res.status(500).json({ error: "Failed to insert new member" });
+        return res
+          .status(500)
+          .json({ error: "Failed to insert new member", newMemberError });
       }
 
       return res
@@ -83,7 +82,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (updateMemberError) {
         console.error("Error updating member:", updateMemberError);
-        return res.status(500).json({ error: "Failed to update member" });
+        return res
+          .status(500)
+          .json({ error: "Failed to update member", updateMemberError });
       }
 
       return res.status(200).json({
