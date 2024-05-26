@@ -224,7 +224,7 @@ const PostsCard: React.FC<PostsCardProps> = ({
       {state.showDeleteModal && (
         <div className="fixed inset-0 z-10 overflow-y-auto bg-black bg-opacity-75">
           <div className="flex min-h-screen items-center justify-center p-4">
-            <div className="w-full max-w-lg rounded-lg bg-[#1c1c1c] p-6">
+            <div className="w-full max-w-lg rounded-lg bg-[#3b3b3b] p-6">
               <h3 className="text-white">Delete Post</h3>
               <p className="mb-4 mt-2 text-white">
                 Are you sure you want to delete this post?

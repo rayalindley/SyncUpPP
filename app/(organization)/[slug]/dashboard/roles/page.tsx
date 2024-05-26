@@ -38,7 +38,9 @@ export default function SettingsRolesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [orgID, setOrgID] = useState<string | null>(null);
-  const { slug } = useParams();
+  const params = useParams() as { slug: string };
+
+  const slug = params.slug;
 
   useEffect(() => {
     const supabase = createClient();

@@ -125,7 +125,10 @@ export default function MembershipsTable({ orgsMemView = [] }: MembershipsTableP
     },
     {
       name: "Fee",
-      selector: (row) => `$ ${row.registrationfee.toFixed(2)}`,
+      selector: (row) =>
+        row.registrationfee !== null && row.registrationfee !== undefined
+          ? `$ ${row.registrationfee.toFixed(2)}`
+          : "",
       sortable: true,
     },
     {

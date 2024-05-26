@@ -195,7 +195,7 @@ export default function PostsTextArea({
             <textarea
               id="content"
               {...register("content")}
-              className="min-h-[150px] w-full resize-none rounded-2xl border border-[#3d3d3d] bg-[#171717] p-3 text-white focus:ring-0 overflow-hidden focus:border-primary"
+              className="min-h-[150px] w-full resize-none rounded-2xl border border-[#3d3d3d] bg-[#171717] p-3 text-white focus:ring-0"
               placeholder="Write a post..."
               maxLength={500}
               onInput={(e) => {
@@ -281,7 +281,6 @@ export default function PostsTextArea({
                 type="button"
                 onClick={() => handleRemovePhoto(index)}
                 className="absolute right-0 top-0 rounded-full bg-black bg-opacity-75 p-1 text-white"
-                title="Remove Photo"
               >
                 <XCircleIcon className="h-5 w-5" />
               </button>
