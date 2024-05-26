@@ -11,7 +11,7 @@ import { Fragment, useEffect, useState } from "react";
 const navigation = [
   { name: "Home", href: "/" },
   { name: "Features", href: "#features" },
-  { name: "Community", href: "/organizations" }, // Updated href
+  { name: "Community", href: "./organizations" },
   { name: "Pricing", href: "#pricing" },
   { name: "Contact Us", href: "#contactus" },
 ];
@@ -32,16 +32,11 @@ export default function Header({ user = null }: { user: User | null }) {
 
     fetchUserProfile();
   }, [user]);
-
   const handleNavClick = (href: string) => {
-    if (href.startsWith("#")) {
-      const landingPageUrl = "/"; // Update this with your landing page URL
-      const targetSection = href.substring(1); // Remove the '#' from the href
-      const redirectUrl = `${landingPageUrl}#${targetSection}`;
-      window.location.href = redirectUrl;
-    } else {
-      window.location.href = href;
-    }
+    const landingPageUrl = "/"; // Update this with your landing page URL
+    const targetSection = href.substring(1); // Remove the '#' from the href
+    const redirectUrl = `${landingPageUrl}#${targetSection}`;
+    window.location.href = redirectUrl;
   };
 
   useEffect(() => {
@@ -57,7 +52,6 @@ export default function Header({ user = null }: { user: User | null }) {
       window.removeEventListener("hashchange", handleHashChange);
     };
   }, []);
-
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (

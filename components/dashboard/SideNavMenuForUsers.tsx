@@ -3,14 +3,7 @@ import { Organizations as Organization } from "@/lib/types"; // Ensure the corre
 import useSidebarStore from "@/store/useSidebarStore";
 import { Dialog, Listbox, Transition } from "@headlessui/react";
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/20/solid";
-import {
-  CalendarIcon,
-  Cog6ToothIcon,
-  HomeIcon,
-  UsersIcon,
-  XMarkIcon,
-  EnvelopeIcon,
-} from "@heroicons/react/24/outline";
+import { Cog6ToothIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { Fragment, useEffect, useState } from "react";
@@ -61,7 +54,7 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
         selected === "default" || typeof selected === "string"
           ? `/dashboard`
           : `/${selected.slug}/dashboard`,
-      icon: HomeIcon,
+      icon: IoIosAnalytics,
     },
     {
       name: "Roles",
@@ -69,7 +62,7 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
         selected === "default" || typeof selected === "string"
           ? `/dashboard/roles`
           : `/${selected.slug}/dashboard/roles`,
-      icon: UsersIcon,
+      icon: IoShieldCheckmarkOutline,
     },
     {
       name: "Memberships",
@@ -77,7 +70,7 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
         selected === "default" || typeof selected === "string"
           ? `/dashboard/memberships`
           : `/${selected.slug}/dashboard/memberships`,
-      icon: UsersIcon,
+      icon: TbUserStar,
     },
     {
       name: "Newsletter",
@@ -85,15 +78,7 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
         selected === "default" || typeof selected === "string"
           ? `/dashboard/newsletter`
           : `/${selected.slug}/dashboard/newsletter`,
-      icon: EnvelopeIcon,
-    },
-    {
-      name: "Events",
-      href:
-        selected === "default" || typeof selected === "string"
-          ? `/dashboard/events`
-          : `/${selected.slug}/dashboard/events`,
-      icon: CalendarIcon,
+      icon: IoMailUnreadOutline,
     },
     {
       name: "Events",
