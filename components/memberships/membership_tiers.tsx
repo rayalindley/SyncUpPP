@@ -7,6 +7,20 @@ import MembershipCard from "./membership_card";
 import { PlusCircleIcon } from "@heroicons/react/24/outline";
 import { RadioGroup } from "@headlessui/react";
 import { Membership } from "@/lib/types";
+import { Xendit, Invoice as InvoiceClient } from "xendit-node";
+import { getUser } from "@/lib/supabase/client";
+import type { CreateInvoiceRequest, Invoice } from "xendit-node/invoice/models";
+
+import { useRouter } from "next/navigation";
+
+const xenditClient = new Xendit({
+  secretKey: process.env.NEXT_PUBLIC_XENDIT_SECRET_KEY!,
+});
+const { Invoice } = xenditClient;
+
+const xenditInvoiceClient = new InvoiceClient({
+  secretKey: process.env.NEXT_PUBLIC_XENDIT_SECRET_KEY!,
+});
 
 const supabase = createClient();
 
@@ -47,6 +61,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
   const [userMemberships, setUserMemberships] = useState<string[]>([]);
   const [currentMembershipId, setCurrentMembershipId] = useState<string | null>(null);
   const [frequency, setFrequency] = useState(frequencies[0]);
+  const router = useRouter();
 
   useEffect(() => {
     if (userid) {
@@ -82,81 +97,155 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
   const handleBuyPlan = useCallback(
     async (membershipId: string, organizationid: string) => {
       try {
-        const { data: userMembershipData, error: fetchError } = await supabase
-          .from("organizationmembers")
-          .select("membershipid")
-          .eq("userid", userid)
-          .eq("organizationid", organizationid)
+        const { data: membershipData, error: membershipError } = await supabase
+          .from("memberships")
+          .select("registrationfee, name, description")
+          .eq("membershipid", membershipId)
           .single();
 
-        if (fetchError && fetchError.code !== "PGRST116") {
-          console.error("Error fetching user membership: ", fetchError);
-          toast.error("Error fetching user membership. Please try again later.");
+        if (membershipError) {
+          console.error("Error fetching membership details: ", membershipError);
+          toast.error("Error fetching membership details. Please try again later.");
           return;
         }
 
-        const { data: rolesData, error: rolesError } = await supabase
-          .from("organization_roles")
-          .select("role_id")
-          .eq("org_id", organizationid)
-          .eq("role", "User")
-          .single();
+        const {
+          registrationfee: amount,
+          name: membershipName,
+          description: membershipDescription,
+        } = membershipData;
 
-        if (rolesError) {
-          console.error("Error fetching role ID: ", rolesError);
-          return;
-        }
+        const { user } = await getUser();
 
-        const defaultRoleId = rolesData?.role_id;
-
-        if (userMembershipData) {
-          // User is already a member, update the membershipid
-          const { error: updateError } = await supabase
+        if (amount === 0) {
+          const { data: userMembershipData, error: fetchError } = await supabase
             .from("organizationmembers")
-            .update({ membershipid: membershipId })
+            .select("*")
             .eq("userid", userid)
-            .eq("organizationid", organizationid);
+            .eq("organizationid", organizationid)
+            .single();
 
-          if (updateError) {
-            console.error("Error updating membership ID: ", updateError);
-            toast.error("Error updating membership. Please try again later.");
+          if (fetchError && fetchError.code !== "PGRST116") {
+            console.error("Error fetching user membership: ", fetchError);
+            toast.error("Error fetching user membership. Please try again later.");
             return;
           }
 
-          toast.success("Membership updated successfully.");
+          const { data: rolesData, error: rolesError } = await supabase
+            .from("organization_roles")
+            .select("role_id")
+            .eq("org_id", organizationid)
+            .eq("role", "User")
+            .single();
+
+          if (rolesError) {
+            console.error("Error fetching role ID: ", rolesError);
+            return;
+          }
+
+          const defaultRoleId = rolesData?.role_id;
+
+          if (userMembershipData) {
+            const { error: updateError } = await supabase
+              .from("organizationmembers")
+              .update({ membershipid: membershipId })
+              .eq("userid", userid)
+              .eq("organizationid", organizationid);
+
+            if (updateError) {
+              console.error("Error updating membership ID: ", updateError);
+              toast.error("Error updating membership. Please try again later.");
+              return;
+            }
+
+            toast.success("Membership updated successfully.");
+          } else {
+            const { error: insertError } = await supabase
+              .from("organizationmembers")
+              .insert([
+                {
+                  userid: userid,
+                  membershipid: membershipId,
+                  organizationid: organizationid,
+                  roleid: defaultRoleId,
+                },
+              ]);
+
+            if (insertError) {
+              console.error("Error inserting membership: ", insertError);
+              toast.error("Error inserting membership. Please try again later.");
+              return;
+            }
+
+            toast.success(
+              "Congratulations! You've successfully purchased the membership."
+            );
+          }
+
+          setUserMemberships((prevUserMemberships) => [
+            ...prevUserMemberships,
+            membershipId,
+          ]);
+          setCurrentMembershipId(membershipId);
         } else {
-          // User is not a member, insert new membership
-          const { error: insertError } = await supabase
-            .from("organizationmembers")
-            .insert([
-              {
-                userid: userid,
-                membershipid: membershipId,
-                organizationid: organizationid,
-                roleid: defaultRoleId,
-              },
-            ]);
+          const data: CreateInvoiceRequest = {
+            amount: amount,
+            externalId: `${userid}-${membershipId}-${new Date().toISOString()}`,
+            description: `Payment for ${membershipName} membership in ${organizationid}: ${membershipDescription}`,
+            currency: "PHP",
+            reminderTime: 1,
+            successRedirectUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/api/payment-success`,
+            payerEmail: user?.email ?? "",
+          };
 
-          if (insertError) {
-            console.error("Error inserting membership: ", insertError);
-            toast.error("Error inserting membership. Please try again later.");
+          const invoice: Invoice = await xenditInvoiceClient.createInvoice({
+            data,
+          });
+
+          if (!invoice) {
+            toast.error("Error creating invoice. Please try again later.");
             return;
+          } else {
+            toast.error("Invoice created successfully.");
+
+            console.log({
+              amount: amount,
+              invoiceId: invoice.id,
+              organizationId: organizationid,
+              type: "membership",
+              invoiceUrl: invoice.invoiceUrl,
+              invoiceData: invoice,
+            });
+            const { data, error } = await supabase
+              .from("payments")
+              .insert([
+                {
+                  amount: amount,
+                  organizationId: organizationid,
+                  invoiceId: invoice.id,
+                  type: "membership",
+                  invoiceUrl: invoice.invoiceUrl,
+                  invoiceData: invoice,
+                },
+              ])
+              .select();
+
+            console.log(data, error);
+
+            if (error) {
+              toast.error("Error saving invoice. Please try again later.");
+            } else {
+              toast.error("Invoice saved successfully.");
+              router.push(invoice.invoiceUrl);
+            }
           }
-
-          toast.success("Congratulations! You've successfully purchased the membership.");
         }
-
-        setUserMemberships((prevUserMemberships) => [
-          ...prevUserMemberships,
-          membershipId,
-        ]);
-        setCurrentMembershipId(membershipId); // Update current membership ID
       } catch (error) {
         console.error("Error: ", error);
         toast.error("An error occurred. Please try again later.");
       }
     },
-    [userid, userMemberships, frequency]
+    [userid, userMemberships, frequency, router]
   );
 
   return (
@@ -222,7 +311,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
               handleDeleteMembership={onDelete}
               frequency={frequency}
               editable={editable}
-              isCurrentPlan={currentMembershipId === membership.membershipid} // Check if this is the current plan
+              isCurrentPlan={currentMembershipId === membership.membershipid}
             />
           ))}
         </div>

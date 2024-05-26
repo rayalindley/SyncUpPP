@@ -15,7 +15,7 @@ interface MembershipCardProps {
   userid?: string;
   isAuthenticated?: boolean;
   userMemberships: string[];
-  handleBuyPlan: (membershipId: string, organizationid: string) => void;
+  handleBuyPlan: (membershipId: string, organizationid: string, amount: number) => void;
   handleEditMembership: (membership: Membership, organizationid: string) => void;
   handleDeleteMembership: (membershipId: string) => void;
   frequency: Frequency;
@@ -94,7 +94,11 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
       {userid ? (
         <button
           onClick={() =>
-            handleBuyPlan(membership.membershipid, membership.organizationid || "")
+            handleBuyPlan(
+              membership.membershipid,
+              membership.organizationid || "",
+              registrationFee
+            )
           }
           aria-describedby={membership.membershipid}
           className={classNames(
