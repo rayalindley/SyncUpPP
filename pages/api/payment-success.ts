@@ -42,9 +42,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Update or insert organization member
     const { data: memberData, error: memberError } = await supabase
       .from("organizationmembers")
-      .select("organizationmemberid")
+      .select("*")
       .eq("userid", user?.id)
-      .eq("organizationid", paymentData.organizationid)
+      .eq("organizationid", paymentData.organizationId)
       .single();
 
     if (memberError) {
@@ -54,7 +54,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .insert([
           {
             userid: user?.id,
-            organizationid: paymentData.organizationid,
+            organizationid: paymentData.organizationId,
             membershipid: paymentData.target_id, // use the target_id for membership
             joindate: new Date().toISOString(),
             months: 1, // replace with the appropriate duration in months
@@ -76,7 +76,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const { data: updatedMemberData, error: updateMemberError } = await supabase
         .from("organizationmembers")
         .update({ membershipid: paymentData.target_id }) // use the target_id for membership
-        .eq("organizationmemberid", memberData.organizationmemberid)
+        .eq("userid", memberData.payerId)
+        .eq("organizationid", memberData.organizationId)
         .select()
         .single();
 
