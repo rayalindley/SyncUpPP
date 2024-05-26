@@ -157,12 +157,15 @@ async function registerForEvent(eventId: string, userId: string) {
         .from("eventregistrations")
         .insert([
           {
+            userid: userId,
             eventid: eventId,
             organizationmemberid: organizationMemberId,
             registrationdate: new Date().toISOString(),
             status: "registered",
           },
-        ]);
+        ])
+        .select()
+        .single();
 
       if (registrationError) {
         return { data: null, error: { message: registrationError.message } };
@@ -175,11 +178,14 @@ async function registerForEvent(eventId: string, userId: string) {
         .from("eventregistrations")
         .insert([
           {
+            userid: userId,
             eventid: eventId,
             registrationdate: new Date().toISOString(),
             status: "registered",
           },
-        ]);
+        ])
+        .select()
+        .single();
 
       if (registrationError) {
         return { data: null, error: { message: registrationError.message } };
