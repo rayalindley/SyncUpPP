@@ -33,7 +33,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (paymentError) {
     console.error("Error updating payment:", paymentError);
-    return res.status(500).json({ error: "Failed to update payment status" });
+    return res.status(500).json({ error: "Failed to update payment status", body });
   }
 
   if (paymentData.type === "membership") {
