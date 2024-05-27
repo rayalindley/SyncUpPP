@@ -3,8 +3,11 @@ import AnalyticsDashboard from "@/components/dashboard/Analytics";
 import { deleteOrganization, fetchOrganizationBySlug } from "@/lib/organization";
 import { Organization } from "@/lib/types";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Swal from "sweetalert2";
+import { createClient } from "@/lib/supabase/client";
+
+const supabase = createClient();
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -12,28 +15,76 @@ export default function SettingsPage() {
 
   const [formValues, setFormValues] = useState<Organization | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reloadFlag, setReloadFlag] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  const fetchOrganization = async () => {
-    try {
-      const { data, error } = await fetchOrganizationBySlug(slug);
-
-      if (error) {
-        setError(error.message);
-        console.error(error);
-      } else {
-        setFormValues(data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch organization:", err);
-      setError((err as Error).message);
+  const saveScrollPosition = () => {
+    if (scrollRef.current) {
+      const { scrollTop } = scrollRef.current;
+      localStorage.setItem("scrollPosition", scrollTop.toString());
     }
   };
 
-  if (!formValues && !error) {
-    fetchOrganization();
-  }
+  const restoreScrollPosition = () => {
+    if (scrollRef.current) {
+      const scrollPosition = localStorage.getItem("scrollPosition");
+      if (scrollPosition) {
+        scrollRef.current.scrollTop = parseInt(scrollPosition, 10);
+      }
+    }
+  };
+
+  useEffect(() => {
+    restoreScrollPosition();
+  }, []);
+
+  useEffect(() => {
+    console.log(slug);
+    if (slug) {
+      (async () => {
+        try {
+          const { data, error } = await fetchOrganizationBySlug(slug);
+
+          console.log(data, error);
+          if (error) {
+            setError(error.message);
+            console.error(error);
+          } else {
+            setFormValues(data);
+          }
+        } catch (err) {
+          console.error("Failed to fetch organization:", err);
+          setError((err as Error).message);
+        }
+      })();
+    }
+  }, [slug]);
+
+  useEffect(() => {
+    const channels = ["organizationmembers", "events", "posts", "comments"];
+    channels.forEach((channel) => {
+      supabase
+        .channel(channel)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: channel },
+          (payload) => {
+            console.log("Change received!", payload);
+            saveScrollPosition();
+            setReloadFlag((prev) => !prev); // Toggle the flag to force re-render
+          }
+        )
+        .subscribe();
+    });
+  }, []);
+
+  useEffect(() => {
+    restoreScrollPosition();
+  }, [reloadFlag]);
 
   const handleDeleteOrg = async (orgID: string) => {
+    console.log(orgID);
+
     const confirmResult = await Swal.fire({
       title: "Are you sure?",
       text: "You won't be able to revert this!",
@@ -65,7 +116,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-full flex-1 flex-col justify-center bg-eerieblack px-6 py-12 lg:px-8">
+    <div ref={scrollRef} className="min-h-full flex-1 flex-col justify-center bg-eerieblack px-6 py-12 lg:px-8">
       <AnalyticsDashboard organizationid={formValues?.organizationid ?? ""} />
       <div className="mt-4 flex gap-2">
         <a

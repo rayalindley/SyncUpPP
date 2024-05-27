@@ -6,6 +6,7 @@ import { deletePost, getAuthorDetails } from "@/lib/posts";
 import { getUser } from "@/lib/supabase/client";
 import Comments from "./comments";
 import { fetchComments } from "@/lib/comments";
+import { check_permissions } from "@/lib/organization";
 import { Posts } from "@/types/posts"; // Ensure this import matches your actual types
 
 interface PostsCardProps {
@@ -13,6 +14,9 @@ interface PostsCardProps {
   postsData: Posts[];
   setPostsData: React.Dispatch<React.SetStateAction<Posts[]>>;
   startEdit: (post: Posts) => void;
+  canEdit: boolean;
+  canDelete: boolean;
+  canComment: boolean;
 }
 
 interface State {
@@ -34,6 +38,9 @@ const PostsCard: React.FC<PostsCardProps> = ({
   postsData,
   setPostsData,
   startEdit,
+  canEdit,
+  canDelete,
+  canComment,
 }) => {
   const {
     content,
@@ -72,7 +79,7 @@ const PostsCard: React.FC<PostsCardProps> = ({
     });
   }, [authorid]);
 
-  const checkIsCurrentUserAuthor = useCallback(async () => {
+  const checkPermissions = useCallback(async () => {
     const currentUser = await getUser();
     handleInputChange("isCurrentUserAuthor", currentUser?.user?.id === authorid);
   }, [authorid]);
@@ -96,9 +103,9 @@ const PostsCard: React.FC<PostsCardProps> = ({
 
   useEffect(() => {
     handleAuthorDetails();
-    checkIsCurrentUserAuthor();
+    checkPermissions();
     loadComments();
-  }, [handleAuthorDetails, checkIsCurrentUserAuthor, loadComments]);
+  }, [handleAuthorDetails, checkPermissions, loadComments]);
 
   const handleDelete = () => {
     handleInputChange("showDeleteModal", true);
@@ -159,14 +166,18 @@ const PostsCard: React.FC<PostsCardProps> = ({
                 • {calculateTimeElapsed()} •{" "}
                 {privacylevel.charAt(0).toUpperCase() + privacylevel.slice(1)}
               </span>
-              {state.isCurrentUserAuthor && (
+              {(state.isCurrentUserAuthor || canEdit || canDelete) && (
                 <div className="ml-auto flex items-center">
-                  <button onClick={() => startEdit(post)} className="text-gray-400">
-                    <PencilIcon className="h-5 w-5 text-white" />
-                  </button>
-                  <button onClick={handleDelete} className="ml-2 text-gray-400">
-                    <TrashIcon className="h-5 w-5 text-white" />
-                  </button>
+                  {(state.isCurrentUserAuthor || canEdit) && (
+                    <button onClick={() => startEdit(post)} className="text-gray-400">
+                      <PencilIcon className="h-5 w-5 text-white" />
+                    </button>
+                  )}
+                  {(state.isCurrentUserAuthor || canDelete) && (
+                    <button onClick={handleDelete} className="ml-2 text-gray-400">
+                      <TrashIcon className="h-5 w-5 text-white" />
+                    </button>
+                  )}
                 </div>
               )}
             </p>
@@ -206,7 +217,7 @@ const PostsCard: React.FC<PostsCardProps> = ({
       </div>
       {state.accordionOpen && (
         <div>
-          <Comments postid={postid} />
+          <Comments postid={postid} canComment={canComment} />
         </div>
       )}
 

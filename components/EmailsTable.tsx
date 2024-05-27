@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Email } from "@/lib/types";
+import { createClient } from "@/lib/supabase/client";
+
+const supabase = createClient();
 
 const EmailsTable = ({
   emails,
@@ -10,130 +13,18 @@ const EmailsTable = ({
   setEmails: (emails: Email[]) => void;
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [filteredEmails, setFilteredEmails] = useState(emails.slice(0, 10));
-  const [sortColumn, setSortColumn] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<string | null>(null);
-
+  const [filteredEmails, setFilteredEmails] = useState<Email[]>([]);
+  const [sortColumn, setSortColumn] = useState<string | null>("date_created");
+  const [sortDirection, setSortDirection] = useState<string | null>("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [showDetailPane, setShowDetailPane] = useState(false);
   const [opacity, setOpacity] = useState(0);
 
-  useEffect(() => {
-    // Sort by date in descending order only on the initial load
-    if (sortColumn === null && sortDirection === null) {
-      const sortedEmails = emails.sort((a, b) => {
-        const dateA = new Date(a.date_created).getTime();
-        const dateB = new Date(b.date_created).getTime();
-        return dateB - dateA;
-      });
-      setEmails(sortedEmails);
-    }
-  }, [emails]);
-
-  // This effect will run when the component mounts and whenever the emails change
-  useEffect(() => {
-    // If sortColumn and sortDirection are not null, sort the emails
-    if (sortColumn && sortDirection) {
-      const sortedEmails = [...emails].sort((a, b) => {
-        // Custom sorting logic based on sortColumn and sortDirection
-        // For example, if sorting by date:
-        const valueA = new Date(a[sortColumn]).getTime();
-        const valueB = new Date(b[sortColumn]).getTime();
-        return sortDirection === "asc" ? valueA - valueB : valueB - valueA;
-      });
-      setEmails(sortedEmails);
-    }
-  }, [emails, sortColumn, sortDirection, setEmails]);
-
-  useEffect(() => {
-    if (showDetailPane) {
-      setTimeout(() => setOpacity(1), 0);
-    } else {
-      setOpacity(0);
-    }
-  }, [showDetailPane]);
-
-  const formatDate = (date: Date | string) => {
-    const d = new Date(date);
-    return `${d.getFullYear()}-${("0" + (d.getMonth() + 1)).slice(-2)}-${d.getDate()}`;
-  };
-
-  const formatKey = (key: string) => {
-    const keyMap: { [key: string]: string } = {
-      body: "Body",
-      sender: "Sender",
-      receiver: "Receiver",
-      subject: "Subject",
-      status: "Status",
-      date_created: "Date Created",
-    };
-    return keyMap[key] || key;
-  };
-
-  const checkIfExcludedKey = (key: string) => {
-    const excludedKeys = ["id", "Body"];
-    return excludedKeys.includes(key) ? null : key;
-  };
-
   const emailsPerPage = 10;
 
-  const handleRowClick = (email: Email) => {
-    setSelectedEmail(email);
-    setShowDetailPane(true);
-  };
-
-  const closeDetailPane = () => {
-    setShowDetailPane(false);
-  };
-
-  useEffect(() => {
-    const search = searchTerm.toLowerCase();
-    const filtered = emails.filter((email) =>
-      ["body", "sender", "receiver", "subject", "status", "Date Created"].some(
-        (field) => email[field] && email[field].toString().toLowerCase().includes(search)
-      )
-    );
-
-    const startIndex = (currentPage - 1) * emailsPerPage;
-    const paginatedEvents = filtered.slice(startIndex, startIndex + emailsPerPage);
-    setFilteredEmails(paginatedEvents);
-  }, [emails, searchTerm, currentPage]);
-
-  const SortIcon = ({ direction }: { direction: string | null }) => {
-    return (
-      <span style={{ marginLeft: "auto" }}>
-        <span className=" ml-5"></span>
-        {direction === "asc" ? "🡩" : direction === "desc" ? "🡣" : null}
-      </span>
-    );
-  };
-
-  useEffect(() => {
-    const search = searchTerm.toLowerCase();
-    const filtered = emails.filter((email) =>
-      Object.values(email).some(
-        (value) =>
-          value === null ||
-          value === undefined ||
-          value.toString().toLowerCase().includes(search)
-      )
-    );
-    const startIndex = (currentPage - 1) * emailsPerPage;
-    setFilteredEmails(filtered.slice(startIndex, startIndex + emailsPerPage));
-  }, [emails, searchTerm, currentPage]);
-
-  const handleSort = (column: string) => {
-    let direction = sortDirection;
-    if (sortColumn !== column) {
-      direction = "asc";
-    } else {
-      direction = sortDirection === "asc" ? "desc" : "asc";
-    }
-    setSortColumn(column);
-    setSortDirection(direction);
-
-    const sortedEmails = [...emails].sort((a, b) => {
+  const sortEmails = (emails: Email[], column: string, direction: string) => {
+    return emails.sort((a, b) => {
       if (a[column] === null) return 1;
       if (b[column] === null) return -1;
       if (a[column] === b[column]) return 0;
@@ -145,8 +36,56 @@ const EmailsTable = ({
           ? 1
           : -1;
     });
+  };
 
-    setEmails(sortedEmails);
+  useEffect(() => {
+    const search = searchTerm.toLowerCase();
+    const filtered = emails.filter((email) =>
+      ["sender", "receiver", "subject", "status", "date_created"].some(
+        (field) => email[field] && email[field].toString().toLowerCase().includes(search)
+      )
+    );
+    const startIndex = (currentPage - 1) * emailsPerPage;
+    setFilteredEmails(filtered.slice(startIndex, startIndex + emailsPerPage));
+  }, [emails, searchTerm, currentPage]);
+
+  useEffect(() => {
+    if (showDetailPane) {
+      setTimeout(() => setOpacity(1), 0);
+    } else {
+      setOpacity(0);
+    }
+  }, [showDetailPane]);
+
+  const truncate = (text: string, length: number) => {
+    return text.length > length ? text.substring(0, length) + "..." : text;
+  };
+
+  const formatDate = (date: Date | string) => {
+    const d = new Date(date);
+    return `${d.getFullYear()}-${("0" + (d.getMonth() + 1)).slice(-2)}-${("0" + d.getDate()).slice(-2)}`;
+  };
+
+  const handleRowClick = (email: Email) => {
+    setSelectedEmail(email);
+    setShowDetailPane(true);
+  };
+
+  const closeDetailPane = () => {
+    setShowDetailPane(false);
+  };
+
+  const handleSort = (column: string) => {
+    let direction = sortDirection;
+    if (sortColumn !== column) {
+      direction = "desc";
+    } else {
+      direction = sortDirection === "asc" ? "desc" : "asc";
+    }
+    setSortColumn(column);
+    setSortDirection(direction);
+
+    setEmails(sortEmails([...emails], column, direction));
   };
 
   const handlePageChange = (newPage: number) => {
@@ -154,19 +93,8 @@ const EmailsTable = ({
   };
 
   const renderPageNumbers = () => {
-    const search = searchTerm.toLowerCase();
-    const filtered = emails.filter((email) =>
-      Object.values(email).some(
-        (value) =>
-          value === null ||
-          value === undefined ||
-          value.toString().toLowerCase().includes(search)
-      )
-    );
-    const pageCount = Math.ceil(filtered.length / emailsPerPage);
-    if (pageCount <= 1) {
-      return null;
-    }
+    const pageCount = Math.ceil(emails.length / emailsPerPage);
+    if (pageCount <= 1) return null;
     const prevPage = currentPage > 1 ? currentPage - 1 : null;
     const nextPage = currentPage < pageCount ? currentPage + 1 : null;
 
@@ -203,12 +131,25 @@ const EmailsTable = ({
     );
   };
 
+  const SortIcon = ({ direction }: { direction: string | null }) => {
+    return (
+      <span style={{ marginLeft: "auto" }}>
+        <span className="ml-5"></span>
+        {direction === "asc" ? "🡩" : direction === "desc" ? "🡣" : null}
+      </span>
+    );
+  };
+
+  const capitalizeFirstLetter = (string: string) => {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+  };
+
   return (
-    <>
+    <div>
       <div className="flex items-center justify-between">
         {emails.length > 0 && (
           <input
-            className="my-2.5 rounded-full border border-gray-300 bg-charleston p-2.5"
+            className="mb-2.5 rounded-full border border-gray-300 bg-charleston p-2.5"
             type="text"
             placeholder="Search..."
             value={searchTerm}
@@ -226,10 +167,10 @@ const EmailsTable = ({
           <thead className="bg-[#505050]">
             <tr>
               {emails.length > 0 &&
-                Object.keys(emails[0]).map((key) => {
-                  const formattedKey = checkIfExcludedKey(formatKey(key));
-                  return (
-                    formattedKey && (
+                Object.keys(emails[0]).map(
+                  (key) =>
+                    key !== "id" &&
+                    key !== "body" && (
                       <th
                         key={key}
                         className="cursor-pointer border-b border-[#404040] p-3"
@@ -242,32 +183,27 @@ const EmailsTable = ({
                         }}
                       >
                         <div className="flex items-center justify-between">
-                          <span>{formattedKey}</span>
+                          <span>{capitalizeFirstLetter(key.replace("_", " "))}</span>
                           {sortColumn === key && <SortIcon direction={sortDirection} />}
                         </div>
                       </th>
                     )
-                  );
-                })}
+                )}
             </tr>
           </thead>
           <tbody className="bg-[#404040]">
             {filteredEmails.map((email, index) => (
               <tr
                 key={index}
-                className={`${index % 2 === 0 ? "bg-[#505050]" : "bg-[#404040]"} ${"cursor-pointer"}`}
+                className={`${index % 2 === 0 ? "bg-[#505050]" : "bg-[#404040]"} cursor-pointer`}
                 onClick={() => handleRowClick(email)}
               >
-                {Object.entries(email).map(([key, value]) => {
-                  const formattedKey = checkIfExcludedKey(formatKey(key));
-                  let displayValue = value || "";
-                  if (key === "date_created" && value) {
-                    displayValue = formatDate(value);
-                  }
-                  return (
-                    formattedKey && (
+                {Object.entries(email).map(
+                  ([key, value]) =>
+                    key !== "id" &&
+                    key !== "body" && (
                       <td
-                        key={`${email.id}-${key}`}
+                        key={key}
                         className="border-b border-[#404040] p-3"
                         style={{
                           width: "200px",
@@ -275,11 +211,12 @@ const EmailsTable = ({
                           textOverflow: "ellipsis",
                         }}
                       >
-                        {displayValue}
+                        {key === "date_created"
+                          ? formatDate(value)
+                          : truncate(value.toString(), 30)}
                       </td>
                     )
-                  );
-                })}
+                )}
               </tr>
             ))}
           </tbody>
@@ -293,13 +230,15 @@ const EmailsTable = ({
             className="fixed inset-0 z-10 flex items-center justify-center"
             style={{
               backgroundColor: "rgba(0, 0, 0, 0.5)",
-              transition: "opacity 0.5s",
+              transition: "opacity 0.2s",
               opacity: opacity,
             }}
+            onClick={closeDetailPane} // Close the modal when clicking outside
           >
             <div
-              className="w-full max-w-sm space-y-4 overflow-auto rounded-lg bg-charleston p-4 shadow-lg md:max-w-md lg:max-w-lg xl:max-w-xl 2xl:max-w-2xl"
+              className="mt-16 h-[calc(100%-9rem)] w-full max-w-sm space-y-4 overflow-auto rounded-lg bg-charleston p-4 shadow-lg md:max-w-md lg:max-w-lg xl:max-w-xl 2xl:max-w-2xl"
               style={{ color: "white", maxHeight: "90vh" }}
+              onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
             >
               <h3 className="text-2xl font-semibold text-white">Details</h3>
               <table className="mt-4 space-y-4" style={{ width: "100%" }}>
@@ -315,7 +254,7 @@ const EmailsTable = ({
                           paddingTop: "10px",
                         }}
                       >
-                        <strong>{formatKey(key)}</strong>
+                        <strong>{capitalizeFirstLetter(key.replace("_", " "))}</strong>
                       </td>
                       <td
                         style={{
@@ -346,7 +285,7 @@ const EmailsTable = ({
           </div>,
           document.body
         )}
-    </>
+    </div>
   );
 };
 

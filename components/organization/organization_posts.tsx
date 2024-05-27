@@ -4,7 +4,7 @@ import PostsTextArea from "./posts_textarea";
 import { fetchPosts } from "@/lib/posts";
 import Divider from "./divider";
 import { createClient, getUser } from "@/lib/supabase/client";
-import { getUserOrganizationInfo } from "@/lib/organization";
+import { getUserOrganizationInfo, check_permissions } from "@/lib/organization";
 import { ArrowLeftIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
 import { Posts } from "@/types/posts"; // Ensure this import matches your actual types
 
@@ -22,20 +22,26 @@ const OrganizationPostsComponent = ({
   const [postsPerPage] = useState(5);
   const [loading, setLoading] = useState(true);
   const [userOrgInfo, setUserOrgInfo] = useState<any>(null);
+  const [permissions, setPermissions] = useState<{ [key: string]: boolean }>({});
   const postsTextAreaRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
 
-  const fetchData = useCallback(async (isMember: boolean) => {
-    const { data, error } = await fetchPosts(organizationid);
-    if (!error) {
-      const visibleData = isMember ? data : data.filter((post) => post.privacylevel !== "private");
-      setPostsData(visibleData);
-      console.log("isMemberOfOrganization", isMember);
-    } else {
-      console.error("Error fetching posts:", error);
-    }
-    setLoading(false);
-  }, [organizationid]);
+  const fetchData = useCallback(
+    async (isMember: boolean) => {
+      const { data, error } = await fetchPosts(organizationid);
+      if (!error) {
+        const visibleData = isMember
+          ? data
+          : data.filter((post) => post.privacylevel !== "private");
+        setPostsData(visibleData);
+        console.log("isMemberOfOrganization", isMember);
+      } else {
+        console.error("Error fetching posts:", error);
+      }
+      setLoading(false);
+    },
+    [organizationid]
+  );
 
   useEffect(() => {
     const loadData = async () => {
@@ -46,21 +52,36 @@ const OrganizationPostsComponent = ({
         const isMember = userOrgInfo != null;
         setIsMemberOfOrganization(isMember);
         fetchData(isMember);
+
+        // Check permissions for different actions
+        const permissionKeys = [
+          "create_posts",
+          "edit_posts",
+          "delete_posts",
+          "comment_on_posts",
+        ];
+        const permissions = await Promise.all(
+          permissionKeys.map((key) => check_permissions(user.id, organizationid, key))
+        );
+        const permissionsObj = permissionKeys.reduce(
+          (acc, key, index) => ({ ...acc, [key]: permissions[index] }),
+          {}
+        );
+        setPermissions(permissionsObj);
+      } else {
+        fetchData(false); // Fetch posts for non-logged-in users
+        setLoading(false); // Set loading to false after fetching
       }
     };
 
     loadData();
 
-    const postsChannel = supabase
+    supabase
       .channel("posts")
       .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => {
         fetchData(isMemberOfOrganization);
       })
       .subscribe();
-
-    return () => {
-      postsChannel.unsubscribe();
-    };
   }, [organizationid, fetchData, supabase, isMemberOfOrganization]);
 
   useEffect(() => {
@@ -102,7 +123,7 @@ const OrganizationPostsComponent = ({
           <h2 className="mb-8 text-center text-2xl font-semibold text-light">
             Organization Posts
           </h2>
-          {userOrgInfo && (
+          {permissions.create_posts && userOrgInfo && (
             <div ref={postsTextAreaRef}>
               <PostsTextArea
                 organizationid={organizationid}
@@ -123,13 +144,16 @@ const OrganizationPostsComponent = ({
                     setPostsData={setPostsData}
                     postsData={postsData}
                     startEdit={startEdit}
+                    canEdit={permissions.edit_posts}
+                    canDelete={permissions.delete_posts}
+                    canComment={permissions.comment_on_posts}
                   />
                   {index !== currentPosts.length - 1 && <Divider />}
                 </div>
               ))
             ) : (
               <div
-                className="mb-4 rounded-lg bg-gray-800 p-4 text-sm text-blue-400"
+                className="mb-4 mt-5 rounded-lg bg-gray-800 p-4 text-sm text-blue-400"
                 role="alert"
               >
                 The organization has no posts available for you.

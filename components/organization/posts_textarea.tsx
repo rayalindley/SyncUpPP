@@ -8,6 +8,7 @@ import { insertPost, updatePost, checkIsMemberOfOrganization } from "@/lib/posts
 import { PhotoIcon, XCircleIcon, UserCircleIcon } from "@heroicons/react/24/solid";
 import { getUserProfileById } from "@/lib/userActions";
 import { useUser } from "@/context/UserContext";
+import { check_permissions } from "@/lib/organization";
 import "react-toastify/dist/ReactToastify.css";
 import { Posts } from "@/types/posts"; // Ensure this matches your actual types
 
@@ -51,6 +52,8 @@ export default function PostsTextArea({
   const [photos, setPhotos] = useState<string[]>([]);
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [isMember, setIsMember] = useState(false);
+  const [canCreate, setCanCreate] = useState(false);
+  const [canEdit, setCanEdit] = useState(false);
 
   useEffect(() => {
     if (editingPost) {
@@ -79,14 +82,22 @@ export default function PostsTextArea({
   }, [user]);
 
   useEffect(() => {
-    const checkMembership = async () => {
+    const checkMembershipAndPermissions = async () => {
       if (organizationid) {
         const isMember = await checkIsMemberOfOrganization(organizationid);
         setIsMember(isMember);
+        if (user?.id) {
+          const [createPermission, editPermission] = await Promise.all([
+            check_permissions(user.id, organizationid, "create_posts"),
+            check_permissions(user.id, organizationid, "edit_posts"),
+          ]);
+          setCanCreate(createPermission);
+          setCanEdit(editPermission);
+        }
       }
     };
-    checkMembership();
-  }, [organizationid]);
+    checkMembershipAndPermissions();
+  }, [organizationid, user]);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -186,6 +197,13 @@ export default function PostsTextArea({
               {...register("content")}
               className="min-h-[150px] w-full resize-none rounded-2xl border border-[#3d3d3d] bg-[#171717] p-3 text-white focus:ring-0"
               placeholder="Write a post..."
+              maxLength={500}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                target.style.height = "auto";
+                target.style.height = `${target.scrollHeight}px`;
+              }}
+              disabled={!canCreate && !editingPost}
             />
             <div className="absolute bottom-2 right-2 text-sm text-[#bebebe]">
               {contentValue?.length || 0}/500
@@ -201,7 +219,8 @@ export default function PostsTextArea({
               <select
                 value={field.value}
                 onChange={(e) => field.onChange(e.target.value)}
-                className="w-40 rounded-2xl border border-[#3d3d3d] bg-[#171717] p-3 text-white"
+                className="w-40 rounded-2xl border border-[#3d3d3d] bg-[#171717] p-3 text-white focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                disabled={!canCreate && !editingPost}
               >
                 {privacyLevels.map((level) => (
                   <option key={level.value} value={level.value}>
@@ -218,6 +237,7 @@ export default function PostsTextArea({
             multiple
             onChange={handleFileChange}
             className="hidden"
+            disabled={!canCreate && !editingPost}
           />
           <label htmlFor="file-input" className="cursor-pointer p-3">
             <PhotoIcon className="h-6 w-6 text-white" />
@@ -226,7 +246,7 @@ export default function PostsTextArea({
           <button
             type="submit"
             className={`rounded-2xl p-3 text-white shadow-lg ${isLoading || !(contentValue ?? "").trim() ? "cursor-not-allowed bg-[#171717]" : "bg-primary hover:bg-[#37996b]"}`}
-            disabled={isLoading || !(contentValue ?? "").trim()}
+            disabled={isLoading || !(contentValue ?? "").trim() || (!canCreate && !editingPost)}
           >
             {isLoading
               ? editingPost

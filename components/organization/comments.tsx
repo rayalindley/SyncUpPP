@@ -38,9 +38,10 @@ interface Comment {
 
 interface CommentsProps {
   postid: string;
+  canComment: boolean;
 }
 
-const Comments: React.FC<CommentsProps> = ({ postid }) => {
+const Comments: React.FC<CommentsProps> = ({ postid, canComment }) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -187,7 +188,7 @@ const Comments: React.FC<CommentsProps> = ({ postid }) => {
 
   return (
     <div className="mx-auto max-w-xl p-4">
-      {user ? (
+      {canComment && user ? (
         <div className="mb-4">
           <textarea
             value={commentText}
@@ -221,7 +222,9 @@ const Comments: React.FC<CommentsProps> = ({ postid }) => {
         </div>
       ) : (
         <div className="mb-4 text-sm text-[#858585]">
-          You must be logged in to comment.
+          {user
+            ? "You don't have permission to comment."
+            : "You must be logged in to comment."}
         </div>
       )}
       <div>
@@ -252,7 +255,7 @@ const Comments: React.FC<CommentsProps> = ({ postid }) => {
                     • {timeElapsed(comment.created_at)}
                   </span>
                 </div>
-                <div className="mt-1 text-sm text-white">
+                <div className="mt-1 whitespace-pre-wrap break-all text-sm text-white">
                   {editingCommentId === comment.commentid ? (
                     <div>
                       <textarea
