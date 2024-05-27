@@ -33,17 +33,20 @@ const newsletterSchema = z.object({
   content: z
     .string()
     .refine(
-      (val) => val.replace(/<(.|\n)*?>/g, '').trim().length >= 10 && val.replace(/<(.|\n)*?>/g, '').length <= 1000,
+      (val) =>
+        val.replace(/<(.|\n)*?>/g, "").trim().length >= 10 &&
+        val.replace(/<(.|\n)*?>/g, "").length <= 1000,
       {
-        message: "Content must be between 10 and 1000 characters long (excluding HTML tags)",
+        message:
+          "Content must be between 10 and 1000 characters long (excluding HTML tags)",
       }
     ),
 });
 
 export default function NewsletterPage() {
   const { user } = useUser();
-  const params = useParams();
-  const orgSlug = params.slug; // Make sure to use the correct parameter name
+
+  const { slug: orgSlug } = useParams() as { slug: string }; // Ensure slug is a string
 
   const [editorState, setEditorState] = useState("");
   const [subject, setSubject] = useState("");
@@ -114,7 +117,11 @@ export default function NewsletterPage() {
       if (user && orgSlug) {
         const organization = await fetchOrganizationBySlug(orgSlug as string);
         if (organization) {
-          const hasPermission = await check_permissions(user.id || "", organization.organizationid, "send_newsletters");
+          const hasPermission = await check_permissions(
+            user.id || "",
+            organization.organizationid,
+            "send_newsletters"
+          );
           setHasPermission(hasPermission);
         }
       }
@@ -269,7 +276,7 @@ export default function NewsletterPage() {
   const onEditorStateChange = (value: string) => {
     if (value.length <= 1007) {
       setEditorState(value);
-      setContentLength(value.replace(/<(.|\n)*?>/g, '').length);
+      setContentLength(value.replace(/<(.|\n)*?>/g, "").length);
     }
     setFormErrors((prevErrors) => ({ ...prevErrors, content: "" }));
   };
@@ -316,7 +323,9 @@ export default function NewsletterPage() {
       <div className="bg-raisin flex min-h-screen items-center justify-center p-10 font-sans text-white">
         <div className="text-center">
           <h1 className="mb-4 text-3xl">Newsletter Creation</h1>
-          <p className="text-lg">You do not have permission to create newsletters for this organization.</p>
+          <p className="text-lg">
+            You do not have permission to create newsletters for this organization.
+          </p>
         </div>
       </div>
     );
@@ -355,7 +364,7 @@ export default function NewsletterPage() {
         <div className="space-y-4">
           <div className="relative w-full">
             <input
-              className="w-full rounded border focus:border-primary bg-charleston p-4 text-base"
+              className="w-full rounded border bg-charleston p-4 text-base focus:border-primary"
               type="text"
               placeholder="Subject*"
               value={subject}
@@ -371,14 +380,16 @@ export default function NewsletterPage() {
             <p className="text-sm text-red-500">{formErrors.subject}</p>
           )}
         </div>
-        <div className="space-y-4 text-white relative">
+        <div className="relative space-y-4 text-white">
           <ReactQuill
             theme="snow"
             value={editorState}
             onChange={onEditorStateChange}
             className="rounded border border-primary p-2 text-white"
           />
-          <p className="text-sm text-gray-400 absolute bottom-3 right-5">{contentLength}/1000</p>
+          <p className="absolute bottom-3 right-5 text-sm text-gray-400">
+            {contentLength}/1000
+          </p>
         </div>
         {formErrors.content && (
           <p className="text-sm text-red-500">{formErrors.content}</p>
