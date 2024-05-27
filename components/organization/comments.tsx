@@ -207,9 +207,9 @@ const Comments: React.FC<CommentsProps> = ({ postid, canComment }) => {
           {errors.commentText && (
             <div className="mt-1 text-xs text-red-500">{errors.commentText}</div>
           )}
-          <div className="mt-2 text-right text-xs text-[#424242]">
+          <span className="float-right mt-2 text-right text-xs text-[#424242]">
             {charCount.comment}/100
-          </div>
+          </span>
           <button
             onClick={handleSubmit}
             disabled={isLoading}

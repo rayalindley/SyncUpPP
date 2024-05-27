@@ -175,7 +175,7 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
                 </Transition.Child>
                 {/* Sidebar component, swap this element with another sidebar if you like */}
                 <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-eerieblack px-6 pb-4">
-                  <Link href="#">
+                  <Link href="/">
                     <div className="flex h-16 shrink-0 items-center">
                       <img className="h-10 w-auto" src="/syncup.png" alt="SyncUp" />
                       <p className="ml-2 font-semibold text-light">SyncUp</p>
@@ -400,7 +400,7 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
       <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
         {/* Sidebar component, swap this element with another sidebar if you like */}
         <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-fadedgrey bg-eerieblack px-6">
-          <Link href="#">
+          <Link href="/">
             <div className="flex h-16 shrink-0 items-center">
               <img className="h-10 w-auto" src="/syncup.png" alt="SyncUp" />
               <p className="ml-2 font-semibold text-light">SyncUp</p>

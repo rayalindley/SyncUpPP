@@ -36,7 +36,7 @@ export default function Footer() {
             <div className="flex items-center">
               <div className="-m-1.5 p-1.5">
                 <span className="sr-only">SyncUp</span>
-                <img className="h-8 w-auto" src="/syncup.png" alt="" />
+                <img className="h-8 w-auto" src="/syncup.png" alt="SyncUp Logo" />
               </div>
               <div className="font text-l flex items-center px-2 font-semibold text-light">
                 SyncUp

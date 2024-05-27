@@ -123,7 +123,7 @@ const OrganizationPostsComponent = ({
           <h2 className="mb-8 text-center text-2xl font-semibold text-light">
             Organization Posts
           </h2>
-          {permissions.create_posts && userOrgInfo && (
+          {permissions.create_posts && (
             <div ref={postsTextAreaRef}>
               <PostsTextArea
                 organizationid={organizationid}

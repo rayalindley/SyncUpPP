@@ -11,8 +11,8 @@ import { Fragment, useEffect, useState } from "react";
 const navigation = [
   { name: "Home", href: "/" },
   { name: "Features", href: "#features" },
-  { name: "Community", href: "/organizations" }, // Updated href
-  { name: "Events", href: "/events" },
+  { name: "Community", href: `/organizations` },
+  { name: "Events", href: `/events` },
   { name: "Contact Us", href: "#contactus" },
 ];
 
@@ -32,11 +32,17 @@ export default function Header({ user = null }: { user: User | null }) {
 
     fetchUserProfile();
   }, [user]);
+
   const handleNavClick = (href: string) => {
-    const landingPageUrl = "/"; // Update this with your landing page URL
-    const targetSection = href.substring(1); // Remove the '#' from the href
-    const redirectUrl = `${landingPageUrl}#${targetSection}`;
-    window.location.href = redirectUrl;
+    if (href === "/") {
+      window.location.href = href;
+    } else if (href.startsWith("#")) {
+      const targetSection = href.substring(1); // Remove the '#' from the href
+      const redirectUrl = `${window.location.origin}/#${targetSection}`;
+      window.location.href = redirectUrl;
+    } else {
+      window.location.href = href;
+    }
   };
 
   useEffect(() => {
@@ -52,6 +58,7 @@ export default function Header({ user = null }: { user: User | null }) {
       window.removeEventListener("hashchange", handleHashChange);
     };
   }, []);
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -65,7 +72,7 @@ export default function Header({ user = null }: { user: User | null }) {
             <div className="flex items-center">
               <div className="-m-1.5 p-1.5">
                 <span className="sr-only">SyncUp</span>
-                <img className="h-10 w-auto" src="/syncup.png" alt="" />
+                <img className="h-10 w-auto" src="/syncup.png" alt="SyncUp Logo" />
               </div>
               <div className="font text-l flex items-center px-2 font-semibold text-light">
                 SyncUp
@@ -76,24 +83,23 @@ export default function Header({ user = null }: { user: User | null }) {
 
         <div className="hidden justify-center lg:flex lg:gap-x-12">
           {navigation.map((item) => (
-            <Link
+            <a
               key={item.name}
-              href={`${item.href}`} // Update the href to only include the section ID
+              href={item.href}
               onClick={(e) => {
-                e.preventDefault(); // Prevent default link behavior
-                handleNavClick(item.href); // Call handleNavClick with the href
+                e.preventDefault();
+                handleNavClick(item.href);
               }}
               className="text-sm font-semibold leading-6 text-light hover:text-primary"
             >
               {item.name}
-            </Link>
+            </a>
           ))}
         </div>
 
         <div className="flex flex-1 items-center justify-end gap-x-6">
           {user ? (
             <div>
-              {/* Profile dropdown */}
               <Menu as="div" className="relative">
                 <Menu.Button className="-m-1.5 flex items-center p-1.5">
                   <span className="sr-only">Open user menu</span>
@@ -251,7 +257,7 @@ export default function Header({ user = null }: { user: User | null }) {
               <div className="flex lg:flex-1 ">
                 <div className="-m-1.5 p-1.5">
                   <span className="sr-only">SyncUp</span>
-                  <img className="h-8 w-auto" src="syncup.png" alt="SyncUp Logo" />
+                  <img className="h-8 w-auto" src="/syncup.png" alt="SyncUp Logo" />
                 </div>
                 <div className="font text-lg font-semibold text-light">SyncUp</div>
               </div>
@@ -275,13 +281,17 @@ export default function Header({ user = null }: { user: User | null }) {
             <div className="-my-6 divide-y divide-gray-500/10">
               <div className="space-y-2 py-6">
                 {navigation.map((item) => (
-                  <Link
+                  <a
                     key={item.name}
                     href={item.href}
                     className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleNavClick(item.href);
+                    }}
                   >
                     {item.name}
-                  </Link>
+                  </a>
                 ))}
               </div>
               <div className="py-6">

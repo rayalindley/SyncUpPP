@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useCallback, memo } from "react";
-import { PencilIcon, TrashIcon, UserCircleIcon } from "@heroicons/react/24/solid";
+import {
+  PencilIcon,
+  TrashIcon,
+  UserCircleIcon,
+  EllipsisVerticalIcon,
+} from "@heroicons/react/24/solid";
 import { Carousel } from "react-responsive-carousel";
 import "react-responsive-carousel/lib/styles/carousel.min.css";
 import { deletePost, getAuthorDetails } from "@/lib/posts";
@@ -31,6 +36,7 @@ interface State {
   };
   isCurrentUserAuthor: boolean;
   isLoading: boolean;
+  showDropdown: boolean;
 }
 
 const PostsCard: React.FC<PostsCardProps> = ({
@@ -64,6 +70,7 @@ const PostsCard: React.FC<PostsCardProps> = ({
     },
     isCurrentUserAuthor: false,
     isLoading: false,
+    showDropdown: false,
   });
 
   const handleInputChange = (key: keyof State, value: any) => {
@@ -167,16 +174,40 @@ const PostsCard: React.FC<PostsCardProps> = ({
                 {privacylevel.charAt(0).toUpperCase() + privacylevel.slice(1)}
               </span>
               {(state.isCurrentUserAuthor || canEdit || canDelete) && (
-                <div className="ml-auto flex items-center">
-                  {(state.isCurrentUserAuthor || canEdit) && (
-                    <button onClick={() => startEdit(post)} className="text-gray-400">
-                      <PencilIcon className="h-5 w-5 text-white" />
-                    </button>
-                  )}
-                  {(state.isCurrentUserAuthor || canDelete) && (
-                    <button onClick={handleDelete} className="ml-2 text-gray-400">
-                      <TrashIcon className="h-5 w-5 text-white" />
-                    </button>
+                <div className="relative ml-auto flex items-center">
+                  <button
+                    onClick={() => handleInputChange("showDropdown", !state.showDropdown)}
+                    className="text-gray-400"
+                  >
+                    <EllipsisVerticalIcon className="h-5 w-5 text-white" />
+                  </button>
+                  {state.showDropdown && (
+                    <div className="absolute right-0 z-50 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5">
+                      <div className="py-1">
+                        {(state.isCurrentUserAuthor || canEdit) && (
+                          <button
+                            onClick={() => {
+                              startEdit(post);
+                              handleInputChange("showDropdown", false);
+                            }}
+                            className="block w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          >
+                            Edit
+                          </button>
+                        )}
+                        {(state.isCurrentUserAuthor || canDelete) && (
+                          <button
+                            onClick={() => {
+                              handleDelete();
+                              handleInputChange("showDropdown", false);
+                            }}
+                            className="block w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
