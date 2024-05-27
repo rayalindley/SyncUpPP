@@ -92,7 +92,7 @@ export default async function OrganizationUserView({
   // console.log("Facebook Link:", facebookLink);
   // console.log("Twitter Link:", twitterLink);
   // console.log("LinkedIn Link:", linkedinLink);
-  // console.log("Org ID:", org.organizationid)
+  // console.log("Org ID:", org?.organizationid)
   // console.log("Memberships: ", memberships)
   // console.log(user?.id)
 

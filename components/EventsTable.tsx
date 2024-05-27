@@ -1,5 +1,5 @@
+import React, { useState, useEffect } from "react";
 import { Event } from "@/lib/types";
-import React, { useEffect, useState } from "react";
 
 const EventsTable = ({
   events,
@@ -15,129 +15,82 @@ const EventsTable = ({
   const [sortDirection, setSortDirection] = useState<"asc" | "desc" | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredEvents, setFilteredEvents] = useState(events);
-
   const [currentPage, setCurrentPage] = useState(1);
   const eventsPerPage = 10;
 
   useEffect(() => {
     if (!sortColumn && !sortDirection) {
-      setEvents((prevEvents) =>
-        [...prevEvents].sort((a, b) => a.title.localeCompare(b.title))
-      );
+      setEvents((prevEvents) => [...prevEvents].sort((a, b) => a.title.localeCompare(b.title)));
     }
   }, [sortColumn, sortDirection, setEvents]);
 
   useEffect(() => {
     const search = searchTerm.toLowerCase();
-    const filtered = events.filter((event) =>
-      [
-        "title",
-        "description",
-        "location",
-        "registrationfee",
-        "capacity",
-        "privacy",
-        "tags",
-        "eventslug",
-      ].some(
-        (field) =>
-          event[field as keyof Event] !== undefined &&
-          event[field as keyof Event]?.toString().toLowerCase().includes(search)
-      )
-    );
-
     const startIndex = (currentPage - 1) * eventsPerPage;
-    const paginatedEvents = filtered.slice(startIndex, startIndex + eventsPerPage);
-    setFilteredEvents(paginatedEvents);
+    const filtered = events.filter((event) =>
+      ["title", "description", "location", "registrationfee", "capacity", "privacy", "tags"].some(
+        (field) => event[field as keyof Event]?.toString().toLowerCase().includes(search)
+      )
+    ).slice(startIndex, startIndex + eventsPerPage);
+    setFilteredEvents(filtered);
   }, [events, searchTerm, currentPage]);
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectAll(e.target.checked);
-    setEvents(events.map((event) => ({ ...event, selected: e.target.checked })));
+    const checked = e.target.checked;
+    setSelectAll(checked);
+    setEvents(events.map((event) => ({ ...event, selected: checked })));
   };
 
-  const handleSelectRow = (id: string) => {
-    setEvents(toggleSelection(events, id));
-  };
+  const handleSelectRow = (id: string) => setEvents(toggleSelection(events, id));
 
   const handleSort = (column: keyof Event) => {
-    const direction =
-      sortColumn !== column ? "asc" : sortDirection === "asc" ? "desc" : "asc";
+    const direction = sortColumn !== column ? "asc" : sortDirection === "asc" ? "desc" : "asc";
     setSortColumn(column);
     setSortDirection(direction);
     setFilteredEvents(
       [...filteredEvents].sort((a, b) => {
         if (a[column] === undefined) return 1;
         if (b[column] === undefined) return -1;
-        return direction === "asc"
-          ? (a[column] ?? "") > (b[column] ?? "")
-            ? 1
-            : -1
-          : (a[column] ?? "") < (b[column] ?? "")
-            ? 1
-            : -1;
+        return direction === "asc" ? (a[column] ?? "") > (b[column] ?? "") ? 1 : -1 : (a[column] ?? "") < (b[column] ?? "") ? 1 : -1;
       })
     );
   };
 
   const formatDate = (date: Date | string) => {
     const d = new Date(date);
-    return `${d.getFullYear()}-${("0" + (d.getMonth() + 1)).slice(-2)}-${d.getDate()}`;
+    return !isNaN(d.getTime()) ? `${d.getFullYear()}-${("0" + (d.getMonth() + 1)).slice(-2)}-${("0" + d.getDate()).slice(-2)}` : "";
   };
 
-  const SortIcon = ({ direction }: { direction: "asc" | "desc" | null }) => (
-    <span style={{ marginLeft: "auto" }}>
-      {direction === "asc" ? "🡩" : direction === "desc" ? "🡣" : null}
-    </span>
-  );
+  const truncateText = (text: string, maxLength: number) => (text?.length > maxLength ? text.slice(0, maxLength) + "..." : text);
 
-  const handlePageChange = (newPage: number) => {
-    setCurrentPage(newPage);
-  };
+  const SortIcon = ({ direction }: { direction: "asc" | "desc" | null }) => <span style={{ marginLeft: "auto" }}>{direction === "asc" ? "🡩" : "🡣"}</span>;
+
+  const handlePageChange = (newPage: number) => setCurrentPage(newPage);
 
   const renderPageNumbers = () => {
-    const search = searchTerm.toLowerCase();
-    const filtered = events.filter((event) =>
-      Object.values(event).some(
-        (value) =>
-          value === null ||
-          value === undefined ||
-          value.toString().toLowerCase().includes(search)
-      )
-    );
-    const pageCount = Math.ceil(filtered.length / eventsPerPage);
-    if (pageCount <= 1) {
-      return null;
-    }
-    const prevPage = currentPage > 1 ? currentPage - 1 : null;
-    const nextPage = currentPage < pageCount ? currentPage + 1 : null;
+    const pageCount = Math.ceil(events.filter((event) =>
+      Object.values(event).some((value) => value?.toString().toLowerCase().includes(searchTerm.toLowerCase()))
+    ).length / eventsPerPage);
+    if (pageCount <= 1) return null;
 
     return (
       <div className="flex items-center justify-center space-x-1">
-        {prevPage && (
-          <button
-            className="rounded-full bg-[#505050] p-2 text-white hover:bg-[#404040]"
-            onClick={() => handlePageChange(prevPage)}
-          >
+        {currentPage > 1 && (
+          <button className="rounded-full bg-[#505050] p-2 text-white hover:bg-[#404040]" onClick={() => handlePageChange(currentPage - 1)}>
             {"<"}
           </button>
         )}
         {Array.from({ length: pageCount }, (_, index) => index + 1).map((number) => (
           <button
             key={number}
-            className={`rounded-full px-3 py-2 text-white hover:bg-[#404040] ${
-              currentPage === number ? "bg-[#303030]" : "bg-[#505050]"
-            }`}
+            className={`rounded-full px-3 py-2 text-white hover:bg-[#404040] ${currentPage === number ? "bg-[#303030]" : "bg-[#505050]"}`}
             onClick={() => handlePageChange(number)}
           >
             {number}
           </button>
         ))}
-        {nextPage && (
-          <button
-            className="rounded-full bg-[#505050] p-2 text-white hover:bg-[#404040]"
-            onClick={() => handlePageChange(nextPage)}
-          >
+        {currentPage < pageCount && (
+          <button className="rounded-full bg-[#505050] p-2 text-white hover:bg-[#404040]" onClick={() => handlePageChange(currentPage + 1)}>
             {">"}
           </button>
         )}
@@ -147,10 +100,6 @@ const EventsTable = ({
 
   const formatTitle = (title: string) => {
     switch (title) {
-      case "starteventdatetime":
-        return "Start Event Date Time";
-      case "endeventdatetime":
-        return "End Event Date Time";
       case "registrationfee":
         return "Registration Fee";
       case "createdat":
@@ -171,12 +120,12 @@ const EventsTable = ({
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
-              setCurrentPage(1); // Reset page number
+              setCurrentPage(1);
             }}
             aria-label="Search events"
           />
         )}
-        {events.length > 10 && <div className="my-4">{renderPageNumbers()}</div>}
+        {events.length > eventsPerPage && <div className="my-4">{renderPageNumbers()}</div>}
       </div>
       <div className="overflow-x-auto rounded-lg">
         {filteredEvents.length > 0 ? (
@@ -184,37 +133,16 @@ const EventsTable = ({
             <thead className="bg-[#505050]">
               <tr>
                 <th style={{ width: "30px" }}>
-                  <input
-                    type="checkbox"
-                    checked={selectAll}
-                    onChange={handleSelectAll}
-                    aria-label="Select all events"
-                  />
+                  <input type="checkbox" checked={selectAll} onChange={handleSelectAll} aria-label="Select all events" />
                 </th>
                 {Object.keys(filteredEvents[0])
-                  .filter(
-                    (key) =>
-                      ![
-                        "eventid",
-                        "adminid",
-                        "organizationid",
-                        "eventphoto",
-                        "id",
-                        "selected",
-                      ].includes(key)
-                  )
+                  .filter((key) => !["eventid", "adminid", "organizationid", "eventphoto", "id", "selected", "eventdatetime", "eventslug"].includes(key))
                   .map((key) => (
                     <th
                       key={key}
                       className="cursor-pointer border-b border-[#404040] p-3 text-left"
                       onClick={() => handleSort(key as keyof Event)}
-                      style={{
-                        whiteSpace: "nowrap",
-                        minWidth: "150px",
-                        maxWidth: "150px",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
+                      style={{ whiteSpace: "nowrap", minWidth: "150px", maxWidth: "150px", overflow: "hidden", textOverflow: "ellipsis" }}
                     >
                       <div className="flex items-center justify-start">
                         {formatTitle(key)}
@@ -226,40 +154,24 @@ const EventsTable = ({
             </thead>
             <tbody className="bg-[#404040]">
               {filteredEvents.map((event, index) => (
-                <tr
-                  key={event.eventid}
-                  className={`${index % 2 === 0 ? "bg-[#505050]" : "bg-[#404040]"} cursor-pointer`}
-                  onClick={() => handleSelectRow(event.eventid)}
-                >
+                <tr key={event.eventid} className={`${index % 2 === 0 ? "bg-[#505050]" : "bg-[#404040]"} cursor-pointer`} onClick={() => handleSelectRow(event.eventid)}>
                   <td className="border-b border-[#404040] p-3">
-                    <input
-                      type="checkbox"
-                      checked={!!event.selected}
-                      onChange={() => handleSelectRow(event.eventid)}
-                      aria-label={`Select ${event.title}`}
-                    />
+                    <input type="checkbox" checked={!!event.selected} onChange={() => handleSelectRow(event.eventid)} aria-label={`Select ${event.title}`} />
                   </td>
-                  <td className="border-b border-[#404040] p-3">{event.title}</td>
-                  <td className="border-b border-[#404040] p-3">{event.description}</td>
-                  <td className="border-b border-[#404040] p-3">
-                    {formatDate(event.starteventdatetime)}
-                  </td>
-                  <td className="border-b border-[#404040] p-3">
-                    {formatDate(event.endeventdatetime)}
-                  </td>
-                  <td className="border-b border-[#404040] p-3">{event.location}</td>
-                  <td className="border-b border-[#404040] p-3">
-                    {event.registrationfee}
-                  </td>
-                  <td className="border-b border-[#404040] p-3">
-                    {formatDate(event.createdat)}
-                  </td>
-                  <td className="border-b border-[#404040] p-3">{event.capacity}</td>
-                  <td className="border-b border-[#404040] p-3">{event.privacy}</td>
-                  <td className="border-b border-[#404040] p-3">
-                    {event.tags.join(", ")}
-                  </td>
-                  <td className="border-b border-[#404040]">{event.eventslug}</td>
+                  {[
+                    truncateText(event.title, 30),
+                    truncateText(event.description, 30),
+                    truncateText(event.location, 30),
+                    event.registrationfee,
+                    formatDate(event.createdat),
+                    event.capacity,
+                    event.privacy,
+                    truncateText(event.tags?.join(", "), 30),
+                  ].map((value, i) => (
+                    <td key={i} className="border-b border-[#404040] p-3">
+                      {value}
+                    </td>
+                  ))}
                 </tr>
               ))}
             </tbody>

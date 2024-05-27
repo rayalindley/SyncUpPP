@@ -2,6 +2,8 @@
 import { CalendarIcon, InboxIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 interface OrganizationCardProps {
   name: string;
@@ -14,6 +16,7 @@ interface OrganizationCardProps {
   total_posts: number;
   total_events: number;
 }
+
 const OrganizationCard: React.FC<OrganizationCardProps> = ({
   name,
   description,
@@ -48,9 +51,68 @@ const OrganizationCard: React.FC<OrganizationCardProps> = ({
     }
   };
 
+  useEffect(() => {
+    const supabase = createClient();
+
+    const handleReload = () => {
+      // Save the scroll position before reload
+      localStorage.setItem("scrollPosition", window.scrollY.toString());
+      window.location.reload();
+    };
+
+    const organizationChannel = supabase
+      .channel("organizationmembers")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "organizationmembers" },
+        (payload) => {
+          console.log("Change received in organizationmembers!", payload);
+          handleReload();
+        }
+      )
+      .subscribe();
+
+    const eventsChannel = supabase
+      .channel("events")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "events" },
+        (payload) => {
+          console.log("Change received in events!", payload);
+          handleReload();
+        }
+      )
+      .subscribe();
+
+    const postsChannel = supabase
+      .channel("posts")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "posts" },
+        (payload) => {
+          console.log("Change received in posts!", payload);
+          handleReload();
+        }
+      )
+      .subscribe();
+
+    // Restore the scroll position after reload
+    const savedScrollPosition = localStorage.getItem("scrollPosition");
+    if (savedScrollPosition) {
+      window.scrollTo(0, parseInt(savedScrollPosition));
+      localStorage.removeItem("scrollPosition");
+    }
+
+    // Cleanup subscriptions on unmount
+    return () => {
+      organizationChannel.unsubscribe();
+      eventsChannel.unsubscribe();
+      postsChannel.unsubscribe();
+    };
+  }, [router]);
+
   return (
     <Link
-      // onClick={handleCardClick}
       href={`/${slug}`}
       className="mx-auto max-w-2xl transform rounded-2xl border border-[#2e2e2e] bg-[#232323] transition duration-200 hover:scale-[1.03] hover:bg-charleston lg:mx-0 lg:max-w-none"
     >
@@ -101,4 +163,5 @@ const OrganizationCard: React.FC<OrganizationCardProps> = ({
     </Link>
   );
 };
+
 export default OrganizationCard;

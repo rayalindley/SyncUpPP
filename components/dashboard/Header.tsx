@@ -19,6 +19,8 @@ import {
   ExclamationCircleIcon,
   HandRaisedIcon,
   UserIcon,
+  ChatBubbleLeftEllipsisIcon,
+  PencilSquareIcon
 } from "@heroicons/react/24/outline";
 import { type User } from "@supabase/supabase-js";
 import { formatDistanceToNow } from "date-fns";
@@ -30,6 +32,7 @@ function classNames(...classes: any[]) {
 }
 
 function Header({ user }: { user: User }) {
+  // console.log("Hello from Header.tsx");
   const notificationLinkRef = useRef(null);
 
   const { sidebarOpen, setSidebarOpen } = useSidebarStore((state) => ({
@@ -38,61 +41,16 @@ function Header({ user }: { user: User }) {
   }));
 
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  useEffect(() => {
-    const supabase = createClient();
-    const loadNotifications = async () => {
-      const response = await fetchNotifications(user.id);
-
-      if (response && response.data) {
-        const { data, unreadCount } = response;
-
-        // Sort notifications by unread status first, then alphabetically
-        const sortedData = data.sort((a, b) => {
-          if (a.isread === b.isread) {
-            return a.message.localeCompare(b.message);
-          }
-          return a.isread ? 1 : -1;
-        });
-
-        setNotifications(sortedData);
-        setUnreadCount(unreadCount);
-      }
-    };
-
-    loadNotifications();
-
-    const channels = supabase
-      .channel("notifications")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "notifications",
-          filter: "userid=eq." + user.id,
-        },
-        (payload) => {
-          loadNotifications();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channels);
-    };
-  }, [user]);
-
   const loadNotifications = async () => {
+    // console.log("Calling fetchNotifications");
     const response = await fetchNotifications(user.id);
 
     if (response && response.data) {
       const { data, unreadCount } = response;
 
-      // Sort notifications by unread status first, then alphabetically
       const sortedData = data.sort((a, b) => {
         if (a.isread === b.isread) {
           return a.message.localeCompare(b.message);
@@ -105,6 +63,38 @@ function Header({ user }: { user: User }) {
     }
   };
 
+  useEffect(() => {
+    const supabase = createClient();
+
+    const initializeNotifications = async () => {
+      // console.log("Initializing notifications");
+      await loadNotifications();
+
+      const notificationChannel = supabase
+        .channel("notifications")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "notifications",
+            filter: `userid=eq.${user.id}`,
+          },
+          (payload) => {
+            // console.log("Received notification payload:", payload);
+            loadNotifications();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        notificationChannel.unsubscribe();
+      };
+    };
+
+    initializeNotifications();
+  }, [user.id]);
+
   const handleMarkAllAsRead = async () => {
     const updatedNotifications = notifications.map((notification) => ({
       ...notification,
@@ -115,7 +105,6 @@ function Header({ user }: { user: User }) {
 
     const { success } = await markAllAsRead(user.id);
     if (!success) {
-      // If marking as read in the database fails, revert the local changes
       loadNotifications();
     }
   };
@@ -123,12 +112,11 @@ function Header({ user }: { user: User }) {
   function getNotificationLink(notification: { type: any; path: any }) {
     switch (notification.type) {
       case "event":
-        return "/" + `${notification.path}`;
       case "membership":
-        return "/" + `${notification.path}`;
       case "membership_notif_for_admin":
-        return "/" + `${notification.path}`;
       case "welcome":
+      case "post":
+      case "comment":
         return "/" + `${notification.path}`;
       case "payment":
         return null;
@@ -148,6 +136,10 @@ function Header({ user }: { user: User }) {
         return <HandRaisedIcon className="h-6 w-6 text-light" />;
       case "payment":
         return <CurrencyDollarIcon className="h-6 w-6 text-light" />;
+      case "post":
+        return <PencilSquareIcon className="h-6 w-6 text-light" />;
+      case "comment":
+        return <ChatBubbleLeftEllipsisIcon className="h-6 w-6 text-light" />;
       default:
         return <ExclamationCircleIcon className="h-6 w-6 text-light" />;
     }
@@ -164,7 +156,6 @@ function Header({ user }: { user: User }) {
 
     const { success } = await markNotificationAsRead(notificationId);
     if (!success) {
-      // If marking as read in the database fails, revert the local changes
       loadNotifications();
     }
   };
@@ -176,7 +167,7 @@ function Header({ user }: { user: User }) {
     };
 
     fetchUserProfile();
-  }, [user]);
+  }, [user.id]);
 
   return (
     <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-[#525252] bg-eerieblack px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
@@ -192,24 +183,7 @@ function Header({ user }: { user: User }) {
       <div className="h-6 w-px bg-gray-200 lg:hidden" aria-hidden="true" />
 
       <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-        {/* <form className="relative flex flex-1" action="#" method="GET">
-          <label htmlFor="search-field" className="sr-only">
-            Search
-          </label>
-          <MagnifyingGlassIcon
-            className="pointer-events-none absolute inset-y-0 left-0 h-full w-5 text-gray-400"
-            aria-hidden="true"
-          />
-          <input
-            id="search-field"
-            className="placeholder:text-gray-400k block h-full w-full border-0 bg-eerieblack py-0 pl-8 pr-0 text-light focus:ring-0 sm:text-sm"
-            placeholder="Search..."
-            type="search"
-            name="search"
-          />
-        </form> */}
         <div className="relative flex flex-1 items-center ">
-          {/* <span className="font-bold text-gray-200">Dashboard</span> */}
         </div>
         <div className="flex items-center gap-x-4 lg:gap-x-6">
           <Menu as="div" className="relative">
@@ -239,15 +213,16 @@ function Header({ user }: { user: User }) {
                   msOverflowStyle: "none",
                 }}
               >
-                <div className="overflow-y-auto">
-                  <div className="px-4 py-3">
+                <div className="notification-container">
+                  <div className="h-80 overflow-y-auto px-4 py-3">
                     <p className="mb-2 text-sm font-medium text-light">Notifications</p>
                     {notifications.length > 0 ? (
                       notifications.map((notification) => (
                         <a
                           key={notification.notificationid}
-                          ref={notificationLinkRef}
-                          className={`my-1 flex items-center gap-x-2 rounded-lg px-4 py-2 hover:bg-[#525252] ${notification.isread ? "bg-gray" : "bg-[#232323]"} cursor-pointer`}
+                          className={`my-1 flex items-center gap-x-2 rounded-lg px-4 py-2 hover:bg-[#525252] ${
+                            notification.isread ? "bg-gray" : "bg-[#232323]"
+                          } cursor-pointer`}
                           onClick={() => {
                             handleNotificationClick(notification.notificationid);
                             window.location.href =
@@ -273,6 +248,7 @@ function Header({ user }: { user: User }) {
                     )}
                   </div>
                 </div>
+
                 <div className="border-t border-[#525252]">
                   <button
                     className="my-3 block w-full text-center text-sm text-[#32805c] hover:text-[#285a47]"
@@ -285,13 +261,11 @@ function Header({ user }: { user: User }) {
             </Transition>
           </Menu>
 
-          {/* Separator */}
           <div
             className="hidden lg:block lg:h-6 lg:w-px lg:bg-gray-200"
             aria-hidden="true"
           />
 
-          {/* Profile dropdown */}
           <Menu as="div" className="relative">
             <Menu.Button className="-m-1.5 flex items-center p-1.5">
               <span className="sr-only">Open user menu</span>
