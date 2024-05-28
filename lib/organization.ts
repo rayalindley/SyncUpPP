@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 
 // TODO: Add permissions, check whether the user has permissions to do it or not.
 
-export async function insertOrganization(formData: any) {
+export async function createOrganization(formData: any) {
   const insertValues = {
     name: formData.name,
     photo: formData.photo,

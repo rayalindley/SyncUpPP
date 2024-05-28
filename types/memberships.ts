@@ -1,13 +1,13 @@
 import { Organizations } from "./organizations";
 
 export interface Memberships {
-  membershipid: string /* primary key */;
-  organizationid?: string /* foreign key to organizations.organizationid */;
+  membershipid: string;
+  organizationid?: string;
   name: string;
   description?: string;
-  registrationfee: any; // type unknown;
-  features?: any; // type unknown;
+  registrationfee: any;
+  features?: any;
   mostPopular?: boolean;
-  yearlydiscount?: any; // type unknown;
+  yearlydiscount?: any;
   organizations?: Organizations;
 }

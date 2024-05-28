@@ -2,18 +2,18 @@ import { Organizationmembers, Organizations } from "./organizations";
 import { Combined_user_data } from "./users";
 
 export interface Events {
-  eventid: string /* primary key */;
-  organizationid: string /* foreign key to organizations.organizationid */;
+  eventid: string;
+  organizationid: string;
   title: string;
   description?: string;
   location?: string;
-  registrationfee?: any; // type unknown;
+  registrationfee?: any;
   createdat?: string;
   capacity?: number;
-  adminid?: string /* foreign key to combined_user_data.id */;
-  privacy?: any; // type unknown;
+  adminid?: string;
+  privacy?: any;
   eventphoto?: string;
-  tags?: any; // type unknown;
+  tags?: any;
   eventslug: string;
   organizations?: Organizations;
   combined_user_data?: Combined_user_data;

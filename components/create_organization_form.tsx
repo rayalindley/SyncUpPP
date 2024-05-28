@@ -8,7 +8,7 @@ import "react-toastify/dist/ReactToastify.css";
 import Datepicker from "tailwind-datepicker-react";
 import { z } from "zod";
 
-import { insertOrganization, updateOrganization } from "@/lib/organization";
+import { createOrganization, updateOrganization } from "@/lib/organization";
 import { useRouter } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
@@ -372,7 +372,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
           throw error;
         }
       } else {
-        const { data, error } = await insertOrganization(formData);
+        const { data, error } = await createOrganization(formData);
 
         if (data) {
           toast.success("Organization was created successfully.", {

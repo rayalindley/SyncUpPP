@@ -3,12 +3,12 @@ import { Organizations } from "./organizations";
 import { Combined_user_data } from "./users";
 
 export interface Posts {
-  postid: string /* primary key */;
-  organizationid: string /* foreign key to organizations.organizationid */;
-  authorid: string /* foreign key to combined_user_data.id */;
+  postid: string;
+  organizationid: string;
+  authorid: string;
   content?: string;
-  privacylevel?: any; // type unknown;
-  targetmembershipid?: string /* foreign key to memberships.membershipid */;
+  privacylevel?: any;
+  targetmembershipid?: string;
   createdat?: string;
   postphotos?: string[];
   organizations?: Organizations;

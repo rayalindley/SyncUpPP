@@ -3,10 +3,10 @@ import { Organization_roles } from "./roles";
 import { Combined_user_data } from "./users";
 
 export interface Organizations {
-  organizationid: string /* primary key */;
+  organizationid: string;
   name: string;
   description?: string;
-  adminid?: string /* foreign key to combined_user_data.id */;
+  adminid?: string;
   created_at?: string;
   organization_type?: string;
   industry?: string;
