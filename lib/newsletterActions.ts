@@ -31,7 +31,10 @@ export async function sendEmail(emailContent: EmailContent) {
   const resend = new Resend(process.env.NEXT_PUBLIC_RESEND_API_KEY);
   try {
     const response = await resend.emails.send(emailContent);
-    // console.log("Email sent:", response);
+    if (response.error && response.error.message.includes('You can only send testing emails to your own email address')) {
+      throw new Error('You can only send emails to the account bound to the Resend API Free Plan.');
+    }
+    console.log("Email sent:", response);
     return response;
   } catch (error) {
     console.error("Error sending email:", (error as Error).message);
