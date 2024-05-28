@@ -1,12 +1,11 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { Organization, Organizations } from "@/models/Organization";
-import { createClient } from "@/lib/supabase/server";
 
 export class OrganizationService {
   private supabase: SupabaseClient;
 
-  constructor() {
-    this.supabase = createClient();
+  constructor(supabaseClient: SupabaseClient) {
+    this.supabase = supabaseClient;
   }
 
   async createOrganization(organization: Organization): Promise<Organization> {

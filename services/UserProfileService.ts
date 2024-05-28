@@ -1,6 +1,6 @@
 // services/UserProfileService.ts
 import { SupabaseClient } from "@supabase/supabase-js";
-import { UserProfile } from "../models/UserProfile";
+import { UserProfile } from "@/models/UserProfile";
 
 export class UserProfileService {
   private supabase: SupabaseClient;
