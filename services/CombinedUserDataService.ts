@@ -1,6 +1,6 @@
 // services/CombinedUserDataService.ts
 import { SupabaseClient } from "@supabase/supabase-js";
-import { CombinedUserData } from "@/models/CombinedUserData";
+import { CombinedUserData } from "../models/CombinedUserData";
 
 export class CombinedUserDataService {
   private supabase: SupabaseClient;

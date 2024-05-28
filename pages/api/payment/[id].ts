@@ -1,6 +1,6 @@
 // pages/api/payment/[id].ts
 import { NextApiRequest, NextApiResponse } from "next";
-import { PaymentService } from "../../../services/PaymentService";
+import { PaymentService } from "@/services/PaymentService";
 import { createClient } from "@/lib/supabase/server";
 
 const supabase = createClient();

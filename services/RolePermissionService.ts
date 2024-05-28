@@ -1,6 +1,6 @@
 // services/RolePermissionService.ts
 import { SupabaseClient } from "@supabase/supabase-js";
-import { RolePermission } from "../models/RolePermission";
+import { RolePermission } from "@/models/RolePermission";
 
 export class RolePermissionService {
   private supabase: SupabaseClient;

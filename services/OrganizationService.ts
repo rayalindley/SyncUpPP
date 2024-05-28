@@ -1,5 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js";
-import { Organization, Organizations } from "@/models/Organization";
+import { Organization, Organizations } from "../models/Organization";
 
 export class OrganizationService {
   private supabase: SupabaseClient;

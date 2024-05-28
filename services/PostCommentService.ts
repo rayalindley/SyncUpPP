@@ -1,6 +1,6 @@
 // services/PostCommentService.ts
-import { SupabaseClient } from "@supabase/supabase-js";
 import { PostComment } from "../models/PostComment";
+import { SupabaseClient } from "@supabase/supabase-js";
 
 export class PostCommentService {
   private supabase: SupabaseClient;

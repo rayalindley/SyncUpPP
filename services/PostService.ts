@@ -1,6 +1,6 @@
 // services/PostService.ts
 import { SupabaseClient } from "@supabase/supabase-js";
-import { Post } from "@/models/Post";
+import { Post } from "../models/Post";
 
 export class PostService {
   private supabase: SupabaseClient;

@@ -1,6 +1,6 @@
 // services/EventService.ts
 import { SupabaseClient } from "@supabase/supabase-js";
-import { Event, Events } from "@/models/Event";
+import { Event, Events } from "../models/Event";
 
 export class EventService {
   private supabase: SupabaseClient;
