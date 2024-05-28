@@ -19,15 +19,15 @@ export default function EventsTable({
   const [canCreateEvents, setCanCreateEvents] = useState(false);
 
   // Debugging: Log the selected organization ID and events
-  console.log("Selected Organization ID:", selectedOrgId);
-  console.log("All Events:", events);
+  // console.log("Selected Organization ID:", selectedOrgId);
+  // console.log("All Events:", events);
 
   // Filter events based on the selected organization ID
   const filteredEvents = selectedOrgId
     ? events.filter((event) => event.organizationid === selectedOrgId)
     : events; // If no organization is selected, show all events
 
-  console.log("Filtered Events:", filteredEvents);
+  // console.log("Filtered Events:", filteredEvents);
 
   // Redirect to the create event page for the selected organization
   const handleCreateEvent = () => {

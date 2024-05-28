@@ -39,7 +39,7 @@ export default function Example() {
   const fetchMembers = async () => {
     try {
       const membersData = await fetchMembersBySlug(slug);
-      console.log("membersData", membersData);
+      // console.log("membersData", membersData);
       setMembers(membersData);
     } catch (err) {
       console.error("Failed to fetch members:", err);

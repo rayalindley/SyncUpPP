@@ -39,13 +39,13 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
-    console.log(slug);
+    // console.log(slug);
     if (slug) {
       (async () => {
         try {
           const { data, error } = await fetchOrganizationBySlug(slug);
 
-          console.log(data, error);
+          // console.log(data, error);
           if (error) {
             setError(error.message);
             console.error(error);
@@ -69,7 +69,7 @@ export default function SettingsPage() {
           "postgres_changes",
           { event: "*", schema: "public", table: channel },
           (payload) => {
-            console.log("Change received!", payload);
+            // console.log("Change received!", payload);
             saveScrollPosition();
             setReloadFlag((prev) => !prev); // Toggle the flag to force re-render
           }
@@ -83,7 +83,7 @@ export default function SettingsPage() {
   }, [reloadFlag]);
 
   const handleDeleteOrg = async (orgID: string) => {
-    console.log(orgID);
+    // console.log(orgID);
 
     const confirmResult = await Swal.fire({
       title: "Are you sure?",

@@ -214,7 +214,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
           } else {
             toast.success("Invoice created successfully.");
 
-            console.log({
+            // console.log({
               amount: amount,
               invoiceId: invoice.id,
               organizationId: organizationid,
@@ -237,7 +237,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
               ])
               .select();
 
-            console.log(data, error);
+            // console.log(data, error);
 
             if (error) {
               toast.error("Error saving invoice. Please try again later.");

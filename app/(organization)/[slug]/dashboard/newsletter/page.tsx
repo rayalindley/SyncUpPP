@@ -195,7 +195,7 @@ export default function NewsletterPage() {
         organization?.organizationid || "",
       );
 
-      console.log("subject", subject, "\ncontent", editorState, "\nallUsers", allUsers, "\nattachments", attachments, "\norganization", organization?.name || "")
+      // console.log("subject", subject, "\ncontent", editorState, "\nallUsers", allUsers, "\nattachments", attachments, "\norganization", organization?.name || "")
 
       const { successCount, failures } = await sendNewsletterPromise;
 

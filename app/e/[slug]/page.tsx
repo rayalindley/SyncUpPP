@@ -101,7 +101,7 @@ const EventPage = () => {
         if (user && eventData) {
           const { isMember } = await checkMembership(user.id, eventData.organizationid);
           setIsOrgMember(isMember);
-          console.log("isMember", isMember);
+          // console.log("isMember", isMember);
         }
 
         // Check if the event is finished or registration is closed
