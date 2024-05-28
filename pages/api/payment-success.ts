@@ -95,14 +95,109 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         memberData: updatedMemberData,
       });
     }
-  } else if (paymentData.type === "event") {
-    // Handle event type if needed
-    // Placeholder comment for event handling
+  } else if (paymentData.type === "events") {
+    const { data: registrationData, error: registrationError } = await registerForEvent(
+      paymentData.target_id,
+      paymentData.payerId
+    );
+
+    if (registrationError) {
+      console.error("Error registering for event:", registrationError);
+      return res.status(500).json({
+        error: "Failed to register for event",
+        registrationError,
+        target_id: paymentData.target_id,
+        payerId: paymentData.payerId,
+      });
+    }
+
     return res.status(200).json({
-      success: "PAYMENT SUCCESSFUL!",
-      message: "Event handling not implemented yet.",
+      success: "EVENT REGISTRATION & PAYMENT SUCCESSFUL!",
+      registrationData,
     });
   } else {
     return res.status(400).json({ error: "Invalid payment type." });
+  }
+}
+
+async function registerForEvent(eventId: string, userId: string) {
+  try {
+    // Fetch event to check privacy setting
+    const { data: event, error: eventError } = await supabase
+      .from("events")
+      .select("privacy, organizationid")
+      .eq("eventid", eventId)
+      .single();
+
+    if (eventError || !event) {
+      return { data: null, error: { message: eventError?.message || "Event not found" } };
+    }
+
+    // Check if the event is private
+    if (event.privacy === "private") {
+      // Check if the user is a member of the organization
+      const { data: membership, error: membershipError } = await supabase
+        .from("organizationmembers")
+        .select("organizationmemberid")
+        .eq("userid", userId)
+        .eq("organizationid", event.organizationid)
+        .single();
+
+      if (membershipError || !membership) {
+        return {
+          data: null,
+          error: { message: "User is not a member of the organization" },
+        };
+      }
+
+      const organizationMemberId = membership.organizationmemberid;
+
+      // Register the user for the event
+      const { data: registrationData, error: registrationError } = await supabase
+        .from("eventregistrations")
+        .insert([
+          {
+            userid: userId,
+            eventid: eventId,
+            organizationmemberid: organizationMemberId,
+            registrationdate: new Date().toISOString(),
+            status: "registered",
+          },
+        ])
+        .select()
+        .single();
+
+      if (registrationError) {
+        return { data: null, error: { message: registrationError.message } };
+      }
+
+      return { data: registrationData, error: null };
+    } else {
+      // Public event, register the user without checking membership
+      const { data: registrationData, error: registrationError } = await supabase
+        .from("eventregistrations")
+        .insert([
+          {
+            userid: userId,
+            eventid: eventId,
+            registrationdate: new Date().toISOString(),
+            status: "registered",
+          },
+        ])
+        .select()
+        .single();
+
+      if (registrationError) {
+        return { data: null, error: { message: registrationError.message } };
+      }
+
+      return { data: registrationData, error: null };
+    }
+  } catch (e: any) {
+    console.error("Unexpected error:", e);
+    return {
+      data: null,
+      error: { message: e.message || "An unexpected error occurred" },
+    };
   }
 }

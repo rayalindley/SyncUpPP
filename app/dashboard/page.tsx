@@ -5,18 +5,21 @@ import { createClient } from "@/lib/supabase/client";
 import AdminAnalyticsDashboard from "@/components/dashboard/AdminAnalyticsDashboard";
 import OrganizationsSection from "@/components/dashboard/OrganizationsSection";
 import { getUser } from "@/lib/supabase/client";
+import { User } from "@supabase/supabase-js";
 
 const supabase = createClient();
 
 const DashboardPage = () => {
   const [organizations, setOrganizations] = useState<any[]>([]);
-  const [user, setUser] = useState<{ id: string } | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const dashboardRef = useRef(null);
   const scrollPosition = useRef(0);
 
   useEffect(() => {
     const fetchUserAndOrganizations = async () => {
       const { user } = await getUser();
+
+      setUser(user || null);
 
       const { data: organizations, error } = await supabase
         .from("organization_summary")
@@ -95,7 +98,7 @@ const DashboardPage = () => {
 
   return (
     <div ref={dashboardRef}>
-      <AdminAnalyticsDashboard userId={user?.id ?? ""} />
+      <AdminAnalyticsDashboard user={user} />
       <OrganizationsSection organizations={organizations} />
     </div>
   );

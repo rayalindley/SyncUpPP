@@ -17,7 +17,7 @@ import {
 
 import { Registration, TopOrg, TotalStats } from "@/lib/types";
 
-const AdminAnalyticsDashboard = ({ user }: { user: User }) => {
+const AdminAnalyticsDashboard = ({ user }: { user: User | null }) => {
   const [totalStats, setTotalStats] = useState<TotalStats | null>(null);
   const [topOrgs, setTopOrgs] = useState<TopOrg[]>([]);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
@@ -34,6 +34,8 @@ const AdminAnalyticsDashboard = ({ user }: { user: User }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        if (!user) return;
+
         let totalStatsData;
         let topOrgsData;
         let registrationsData;
