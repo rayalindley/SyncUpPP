@@ -170,7 +170,9 @@ const EmailsTable = ({
                 Object.keys(emails[0]).map(
                   (key) =>
                     key !== "id" &&
-                    key !== "body" && (
+                    key !== "body" &&
+                    key !== "sender_id" &&
+                    key !== "receiver_id" && (
                       <th
                         key={key}
                         className="cursor-pointer border-b border-[#404040] p-3"
@@ -201,7 +203,9 @@ const EmailsTable = ({
                 {Object.entries(email).map(
                   ([key, value]) =>
                     key !== "id" &&
-                    key !== "body" && (
+                    key !== "body" &&
+                    key !== "sender_id" &&
+                    key !== "receiver_id" && (
                       <td
                         key={key}
                         className="border-b border-[#404040] p-3"
@@ -243,7 +247,7 @@ const EmailsTable = ({
               <h3 className="text-2xl font-semibold text-white">Details</h3>
               <table className="mt-4 space-y-4" style={{ width: "100%" }}>
                 {Object.entries(selectedEmail)
-                  .filter(([key]) => key !== "id")
+                  .filter(([key]) => key !== "id" && key !== "sender_id" && key !== "receiver_id")
                   .map(([key, value]) => (
                     <tr key={key}>
                       <td

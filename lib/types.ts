@@ -10,6 +10,8 @@ export type Email = {
   body: string;
   status: string;
   date_created: Date;
+  sender_id?: string;
+  receiver_id?: string;
 };
 
 export type Address = {

@@ -21,7 +21,7 @@ const AdminAnalyticsDashboard = ({ user }: { user: User }) => {
   const [totalStats, setTotalStats] = useState<TotalStats | null>(null);
   const [topOrgs, setTopOrgs] = useState<TopOrg[]>([]);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
-  const userId = user.id;
+  const userId = user?.id;
   const [filter, setFilter] = useState("total_events");
   const supabase = createClient();
 
