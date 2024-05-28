@@ -91,7 +91,6 @@ const SideNavMenu = () => {
     { name: "Overview", href: `/${slug}/dashboard`, icon: HomeIcon },
     { name: "Roles", href: `/${slug}/dashboard/roles`, icon: UsersIcon },
     { name: "Memberships", href: `/${slug}/dashboard/memberships`, icon: UsersIcon },
-    { name: "Newsletter", href: `/${slug}/dashboard/newsletter`, icon: CalendarIcon },
     { name: "Calendar", href: `/${slug}/dashboard/calendar`, icon: CalendarIcon },
     { name: "Reports", href: `/${slug}/dashboard/reports`, icon: ChartPieIcon },
   ];

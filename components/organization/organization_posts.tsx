@@ -34,7 +34,7 @@ const OrganizationPostsComponent = ({
           ? data
           : data.filter((post) => post.privacylevel !== "private");
         setPostsData(visibleData);
-        console.log("isMemberOfOrganization", isMember);
+        // console.log("isMemberOfOrganization", isMember);
       } else {
         console.error("Error fetching posts:", error);
       }

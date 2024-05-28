@@ -21,7 +21,7 @@ export default async function DashboardPage() {
     organizations = organizationsData || [];
     const { data: eventsData } = await supabase.from("events").select("*");
     events = eventsData || [];
-    console.log("events", events);
+    // console.log("events", events);
   } else {
     const organizationsData = await fetchOrganizationsForUser(user.id);
     organizations = organizationsData.data || [];

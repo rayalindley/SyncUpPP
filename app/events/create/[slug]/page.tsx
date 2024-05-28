@@ -49,7 +49,7 @@ export default function CreateEventPage() {
             "create_events"
           );
           setHasPermission(permission);
-          console.log(organization.data.organizationid, permission);
+          // console.log(organization.data.organizationid, permission);
         }
       } catch (error) {
         console.error("Failed to check permissions", error);

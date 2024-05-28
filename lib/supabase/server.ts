@@ -54,7 +54,7 @@ export async function getAllUsers() {
     perPage: 1000,
   });
 
-  console.log(users);
+  // console.log(users);
 
   if (!error) {
     return users;

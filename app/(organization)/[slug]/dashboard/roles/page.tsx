@@ -122,7 +122,7 @@ export default function SettingsRolesPage() {
   }, [slug]);
 
   const handleRoleClick = (role: Role) => {
-    console.log(role);
+    // console.log(role);
     setSelectedRole(role);
     setSelectedIndex(1);
   };
@@ -259,7 +259,7 @@ export default function SettingsRolesPage() {
           .single();
 
         if (error) {
-          console.log(error);
+          // console.log(error);
         }
       } else {
         const { data, error } = await supabase
@@ -271,7 +271,7 @@ export default function SettingsRolesPage() {
           .single();
 
         if (error) {
-          console.log(error);
+          // console.log(error);
         }
       }
     }

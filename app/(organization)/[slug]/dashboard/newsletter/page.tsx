@@ -45,8 +45,8 @@ const newsletterSchema = z.object({
 
 export default function NewsletterPage() {
   const { user } = useUser();
-
-  const { slug: orgSlug } = useParams() as { slug: string }; // Ensure slug is a string
+  const params = useParams();
+  const orgSlug = params?.slug; // Make sure to use the correct parameter name
 
   const [editorState, setEditorState] = useState("");
   const [subject, setSubject] = useState("");
@@ -191,13 +191,18 @@ export default function NewsletterPage() {
         return;
       }
 
+      const organization = await fetchOrganizationBySlug(orgSlug as string); // Ensure organization is fetched here
+
       const sendNewsletterPromise = sendNewsletter(
         subject,
         editorState,
         allUsers,
         attachments,
-        orgSlug as string
+        organization?.name || "",
+        organization?.organizationid || "",
       );
+
+      // console.log("subject", subject, "\ncontent", editorState, "\nallUsers", allUsers, "\nattachments", attachments, "\norganization", organization?.name || "")
 
       const { successCount, failures } = await sendNewsletterPromise;
 

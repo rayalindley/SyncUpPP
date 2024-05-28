@@ -33,7 +33,6 @@ const navigation = [
   },
   { name: "Memberships", href: "/dashboard/memberships", icon: TbUserStar },
   { name: "Events", href: "/dashboard/events", icon: CalendarIcon },
-  { name: "Newsletter", href: "/dashboard/newsletter", icon: IoMailUnreadOutline },
 ];
 
 const SideNavMenuForAdmins = () => {
