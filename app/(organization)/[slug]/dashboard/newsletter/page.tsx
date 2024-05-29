@@ -1,29 +1,30 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { useParams } from "next/navigation";
-import dynamic from "next/dynamic";
-import { useUser } from "@/context/UserContext";
-import { CombinedUserData, Email, Event } from "@/lib/types";
-import {
-  fetchMembersByOrganization,
-  fetchEventsByOrganization,
-  sendNewsletter,
-  fetchSentEmailsByAdmin,
-  fetchMembersByEvent,
-  fetchOrganizationBySlug,
-} from "@/lib/newsletterActions";
-const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
-import "react-quill/dist/quill.snow.css";
-import { z } from "zod";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import { getCombinedUserDataById } from "@/lib/userActions";
+import CombinedUserDataTable from "@/components/CombinedUserDataTable";
 import EmailsTable from "@/components/EmailsTable";
 import EventsTable from "@/components/EventsTable";
-import CombinedUserDataTable from "@/components/CombinedUserDataTable";
-import { createClient } from "@/lib/supabase/client";
+import Preloader from "@/components/preloader";
+import { useUser } from "@/context/UserContext";
+import {
+  fetchEventsByOrganization,
+  fetchMembersByEvent,
+  fetchMembersByOrganization,
+  fetchOrganizationBySlug,
+  fetchSentEmailsByAdmin,
+  sendNewsletter,
+} from "@/lib/newsletterActions";
 import { check_permissions } from "@/lib/organization";
+import { createClient } from "@/lib/supabase/client";
+import { CombinedUserData, Email, Event } from "@/lib/types";
+import { getCombinedUserDataById } from "@/lib/userActions";
+import dynamic from "next/dynamic";
+import { useParams } from "next/navigation";
+import React, { useEffect, useRef, useState } from "react";
+import "react-quill/dist/quill.snow.css";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { z } from "zod";
+const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
 const newsletterSchema = z.object({
   subject: z
@@ -199,7 +200,7 @@ export default function NewsletterPage() {
         allUsers,
         attachments,
         organization?.name || "",
-        organization?.organizationid || "",
+        organization?.organizationid || ""
       );
 
       // console.log("subject", subject, "\ncontent", editorState, "\nallUsers", allUsers, "\nattachments", attachments, "\norganization", organization?.name || "")
@@ -314,13 +315,7 @@ export default function NewsletterPage() {
   };
 
   if (hasPermission === null) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-semibold text-light">Loading...</h2>
-        </div>
-      </div>
-    );
+    return <Preloader />;
   }
 
   if (!hasPermission) {

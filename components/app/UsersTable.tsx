@@ -1,10 +1,11 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
-import DataTable, { TableColumn } from "react-data-table-component";
-import UserActionButton from "./user_action_button";
-import { useDebounce } from "use-debounce";
-import { User } from "@supabase/auth-js/src/lib/types"; // Ensure this is the correct import path
+import Preloader from "@/components/preloader";
 import { UserProfile } from "@/lib/types";
+import { User } from "@supabase/auth-js/src/lib/types"; // Ensure this is the correct import path
+import { useEffect, useMemo, useState } from "react";
+import DataTable, { TableColumn } from "react-data-table-component";
+import { useDebounce } from "use-debounce";
+import UserActionButton from "./user_action_button";
 
 interface UserProfileData {
   first_name: string;
@@ -225,7 +226,7 @@ const UsersTable: React.FC<UsersTableProps> = ({ users, userProfiles = [] }) => 
             }}
           />
         ) : (
-          <p>Loading...</p>
+          <Preloader />
         )}
       </div>
     </div>
