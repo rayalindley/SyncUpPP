@@ -11,7 +11,7 @@ import { Fragment, useEffect, useState } from "react";
 const navigation = [
   { name: "Home", href: "/" },
   { name: "Features", href: "#features" },
-  { name: "Community", href: "/organizations" }, // Updated href
+  { name: "Community", href: "/organizations" },
   { name: "Events", href: "/events" },
   { name: "Contact Us", href: "#contactus" },
 ];
@@ -32,11 +32,15 @@ export default function Header({ user = null }: { user: User | null }) {
 
     fetchUserProfile();
   }, [user]);
+
   const handleNavClick = (href: string) => {
-    const landingPageUrl = "/"; // Update this with your landing page URL
-    const targetSection = href.substring(1); // Remove the '#' from the href
-    const redirectUrl = `${landingPageUrl}#${targetSection}`;
-    window.location.href = redirectUrl;
+    if (href.startsWith("#")) {
+      const targetSection = href.substring(1);
+      const redirectUrl = `/#${targetSection}`;
+      window.location.href = redirectUrl;
+    } else {
+      window.location.href = href;
+    }
   };
 
   useEffect(() => {
@@ -52,6 +56,7 @@ export default function Header({ user = null }: { user: User | null }) {
       window.removeEventListener("hashchange", handleHashChange);
     };
   }, []);
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -78,10 +83,10 @@ export default function Header({ user = null }: { user: User | null }) {
           {navigation.map((item) => (
             <Link
               key={item.name}
-              href={`${item.href}`} // Update the href to only include the section ID
+              href={item.href}
               onClick={(e) => {
-                e.preventDefault(); // Prevent default link behavior
-                handleNavClick(item.href); // Call handleNavClick with the href
+                e.preventDefault();
+                handleNavClick(item.href);
               }}
               className="text-sm font-semibold leading-6 text-light hover:text-primary"
             >
@@ -93,7 +98,6 @@ export default function Header({ user = null }: { user: User | null }) {
         <div className="flex flex-1 items-center justify-end gap-x-6">
           {user ? (
             <div>
-              {/* Profile dropdown */}
               <Menu as="div" className="relative">
                 <Menu.Button className="-m-1.5 flex items-center p-1.5">
                   <span className="sr-only">Open user menu</span>
