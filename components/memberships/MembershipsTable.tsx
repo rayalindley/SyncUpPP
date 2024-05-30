@@ -1,4 +1,5 @@
 "use client";
+import Preloader from "@/components/preloader";
 import { useEffect, useMemo, useState } from "react";
 import DataTable, { TableColumn } from "react-data-table-component";
 import MembershipOptions from "./membership_options";
@@ -250,7 +251,7 @@ export default function MembershipsTable({ orgsMemView = [] }: MembershipsTableP
             }}
           />
         ) : (
-          <p>Loading...</p>
+          <Preloader />
         )}
       </div>
     </div>

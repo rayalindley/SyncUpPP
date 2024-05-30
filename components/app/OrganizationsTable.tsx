@@ -1,8 +1,9 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import Preloader from "@/components/preloader";
+import { Organization } from "@/lib/types"; // Ensure you have this type defined in your types file
+import { useEffect, useMemo, useState } from "react";
 import DataTable from "react-data-table-component";
 import OrganizationOptions from "./organization_options";
-import { Organization } from "@/lib/types"; // Ensure you have this type defined in your types file
 
 interface OrganizationsTableProps {
   organizations: (Organization & { open: boolean; setOpen: (open: boolean) => void })[];
@@ -181,7 +182,7 @@ export default function OrganizationsTable({
             }}
           />
         ) : (
-          <p>Loading...</p>
+          <Preloader />
         )}
       </div>
     </div>

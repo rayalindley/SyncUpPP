@@ -1,4 +1,5 @@
 "use client";
+import Preloader from "@/components/preloader";
 import { deleteEvent, fetchRegisteredUsersForEvent } from "@/lib/events"; // Assuming you have deleteEvent function
 import { check_permissions } from "@/lib/organization";
 import { Event, UserProfile } from "@/lib/types";
@@ -492,7 +493,7 @@ export default function EventOptions({
                         {currentTab === "Attendees" && (
                           <div className="space-y-4">
                             {loadingAttendees ? (
-                              <div>Loading...</div>
+                              <Preloader />
                             ) : Array.isArray(attendees) && attendees.length > 0 ? (
                               attendees.map((attendee: UserProfile, index: number) => (
                                 <div key={index} className="flex items-center space-x-3">

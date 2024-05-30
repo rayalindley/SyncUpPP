@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
-import { createClient } from "@/lib/supabase/client";
 import AdminAnalyticsDashboard from "@/components/dashboard/AdminAnalyticsDashboard";
 import OrganizationsSection from "@/components/dashboard/OrganizationsSection";
-import { getUser } from "@/lib/supabase/client";
+import { createClient, getUser } from "@/lib/supabase/client";
 import { User } from "@supabase/supabase-js";
+import { useEffect, useRef, useState } from "react";
 
 const supabase = createClient();
 
@@ -23,8 +22,7 @@ const DashboardPage = () => {
 
       const { data: organizations, error } = await supabase
         .from("organization_summary")
-        .select("*")
-        .eq("adminid", user?.id);
+        .select("*");
       setOrganizations(organizations ?? []);
     };
 
