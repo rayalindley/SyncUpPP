@@ -1,5 +1,6 @@
 "use client";
 import EventsTableUser from "@/components/app/EventsTableUser";
+import Preloader from "@/components/preloader";
 import { fetchOrganizationBySlug } from "@/lib/organization";
 import { createClient, getUser } from "@/lib/supabase/client";
 import { Event, Organization } from "@/lib/types";
@@ -66,7 +67,7 @@ export default function DashboardPage() {
   }, [organization]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <Preloader />;
   }
 
   if (!organization) {
@@ -74,7 +75,7 @@ export default function DashboardPage() {
   }
 
   if (!user) {
-    return <div>Loading user...</div>;
+    return <Preloader />;
   }
 
   return (

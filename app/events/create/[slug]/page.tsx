@@ -1,5 +1,6 @@
 "use client";
 import CreateEventForm from "@/components/create_event_form";
+import Preloader from "@/components/preloader";
 import { check_permissions, fetchOrganizationBySlug } from "@/lib/organization";
 import { getUser } from "@/lib/supabase/client";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
@@ -12,18 +13,21 @@ export default function CreateEventPage() {
   const slug = params.slug;
   const [organization, setOrganization] = useState(null);
   const [error, setError] = useState<string | null>(null);
-  const [hasPermission, setHasPermission] = useState(false);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState(true); // Add a loading state
+
   useEffect(() => {
     const fetchOrganization = async () => {
       if (typeof slug !== "string") {
         setError("Invalid slug type");
+        setLoading(false);
         return;
       }
 
       try {
         const { data, error } = await fetchOrganizationBySlug(slug);
         if (error) {
-          setError(error.message); // Pass the error message instead of the entire error object
+          setError(error.message);
           console.error(error);
         } else {
           setOrganization(data);
@@ -34,11 +38,7 @@ export default function CreateEventPage() {
       }
     };
 
-    if (slug) {
-      fetchOrganization();
-    }
-
-    async function checkPermissions() {
+    const checkPermissions = async () => {
       const { user } = await getUser();
       try {
         const organization = await fetchOrganizationBySlug(slug as string);
@@ -49,23 +49,22 @@ export default function CreateEventPage() {
             "create_events"
           );
           setHasPermission(permission);
-          // console.log(organization.data.organizationid, permission);
         }
       } catch (error) {
         console.error("Failed to check permissions", error);
+      } finally {
+        setLoading(false); // Ensure loading is set to false after permission check
       }
+    };
+
+    if (slug) {
+      fetchOrganization();
+      checkPermissions();
     }
-    checkPermissions();
   }, [slug]);
 
-  if (!organization || hasPermission == null) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-semibold text-light">Loading...</h2>
-        </div>
-      </div>
-    );
+  if (loading) {
+    return <Preloader />;
   }
 
   if (!hasPermission) {
@@ -80,13 +79,14 @@ export default function CreateEventPage() {
       </div>
     );
   }
+
   return (
     <>
-      <div className="flex min-h-full flex-1 flex-col justify-center bg-eerieblack px-6 py-12  lg:px-8">
+      <div className="flex min-h-full flex-1 flex-col justify-center bg-eerieblack px-6 py-12 lg:px-8">
         <div className="fixed top-10 text-gray-100 hover:cursor-pointer">
           <a
             onClick={() => router.back()}
-            className=" flex items-center gap-2 hover:opacity-80"
+            className="flex items-center gap-2 hover:opacity-80"
           >
             <ArrowLeftIcon className="h-5 w-5" /> Back
           </a>
