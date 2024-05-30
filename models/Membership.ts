@@ -1,13 +1,14 @@
-// models/Membership.ts
+// @/models/Membership.ts
+
 export class Membership {
   constructor(
-    public membershipId: string,
-    public organizationId: string,
+    public membershipid: string,
     public name: string,
     public description: string,
-    public registrationFee: number,
-    public features: string[],
-    public mostPopular: boolean,
-    public yearlyDiscount: number
+    public registrationfee: number,
+    public organizationid: string,
+    public features: any
   ) {}
+
+  // Add any business logic or validation methods here if needed
 }

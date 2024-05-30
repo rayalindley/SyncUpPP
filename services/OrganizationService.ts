@@ -1,132 +1,193 @@
-import { SupabaseClient } from "@supabase/supabase-js";
-import { Organization, Organizations } from "../models/Organization";
+// @/services/OrganizationService.ts
+
+import { createClient } from "@/lib/supabase/server";
+import { Organization } from "@/models/Organization";
 
 export class OrganizationService {
-  private supabase: SupabaseClient;
+  private supabase = createClient();
 
-  constructor(supabaseClient: SupabaseClient) {
-    this.supabase = supabaseClient;
+  async createOrganization(organization: Organization) {
+    try {
+      const { data, error } = await this.supabase
+        .from("organizations")
+        .insert([organization])
+        .select();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return data;
+    } catch (e) {
+      if (e instanceof Error) {
+        console.error("Unexpected error:", e);
+        throw new Error(e.message || "An unexpected error occurred");
+      } else {
+        console.error("Unexpected error:", e);
+        throw new Error("An unexpected error occurred");
+      }
+    }
   }
 
-  async createOrganization(organization: Organization): Promise<Organization> {
-    const { data, error } = await this.supabase
-      .from("organizations")
-      .insert(organization)
-      .select("*")
-      .single();
+  async updateOrganization(organizationid: string, organization: Organization) {
+    try {
+      const { data, error } = await this.supabase
+        .from("organizations")
+        .update(organization)
+        .eq("organizationid", organizationid)
+        .select("*")
+        .single();
 
-    if (error) throw new Error(error.message);
+      if (error) {
+        throw new Error(error.message);
+      }
 
-    return new Organization(
-      data.organizationId,
-      data.name,
-      data.description,
-      data.adminId,
-      new Date(data.createdAt),
-      data.organizationType,
-      data.industry,
-      data.organizationSize,
-      data.website,
-      new Date(data.dateEstablished),
-      data.address,
-      data.socials,
-      data.slug,
-      data.photo,
-      data.banner
-    );
+      return data;
+    } catch (e) {
+      if (e instanceof Error) {
+        console.error("Unexpected error:", e);
+        throw new Error(e.message || "An unexpected error occurred");
+      } else {
+        console.error("Unexpected error:", e);
+        throw new Error("An unexpected error occurred");
+      }
+    }
   }
 
-  async getOrganizationById(organizationId: string): Promise<Organization | null> {
-    const { data, error } = await this.supabase
-      .from("organizations")
-      .select("*")
-      .eq("organizationId", organizationId)
-      .single();
+  async fetchOrganizationBySlug(slug: string) {
+    try {
+      const { data, error } = await this.supabase
+        .from("organizations")
+        .select("*")
+        .eq("slug", slug)
+        .single();
 
-    if (error || !data) return null;
+      if (error) {
+        throw new Error(error.message);
+      }
 
-    return new Organization(
-      data.organizationId,
-      data.name,
-      data.description,
-      data.adminId,
-      new Date(data.createdAt),
-      data.organizationType,
-      data.industry,
-      data.organizationSize,
-      data.website,
-      new Date(data.dateEstablished),
-      data.address,
-      data.socials,
-      data.slug,
-      data.photo,
-      data.banner
-    );
+      return data;
+    } catch (e) {
+      if (e instanceof Error) {
+        console.error("Unexpected error:", e);
+        throw new Error(e.message || "An unexpected error occurred");
+      } else {
+        console.error("Unexpected error:", e);
+        throw new Error("An unexpected error occurred");
+      }
+    }
   }
 
-  async updateOrganization(
-    organizationId: string,
-    updates: Partial<Organization>
-  ): Promise<Organization | null> {
-    const { data, error } = await this.supabase
-      .from("organizations")
-      .update(updates)
-      .eq("organizationId", organizationId)
-      .select("*")
-      .single();
+  async deleteOrganization(id: string) {
+    try {
+      const { error } = await this.supabase
+        .from("organizations")
+        .delete()
+        .eq("organizationid", id);
 
-    if (error || !data) return null;
-
-    return new Organization(
-      data.organizationId,
-      data.name,
-      data.description,
-      data.adminId,
-      new Date(data.createdAt),
-      data.organizationType,
-      data.industry,
-      data.organizationSize,
-      data.website,
-      new Date(data.dateEstablished),
-      data.address,
-      data.socials,
-      data.slug,
-      data.photo,
-      data.banner
-    );
+      if (error) {
+        throw new Error(error.message);
+      }
+    } catch (e) {
+      if (e instanceof Error) {
+        console.error("Unexpected error:", e);
+        throw new Error(e.message || "An unexpected error occurred");
+      } else {
+        console.error("Unexpected error:", e);
+        throw new Error("An unexpected error occurred");
+      }
+    }
   }
 
-  async deleteOrganization(organizationId: string): Promise<void> {
-    const { error } = await this.supabase
-      .from("organizations")
-      .delete()
-      .eq("organizationId", organizationId);
+  async fetchOrganizationsForUser(userId: string) {
+    try {
+      const { data, error } = await this.supabase
+        .from("organizations")
+        .select("*")
+        .eq("adminid", userId);
 
-    if (error) throw new Error(error.message);
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return data;
+    } catch (e) {
+      if (e instanceof Error) {
+        console.error("Unexpected error:", e);
+        throw new Error(e.message || "An unexpected error occurred");
+      } else {
+        console.error("Unexpected error:", e);
+        throw new Error("An unexpected error occurred");
+      }
+    }
   }
 
-  async getUserOrganizations(userUuid: string): Promise<Organizations[]> {
-    const { data, error } = await this.supabase.rpc("get_user_organizations", {
-      user_uuid: userUuid,
-    });
-    if (error) throw new Error(error.message);
-    return data.map(
-      (org: any) =>
-        new Organizations(
-          org.organization_id,
-          org.name,
-          org.description,
-          org.admin_id,
-          new Date(org.created_at),
-          org.organization_type,
-          org.industry,
-          org.organization_size,
-          org.website,
-          new Date(org.date_established),
-          org.address,
-          org.socials,
-          org.slug
-        )
-    );
+  async getUserOrganizationInfo(userId: string, organizationid: string) {
+    try {
+      const { data, error } = await this.supabase
+        .rpc("get_user_organization_info", {
+          user_id: userId,
+          organization_id: organizationid,
+        })
+        .single();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return data;
+    } catch (e) {
+      if (e instanceof Error) {
+        console.error("Unexpected error:", e);
+        throw new Error(e.message || "An unexpected error occurred");
+      } else {
+        console.error("Unexpected error:", e);
+        throw new Error("An unexpected error occurred");
+      }
+    }
+  }
+
+  async checkPermissions(userid: string, org_id: string, perm_key: string) {
+    try {
+      const { data, error } = await this.supabase.rpc("check_org_permissions", {
+        p_user_id: userid,
+        p_org_id: org_id,
+        p_perm_key: perm_key,
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return data;
+    } catch (e) {
+      if (e instanceof Error) {
+        console.error("Unexpected error:", e);
+        throw new Error(e.message || "An unexpected error occurred");
+      } else {
+        console.error("Unexpected error:", e);
+        throw new Error("An unexpected error occurred");
+      }
+    }
+  }
+
+  async fetchAllOrganizations() {
+    try {
+      const { data, error } = await this.supabase.from("organizations").select("*");
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return data;
+    } catch (e) {
+      if (e instanceof Error) {
+        console.error("Unexpected error:", e);
+        throw new Error(e.message || "An unexpected error occurred");
+      } else {
+        console.error("Unexpected error:", e);
+        throw new Error("An unexpected error occurred");
+      }
+    }
   }
 }

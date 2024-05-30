@@ -1,38 +1,33 @@
-// models/Organization.ts
-export class Organization {
-  constructor(
-    public organizationId: string,
-    public name: string,
-    public description: string,
-    public adminId: string,
-    public createdAt: Date,
-    public organizationType: string,
-    public industry: string,
-    public organizationSize: string,
-    public website: string,
-    public dateEstablished: Date,
-    public address: Record<string, any>,
-    public socials: Record<string, any>,
-    public slug: string,
-    public photo: string,
-    public banner: string
-  ) {}
+// @/models/Organization.ts
+
+interface Address {
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  stateProvince: string;
+  country: string;
 }
 
-export class Organizations {
+interface Socials {
+  facebook?: string;
+  twitter?: string;
+  linkedin?: string;
+}
+
+export class Organization {
   constructor(
-    public organizationId: string,
+    public organizationid: string,
     public name: string,
+    public photo: string,
+    public banner: string,
+    public slug: string,
     public description: string,
-    public adminId: string,
-    public createdAt: Date,
     public organizationType: string,
     public industry: string,
     public organizationSize: string,
     public website: string,
     public dateEstablished: Date,
-    public address: Record<string, any>,
-    public socials: Record<string, any>,
-    public slug: string
+    public address: Address,
+    public socials: Socials
   ) {}
 }

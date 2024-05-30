@@ -1,33 +1,18 @@
-// models/Event.ts
+// @/models/Event.ts
 export class Event {
   constructor(
-    public eventId: string,
+    public eventid: string,
     public title: string,
     public description: string,
-    public organizationId: string,
-    public eventDate: Date,
+    public starteventdatetime: Date,
+    public endeventdatetime: Date,
     public location: string,
-    public createdAt: Date,
-    public updatedAt: Date
-  ) {}
-}
-
-// models/Event.ts
-export class Events {
-  constructor(
-    public eventId: string,
-    public organizationId: string,
-    public title: string,
-    public description: string,
-    public eventDateTime: Date,
-    public location: string,
-    public registrationFee: number,
-    public createdAt: Date,
     public capacity: number,
-    public adminId: string,
+    public registrationfee: number,
     public privacy: string,
-    public eventPhoto: string,
+    public organizationid: string,
+    public eventphoto: string,
     public tags: string[],
-    public eventSlug: string
+    public eventslug: string
   ) {}
 }
