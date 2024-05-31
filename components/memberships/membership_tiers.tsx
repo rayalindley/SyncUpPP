@@ -242,7 +242,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
             if (error) {
               toast.error("Error saving invoice. Please try again later.");
             } else {
-              toast.error("Invoice saved successfully.");
+              // toast.error("Invoice saved successfully.");
               router.push(invoice.invoiceUrl);
             }
           }
