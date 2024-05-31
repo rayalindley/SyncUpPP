@@ -20,10 +20,18 @@ const DashboardPage = () => {
 
       setUser(user || null);
 
-      const { data: organizations, error } = await supabase
-        .from("organization_summary")
-        .select("*");
-      setOrganizations(organizations ?? []);
+      if (user?.role === "superadmin") {
+        const { data: organizations, error } = await supabase
+          .from("organization_summary")
+          .select("*");
+        setOrganizations(organizations ?? []);
+      } else {
+        const { data: organizations, error } = await supabase
+          .from("organization_summary")
+          .select("*")
+          .eq("adminid", user?.id);
+        setOrganizations(organizations ?? []);
+      }
     };
 
     fetchUserAndOrganizations();
