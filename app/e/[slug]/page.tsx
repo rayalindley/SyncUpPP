@@ -1,6 +1,7 @@
 "use client";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
+import Preloader from "@/components/preloader";
 import {
   checkEventPrivacyAndMembership,
   checkMembership,
@@ -28,7 +29,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import remarkGfm from "remark-gfm";
 import Swal from "sweetalert2";
-import { Xendit, Invoice as InvoiceClient } from "xendit-node";
+import { Invoice as InvoiceClient, Xendit } from "xendit-node";
 import type { CreateInvoiceRequest, Invoice } from "xendit-node/invoice/models";
 
 const xenditClient = new Xendit({
@@ -112,7 +113,7 @@ const EventPage = () => {
         if (user && eventData) {
           const { isMember } = await checkMembership(user.id, eventData.organizationid);
           setIsOrgMember(isMember);
-          console.log("isMember", isMember);
+          // console.log("isMember", isMember);
         }
 
         // Check if the event is finished or registration is closed
@@ -135,7 +136,7 @@ const EventPage = () => {
   }, [slug]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <Preloader />;
   }
 
   if (!event) {

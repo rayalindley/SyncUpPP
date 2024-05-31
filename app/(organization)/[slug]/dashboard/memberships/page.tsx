@@ -1,15 +1,16 @@
 "use client";
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { fetchOrganizationBySlug } from "@/lib/organization";
-import { fetchOrgMemBySlug, fetchMembersBySlug } from "@/lib/memberships";
-import MembershipTiers from "@/components/memberships/membership_tiers";
 import MembershipModal from "@/components/memberships/create_membership_modal";
 import MemberTable from "@/components/memberships/member_table";
-import { Organizations } from "@/types/organizations";
-import { Memberships } from "@/types/memberships";
-import { User_membership_info } from "@/types/users";
+import MembershipTiers from "@/components/memberships/membership_tiers";
+import Preloader from "@/components/preloader";
+import { fetchMembersBySlug, fetchOrgMemBySlug } from "@/lib/memberships";
+import { fetchOrganizationBySlug } from "@/lib/organization";
 import { createClient } from "@/lib/supabase/client";
+import { Memberships } from "@/types/memberships";
+import { Organizations } from "@/types/organizations";
+import { User_membership_info } from "@/types/users";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import Swal from "sweetalert2";
 
@@ -39,7 +40,7 @@ export default function Example() {
   const fetchMembers = async () => {
     try {
       const membersData = await fetchMembersBySlug(slug);
-      console.log("membersData", membersData);
+      // console.log("membersData", membersData);
       setMembers(membersData);
     } catch (err) {
       console.error("Failed to fetch members:", err);
@@ -126,7 +127,7 @@ export default function Example() {
   };
 
   if (!memberships || !members || !organization) {
-    return <div>Loading...</div>;
+    return <Preloader />;
   }
 
   const handleCreateClick = () => {

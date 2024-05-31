@@ -1,5 +1,6 @@
 "use client";
 import CreateEventForm from "@/components/create_event_form";
+import Preloader from "@/components/preloader";
 import { fetchEventById } from "@/lib/events";
 import { check_permissions } from "@/lib/organization";
 import { getUser } from "@/lib/supabase/client";
@@ -13,7 +14,8 @@ export default function EditEventPage() {
   const eventId = params.eventId;
   const [event, setEvent] = useState(null); // State to hold the event data
   const [error, setError] = useState<string | null>(null);
-  const [hasPermission, setHasPermission] = useState(false);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -35,33 +37,36 @@ export default function EditEventPage() {
     if (eventId) {
       fetchData();
     }
-    async function checkPermissions() {
+    const checkPermissions = async () => {
       const { user } = await getUser();
       try {
-        const events = await fetchEventById(eventId as string);
-        if ("organizationid" in events.data) {
+        const eventResponse = await fetchEventById(eventId as string);
+        if (eventResponse.data && "organizationid" in eventResponse.data) {
           const permission = await check_permissions(
             user?.id || "",
-            events.data.organizationid,
+            eventResponse.data.organizationid,
             "edit_events"
           );
           setHasPermission(permission);
         }
       } catch (error) {
         console.error("Failed to check permissions", error);
+      } finally {
+        setLoading(false);
       }
+    };
+
+    if (eventId) {
+      fetchData();
+      checkPermissions();
     }
-    checkPermissions();
   }, [eventId]);
 
   if (!event || hasPermission == null) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-semibold text-light">Loading...</h2>
-        </div>
-      </div>
-    );
+    return <Preloader />;
+  }
+  if (loading) {
+    return <Preloader />;
   }
 
   if (!hasPermission) {

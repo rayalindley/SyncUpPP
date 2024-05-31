@@ -54,7 +54,7 @@ const Comments: React.FC<CommentsProps> = ({ postid, canComment }) => {
 
   const { user } = useUser();
 
-  console.log(user);
+  // console.log(user);
   const supabaseStorageBaseUrl =
     "https://wnvzuxgxaygkrqzvwjjd.supabase.co/storage/v1/object/public/";
 

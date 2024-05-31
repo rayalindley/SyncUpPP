@@ -10,6 +10,7 @@ import {
   CreateEmailResponse,
   Organization,
 } from "./types";
+import { PostgrestError } from "@supabase/supabase-js";
 
 export async function fetchSentEmailsByAdmin(adminUserId: AdminUuid) {
   const supabase = createClient();
@@ -21,20 +22,22 @@ export async function fetchSentEmailsByAdmin(adminUserId: AdminUuid) {
     if (error) throw error;
     return sentEmails;
   } catch (error) {
-    console.error("Error fetching sent emails:", error);
+    console.error("Error fetching sent emails:", (error as Error).message);
     return [];
   }
 }
-
 
 export async function sendEmail(emailContent: EmailContent) {
   const resend = new Resend(process.env.NEXT_PUBLIC_RESEND_API_KEY);
   try {
     const response = await resend.emails.send(emailContent);
-    console.log("Email sent:", response);
+    if (response.error && response.error.message.includes('You can only send testing emails to your own email address')) {
+      throw new Error('You can only send emails to the account bound to the Resend API Free Plan.');
+    }
+    // console.log("Email sent:", response);
     return response;
   } catch (error) {
-    console.error("Error sending newsletter.");
+    console.error("Error sending email:", (error as Error).message);
     throw error; // Re-throw error to handle it in the calling function
   }
 }
@@ -44,7 +47,8 @@ export async function sendNewsletter(
   content: string,
   allUsers: User[],
   attachments: any[],
-  from: string
+  organizationName: string,
+  organizationUuid: OrganizationUuid
 ) {
   const supabase = createClient();
   let successCount = 0;
@@ -57,7 +61,7 @@ export async function sendNewsletter(
   const promises = uniqueUsers.map(async (user) => {
     if (user && user.email) {
       const emailContent: EmailContent = {
-        from: `${from} <onboarding@resend.dev>`,
+        from: `${organizationName} <onboarding@resend.dev>`,
         to: user.email,
         subject,
         html: content,
@@ -67,9 +71,11 @@ export async function sendNewsletter(
       try {
         const emailResponse = await sendEmail(emailContent);
         if (emailResponse) {
-          const insertResponse = await supabase.from("emails").insert([
+          const { data: insertData, error: insertError } = await supabase.from("emails").insert([
             {
-              sender: from,
+              sender_id: organizationUuid,
+              receiver_id: user.id,
+              sender: organizationName,
               receiver: user.email,
               subject,
               body: content,
@@ -77,30 +83,29 @@ export async function sendNewsletter(
             },
           ]);
 
-          if (insertResponse.data == null) {
-            console.error("API Key Error");
-            throw new Error(insertResponse.error?.message || "API Key Error");
+          if (insertError) {
+            console.error("Error inserting email record:", (insertError as PostgrestError).message);
+            throw new Error((insertError as PostgrestError).message);
           }
 
           successCount++;
           return emailResponse;
         }
-      } catch (emailError: any) {
-        failures.push({ email: user.email, reason: emailError?.message });
-        console.error("Error sending email:", emailError);
+      } catch (emailError) {
+        failures.push({ email: user.email, reason: (emailError as Error).message });
+        console.error("Error sending email:", (emailError as Error).message);
       }
     }
   });
 
-  const responses = await Promise.all(promises);
-  return { successCount, failures, responses };
+  await Promise.all(promises);
+  return { successCount, failures };
 }
-
 
 export async function fetchMembersByOrganization(organizationUuid: OrganizationUuid) {
   const supabase = createClient();
   try {
-    const { data: members, error }: { data: any; error: any } = await supabase.rpc(
+    const { data: members, error } = await supabase.rpc(
       "get_all_combined_user_data_by_org",
       { organization_uuid: organizationUuid }
     );
@@ -108,8 +113,8 @@ export async function fetchMembersByOrganization(organizationUuid: OrganizationU
     if (error) throw error;
 
     return members;
-  } catch (error: any) {
-    console.error("Error fetching members by organization:", error.message);
+  } catch (error) {
+    console.error("Error fetching members by organization:", (error as Error).message);
     return [];
   }
 }
@@ -117,7 +122,7 @@ export async function fetchMembersByOrganization(organizationUuid: OrganizationU
 export async function fetchMembersByEvent(eventUuid: EventUuid) {
   const supabase = createClient();
   try {
-    const { data: members, error }: { data: any; error: any } = await supabase.rpc(
+    const { data: members, error } = await supabase.rpc(
       "get_all_combined_user_data_by_event",
       { event_uuid: eventUuid }
     );
@@ -125,17 +130,16 @@ export async function fetchMembersByEvent(eventUuid: EventUuid) {
     if (error) throw error;
 
     return members;
-  } catch (error: any) {
-    console.error("Error fetching members by event:", error.message);
+  } catch (error) {
+    console.error("Error fetching members by event:", (error as Error).message);
     return [];
   }
 }
 
-// New function to fetch events by organization
 export async function fetchEventsByOrganization(organizationUuid: OrganizationUuid) {
   const supabase = createClient();
   try {
-    const { data: events, error }: { data: any; error: any } = await supabase.rpc(
+    const { data: events, error } = await supabase.rpc(
       "get_events_by_organization",
       { org_id: organizationUuid }
     );
@@ -143,15 +147,13 @@ export async function fetchEventsByOrganization(organizationUuid: OrganizationUu
     if (error) throw error;
 
     return events;
-  } catch (error: any) {
-    console.error("Error fetching events by organization:", error.message);
+  } catch (error) {
+    console.error("Error fetching events by organization:", (error as Error).message);
     return [];
   }
 }
 
-export async function fetchOrganizationBySlug(
-  slug: string
-): Promise<Organization | null> {
+export async function fetchOrganizationBySlug(slug: string): Promise<Organization | null> {
   const supabase = createClient();
   try {
     const { data: organization, error } = await supabase.rpc("get_organization_by_slug", {
@@ -162,7 +164,7 @@ export async function fetchOrganizationBySlug(
 
     return organization.length > 0 ? organization[0] : null;
   } catch (error) {
-    console.error("Error fetching organization by slug:", error);
+    console.error("Error fetching organization by slug:", (error as Error).message);
     return null;
   }
 }

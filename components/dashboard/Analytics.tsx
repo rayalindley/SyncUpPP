@@ -30,7 +30,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ organizationid 
       if (error) {
         console.error("Error fetching analytics data:", error.message);
       } else {
-        console.log("Fetched data:", data);
+        // console.log("Fetched data:", data);
         const formattedData = data.map((item) => ({
           ...item,
           day_joined: new Date(item.day_joined)
@@ -57,7 +57,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ organizationid 
           filtered.map((item) => [`${item.eventid}-${item.day_registered}`, item])
         ).values()
       );
-      console.log("Filtered and unique data:", uniqueFiltered);
+      // console.log("Filtered and unique data:", uniqueFiltered);
       setFilteredRegistrations(uniqueFiltered);
     } else {
       setFilteredRegistrations([]);

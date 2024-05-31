@@ -214,14 +214,14 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
           } else {
             toast.success("Invoice created successfully.");
 
-            console.log({
-              amount: amount,
-              invoiceId: invoice.id,
-              organizationId: organizationid,
-              type: "membership",
-              invoiceUrl: invoice.invoiceUrl,
-              invoiceData: invoice,
-            });
+            // console.log({
+            //   amount: amount,
+            //   invoiceId: invoice.id,
+            //   organizationId: organizationid,
+            //   type: "membership",
+            //   invoiceUrl: invoice.invoiceUrl,
+            //   invoiceData: invoice,
+            // });
             const { data, error } = await supabase
               .from("payments")
               .insert([
@@ -237,7 +237,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
               ])
               .select();
 
-            console.log(data, error);
+            // console.log(data, error);
 
             if (error) {
               toast.error("Error saving invoice. Please try again later.");

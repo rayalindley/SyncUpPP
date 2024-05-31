@@ -1,8 +1,8 @@
 import { Organizations } from "./organizations";
 
 export interface Organization_roles {
-  role_id: string /* primary key */;
-  org_id: string /* foreign key to organizations.organizationid */;
+  role_id: string;
+  org_id: string;
   role: string;
   color?: string;
   deletable: boolean;

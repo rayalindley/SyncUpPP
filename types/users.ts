@@ -2,7 +2,7 @@ import { Organizations } from "./organizations";
 import { Organization_roles } from "./roles";
 
 export interface Combined_user_data {
-  id?: string /* primary key */;
+  id?: string;
   email?: string;
   role?: string;
   created_at?: string;
@@ -19,7 +19,7 @@ export interface Combined_user_data {
 }
 
 export interface Userprofiles {
-  userid: string /* foreign key to combined_user_data.id */;
+  userid: string;
   first_name?: string;
   last_name?: string;
   gender?: string;
@@ -29,12 +29,12 @@ export interface Userprofiles {
   profilepicture?: string;
   website?: string;
   updatedat?: string;
-  id: number /* primary key */;
+  id: number;
   combined_user_data?: Combined_user_data;
 }
 
 export interface User_membership_info {
-  userid?: string /* foreign key to combined_user_data.id */;
+  userid?: string;
   first_name?: string;
   last_name?: string;
   gender?: string;
@@ -44,9 +44,9 @@ export interface User_membership_info {
   profilepicture?: string;
   website?: string;
   updatedat?: string;
-  organizationmemberid?: string /* primary key */;
-  organizationid?: string /* foreign key to organizations.organizationid */;
-  roleid?: string /* foreign key to organization_roles.role_id */;
+  organizationmemberid?: string;
+  organizationid?: string;
+  roleid?: string;
   joindate?: string;
   enddate?: string;
   organization_slug?: string;
@@ -56,8 +56,8 @@ export interface User_membership_info {
   role_editable?: boolean;
   membership_name?: string;
   membership_description?: string;
-  membership_fee?: any; // type unknown;
-  membership_features?: any; // type unknown;
+  membership_fee?: any;
+  membership_features?: any;
   combined_user_data?: Combined_user_data;
   organizations?: Organizations;
   organization_roles?: Organization_roles;

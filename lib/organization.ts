@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 
 // TODO: Add permissions, check whether the user has permissions to do it or not.
 
-export async function insertOrganization(formData: any) {
+export async function createOrganization(formData: any) {
   const insertValues = {
     name: formData.name,
     photo: formData.photo,
@@ -103,7 +103,7 @@ export async function updateOrganization(organizationid: string, formData: any) 
 export async function fetchOrganizationBySlug(slug: string) {
   const supabase = createClient();
 
-  console.log("slug", slug);
+  // console.log("slug", slug);
   try {
     const { data, error } = await supabase
       .from("organizations")

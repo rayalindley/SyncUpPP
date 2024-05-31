@@ -2,9 +2,9 @@ import { Events } from "./events";
 import { Organizationmembers } from "./organizations";
 
 export interface Notifications {
-  notificationid: string /* primary key */;
-  organizationmemberid?: string /* foreign key to organizationmembers.organizationmemberid */;
-  eventid?: string /* foreign key to events.eventid */;
+  notificationid: string;
+  organizationmemberid?: string;
+  eventid?: string;
   title?: string;
   eventdatetime?: string;
   starteventdatetime?: string;

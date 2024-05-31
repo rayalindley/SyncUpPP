@@ -1,4 +1,5 @@
 "use client";
+import Preloader from "@/components/preloader";
 import { createClient } from "@/lib/supabase/client";
 import { User } from "@/node_modules/@supabase/auth-js/src/lib/types";
 import { useEffect, useState } from "react";
@@ -21,8 +22,6 @@ const AdminAnalyticsDashboard = ({ user }: { user: User | null }) => {
   const [totalStats, setTotalStats] = useState<TotalStats | null>(null);
   const [topOrgs, setTopOrgs] = useState<TopOrg[]>([]);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
-
-  // Ensure userId is handled correctly
   const userId = user?.id;
   const [filter, setFilter] = useState("total_events");
   const supabase = createClient();
@@ -135,7 +134,7 @@ const AdminAnalyticsDashboard = ({ user }: { user: User | null }) => {
     fetchData();
   }, [userId, filter]);
 
-  if (!totalStats) return <div>Loading...</div>;
+  if (!totalStats) return <Preloader />;
 
   return (
     <div className="p-4">

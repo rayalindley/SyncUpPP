@@ -1,4 +1,5 @@
 "use client";
+import Preloader from "@/components/preloader";
 import { useUser } from "@/context/UserContext";
 import { createClient } from "@/lib/supabase/client";
 import { UserProfile } from "@/lib/types";
@@ -225,7 +226,7 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
   };
 
   if (!userProfile) {
-    return <div className="mt-10 text-light">Loading...</div>;
+    return <Preloader />;
   }
 
   return (
@@ -253,22 +254,22 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
           >
             <div className="col-span-3 sm:col-span-2">
               <div className="flex items-center justify-center">
-                <div className="relative">
-                  <img
-                    src={
-                      previewUrl
-                        ? previewUrl
-                        : userProfile?.profilepicture
-                          ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${userProfile.profilepicture}`
-                          : "/Portrait_Placeholder.png"
-                    }
-                    alt="Profile Picture"
-                    className="block h-44 w-44 rounded-full border-4 border-primary"
-                    style={{ objectFit: "cover" }}
-                  />
+                <div className="relative h-44 w-44">
+                  {previewUrl || userProfile?.profilepicture ? (
+                    <img
+                      src={
+                        previewUrl
+                          ? previewUrl
+                          : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${userProfile.profilepicture}`
+                      }
+                      className="block h-full w-full rounded-full border-4 border-primary bg-charleston object-cover"
+                    />
+                  ) : (
+                    <div className="block h-full w-full rounded-full border-4 border-primary"></div>
+                  )}
                   <div className="absolute bottom-0 right-0 mb-2 mr-2">
                     <label htmlFor="profile-picture-input" className="">
-                      <PlusIcon className="mr-2 inline-block h-8 w-8 cursor-pointer rounded-full border-2 border-primary  bg-white text-primarydark" />
+                      <PlusIcon className="mr-2 inline-block h-8 w-8 cursor-pointer rounded-full border-2 border-primary bg-white text-primarydark" />
                     </label>
                     <input
                       id="profile-picture-input"

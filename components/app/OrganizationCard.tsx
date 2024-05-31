@@ -66,7 +66,7 @@ const OrganizationCard: React.FC<OrganizationCardProps> = ({
         "postgres_changes",
         { event: "*", schema: "public", table: "organizationmembers" },
         (payload) => {
-          console.log("Change received in organizationmembers!", payload);
+          // console.log("Change received in organizationmembers!", payload);
           handleReload();
         }
       )
@@ -78,7 +78,7 @@ const OrganizationCard: React.FC<OrganizationCardProps> = ({
         "postgres_changes",
         { event: "*", schema: "public", table: "events" },
         (payload) => {
-          console.log("Change received in events!", payload);
+          // console.log("Change received in events!", payload);
           handleReload();
         }
       )
@@ -90,7 +90,7 @@ const OrganizationCard: React.FC<OrganizationCardProps> = ({
         "postgres_changes",
         { event: "*", schema: "public", table: "posts" },
         (payload) => {
-          console.log("Change received in posts!", payload);
+          // console.log("Change received in posts!", payload);
           handleReload();
         }
       )

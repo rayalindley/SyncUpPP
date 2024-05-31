@@ -1,12 +1,13 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import Preloader from "@/components/preloader";
+import { check_permissions, getUserOrganizationInfo } from "@/lib/organization";
+import { fetchPosts } from "@/lib/posts";
+import { createClient, getUser } from "@/lib/supabase/client";
+import { Posts } from "@/types/posts"; // Ensure this import matches your actual types
+import { ArrowLeftIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
+import { useCallback, useEffect, useRef, useState } from "react";
+import Divider from "./divider";
 import PostsCard from "./posts_card";
 import PostsTextArea from "./posts_textarea";
-import { fetchPosts } from "@/lib/posts";
-import Divider from "./divider";
-import { createClient, getUser } from "@/lib/supabase/client";
-import { getUserOrganizationInfo, check_permissions } from "@/lib/organization";
-import { ArrowLeftIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
-import { Posts } from "@/types/posts"; // Ensure this import matches your actual types
 
 interface OrganizationPostsComponentProps {
   organizationid: string;
@@ -34,7 +35,7 @@ const OrganizationPostsComponent = ({
           ? data
           : data.filter((post) => post.privacylevel !== "private");
         setPostsData(visibleData);
-        console.log("isMemberOfOrganization", isMember);
+        // console.log("isMemberOfOrganization", isMember);
       } else {
         console.error("Error fetching posts:", error);
       }
@@ -113,11 +114,7 @@ const OrganizationPostsComponent = ({
   return (
     <div className="mx-auto max-w-4xl">
       {loading ? (
-        <div className="flex h-screen items-center justify-center">
-          <div className="text-center">
-            <h2 className="text-2xl font-semibold text-light">Loading...</h2>
-          </div>
-        </div>
+        <Preloader />
       ) : (
         <div className="flex flex-col justify-center">
           <h2 className="mb-8 text-center text-2xl font-semibold text-light">
