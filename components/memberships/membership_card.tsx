@@ -83,7 +83,7 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
       ) : (
         <p className="mt-6 flex items-baseline gap-x-1">
           <span className="text-4xl font-bold tracking-tight text-white">
-            ${registrationFee.toFixed(2)}
+            Php {registrationFee.toFixed(2)}
           </span>
           <span className="text-sm font-semibold leading-6 text-gray-300">
             {frequency.priceSuffix}
