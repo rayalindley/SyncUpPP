@@ -1,7 +1,7 @@
 // @/services/PostService.ts
 
 import { createClient, getUser } from "../lib/supabase/server";
-import { Post } from "../models/Post";
+import { Post } from "../models_/Post";
 
 export class PostService {
   private supabase = createClient();

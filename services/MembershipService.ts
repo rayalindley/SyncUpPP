@@ -1,7 +1,7 @@
 // @/services/MembershipService.ts
 
 import { createClient } from "@/lib/supabase/server";
-import { Membership } from "@/models/Membership";
+import { Membership } from "@/models_/Membership";
 
 export class MembershipService {
   private supabase = createClient();

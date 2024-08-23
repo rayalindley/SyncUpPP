@@ -2,7 +2,7 @@
 
 import { NextApiRequest, NextApiResponse } from "next";
 import { MembershipService } from "@/services/MembershipService";
-import { Membership } from "@/models/Membership";
+import { Membership } from "@/models_/Membership";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {

@@ -2,7 +2,7 @@
 
 import { NextApiRequest, NextApiResponse } from "next";
 import { RoleService } from "@/services/RoleService";
-import { Role } from "@/models/Role";
+import { Role } from "@/models_/Role";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {

@@ -1,7 +1,7 @@
 // @/services/RoleService.ts
 
 import { createClient } from "../lib/supabase/server";
-import { Role } from "../models/Role";
+import { Role } from "../models_/Role";
 import { Member } from "../types/roles";
 
 export class RoleService {

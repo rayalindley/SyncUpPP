@@ -1,6 +1,6 @@
 // services/PaymentService.ts
 import { SupabaseClient } from "@supabase/supabase-js";
-import { Payment } from "../models/Payment";
+import { Payment } from "../models_/Payment";
 
 export class PaymentService {
   private supabase: SupabaseClient;

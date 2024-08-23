@@ -1,7 +1,7 @@
 // @/services/OrganizationService.ts
 
 import { createClient } from "@/lib/supabase/server";
-import { Organization } from "@/models/Organization";
+import { Organization } from "@/models_/Organization";
 
 export class OrganizationService {
   private supabase = createClient();

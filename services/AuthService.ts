@@ -3,7 +3,7 @@
 import { createClient } from "../lib/supabase/server";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
-import { User } from "../models/User";
+import { User } from "../models_/User";
 import { z } from "zod";
 
 import { Provider } from "@supabase/supabase-js";

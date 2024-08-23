@@ -2,7 +2,7 @@
 
 import { NextApiRequest, NextApiResponse } from "next";
 import { OrganizationService } from "@/services/OrganizationService";
-import { Organization } from "@/models/Organization";
+import { Organization } from "@/models_/Organization";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {

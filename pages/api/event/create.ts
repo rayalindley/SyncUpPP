@@ -2,7 +2,7 @@
 
 import { NextApiRequest, NextApiResponse } from "next";
 import { EventService } from "@/services/EventService";
-import { Event } from "@/models/Event";
+import { Event } from "@/models_/Event";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
