@@ -1,25 +1,36 @@
 "use server";
+
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 
+// Validation Schemas
 const signInSchema = z.object({
   email: z.string().email({ message: "Invalid email format" }),
-  password: z.string().min(8, { message: "Password must be at least 8 characters long" }), // Customizing the minimum length message
+  password: z.string().min(8, { message: "Password must be at least 8 characters long" }),
 });
 
-const signUpSchema = z.object({
+export const signUpSchema = z.object({
   email: z.string().email({ message: "Invalid email format" }),
   password: z.string().min(8, { message: "Password must be at least 8 characters long" }),
   first_name: z
     .string()
-    .min(2, { message: "First name must be at least 2 characters long" }), // Updated minimum length requirement
+    .min(2, { message: "First name must be at least 2 characters long" }),
   last_name: z
     .string()
-    .min(2, { message: "Last name must be at least 2 characters long" }), // Updated minimum length requirement
+    .min(2, { message: "Last name must be at least 2 characters long" }),
 });
 
+const resetPasswordSchema = z.object({
+  password: z.string().min(8, { message: "Password must be at least 8 characters long." }),
+});
+
+const forgotPasswordSchema = z.object({
+  email: z.string().email({ message: "Invalid email format." }),
+});
+
+// Auth Functions
 export async function signOut() {
   const supabase = createClient();
   await supabase.auth.signOut();
@@ -34,22 +45,15 @@ export async function signInWithPassword(formData: FormData) {
 
   if (!result.success) {
     const errors = result.error.issues.map((issue) => issue.message).join(", ");
-    const errorParams = new URLSearchParams({ error: errors });
-    return redirect(`/signin?${errorParams}`);
+    return redirect(`/signin?${new URLSearchParams({ error: errors })}`);
   }
 
   const { email, password } = result.data;
   const supabase = createClient();
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    const errorParams = new URLSearchParams({
-      error: error.message || "Invalid email or password",
-    });
-    return redirect(`/signin?${errorParams}`);
+    return redirect(`/signin?${new URLSearchParams({ error: error.message || "Invalid email or password" })}`);
   }
 
   return redirect("/dashboard");
@@ -65,8 +69,7 @@ export async function signUp(formData: FormData) {
 
   if (!result.success) {
     const errors = result.error.issues.map((issue) => issue.message).join(", ");
-    const errorParams = new URLSearchParams({ error: errors });
-    return redirect(`/signup?${errorParams}`);
+    return redirect(`/signup?${new URLSearchParams({ error: errors })}`);
   }
 
   const { email, password, first_name, last_name } = result.data;
@@ -74,52 +77,30 @@ export async function signUp(formData: FormData) {
   const { error } = await supabase.auth.signUp({
     email,
     password,
-    options: {
-      data: {
-        first_name,
-        last_name,
-      },
-    },
+    options: { data: { first_name, last_name } },
   });
 
   if (error) {
-    const errorParams = new URLSearchParams({
-      error: error.message || "Could not sign up",
-    });
-    return redirect(`/signup?${errorParams}`);
+    return redirect(`/signup?${new URLSearchParams({ error: error.message || "Could not sign up" })}`);
   }
 
   return redirect("/signup?success=Check your email to continue signing up.");
 }
 
-type Provider = "github" | "google";
-export async function signInWith(provider: Provider) {
+export async function signInWith(provider: "github" | "google") {
   const origin = headers().get("origin");
-
   const supabase = createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
-    options: {
-      redirectTo: `${origin}/api/auth/callback`,
-    },
+    options: { redirectTo: `${origin}/api/auth/callback` },
   });
 
   if (error) {
-    return redirect(`/signin?error=${error.message || "Could not authenticate user"}`);
+    return redirect(`/signin?${new URLSearchParams({ error: error.message || "Could not authenticate user" })}`);
   }
 
   return redirect(data.url);
 }
-
-const resetPasswordSchema = z.object({
-  password: z
-    .string()
-    .min(8, { message: "Password must be at least 8 characters long." }),
-});
-
-const forgotPasswordSchema = z.object({
-  email: z.string().email({ message: "Invalid email format." }),
-});
 
 export async function forgotPassword(formData: FormData) {
   const result = forgotPasswordSchema.safeParse({
@@ -128,21 +109,18 @@ export async function forgotPassword(formData: FormData) {
 
   if (!result.success) {
     const errors = result.error.issues.map((issue) => issue.message).join(", ");
-    return redirect(`/forgot-password?error=${errors}`);
+    return redirect(`/forgot-password?${new URLSearchParams({ error: errors })}`);
   }
-  const { email } = result.data;
-  const origin = headers().get("origin");
-  const supabase = createClient();
 
+  const { email } = result.data;
+  const supabase = createClient();
   const { error } = await supabase.auth.resetPasswordForEmail(email);
 
   if (error) {
-    return redirect(`/forgot-password?error=${error.message || "Could not send email."}`);
+    return redirect(`/forgot-password?${new URLSearchParams({ error: error.message || "Could not send email." })}`);
   }
 
-  return redirect(
-    `/forgot-password?success=Check your inbox for instructions to reset your password.`
-  );
+  return redirect(`/forgot-password?success=Check your inbox for instructions to reset your password.`);
 }
 
 export async function resetPassword(formData: FormData) {
@@ -152,18 +130,15 @@ export async function resetPassword(formData: FormData) {
 
   if (!result.success) {
     const errors = result.error.issues.map((issue) => issue.message).join(", ");
-    return redirect(`/reset-password?error=${errors}`);
+    return redirect(`/reset-password?${new URLSearchParams({ error: errors })}`);
   }
 
   const { password } = result.data;
-
   const supabase = createClient();
   const { error } = await supabase.auth.updateUser({ password });
 
   if (error) {
-    return redirect(
-      `/reset-password?error=${error.message || "Could not reset password."}`
-    );
+    return redirect(`/reset-password?${new URLSearchParams({ error: error.message || "Could not reset password." })}`);
   }
 
   return redirect("/dashboard?success=Password reset successfully.");

@@ -1,12 +1,14 @@
 "use client";
-import { signOut } from "@/lib/auth";
-import { UserProfile } from "@/lib/types";
-import { getUserProfileById } from "@/lib/userActions";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Dialog, Menu, Transition } from "@headlessui/react";
 import { Bars3Icon, ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { User } from "@supabase/supabase-js";
-import Link from "next/link";
-import { Fragment, useEffect, useState } from "react";
+import { UserProfile } from "@/lib/types";
+import { AuthController } from "@/controllers/authController";
+import { getUserProfileById } from "@/lib/userActions";
+import { Fragment } from "react";
 
 const navigation = [
   { name: "Home", href: "/" },
@@ -23,6 +25,7 @@ function classNames(...classes: any[]) {
 export default function Header({ user = null }: { user: User | null }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const authController = new AuthController();
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -202,7 +205,7 @@ export default function Header({ user = null }: { user: User | null }) {
                               "block w-full px-4 py-2 text-left text-sm"
                             )}
                             onClick={async () => {
-                              await signOut();
+                              await authController.signOut();
                             }}
                           >
                             Sign out

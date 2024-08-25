@@ -1,14 +1,7 @@
 "use client";
-import { signOut } from "@/lib/auth";
-import {
-  fetchNotifications,
-  markAllAsRead,
-  markNotificationAsRead,
-} from "@/lib/notifications";
-import { createClient } from "@/lib/supabase/client";
-import { UserProfile } from "@/lib/types";
-import { getUserProfileById } from "@/lib/userActions";
-import useSidebarStore from "@/store/useSidebarStore";
+
+import { useEffect, useRef, useState, Fragment } from "react";
+import Link from "next/link";
 import { Menu, Transition } from "@headlessui/react";
 import { ChevronDownIcon } from "@heroicons/react/20/solid";
 import {
@@ -24,16 +17,20 @@ import {
 } from "@heroicons/react/24/outline";
 import { type User } from "@supabase/supabase-js";
 import { formatDistanceToNow } from "date-fns";
-import Link from "next/link";
-import { Fragment, useEffect, useRef, useState } from "react";
+import { AuthController } from "@/controllers/authController";
+import { fetchNotifications, markAllAsRead, markNotificationAsRead } from "@/lib/notifications";
+import { UserProfile } from "@/lib/types";
+import { getUserProfileById } from "@/lib/userActions";
+import useSidebarStore from "@/store/useSidebarStore";
+import { createClient } from "@/lib/supabase/client";
 
 function classNames(...classes: any[]) {
   return classes?.filter(Boolean).join(" ");
 }
 
 function Header({ user }: { user: User }) {
-  // console.log("Hello from Header.tsx");
   const notificationLinkRef = useRef(null);
+  const authController = new AuthController();
 
   const { sidebarOpen, setSidebarOpen } = useSidebarStore((state) => ({
     sidebarOpen: state.sidebarOpen,
@@ -45,7 +42,6 @@ function Header({ user }: { user: User }) {
   const [unreadCount, setUnreadCount] = useState(0);
 
   const loadNotifications = async () => {
-    // console.log("Calling fetchNotifications");
     const response = await fetchNotifications(user.id);
 
     if (response && response.data) {
@@ -67,7 +63,6 @@ function Header({ user }: { user: User }) {
     const supabase = createClient();
 
     const initializeNotifications = async () => {
-      // console.log("Initializing notifications");
       await loadNotifications();
 
       const notificationChannel = supabase
@@ -81,7 +76,6 @@ function Header({ user }: { user: User }) {
             filter: `userid=eq.${user.id}`,
           },
           (payload) => {
-            // console.log("Received notification payload:", payload);
             loadNotifications();
           }
         )
@@ -355,7 +349,7 @@ function Header({ user }: { user: User }) {
                           "block w-full px-4 py-2 text-left text-sm"
                         )}
                         onClick={async () => {
-                          await signOut();
+                          await authController.signOut();
                         }}
                       >
                         Sign out

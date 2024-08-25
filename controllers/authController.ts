@@ -105,4 +105,14 @@ export class AuthController {
       alert("An error occurred during the password reset process.");
     }
   }
+
+  async signOut() {
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      window.location.href = "/signin";
+    } catch (error) {
+      alert("An error occurred during sign-out.");
+    }
+  }
 }

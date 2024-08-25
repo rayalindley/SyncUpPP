@@ -1,6 +1,27 @@
-import { forgotPassword } from "@/lib/auth";
+"use client";
+
+import { useState } from "react";
+import { AuthController } from "@/controllers/authController";
 
 export default function ForgotPassword({ searchParams }: { searchParams: any }) {
+  const authController = new AuthController();
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  async function handleForgotPassword(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+
+    try {
+      await authController.forgotPassword(formData);
+      setSuccess("Check your inbox for instructions to reset your password.");
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || "An unknown error occurred.");
+      setSuccess(null);
+    }
+  }
+
   return (
     <>
       <div className="flex min-h-full flex-1 flex-col justify-center bg-eerieblack py-12 sm:px-6 lg:px-8">
@@ -17,19 +38,19 @@ export default function ForgotPassword({ searchParams }: { searchParams: any }) 
             </div>
 
             {/* Sucess / Error Message */}
-            {(searchParams?.error || searchParams?.success) && (
+            {(error || success) && (
               <div
-                className={`rounded-md ${searchParams.error ? "bg-red-50" : "bg-green-50"} p-4`}
+                className={`rounded-md ${error ? "bg-red-50" : "bg-green-50"} p-4`}
               >
                 <p
-                  className={`text-center text-sm font-medium ${searchParams?.error ? "text-red-800" : "text-green-800"}`}
+                  className={`text-center text-sm font-medium ${error ? "text-red-800" : "text-green-800"}`}
                 >
-                  {searchParams?.error} {searchParams?.success}
+                  {error || success}
                 </p>
               </div>
             )}
 
-            <form action={forgotPassword} className="space-y-3">
+            <form onSubmit={handleForgotPassword} className="space-y-3">
               <div>
                 <label
                   htmlFor="email"
