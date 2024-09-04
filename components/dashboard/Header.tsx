@@ -7,8 +7,8 @@ import {
 } from "@/lib/notifications";
 import { createClient } from "@/lib/supabase/client";
 import { UserProfile } from "@/lib/types";
-import { getUserProfileById } from "@/lib/userActions";
-import useSidebarStore from "@/store/useSidebarStore";
+import { getUserProfileById } from "@/lib/user_actions";
+import useSidebarStore from "@/store/use_sidebar_store";
 import { Menu, Transition } from "@headlessui/react";
 import { ChevronDownIcon } from "@heroicons/react/20/solid";
 import {

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { UserProvider } from "@/context/UserContext";
+import { UserProvider } from "@/context/user_context";
 import { getUser } from "@/lib/supabase/server";
 
 export default async function EditProfileLayout({

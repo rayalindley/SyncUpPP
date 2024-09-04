@@ -1,8 +1,8 @@
 "use client";
 import { useParams } from "next/navigation";
-import EditUserDetails from "@/components/app/EditUserDetails";
+import EditUserDetails from "@/components/app/edit_user_details";
 import Swal from "sweetalert2";
-import { deleteUser, sendPasswordRecovery } from "@/lib/userActions";
+import { deleteUser, sendPasswordRecovery } from "@/lib/user_actions";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 
 export default function EditProfilePage() {

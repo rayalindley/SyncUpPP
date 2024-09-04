@@ -1,6 +1,6 @@
 "use client";
 import Preloader from "@/components/preloader";
-import { useUser } from "@/context/UserContext";
+import { useUser } from "@/context/user_context";
 import { createClient } from "@/lib/supabase/client";
 import { UserProfile } from "@/lib/types";
 import {
@@ -9,7 +9,7 @@ import {
   getUserProfileById,
   sendPasswordRecovery,
   updateUserProfileById,
-} from "@/lib/userActions";
+} from "@/lib/user_actions";
 import { isDateValid } from "@/lib/utils";
 import { EnvelopeIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { zodResolver } from "@hookform/resolvers/zod";

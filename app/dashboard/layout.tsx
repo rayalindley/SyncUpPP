@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 
 import Header from "@/components/dashboard/header";
-import SideNavMenuForAdmins from "@/components/dashboard/SideNavMenuForAdmins";
-import SideNavMenuForUsers from "@/components/dashboard/SideNavMenuForUsers";
-import { UserProvider } from "@/context/UserContext";
+import SideNavMenuForAdmins from "@/components/dashboard/side_nav_menu_for_admins";
+import SideNavMenuForUsers from "@/components/dashboard/side_nav_menu_for_users";
+import { UserProvider } from "@/context/user_context";
 import { fetchOrganizationsForUser } from "@/lib/organization";
 import { getUser } from "@/lib/supabase/server";
 

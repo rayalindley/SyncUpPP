@@ -1,5 +1,5 @@
 import React, { ReactNode } from "react";
-import { UserProvider } from "@/context/UserContext";
+import { UserProvider } from "@/context/user_context";
 
 interface LayoutProps {
   children: ReactNode;

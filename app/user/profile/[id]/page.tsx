@@ -7,7 +7,7 @@ import UserOrganizations from "@/components/user/user_organizations";
 import { fetchEventsForUser } from "@/lib/events";
 import { createClient, getUser } from "@/lib/supabase/client";
 import { Event, Organization, UserProfile } from "@/lib/types";
-import { updateUserProfileById } from "@/lib/userActions";
+import { updateUserProfileById } from "@/lib/user_actions";
 import { PencilIcon } from "@heroicons/react/24/solid";
 import { User } from "@supabase/auth-js";
 import Link from "next/link";

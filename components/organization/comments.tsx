@@ -5,8 +5,8 @@ import {
   deleteComment,
   fetchComments,
 } from "@/lib/comments";
-import { getUserProfileById } from "@/lib/userActions";
-import { useUser } from "@/context/UserContext";
+import { getUserProfileById } from "@/lib/user_actions";
+import { useUser } from "@/context/user_context";
 import { createClient } from "@/lib/supabase/client";
 import { UserCircleIcon } from "@heroicons/react/24/solid";
 import { z } from "zod";

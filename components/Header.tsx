@@ -1,7 +1,7 @@
 "use client";
 import { signOut } from "@/lib/auth";
 import { UserProfile } from "@/lib/types";
-import { getUserProfileById } from "@/lib/userActions";
+import { getUserProfileById } from "@/lib/user_actions";
 import { Dialog, Menu, Transition } from "@headlessui/react";
 import { Bars3Icon, ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { User } from "@supabase/supabase-js";

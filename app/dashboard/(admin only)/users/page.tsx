@@ -1,7 +1,7 @@
-import UsersTable from "@/components/app/UsersTable";
+import UsersTable from "@/components/app/users_table";
 import { getAllUsers, getUser } from "@/lib/supabase/server";
 import { User } from "@supabase/auth-js/dist/module/lib/types";
-import { getUserProfileById } from "@/lib/userActions";
+import { getUserProfileById } from "@/lib/user_actions";
 
 export default async function DashboardPage() {
   const { user } = await getUser();

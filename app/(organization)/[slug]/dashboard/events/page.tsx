@@ -1,5 +1,5 @@
 "use client";
-import EventsTableUser from "@/components/app/EventsTableUser";
+import EventsTableUser from "@/components/app/events_table_user";
 import Preloader from "@/components/preloader";
 import { fetchOrganizationBySlug } from "@/lib/organization";
 import { createClient, getUser } from "@/lib/supabase/client";

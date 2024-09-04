@@ -1,5 +1,5 @@
 "use client";
-import { deleteUser, sendPasswordRecovery } from "@/lib/userActions";
+import { deleteUser, sendPasswordRecovery } from "@/lib/user_actions";
 import { Dialog, Menu, Transition, Listbox } from "@headlessui/react";
 import {
   ChevronDownIcon,

@@ -1,10 +1,10 @@
 "use client";
 
-import CombinedUserDataTable from "@/components/CombinedUserDataTable";
-import EmailsTable from "@/components/EmailsTable";
-import EventsTable from "@/components/EventsTable";
+import CombinedUserDataTable from "@/components/combined_user_data_table";
+import EmailsTable from "@/components/emails_table";
+import EventsTable from "@/components/events_table";
 import Preloader from "@/components/preloader";
-import { useUser } from "@/context/UserContext";
+import { useUser } from "@/context/user_context";
 import {
   fetchEventsByOrganization,
   fetchMembersByEvent,
@@ -12,11 +12,11 @@ import {
   fetchOrganizationBySlug,
   fetchSentEmailsByAdmin,
   sendNewsletter,
-} from "@/lib/newsletterActions";
+} from "@/lib/newsletter_actions";
 import { check_permissions } from "@/lib/organization";
 import { createClient } from "@/lib/supabase/client";
 import { CombinedUserData, Email, Event } from "@/lib/types";
-import { getCombinedUserDataById } from "@/lib/userActions";
+import { getCombinedUserDataById } from "@/lib/user_actions";
 import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";

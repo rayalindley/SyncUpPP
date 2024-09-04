@@ -6,8 +6,8 @@ import { toast, ToastContainer } from "react-toastify";
 import { createClient } from "@/lib/supabase/client";
 import { insertPost, updatePost, checkIsMemberOfOrganization } from "@/lib/posts";
 import { PhotoIcon, XCircleIcon, UserCircleIcon } from "@heroicons/react/24/solid";
-import { getUserProfileById } from "@/lib/userActions";
-import { useUser } from "@/context/UserContext";
+import { getUserProfileById } from "@/lib/user_actions";
+import { useUser } from "@/context/user_context";
 import { check_permissions } from "@/lib/organization";
 import "react-toastify/dist/ReactToastify.css";
 import { Posts } from "@/types/posts"; // Ensure this matches your actual types
