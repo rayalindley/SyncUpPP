@@ -1,6 +1,6 @@
 "use client";
 import Preloader from "@/components/preloader";
-import { Organization } from "@/lib/types"; // Ensure you have this type defined in your types file
+import { Organization } from "@/types/organization";
 import { useEffect, useMemo, useState } from "react";
 import DataTable from "react-data-table-component";
 import OrganizationOptions from "./organization_options";

@@ -15,7 +15,9 @@ import {
 } from "@/lib/newsletter_actions";
 import { check_permissions } from "@/lib/organization";
 import { createClient } from "@/lib/supabase/client";
-import { CombinedUserData, Email, Event } from "@/lib/types";
+import { CombinedUserData } from "@/types/combined_user_data";
+import { Email } from "@/types/email";
+import { Event } from "@/types/event";
 import { getCombinedUserDataById } from "@/lib/user_actions";
 import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";

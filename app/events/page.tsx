@@ -3,7 +3,7 @@ import Footer from "@/components/footer";
 import Header from "@/components/header";
 import EventsCard from "@/components/organization/events_card";
 import { createClient, getUser } from "@/lib/supabase/client";
-import { Event } from "@/lib/types";
+import { Event } from "@/types/event";
 import { User } from "@/node_modules/@supabase/auth-js/src/lib/types";
 import { ArrowLongLeftIcon, ArrowLongRightIcon } from "@heroicons/react/20/solid";
 import { useEffect, useState } from "react";

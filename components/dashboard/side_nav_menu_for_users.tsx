@@ -1,6 +1,6 @@
 "use client";
-import { Organizations as Organization } from "@/lib/types"; // Ensure the correct import
-import useSidebarStore from "@/store/use_sidebar_store";
+import { Organizations as Organization} from "@/types/organizations";
+import useSidebarStore from "@/store/useSidebarStore";
 import { Dialog, Listbox, Transition } from "@headlessui/react";
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/20/solid";
 import {

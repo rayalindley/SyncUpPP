@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { CombinedUserData } from "@/lib/types";
+import { CombinedUserData } from "@/types/combined_user_data";
 
 const CombinedUserDataTable = ({
   users,

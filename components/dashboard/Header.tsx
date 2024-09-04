@@ -6,9 +6,9 @@ import {
   markNotificationAsRead,
 } from "@/lib/notifications";
 import { createClient } from "@/lib/supabase/client";
-import { UserProfile } from "@/lib/types";
+import { UserProfile } from "@/types/user_profile";
 import { getUserProfileById } from "@/lib/user_actions";
-import useSidebarStore from "@/store/use_sidebar_store";
+import useSidebarStore from "@/store/useSidebarStore";
 import { Menu, Transition } from "@headlessui/react";
 import { ChevronDownIcon } from "@heroicons/react/20/solid";
 import {

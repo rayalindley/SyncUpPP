@@ -1,5 +1,5 @@
 "use client";
-import useSidebarStore from "@/store/use_sidebar_store";
+import useSidebarStore from "@/store/useSidebarStore";
 import { Dialog, Transition } from "@headlessui/react";
 import {
   CalendarIcon,

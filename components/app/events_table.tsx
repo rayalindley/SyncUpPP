@@ -1,6 +1,7 @@
 "use client";
 import { check_permissions } from "@/lib/organization";
-import { Event, Organization } from "@/lib/types";
+import { Event } from "@/types/event";
+import { Organization } from "@/types/organization";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import EventOptions from "./event_options"; // Assuming you have EventOptions component

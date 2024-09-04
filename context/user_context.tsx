@@ -3,10 +3,10 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 // import type { User } from "@supabase/supabase-js";
 
 import { getUser } from "@/lib/supabase/client";
-import { Combined_user_data } from "@/types/users";
+import { CombinedUserData } from "@/types/combined_user_data";
 
 interface UserContextType {
-  user: Combined_user_data | null;
+  user: CombinedUserData | null;
   refreshUser: () => Promise<void>;
 }
 

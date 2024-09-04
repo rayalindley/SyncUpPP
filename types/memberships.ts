@@ -1,5 +1,4 @@
-import { Organizations } from "./organizations";
-
+import { Organizations } from '@/types/organizations';
 export interface Memberships {
   membershipid: string;
   organizationid?: string;

@@ -6,7 +6,7 @@ import "react-toastify/dist/ReactToastify.css";
 import MembershipCard from "./membership_card";
 import { PlusCircleIcon } from "@heroicons/react/24/outline";
 import { RadioGroup } from "@headlessui/react";
-import { Membership } from "@/lib/types";
+import { Membership } from "@/types/membership";
 import { Xendit, Invoice as InvoiceClient } from "xendit-node";
 import { getUser } from "@/lib/supabase/client";
 import type { CreateInvoiceRequest, Invoice } from "xendit-node/invoice/models";

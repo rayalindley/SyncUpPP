@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Event } from "@/lib/types";
+import { Event } from "@/types/event";
 
 const EventsTable = ({
   events,

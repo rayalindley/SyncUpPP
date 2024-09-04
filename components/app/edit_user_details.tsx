@@ -2,7 +2,7 @@
 import Preloader from "@/components/preloader";
 import { useUser } from "@/context/user_context";
 import { createClient } from "@/lib/supabase/client";
-import { UserProfile } from "@/lib/types";
+import { UserProfile } from "@/types/user_profile";
 import {
   deleteUser,
   getUserEmailById,

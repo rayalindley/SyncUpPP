@@ -1,4 +1,4 @@
-import { Organizations } from "@/lib/types";
+import { Organizations } from "@/types/organizations";
 import React, { useState, useEffect } from "react";
 
 const formatTitle = (title: string) =>

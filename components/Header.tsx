@@ -1,6 +1,6 @@
 "use client";
 import { signOut } from "@/lib/auth";
-import { UserProfile } from "@/lib/types";
+import { UserProfile } from "@/types/user_profile";
 import { getUserProfileById } from "@/lib/user_actions";
 import { Dialog, Menu, Transition } from "@headlessui/react";
 import { Bars3Icon, ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";

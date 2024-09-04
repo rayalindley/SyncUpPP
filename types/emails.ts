@@ -1,5 +1,6 @@
+
 export interface Emails {
-  id: number /* primary key */;
+  id: number;
   sender: string;
   receiver: string;
   subject?: string;

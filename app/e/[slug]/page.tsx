@@ -12,7 +12,8 @@ import {
   unregisterFromEvent,
 } from "@/lib/events";
 import { createClient, getUser } from "@/lib/supabase/client";
-import { Event, Organization } from "@/lib/types";
+import { Event } from "@/types/event";
+import { Organization } from "@/types/organization";
 import { User } from "@/node_modules/@supabase/auth-js/src/lib/types";
 import {
   CalendarIcon,

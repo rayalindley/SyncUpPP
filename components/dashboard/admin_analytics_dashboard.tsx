@@ -16,7 +16,9 @@ import {
   YAxis,
 } from "recharts";
 
-import { Registration, TopOrg, TotalStats } from "@/lib/types";
+import { Registration } from "@/types/registration";
+import { TopOrg } from "@/types/top_org";
+import { TotalStats } from "@/types/total_stats";
 
 const AdminAnalyticsDashboard = ({ user }: { user: User | null }) => {
   const [totalStats, setTotalStats] = useState<TotalStats | null>(null);

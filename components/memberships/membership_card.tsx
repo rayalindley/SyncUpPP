@@ -1,6 +1,6 @@
 import { CheckIcon } from "@heroicons/react/20/solid";
 import { TrashIcon } from "@heroicons/react/20/solid";
-import { Membership } from "@/lib/types"; // Ensure it matches the type in the other file
+import { Membership } from "@/types/membership"; 
 
 interface Frequency {
   value: string;

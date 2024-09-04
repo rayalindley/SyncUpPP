@@ -1,5 +1,5 @@
 "use client";
-import { Organization } from "@/lib/types";
+import { Organization } from "@/types/organization";
 import OrganizationCard from "./app/organization_card";
 
 export default function OrgSection({ organizations }: { organizations: Organization[] }) {

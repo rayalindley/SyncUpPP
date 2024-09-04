@@ -1,11 +1,11 @@
-import { Organizationmembers, Organizations } from "./organizations";
-import { Combined_user_data } from "./users";
-
+import { Organizations } from '@/types/organizations';
+import { CombinedUserData } from '@/types/combined_user_data';
 export interface Events {
   eventid: string;
   organizationid: string;
   title: string;
   description?: string;
+  eventdatetime: string;
   location?: string;
   registrationfee?: any;
   createdat?: string;
@@ -16,17 +16,5 @@ export interface Events {
   tags?: any;
   eventslug: string;
   organizations?: Organizations;
-  combined_user_data?: Combined_user_data;
-}
-
-export interface Eventregistrations {
-  eventregistrationid: string /* primary key */;
-  eventid?: string /* foreign key to events.eventid */;
-  organizationmemberid?: string /* foreign key to organizationmembers.organizationmemberid */;
-  registrationdate?: string;
-  status?: any; // type unknown;
-  userid?: string /* foreign key to combined_user_data.id */;
-  events?: Events;
-  organizationmembers?: Organizationmembers;
-  combined_user_data?: Combined_user_data;
+  combined_user_data?: CombinedUserData;
 }

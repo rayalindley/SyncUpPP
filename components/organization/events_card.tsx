@@ -1,7 +1,7 @@
 "use client";
 import { countRegisteredUsers } from "@/lib/events";
 import { createClient, getUser } from "@/lib/supabase/client";
-import { Event } from "@/lib/types";
+import { Event } from "@/types/event";
 import { UserGroupIcon } from "@heroicons/react/24/outline";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";

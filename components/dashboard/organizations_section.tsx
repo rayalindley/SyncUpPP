@@ -2,7 +2,7 @@
 import { ArrowLongLeftIcon, ArrowLongRightIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
 import OrganizationCard from "../app/organization_card";
-import { Organizations } from "@/lib/types";
+import { Organizations } from "@/types/organizations";
 
 interface OrgSummary extends Organizations {
   total_members: number;

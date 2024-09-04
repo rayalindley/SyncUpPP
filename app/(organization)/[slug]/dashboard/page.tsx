@@ -1,7 +1,7 @@
 "use client";
 import AnalyticsDashboard from "@/components/dashboard/analytics";
 import { deleteOrganization, fetchOrganizationBySlug } from "@/lib/organization";
-import { Organization } from "@/lib/types";
+import { Organization } from "@/types/organization";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import Swal from "sweetalert2";

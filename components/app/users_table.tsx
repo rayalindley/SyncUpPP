@@ -1,7 +1,7 @@
 "use client";
 import Preloader from "@/components/preloader";
-import { UserProfile } from "@/lib/types";
-import { User } from "@supabase/auth-js/src/lib/types"; // Ensure this is the correct import path
+import { UserProfile } from "@/types/user_profile"; 
+import { User } from "@supabase/auth-js/src/lib/types"; 
 import { useEffect, useMemo, useState } from "react";
 import DataTable, { TableColumn } from "react-data-table-component";
 import { useDebounce } from "use-debounce";

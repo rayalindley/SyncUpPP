@@ -2,7 +2,8 @@
 import Preloader from "@/components/preloader";
 import { deleteEvent, fetchRegisteredUsersForEvent } from "@/lib/events"; // Assuming you have deleteEvent function
 import { check_permissions } from "@/lib/organization";
-import { Event, UserProfile } from "@/lib/types";
+import { Event } from "@/types/event";
+import { UserProfile } from "@/types/user_profile";
 import { Dialog, Menu, Transition } from "@headlessui/react";
 import {
   ChevronDownIcon,

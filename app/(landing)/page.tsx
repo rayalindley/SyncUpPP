@@ -7,7 +7,7 @@ import Hero from "@/components/hero";
 import PricingSection from "@/components/pricing_section";
 import { createClient, getUser } from "@/lib/supabase/server";
 
-import { Organization } from "@/lib/types";
+import { Organization } from "@/types/organization";
 
 export default async function Home() {
   const { user } = await getUser();

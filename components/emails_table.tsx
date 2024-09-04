@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Email } from "@/lib/types";
+import { Email } from "@/types/email";
 import { createClient } from "@/lib/supabase/client";
 
 const supabase = createClient();

@@ -3,7 +3,7 @@ import Footer from "@/components/footer";
 import Header from "@/components/header";
 import OrganizationCard from "@/components/app/organization_card";
 import { createClient, getUser } from "@/lib/supabase/client";
-import { Organization } from "@/lib/types"; // Adjust the import path as necessary
+import { Organization } from "@/types/organization";
 import { ArrowLongLeftIcon, ArrowLongRightIcon } from "@heroicons/react/20/solid";
 import { useEffect, useState } from "react";
 

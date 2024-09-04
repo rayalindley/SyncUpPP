@@ -12,7 +12,9 @@ import {
   YAxis,
 } from "recharts";
 
-import { AnalyticsDashboardProps, AnalyticsData } from "@/lib/types";
+import { AnalyticsData } from "@/types/analytics_data";
+import { AnalyticsDashboardProps } from "@/types/analytics_dashboard_props";
+
 
 const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ organizationid }) => {
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData[]>([]);
