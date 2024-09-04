@@ -1,59 +1,105 @@
 import React, { useState, useEffect } from "react";
-import { Event } from "@/lib/types";
+import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
+import { EventModel } from "@/models/eventModel";
+import { styled } from "@mui/material/styles";
+
+const StyledDataGrid = styled(DataGrid)({
+  '& .MuiDataGrid-root': {
+    color: '#fff',
+  },
+  '& .MuiDataGrid-cell': {
+    color: '#fff',
+    borderBottom: '1px solid #404040',
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  '& .MuiDataGrid-columnHeaders': {
+    backgroundColor: '#505050',
+    borderBottom: '1px solid #404040',
+    color: '#000',
+  },
+  '& .MuiDataGrid-columnHeaderTitle': {
+    fontWeight: 'bold',
+  },
+  '& .MuiDataGrid-row': {
+    '&:nth-of-type(odd)': {
+      backgroundColor: '#505050',
+    },
+    '&:nth-of-type(even)': {
+      backgroundColor: '#404040',
+    },
+  },
+  '& .MuiDataGrid-sortIcon': {
+    display: 'none',
+  },
+  '& .MuiTablePagination-root': {
+    color: '#fff',
+  },
+  '& .MuiTablePagination-caption': {
+    color: '#fff',
+  },
+  '& .MuiTablePagination-selectIcon': {
+    color: '#fff',
+  },
+  '& .MuiTablePagination-displayedRows': {
+    color: '#fff',
+  },
+});
 
 const EventsTable = ({
   events,
   setEvents,
   toggleSelection,
 }: {
-  events: Event[];
-  setEvents: React.Dispatch<React.SetStateAction<Event[]>>;
-  toggleSelection: (list: Event[], id: string) => Event[];
+  events: EventModel[];
+  setEvents: React.Dispatch<React.SetStateAction<EventModel[]>>;
+  toggleSelection: (list: EventModel[], id: string) => EventModel[];
 }) => {
-  const [selectAll, setSelectAll] = useState(false);
-  const [sortColumn, setSortColumn] = useState<keyof Event | null>(null);
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc" | null>(null);
+  const [sortModel, setSortModel] = useState<{ field: keyof EventModel; sort: 'asc' | 'desc' }[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredEvents, setFilteredEvents] = useState(events);
-  const [currentPage, setCurrentPage] = useState(1);
-  const eventsPerPage = 10;
-
-  useEffect(() => {
-    if (!sortColumn && !sortDirection) {
-      setEvents((prevEvents) => [...prevEvents].sort((a, b) => a.title.localeCompare(b.title)));
-    }
-  }, [sortColumn, sortDirection, setEvents]);
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
 
   useEffect(() => {
     const search = searchTerm.toLowerCase();
-    const startIndex = (currentPage - 1) * eventsPerPage;
     const filtered = events.filter((event) =>
       ["title", "description", "location", "registrationfee", "capacity", "privacy", "tags"].some(
-        (field) => event[field as keyof Event]?.toString().toLowerCase().includes(search)
+        (field) => {
+          const getter = event[`get${field.charAt(0).toUpperCase() + field.slice(1)}` as keyof EventModel] as ((this: EventModel) => string | number | boolean | Date | string[] | undefined);
+          if (typeof getter === 'function') {
+            const value = getter.call(event);
+            if (value != null) {
+              if (Array.isArray(value)) {
+                return value.some(item => item.toString().toLowerCase().includes(search));
+              }
+              return value.toString().toLowerCase().includes(search);
+            }
+          }
+          return false;
+        }
       )
-    ).slice(startIndex, startIndex + eventsPerPage);
-    setFilteredEvents(filtered);
-  }, [events, searchTerm, currentPage]);
-
-  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const checked = e.target.checked;
-    setSelectAll(checked);
-    setEvents(events.map((event) => ({ ...event, selected: checked })));
-  };
-
-  const handleSelectRow = (id: string) => setEvents(toggleSelection(events, id));
-
-  const handleSort = (column: keyof Event) => {
-    const direction = sortColumn !== column ? "asc" : sortDirection === "asc" ? "desc" : "asc";
-    setSortColumn(column);
-    setSortDirection(direction);
-    setFilteredEvents(
-      [...filteredEvents].sort((a, b) => {
-        if (a[column] === undefined) return 1;
-        if (b[column] === undefined) return -1;
-        return direction === "asc" ? (a[column] ?? "") > (b[column] ?? "") ? 1 : -1 : (a[column] ?? "") < (b[column] ?? "") ? 1 : -1;
-      })
     );
+    setFilteredEvents(filtered);
+  }, [events, searchTerm]);
+
+  const handleSortModelChange = (model: { field: keyof EventModel; sort: 'asc' | 'desc' }[]) => {
+    setSortModel(model);
+    if (model.length > 0) {
+      const { field, sort } = model[0];
+      setFilteredEvents(
+        [...filteredEvents].sort((a, b) => {
+          const aGetter = a[`get${field.charAt(0).toUpperCase() + field.slice(1)}` as keyof EventModel] as (this: EventModel) => any;
+          const bGetter = b[`get${field.charAt(0).toUpperCase() + field.slice(1)}` as keyof EventModel] as (this: EventModel) => any;
+          const aValue = typeof aGetter === 'function' ? aGetter.call(a) : undefined;
+          const bValue = typeof bGetter === 'function' ? bGetter.call(b) : undefined;
+          if (aValue === undefined) return 1;
+          if (bValue === undefined) return -1;
+          return sort === "asc" ? (aValue > bValue ? 1 : -1) : (aValue < bValue ? 1 : -1);
+        })
+      );
+    }
   };
 
   const formatDate = (date: Date | string) => {
@@ -63,54 +109,67 @@ const EventsTable = ({
 
   const truncateText = (text: string, maxLength: number) => (text?.length > maxLength ? text.slice(0, maxLength) + "..." : text);
 
-  const SortIcon = ({ direction }: { direction: "asc" | "desc" | null }) => <span style={{ marginLeft: "auto" }}>{direction === "asc" ? "🡩" : "🡣"}</span>;
-
-  const handlePageChange = (newPage: number) => setCurrentPage(newPage);
-
-  const renderPageNumbers = () => {
-    const pageCount = Math.ceil(events.filter((event) =>
-      Object.values(event).some((value) => value?.toString().toLowerCase().includes(searchTerm.toLowerCase()))
-    ).length / eventsPerPage);
-    if (pageCount <= 1) return null;
-
-    return (
-      <div className="flex items-center justify-center space-x-1">
-        {currentPage > 1 && (
-          <button className="rounded-full bg-[#505050] p-2 text-white hover:bg-[#404040]" onClick={() => handlePageChange(currentPage - 1)}>
-            {"<"}
-          </button>
-        )}
-        {Array.from({ length: pageCount }, (_, index) => index + 1).map((number) => (
-          <button
-            key={number}
-            className={`rounded-full px-3 py-2 text-white hover:bg-[#404040] ${currentPage === number ? "bg-[#303030]" : "bg-[#505050]"}`}
-            onClick={() => handlePageChange(number)}
-          >
-            {number}
-          </button>
-        ))}
-        {currentPage < pageCount && (
-          <button className="rounded-full bg-[#505050] p-2 text-white hover:bg-[#404040]" onClick={() => handlePageChange(currentPage + 1)}>
-            {">"}
-          </button>
-        )}
-      </div>
-    );
-  };
-
-  const formatTitle = (title: string) => {
-    switch (title) {
-      case "registrationfee":
-        return "Registration Fee";
-      case "createdat":
-        return "Created At";
-      default:
-        return title.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
-    }
-  };
+  const columns: GridColDef[] = [
+    { 
+      field: "title", 
+      headerName: "Title", 
+      width: 150, 
+      sortable: true, 
+      valueGetter: (params: GridRenderCellParams<EventModel>) => params.row?.getTitle?.() || ''
+    },
+    { 
+      field: "description", 
+      headerName: "Description", 
+      width: 150, 
+      sortable: true, 
+      renderCell: (params: GridRenderCellParams<EventModel>) => truncateText(params.row?.getDescription?.() || '', 30) 
+    },
+    { 
+      field: "location", 
+      headerName: "Location", 
+      width: 150, 
+      sortable: true, 
+      renderCell: (params: GridRenderCellParams<EventModel>) => truncateText(params.row?.getLocation?.() || '', 30) 
+    },
+    { 
+      field: "registrationfee", 
+      headerName: "Registration Fee", 
+      width: 150, 
+      sortable: true, 
+      valueGetter: (params: GridRenderCellParams<EventModel>) => params.row?.getRegistrationFee?.() || ''
+    },
+    { 
+      field: "createdat", 
+      headerName: "Created At", 
+      width: 150, 
+      sortable: true, 
+      renderCell: (params: GridRenderCellParams<EventModel>) => formatDate(params.row?.getCreatedAt?.() || '') 
+    },
+    { 
+      field: "capacity", 
+      headerName: "Capacity", 
+      width: 150, 
+      sortable: true, 
+      valueGetter: (params: GridRenderCellParams<EventModel>) => params.row?.getCapacity?.() || ''
+    },
+    { 
+      field: "privacy", 
+      headerName: "Privacy", 
+      width: 150, 
+      sortable: true, 
+      valueGetter: (params: GridRenderCellParams<EventModel>) => params.row?.getPrivacy?.() || ''
+    },
+    { 
+      field: "tags", 
+      headerName: "Tags", 
+      width: 150, 
+      sortable: true, 
+      renderCell: (params: GridRenderCellParams<EventModel>) => truncateText(params.row?.getTags?.()?.join(", ") || '', 30) 
+    },
+  ];
 
   return (
-    <>
+    <div>
       <div className="flex items-center justify-between">
         {events.length > 0 && (
           <input
@@ -120,67 +179,41 @@ const EventsTable = ({
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
-              setCurrentPage(1);
+              setPaginationModel({ ...paginationModel, page: 0 });
             }}
             aria-label="Search events"
           />
         )}
-        {events.length > eventsPerPage && <div className="my-4">{renderPageNumbers()}</div>}
       </div>
-      <div className="overflow-x-auto rounded-lg">
-        {filteredEvents.length > 0 ? (
-          <table className="min-w-full text-white" style={{ tableLayout: "fixed" }}>
-            <thead className="bg-[#505050]">
-              <tr>
-                <th style={{ width: "30px" }}>
-                  <input type="checkbox" checked={selectAll} onChange={handleSelectAll} aria-label="Select all events" />
-                </th>
-                {Object.keys(filteredEvents[0])
-                  .filter((key) => !["eventid", "adminid", "organizationid", "eventphoto", "id", "selected", "eventdatetime", "eventslug"].includes(key))
-                  .map((key) => (
-                    <th
-                      key={key}
-                      className="cursor-pointer border-b border-[#404040] p-3 text-left"
-                      onClick={() => handleSort(key as keyof Event)}
-                      style={{ whiteSpace: "nowrap", minWidth: "150px", maxWidth: "150px", overflow: "hidden", textOverflow: "ellipsis" }}
-                    >
-                      <div className="flex items-center justify-start">
-                        {formatTitle(key)}
-                        {sortColumn === key && <SortIcon direction={sortDirection} />}
-                      </div>
-                    </th>
-                  ))}
-              </tr>
-            </thead>
-            <tbody className="bg-[#404040]">
-              {filteredEvents.map((event, index) => (
-                <tr key={event.eventid} className={`${index % 2 === 0 ? "bg-[#505050]" : "bg-[#404040]"} cursor-pointer`} onClick={() => handleSelectRow(event.eventid)}>
-                  <td className="border-b border-[#404040] p-3">
-                    <input type="checkbox" checked={!!event.selected} onChange={() => handleSelectRow(event.eventid)} aria-label={`Select ${event.title}`} />
-                  </td>
-                  {[
-                    truncateText(event.title, 30),
-                    truncateText(event.description, 30),
-                    truncateText(event.location, 30),
-                    event.registrationfee,
-                    formatDate(event.createdat),
-                    event.capacity,
-                    event.privacy,
-                    truncateText(event.tags?.join(", "), 30),
-                  ].map((value, i) => (
-                    <td key={i} className="border-b border-[#404040] p-3">
-                      {value}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <p>No events found.</p>
-        )}
+      <div style={{ height: 400, width: '100%' }}>
+        <StyledDataGrid
+          rows={filteredEvents.map(event => ({
+            id: event.getEventId?.() || '',
+            title: event.getTitle?.() || '',
+            description: event.getDescription?.() || '',
+            location: event.getLocation?.() || '',
+            registrationfee: event.getRegistrationFee?.() || '',
+            createdat: event.getCreatedAt?.() || '',
+            capacity: event.getCapacity?.() || '',
+            privacy: event.getPrivacy?.() || '',
+            tags: event.getTags?.() || [],
+            eventid: event.getEventId?.() || '',
+          }))}
+          columns={columns}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          sortModel={sortModel}
+          onSortModelChange={(model) => handleSortModelChange(model as { field: keyof EventModel; sort: "asc" | "desc"; }[])}
+          checkboxSelection
+          disableRowSelectionOnClick
+          getRowId={(row) => row.eventid}
+          slots={{
+            columnSortedAscendingIcon: () => <span>🡩</span>,
+            columnSortedDescendingIcon: () => <span>🡣</span>,
+          }}
+        />
       </div>
-    </>
+    </div>
   );
 };
 

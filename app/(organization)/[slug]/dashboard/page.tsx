@@ -1,7 +1,7 @@
 "use client";
 import AnalyticsDashboard from "@/components/dashboard/Analytics";
 import { deleteOrganization, fetchOrganizationBySlug } from "@/lib/organization";
-import { Organization } from "@/lib/types";
+import { OrganizationModel } from "@/models/organizationModel";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import Swal from "sweetalert2";
@@ -13,7 +13,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const { slug } = useParams() as { slug: string }; // Ensure slug is a string
 
-  const [formValues, setFormValues] = useState<Organization | null>(null);
+  const [formValues, setFormValues] = useState<OrganizationModel | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reloadFlag, setReloadFlag] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -117,17 +117,17 @@ export default function SettingsPage() {
 
   return (
     <div ref={scrollRef} className="min-h-full flex-1 flex-col justify-center bg-eerieblack px-6 py-12 lg:px-8">
-      <AnalyticsDashboard organizationid={formValues?.organizationid ?? ""} />
+      <AnalyticsDashboard organizationid={formValues?.getOrganizationId() ?? ""} />
       <div className="mt-4 flex gap-2">
         <a
           className="border-1 rounded-md border border-primary bg-primarydark p-1 px-2 text-sm text-gray-100 hover:cursor-pointer"
           href={`/${slug}/dashboard/edit`}
         >
-          Edit Organization
+          Edit OrganizationModel
         </a>
         <button
           className="border-1 rounded-md border border-red-500 bg-red-600 p-1 px-2 text-sm text-gray-100 hover:cursor-pointer"
-          onClick={() => handleDeleteOrg(formValues?.organizationid ?? "")}
+          onClick={() => handleDeleteOrg(formValues?.getOrganizationId() ?? "")}
         >
           Delete Org
         </button>

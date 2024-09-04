@@ -1,55 +1,84 @@
 export class EventModel {
+  private id: string;
   private eventid: string;
+  private eventphoto: string;
   private title: string;
   private description: string;
+  private registrationfee: number;
   private starteventdatetime: Date;
   private endeventdatetime: Date;
   private location: string;
   private capacity: number;
-  private registrationfee: number;
-  private privacy: string;
   private organizationid: string;
-  private eventphoto: string;
-  private tags: string[];
   private eventslug: string;
+  private imageUrl?: string; // Optional
+  private tags?: string[];   // Optional
+  private privacy: string;
+  private createdat?: Date;  // Optional
+  private selected?: string | boolean; // Optional
 
   constructor(
+    id: string,
     eventid: string,
+    eventphoto: string,
     title: string,
     description: string,
+    registrationfee: number,
     starteventdatetime: Date,
     endeventdatetime: Date,
     location: string,
     capacity: number,
-    registrationfee: number,
-    privacy: string,
     organizationid: string,
-    eventphoto: string,
-    tags: string[],
-    eventslug: string
+    eventslug: string,
+    privacy: string,
+    imageUrl?: string,       // Optional
+    tags?: string[],         // Optional
+    createdat?: Date,        // Optional
+    selected?: string | boolean // Optional
   ) {
+    this.id = id;
     this.eventid = eventid;
+    this.eventphoto = eventphoto;
     this.title = title;
     this.description = description;
+    this.registrationfee = registrationfee;
     this.starteventdatetime = starteventdatetime;
     this.endeventdatetime = endeventdatetime;
     this.location = location;
     this.capacity = capacity;
-    this.registrationfee = registrationfee;
-    this.privacy = privacy;
     this.organizationid = organizationid;
-    this.eventphoto = eventphoto;
-    this.tags = tags;
     this.eventslug = eventslug;
+    this.privacy = privacy;
+    this.imageUrl = imageUrl;
+    this.tags = tags;
+    this.createdat = createdat;
+    this.selected = selected;
   }
 
   // Getters and Setters for each attribute
+
+  public getId(): string {
+    return this.id;
+  }
+
+  public setId(id: string): void {
+    this.id = id;
+  }
+
   public getEventId(): string {
     return this.eventid;
   }
 
   public setEventId(eventid: string): void {
     this.eventid = eventid;
+  }
+
+  public getEventPhoto(): string {
+    return this.eventphoto;
+  }
+
+  public setEventPhoto(eventphoto: string): void {
+    this.eventphoto = eventphoto;
   }
 
   public getTitle(): string {
@@ -68,6 +97,14 @@ export class EventModel {
     this.description = description;
   }
 
+  public getRegistrationFee(): number {
+    return this.registrationfee;
+  }
+
+  public setRegistrationFee(registrationfee: number): void {
+    this.registrationfee = registrationfee;
+  }
+
   public getStartEventDateTime(): Date {
     return this.starteventdatetime;
   }
@@ -80,9 +117,7 @@ export class EventModel {
     return this.endeventdatetime;
   }
 
-  public setEndEventDateTime(ende
-
-ventdatetime: Date): void {
+  public setEndEventDateTime(endeventdatetime: Date): void {
     this.endeventdatetime = endeventdatetime;
   }
 
@@ -102,12 +137,36 @@ ventdatetime: Date): void {
     this.capacity = capacity;
   }
 
-  public getRegistrationFee(): number {
-    return this.registrationfee;
+  public getOrganizationId(): string {
+    return this.organizationid;
   }
 
-  public setRegistrationFee(registrationfee: number): void {
-    this.registrationfee = registrationfee;
+  public setOrganizationId(organizationid: string): void {
+    this.organizationid = organizationid;
+  }
+
+  public getEventSlug(): string {
+    return this.eventslug;
+  }
+
+  public setEventSlug(eventslug: string): void {
+    this.eventslug = eventslug;
+  }
+
+  public getImageUrl(): string | undefined {
+    return this.imageUrl;
+  }
+
+  public setImageUrl(imageUrl?: string): void {
+    this.imageUrl = imageUrl;
+  }
+
+  public getTags(): string[] | undefined {
+    return this.tags;
+  }
+
+  public setTags(tags?: string[]): void {
+    this.tags = tags;
   }
 
   public getPrivacy(): string {
@@ -118,35 +177,19 @@ ventdatetime: Date): void {
     this.privacy = privacy;
   }
 
-  public getOrganizationId(): string {
-    return this.organizationid;
+  public getCreatedAt(): Date | undefined {
+    return this.createdat;
   }
 
-  public setOrganizationId(organizationid: string): void {
-    this.organizationid = organizationid;
+  public setCreatedAt(createdat?: Date): void {
+    this.createdat = createdat;
   }
 
-  public getEventPhoto(): string {
-    return this.eventphoto;
+  public getSelected(): string | boolean | undefined {
+    return this.selected;
   }
 
-  public setEventPhoto(eventphoto: string): void {
-    this.eventphoto = eventphoto;
-  }
-
-  public getTags(): string[] {
-    return this.tags;
-  }
-
-  public setTags(tags: string[]): void {
-    this.tags = tags;
-  }
-
-  public getEventSlug(): string {
-    return this.eventslug;
-  }
-
-  public setEventSlug(eventslug: string): void {
-    this.eventslug = eventslug;
+  public setSelected(selected?: string | boolean): void {
+    this.selected = selected;
   }
 }

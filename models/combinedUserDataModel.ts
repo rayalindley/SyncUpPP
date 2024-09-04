@@ -11,7 +11,7 @@ export class CombinedUserDataModel {
   private description: string;
   private company: string;
   private website: string;
-  private updatedat: Date;
+  private selected: boolean;
 
   constructor(
     id: string,
@@ -26,7 +26,7 @@ export class CombinedUserDataModel {
     description: string,
     company: string,
     website: string,
-    updatedat: Date
+    selected: boolean = false // Optional parameter with default value
   ) {
     this.id = id;
     this.email = email;
@@ -40,7 +40,7 @@ export class CombinedUserDataModel {
     this.description = description;
     this.company = company;
     this.website = website;
-    this.updatedat = updatedat;
+    this.selected = selected;
   }
 
   // Getters and Setters for each attribute
@@ -48,103 +48,55 @@ export class CombinedUserDataModel {
     return this.id;
   }
 
-  public setId(id: string): void {
-    this.id = id;
-  }
-
   public getEmail(): string {
     return this.email;
-  }
-
-  public setEmail(email: string): void {
-    this.email = email;
   }
 
   public getRole(): string {
     return this.role;
   }
 
-  public setRole(role: string): void {
-    this.role = role;
-  }
-
   public getCreatedAt(): Date {
     return this.createdAt;
-  }
-
-  public setCreatedAt(createdAt: Date): void {
-    this.createdAt = createdAt;
   }
 
   public getUpdatedAt(): Date {
     return this.updatedAt;
   }
 
-  public setUpdatedAt(updatedAt: Date): void {
-    this.updatedAt = updatedAt;
-  }
-
   public getFirstName(): string {
     return this.firstName;
-  }
-
-  public setFirstName(firstName: string): void {
-    this.firstName = firstName;
   }
 
   public getLastName(): string {
     return this.lastName;
   }
 
-  public setLastName(lastName: string): void {
-    this.lastName = lastName;
-  }
-
   public getGender(): string {
     return this.gender;
-  }
-
-  public setGender(gender: string): void {
-    this.gender = gender;
   }
 
   public getDateOfBirth(): Date {
     return this.dateOfBirth;
   }
-
-  public setDateOfBirth(dateOfBirth: Date): void {
-    this.dateOfBirth = dateOfBirth;
-  }
-
+  
   public getDescription(): string {
     return this.description;
-  }
-
-  public setDescription(description: string): void {
-    this.description = description;
   }
 
   public getCompany(): string {
     return this.company;
   }
-
-  public setCompany(company: string): void {
-    this.company = company;
-  }
-
+  
   public getWebsite(): string {
     return this.website;
   }
 
-  public setWebsite(website: string): void {
-    this.website = website;
+  public setSelected(selected: boolean): void {
+    this.selected = selected;
   }
 
-  public getUpdatedAt(): Date {
-    return this.updatedat;
-  }
-
-  public setUpdatedAt(updatedat: Date): void {
-    this.updatedat = updatedat;
+  public getSelected(): boolean {
+    return this.selected;
   }
 }

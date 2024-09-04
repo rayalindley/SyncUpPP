@@ -1,53 +1,91 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
+import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { createPortal } from "react-dom";
-import { Email } from "@/lib/types";
+import { EmailModel } from "@/models/emailModel"; // Import EmailModel
 import { createClient } from "@/lib/supabase/client";
+import { styled } from "@mui/material/styles";
 
 const supabase = createClient();
+
+// Styled DataGrid for custom appearance
+const StyledDataGrid = styled(DataGrid)({
+  '& .MuiDataGrid-root': {
+    color: '#fff',
+  },
+  '& .MuiDataGrid-cell': {
+    borderBottom: '1px solid #404040',
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  '& .MuiDataGrid-columnHeaders': {
+    backgroundColor: '#505050',
+    borderBottom: '1px solid #404040',
+  },
+  '& .MuiDataGrid-columnHeaderTitle': {
+    fontWeight: 'bold',
+  },
+  '& .MuiDataGrid-row': {
+    '&:nth-of-type(odd)': {
+      backgroundColor: '#505050',
+    },
+    '&:nth-of-type(even)': {
+      backgroundColor: '#404040',
+    },
+  },
+  '& .MuiDataGrid-sortIcon': {
+    display: 'none',
+  },
+  '& .MuiDataGrid-columnHeader[data-field="sender"] .MuiDataGrid-sortIcon': {
+    display: 'block',
+  },
+  '& .MuiDataGrid-columnHeader[data-field="receiver"] .MuiDataGrid-sortIcon': {
+    display: 'block',
+  },
+  '& .MuiTablePagination-root': {
+    color: '#fff', // Change pagination text color to white
+  },
+});
 
 const EmailsTable = ({
   emails,
   setEmails,
 }: {
-  emails: Email[];
-  setEmails: (emails: Email[]) => void;
+  emails: EmailModel[]; // Use EmailModel
+  setEmails: (emails: EmailModel[]) => void; // Use EmailModel
 }) => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filteredEmails, setFilteredEmails] = useState<Email[]>([]);
-  const [sortColumn, setSortColumn] = useState<string | null>("date_created");
-  const [sortDirection, setSortDirection] = useState<string | null>("desc");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
-  const [showDetailPane, setShowDetailPane] = useState(false);
-  const [opacity, setOpacity] = useState(0);
-
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [filteredEmails, setFilteredEmails] = useState<EmailModel[]>([]); // Use EmailModel
+  const [selectedEmail, setSelectedEmail] = useState<EmailModel | null>(null);
+  const [showDetailPane, setShowDetailPane] = useState<boolean>(false);
+  const [opacity, setOpacity] = useState<number>(0);
   const emailsPerPage = 10;
 
-  const sortEmails = (emails: Email[], column: string, direction: string) => {
-    return emails.sort((a, b) => {
-      if (a[column] === null) return 1;
-      if (b[column] === null) return -1;
-      if (a[column] === b[column]) return 0;
-      return direction === "asc"
-        ? a[column] > b[column]
-          ? 1
-          : -1
-        : a[column] < b[column]
-          ? 1
-          : -1;
-    });
-  };
+  const columns: GridColDef[] = [
+    { field: "sender", headerName: "Sender", width: 150 },
+    { field: "receiver", headerName: "Receiver", width: 150 },
+    { field: "subject", headerName: "Subject", width: 200 },
+    { field: "status", headerName: "Status", width: 100 },
+    { 
+      field: "date_created", 
+      headerName: "Date Created", 
+      width: 150,
+      valueFormatter: (params: { value: string | undefined }) => formatDate(params.value ?? ""),
+    },
+  ];
 
   useEffect(() => {
     const search = searchTerm.toLowerCase();
     const filtered = emails.filter((email) =>
       ["sender", "receiver", "subject", "status", "date_created"].some(
-        (field) => email[field] && email[field].toString().toLowerCase().includes(search)
+        (field) =>
+          email[field as keyof EmailModel] &&
+          email[field as keyof EmailModel]!.toString().toLowerCase().includes(search)
       )
     );
-    const startIndex = (currentPage - 1) * emailsPerPage;
-    setFilteredEmails(filtered.slice(startIndex, startIndex + emailsPerPage));
-  }, [emails, searchTerm, currentPage]);
+    setFilteredEmails(filtered);
+  }, [emails, searchTerm]);
 
   useEffect(() => {
     if (showDetailPane) {
@@ -57,16 +95,7 @@ const EmailsTable = ({
     }
   }, [showDetailPane]);
 
-  const truncate = (text: string, length: number) => {
-    return text.length > length ? text.substring(0, length) + "..." : text;
-  };
-
-  const formatDate = (date: Date | string) => {
-    const d = new Date(date);
-    return `${d.getFullYear()}-${("0" + (d.getMonth() + 1)).slice(-2)}-${("0" + d.getDate()).slice(-2)}`;
-  };
-
-  const handleRowClick = (email: Email) => {
+  const handleRowClick = (email: EmailModel) => {
     setSelectedEmail(email);
     setShowDetailPane(true);
   };
@@ -75,69 +104,9 @@ const EmailsTable = ({
     setShowDetailPane(false);
   };
 
-  const handleSort = (column: string) => {
-    let direction = sortDirection;
-    if (sortColumn !== column) {
-      direction = "desc";
-    } else {
-      direction = sortDirection === "asc" ? "desc" : "asc";
-    }
-    setSortColumn(column);
-    setSortDirection(direction);
-
-    setEmails(sortEmails([...emails], column, direction));
-  };
-
-  const handlePageChange = (newPage: number) => {
-    setCurrentPage(newPage);
-  };
-
-  const renderPageNumbers = () => {
-    const pageCount = Math.ceil(emails.length / emailsPerPage);
-    if (pageCount <= 1) return null;
-    const prevPage = currentPage > 1 ? currentPage - 1 : null;
-    const nextPage = currentPage < pageCount ? currentPage + 1 : null;
-
-    return (
-      <div className="flex items-center justify-center space-x-1">
-        {prevPage && (
-          <button
-            className="rounded-full bg-[#505050] p-2 text-white hover:bg-[#404040]"
-            onClick={() => handlePageChange(prevPage)}
-          >
-            {"<"}
-          </button>
-        )}
-        {Array.from({ length: pageCount }, (_, index) => index + 1).map((number) => (
-          <button
-            key={number}
-            className={`rounded-full px-3 py-2 text-white hover:bg-[#404040] ${
-              currentPage === number ? "bg-[#303030]" : "bg-[#505050]"
-            }`}
-            onClick={() => handlePageChange(number)}
-          >
-            {number}
-          </button>
-        ))}
-        {nextPage && (
-          <button
-            className="rounded-full bg-[#505050] p-2 text-white hover:bg-[#404040]"
-            onClick={() => handlePageChange(nextPage)}
-          >
-            {">"}
-          </button>
-        )}
-      </div>
-    );
-  };
-
-  const SortIcon = ({ direction }: { direction: string | null }) => {
-    return (
-      <span style={{ marginLeft: "auto" }}>
-        <span className="ml-5"></span>
-        {direction === "asc" ? "🡩" : direction === "desc" ? "🡣" : null}
-      </span>
-    );
+  const formatDate = (date: Date | string): string => {
+    const d = new Date(date);
+    return `${d.getFullYear()}-${("0" + (d.getMonth() + 1)).slice(-2)}-${("0" + d.getDate()).slice(-2)}`;
   };
 
   const capitalizeFirstLetter = (string: string) => {
@@ -146,85 +115,32 @@ const EmailsTable = ({
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-4">
         {emails.length > 0 && (
           <input
-            className="mb-2.5 rounded-full border border-gray-300 bg-charleston p-2.5"
+            className="rounded-full border border-gray-300 bg-charleston p-2.5"
             type="text"
             placeholder="Search..."
             value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1); // Reset page number
-            }}
+            onChange={(e) => setSearchTerm(e.target.value)}
             aria-label="Search emails"
           />
         )}
-        {emails.length > 10 && <div className="my-4">{renderPageNumbers()}</div>}
       </div>
-      <div className="overflow-x-auto rounded-lg" style={{ overflow: "auto" }}>
-        <table className="w-full text-white" style={{ tableLayout: "fixed" }}>
-          <thead className="bg-[#505050]">
-            <tr>
-              {emails.length > 0 &&
-                Object.keys(emails[0]).map(
-                  (key) =>
-                    key !== "id" &&
-                    key !== "body" &&
-                    key !== "sender_id" &&
-                    key !== "receiver_id" && (
-                      <th
-                        key={key}
-                        className="cursor-pointer border-b border-[#404040] p-3"
-                        onClick={() => handleSort(key)}
-                        style={{
-                          whiteSpace: "nowrap",
-                          width: "200px",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span>{capitalizeFirstLetter(key.replace("_", " "))}</span>
-                          {sortColumn === key && <SortIcon direction={sortDirection} />}
-                        </div>
-                      </th>
-                    )
-                )}
-            </tr>
-          </thead>
-          <tbody className="bg-[#404040]">
-            {filteredEmails.map((email, index) => (
-              <tr
-                key={index}
-                className={`${index % 2 === 0 ? "bg-[#505050]" : "bg-[#404040]"} cursor-pointer`}
-                onClick={() => handleRowClick(email)}
-              >
-                {Object.entries(email).map(
-                  ([key, value]) =>
-                    key !== "id" &&
-                    key !== "body" &&
-                    key !== "sender_id" &&
-                    key !== "receiver_id" && (
-                      <td
-                        key={key}
-                        className="border-b border-[#404040] p-3"
-                        style={{
-                          width: "200px",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                      >
-                        {key === "date_created"
-                          ? formatDate(value)
-                          : truncate(value.toString(), 30)}
-                      </td>
-                    )
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div style={{ height: 400, width: '100%' }}>
+        <StyledDataGrid
+          rows={filteredEmails}
+          columns={columns}
+          paginationModel={{ pageSize: emailsPerPage, page: 0 }}
+          checkboxSelection
+          disableRowSelectionOnClick
+          onRowClick={(params) => handleRowClick(params.row as EmailModel)}
+          getRowId={(row) => row.id}
+          slots={{
+            columnSortedAscendingIcon: () => <span>🡩</span>,
+            columnSortedDescendingIcon: () => <span>🡣</span>,
+          }}
+        />
       </div>
 
       {showDetailPane &&

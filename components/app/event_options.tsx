@@ -2,7 +2,8 @@
 import Preloader from "@/components/preloader";
 import { deleteEvent, fetchRegisteredUsersForEvent } from "@/lib/events"; // Assuming you have deleteEvent function
 import { check_permissions } from "@/lib/organization";
-import { Event, UserProfile } from "@/lib/types";
+import { EventModel } from "@/models/eventModel";
+import { UserProfileModel } from "@/models/userProfileModel";
 import { Dialog, Menu, Transition } from "@headlessui/react";
 import {
   ChevronDownIcon,
@@ -15,6 +16,7 @@ import Link from "next/link";
 import { Fragment, useEffect, useState } from "react";
 import { FaRegEdit } from "react-icons/fa";
 import Swal from "sweetalert2";
+import Image from "next/image";
 
 const jsonTheme = {
   main: "line-height:1.3;color:#383a42;background:#ffffff;overflow:hidden;word-wrap:break-word;white-space: pre-wrap;word-wrap: break-word;",
@@ -44,13 +46,13 @@ export default function EventOptions({
   setOpen,
   userId,
 }: {
-  selectedEvent: Event;
+  selectedEvent: EventModel;
   open: boolean;
   setOpen: (open: boolean) => void;
   userId: string;
 }) {
   const [currentTab, setCurrentTab] = useState("Info");
-  const [attendees, setAttendees] = useState<UserProfile | null>(null);
+  const [attendees, setAttendees] = useState<UserProfileModel[] | null>(null);
   const [loadingAttendees, setLoadingAttendees] = useState(false);
   const [canEditEvents, setCanEditEvents] = useState(false);
   const [canDeleteEvents, setCanDeleteEvents] = useState(false);
@@ -66,7 +68,7 @@ export default function EventOptions({
       reverseButtons: true,
     }).then(async (result) => {
       if (result.isConfirmed) {
-        const response = await deleteEvent(selectedEvent.eventid); // Assuming id is used for events
+        const response = await deleteEvent(selectedEvent.getEventId());
 
         if (!response.error) {
           Swal.fire({
@@ -103,16 +105,15 @@ export default function EventOptions({
     });
   };
 
-  // Format the event date time and created at date
   const startEventDateTimePST = formattedDateTime(
-    selectedEvent.starteventdatetime.toString()
-  ); // Convert Date object to string
+    selectedEvent.getStartEventDateTime()?.toString()
+  );
   const endEventDateTimePST = formattedDateTime(
-    selectedEvent.endeventdatetime.toString()
-  ); // Convert Date object to string
-  const createdAtPST = formattedDateTime(selectedEvent.createdat.toString()); // Convert Date object to string
-
-  // Function to check if the location is a URL
+    selectedEvent.getEndEventDateTime()?.toString()
+  );
+  const createdAtPST = formattedDateTime(
+    selectedEvent.getCreatedAt()?.toString() || "N/A"
+  );
   const isUrl = (string: string) => {
     try {
       new URL(string);
@@ -122,31 +123,45 @@ export default function EventOptions({
     }
   };
 
-  // Render the location as a clickable link if it's a URL
-  const locationContent = isUrl(selectedEvent.location) ? (
+  const locationContent = isUrl(selectedEvent.getLocation()) ? (
     <a
-      href={selectedEvent.location}
+      href={selectedEvent.getLocation() ?? ""}
       target="_blank"
       rel="noopener noreferrer"
       className="text-primary hover:text-primarydark"
     >
-      {selectedEvent.location}
+      {selectedEvent.getLocation()}
     </a>
   ) : (
-    selectedEvent.location
+    selectedEvent.getLocation()
   );
 
-  // Fetch attendees when the "Attendees" tab is selected
   useEffect(() => {
     if (currentTab === "Attendees") {
       const fetchAttendees = async () => {
         setLoadingAttendees(true);
         const { users, error } = await fetchRegisteredUsersForEvent(
-          selectedEvent.eventid
+          selectedEvent.getEventId()
         );
         setLoadingAttendees(false);
         if (!error) {
-          setAttendees(users);
+          const userProfiles = users.map(
+            (user: any) =>
+              new UserProfileModel(
+                user.userid,
+                user.first_name,
+                user.last_name,
+                "",
+                new Date(),
+                "",
+                "",
+                user.profilepicture,
+                "",
+                new Date(),
+                0
+              )
+          );
+          setAttendees(userProfiles);
         } else {
           Swal.fire({
             title: "Error!",
@@ -157,21 +172,21 @@ export default function EventOptions({
       };
       fetchAttendees();
     }
-  }, [currentTab, selectedEvent.eventid]);
+  }, [currentTab, selectedEvent]);
 
   useEffect(() => {
     const checkPermissions = async () => {
       try {
         const editPermission = await check_permissions(
           userId || "",
-          selectedEvent.organizationid,
+          selectedEvent.getOrganizationId() ?? "",
           "edit_events"
         );
         setCanEditEvents(editPermission);
 
         const deletePermission = await check_permissions(
           userId || "",
-          selectedEvent.organizationid,
+          selectedEvent.getOrganizationId() ?? "",
           "delete_events"
         );
         setCanDeleteEvents(deletePermission);
@@ -181,7 +196,7 @@ export default function EventOptions({
     };
 
     checkPermissions();
-  }, [userId, selectedEvent.organizationid]);
+  }, [userId, selectedEvent]);
 
   return (
     <>
@@ -199,8 +214,8 @@ export default function EventOptions({
           enterFrom="transform opacity-0 scale-95"
           enterTo="transform opacity-100 scale-100"
           leave="transition ease-in duration-75"
-          leaveFrom="transform opacity-100 scale-100"
-          leaveTo="transform opacity-0 scale-95"
+          leaveFrom="opacity-100 scale-100"
+          leaveTo="opacity-0 scale-95"
         >
           <Menu.Items className="fixed right-[80px] z-[100] mt-2 w-56 origin-top-left divide-y divide-[#525252] rounded-md bg-charleston shadow-lg ring-1 ring-charleston ring-opacity-5 focus:outline-none">
             <div className="py-1">
@@ -221,7 +236,7 @@ export default function EventOptions({
                       className="mr-3 h-5 w-5 text-light group-hover:text-light"
                       aria-hidden="true"
                     />
-                    View Event Info
+                    View EventModel Info
                   </a>
                 )}
               </Menu.Item>
@@ -233,13 +248,13 @@ export default function EventOptions({
                         active ? "bg-raisinblack text-light" : "text-light",
                         "group flex items-center px-4 py-2 text-sm"
                       )}
-                      href={`/events/edit/${selectedEvent.eventid}`} // Assuming id is used for events
+                      href={`/events/edit/${selectedEvent.getEventId()}`}
                     >
                       <FaRegEdit
                         className="mr-3 h-5 w-5 text-light group-hover:text-light"
                         aria-hidden="true"
                       />
-                      Edit Event
+                      Edit EventModel
                     </Link>
                   )}
                 </Menu.Item>
@@ -282,7 +297,7 @@ export default function EventOptions({
                         className="mr-3 h-5 w-5 text-light group-hover:text-light"
                         aria-hidden="true"
                       />
-                      Delete Event
+                      Delete EventModel
                     </a>
                   )}
                 </Menu.Item>
@@ -323,7 +338,7 @@ export default function EventOptions({
                       <div className="px-4 sm:px-6">
                         <div className="flex items-start justify-between">
                           <Dialog.Title className="text-base font-semibold leading-6 text-light">
-                            View Event Info
+                            View EventModel Info
                           </Dialog.Title>
                           <div className="ml-3 flex h-7 items-center">
                             <button
@@ -339,7 +354,6 @@ export default function EventOptions({
                         </div>
                       </div>
 
-                      {/* Tabs */}
                       <div className="border-b border-gray-700">
                         <nav
                           className="-mb-px flex space-x-8 px-4 sm:px-6"
@@ -373,12 +387,13 @@ export default function EventOptions({
                       <div className="relative mt-6 flex-1 flex-wrap overflow-hidden overflow-y-auto px-4 text-light sm:px-6">
                         {currentTab === "Info" && (
                           <>
-                            {/* Event Photo Display */}
-                            {selectedEvent.eventphoto ? (
-                              <img
-                                src={`${supabaseStorageBaseUrl}/${selectedEvent.eventphoto}`}
-                                alt={`${selectedEvent.title} event photo`}
+                            {selectedEvent.getEventPhoto() ? (
+                              <Image
+                                src={`${supabaseStorageBaseUrl}/${selectedEvent.getEventPhoto()}`}
+                                alt={`${selectedEvent.getTitle()} event photo`}
                                 className="mx-auto h-60 w-full rounded-lg object-cover"
+                                width={800}
+                                height={600}
                               />
                             ) : (
                               <div className="mx-auto h-60 w-full rounded-lg bg-white" />
@@ -387,14 +402,14 @@ export default function EventOptions({
                               <tbody>
                                 <tr>
                                   <td className="p-2 font-bold text-gray-400">Title:</td>
-                                  <td className="p-2">{selectedEvent.title}</td>
+                                  <td className="p-2">{selectedEvent.getTitle()}</td>
                                 </tr>
                                 <tr>
                                   <td className="p-2 font-bold text-gray-400">
                                     Description:
                                   </td>
                                   <td className="p-2">
-                                    {truncateText(selectedEvent.description, 100)}
+                                    {truncateText(selectedEvent.getDescription(), 100)}
                                   </td>
                                 </tr>
                                 <tr>
@@ -405,13 +420,13 @@ export default function EventOptions({
                                 </tr>
                                 <tr>
                                   <td className="p-2 font-bold text-gray-400">
-                                    Start Event Date Time:
+                                    Start EventModel Date Time:
                                   </td>
                                   <td className="p-2">{startEventDateTimePST}</td>
                                 </tr>
                                 <tr>
                                   <td className="p-2 font-bold text-gray-400">
-                                    End Event Date Time:
+                                    End EventModel Date Time:
                                   </td>
                                   <td className="p-2">{endEventDateTimePST}</td>
                                 </tr>
@@ -420,7 +435,7 @@ export default function EventOptions({
                                     Capacity:
                                   </td>
                                   <td className="p-2">
-                                    {selectedEvent.capacity || "None"}
+                                    {selectedEvent.getCapacity() || "None"}
                                   </td>
                                 </tr>
                                 <tr>
@@ -428,8 +443,8 @@ export default function EventOptions({
                                     Registration Fee:
                                   </td>
                                   <td className="p-2">
-                                    {selectedEvent.registrationfee
-                                      ? `Php ${selectedEvent.registrationfee}`
+                                    {selectedEvent.getRegistrationFee()
+                                      ? `Php ${selectedEvent.getRegistrationFee()}`
                                       : "None"}
                                   </td>
                                 </tr>
@@ -443,14 +458,13 @@ export default function EventOptions({
                                   <td className="p-2 font-bold text-gray-400">
                                     Privacy:
                                   </td>
-                                  <td className="p-2">{selectedEvent.privacy}</td>
+                                  <td className="p-2">{selectedEvent.getPrivacy()}</td>
                                 </tr>
                                 <tr>
                                   <td className="p-2 font-bold text-gray-400">Tags:</td>
                                   <td className="flex flex-wrap gap-2 p-2 ">
-                                    {/* Check if selectedEvent.tags is not null or undefined and has length before mapping */}
-                                    {selectedEvent.tags && selectedEvent.tags.length > 0
-                                      ? selectedEvent.tags.map((tag, index) => (
+                                    {selectedEvent.getTags()?.length
+                                      ? selectedEvent.getTags()!.map((tag, index) => (
                                           <span
                                             key={index}
                                             className="mr-2 inline-block rounded bg-gray-200 px-3 py-1 text-sm font-semibold text-gray-700 transition duration-100 hover:scale-[1.05] hover:bg-gray-200"
@@ -463,20 +477,19 @@ export default function EventOptions({
                                 </tr>
                               </tbody>
                             </table>
-                            {/* Buttons */}
                             <div className="mt-4 flex space-x-4">
                               <Link
-                                href={`/e/${selectedEvent.eventslug}`}
+                                href={`/e/${selectedEvent.getEventSlug()}`}
                                 className="flex-1 rounded-md bg-primary px-4 py-2 text-center text-white hover:bg-primarydark"
                               >
-                                View Event
+                                View EventModel
                               </Link>
                               {canEditEvents && (
                                 <Link
                                   className="flex-1 rounded-md bg-charleston px-4 py-2 text-center text-white hover:bg-raisinblack"
-                                  href={`/events/edit/${selectedEvent.eventid}`}
+                                  href={`/events/edit/${selectedEvent.getEventId()}`}
                                 >
-                                  Edit Event
+                                  Edit EventModel
                                 </Link>
                               )}
                               {canDeleteEvents && (
@@ -495,18 +508,25 @@ export default function EventOptions({
                             {loadingAttendees ? (
                               <Preloader />
                             ) : Array.isArray(attendees) && attendees.length > 0 ? (
-                              attendees.map((attendee: UserProfile, index: number) => (
-                                <div key={index} className="flex items-center space-x-3">
-                                  <div className="relative h-8 w-8 flex-shrink-0">
-                                    <img
-                                      className="h-8 w-8 rounded-full object-cover"
-                                      src={`${supabaseStorageBaseUrl}/${attendee.profilepicture}`}
-                                      alt={`${attendee.first_name} ${attendee.last_name}`}
-                                    />
+                              attendees.map(
+                                (attendee: UserProfileModel, index: number) => (
+                                  <div
+                                    key={index}
+                                    className="flex items-center space-x-3"
+                                  >
+                                    <div className="relative h-8 w-8 flex-shrink-0">
+                                      <Image
+                                        className="h-8 w-8 rounded-full object-cover"
+                                        src={`${supabaseStorageBaseUrl}/${attendee.getProfilePicture()}`}
+                                        alt={`${attendee.getFirstName()} ${attendee.getLastName()}`}
+                                        width={32}
+                                        height={32}
+                                      />
+                                    </div>
+                                    <div>{`${attendee.getFirstName()} ${attendee.getLastName()}`}</div>
                                   </div>
-                                  <div>{`${attendee.first_name} ${attendee.last_name}`}</div>
-                                </div>
-                              ))
+                                )
+                              )
                             ) : (
                               <div>No attendees registered for this event.</div>
                             )}

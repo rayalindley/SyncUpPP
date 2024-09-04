@@ -8,7 +8,7 @@ import { StepsProvider } from "react-step-builder";
 
 export default function Example() {
   const router = useRouter();
-  const { slug } = useParams() as { slug: string }; // Ensure slug is a string
+  const { slug } = useParams() as { slug: string };
 
   const [formValues, setFormValues] = useState(null);
   const [error, setError] = useState<string | null>(null);
@@ -55,16 +55,6 @@ export default function Example() {
           <StepsProvider>
             <CreateOrganizationForm formValues={formValues} />
           </StepsProvider>
-
-          {/* <p className="mt-10 text-center text-sm text-gray-400">
-            Not a member?{" "}
-            <a
-              href="#"
-              className="font-semibold leading-6 text-primarydark hover:text-primary"
-            >
-              Start a 14 day free trial
-            </a>
-          </p> */}
         </div>
       </div>
     </>

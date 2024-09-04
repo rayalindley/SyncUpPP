@@ -1,6 +1,7 @@
 "use client";
 import { check_permissions } from "@/lib/organization";
-import { Event, Organization } from "@/lib/types";
+import { EventModel } from "@/models/eventModel";
+import { OrganizationModel } from "@/models/organizationModel";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import EventOptions from "./event_options"; // Assuming you have EventOptions component
@@ -10,8 +11,8 @@ export default function EventsTableUser({
   events,
   userId,
 }: {
-  organization: Organization;
-  events: Event[];
+  organization: OrganizationModel;
+  events: EventModel[];
   userId: string;
 }) {
   const router = useRouter();
@@ -19,7 +20,7 @@ export default function EventsTableUser({
 
   // Redirect to the create event page for the selected organization
   const handleCreateEvent = () => {
-    router.push(`/events/create/${organization.slug}`);
+    router.push(`/events/create/${organization.getSlug()}`);
   };
 
   useEffect(() => {
@@ -27,7 +28,7 @@ export default function EventsTableUser({
       try {
         const permission = await check_permissions(
           userId || "",
-          organization.organizationid,
+          organization.getOrganizationId() || "", // Call the method inside the effect
           "create_events"
         );
         setCanCreateEvents(permission);
@@ -35,9 +36,9 @@ export default function EventsTableUser({
         console.error("Failed to check permissions", error);
       }
     };
-
+  
     checkPermissions();
-  }, [userId, organization.organizationid]);
+  }, [userId, organization]);
 
   return (
     <div className="py-4 sm:px-6 lg:px-8">
@@ -129,7 +130,7 @@ export default function EventsTableUser({
   );
 }
 
-function EventRow({ event, userId }: { event: Event; userId: string }) {
+function EventRow({ event, userId }: { event: EventModel; userId: string }) {
   const [open, setOpen] = useState(false);
   // Convert eventdatetime to PST
   const formattedDateTime = (utcDateString: string) => {
@@ -145,16 +146,16 @@ function EventRow({ event, userId }: { event: Event; userId: string }) {
   };
 
   // Call the formattedDateTime function with the event's datetime
-  const startEventDateTimePST = formattedDateTime(event.starteventdatetime.toString());
-  const endEventDateTimePST = formattedDateTime(event.endeventdatetime.toString());
+  const startEventDateTimePST = formattedDateTime(event?.getStartEventDateTime()?.toString());
+  const endEventDateTimePST = formattedDateTime(event?.getEndEventDateTime()?.toString());
   return (
-    <tr key={event.id}>
+    <tr key={event?.getEventId()}>
       <td
         className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-light sm:pl-6"
         onClick={() => setOpen(!open)}
       >
         <a href="#" className="hover:text-primary" onClick={() => setOpen(!open)}>
-          {event.title}
+          {event?.getTitle()}
         </a>
       </td>
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
@@ -163,14 +164,14 @@ function EventRow({ event, userId }: { event: Event; userId: string }) {
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
         {endEventDateTimePST}
       </td>
-      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">{event.location}</td>
+      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">{event?.getLocation()}</td>
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-        {event.registrationfee || "N/A"}
+        {event?.getRegistrationFee() || "N/A"}
       </td>
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-        {event.capacity || "N/A"}
+        {event?.getCapacity() || "N/A"}
       </td>
-      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">{event.privacy}</td>
+      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">{event?.getPrivacy()}</td>
       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
         <EventOptions
           selectedEvent={event}

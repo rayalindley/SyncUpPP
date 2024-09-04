@@ -1,9 +1,14 @@
 "use client";
 
-import CombinedUserDataTable from "@/components/CombinedUserDataTable";
-import EmailsTable from "@/components/EmailsTable";
-import EventsTable from "@/components/EventsTable";
-import Preloader from "@/components/preloader";
+import React, { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
+import { useParams } from "next/navigation";
+import { ToastContainer, toast } from "react-toastify";
+import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import { z } from "zod";
+import "react-quill/dist/quill.snow.css";
+import "react-toastify/dist/ReactToastify.css";
+import { getCombinedUserDataById } from "@/lib/userActions";
 import { useUser } from "@/context/UserContext";
 import {
   fetchEventsByOrganization,
@@ -15,475 +20,276 @@ import {
 } from "@/lib/newsletterActions";
 import { check_permissions } from "@/lib/organization";
 import { createClient } from "@/lib/supabase/client";
-import { CombinedUserData, Email, Event } from "@/lib/types";
-import { getCombinedUserDataById } from "@/lib/userActions";
-import dynamic from "next/dynamic";
-import { useParams } from "next/navigation";
-import React, { useEffect, useRef, useState } from "react";
-import "react-quill/dist/quill.snow.css";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import { z } from "zod";
+import { EmailModel } from "@/models/emailModel";
+import { EventModel } from "@/models/eventModel";
+import { CombinedUserDataModel } from "@/models/combinedUserDataModel";
+
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
 const newsletterSchema = z.object({
-  subject: z
-    .string()
-    .nonempty({ message: "Subject field is required" })
-    .max(100, { message: "Subject cannot exceed 100 characters" }),
-  content: z
-    .string()
-    .refine(
-      (val) =>
-        val.replace(/<(.|\n)*?>/g, "").trim().length >= 10 &&
-        val.replace(/<(.|\n)*?>/g, "").length <= 1000,
-      {
-        message:
-          "Content must be between 10 and 1000 characters long (excluding HTML tags)",
-      }
-    ),
+  subject: z.string().nonempty().max(100),
+  content: z.string().min(10).max(1000),
 });
 
 export default function NewsletterPage() {
   const { user } = useUser();
-  const params = useParams();
-  const orgSlug = params?.slug; // Make sure to use the correct parameter name
-
+  const { slug: orgSlug } = useParams() as { slug: string };
   const [editorState, setEditorState] = useState("");
   const [subject, setSubject] = useState("");
-  const [subjectLength, setSubjectLength] = useState(0);
-  const [contentLength, setContentLength] = useState(0);
-  const [attachments, setAttachments] = useState<
-    Array<{ filename: string; content: string | ArrayBuffer | null }>
-  >([]);
-  const [events, setEvents] = useState<Event[]>([]);
-  const [users, setUsers] = useState<CombinedUserData[]>([]);
-  const [sentEmails, setSentEmails] = useState<Email[]>([]);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [fileError, setFileError] = useState("");
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [events, setEvents] = useState<EventModel[]>([]);
+  const [users, setUsers] = useState<CombinedUserDataModel[]>([]);
+  const [sentEmails, setSentEmails] = useState<EmailModel[]>([]);
   const [sending, setSending] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
 
-  const scrollRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     const supabase = createClient();
-    supabase
-      .channel("emails")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "emails" },
-        async (payload) => {
-          if (user) {
-            const emailsData = await fetchSentEmailsByAdmin(user.id || "");
-            // Sort emails by date_created in descending order before setting the state
-            const sortedEmails = sortEmails(emailsData, "date_created", "desc");
-            setSentEmails(sortedEmails);
-          }
-        }
-      )
-      .subscribe();
-  }, [user]);
-
-  useEffect(() => {
-    async function fetchData() {
+    const fetchInitialData = async () => {
       if (user && orgSlug) {
-        const organization = await fetchOrganizationBySlug(orgSlug as string);
-        if (organization) {
-          const eventsData = await fetchEventsByOrganization(organization.organizationid);
-          const usersData = await fetchMembersByOrganization(organization.organizationid);
-          const emailsData = await fetchSentEmailsByAdmin(user.id || "");
+        const organization = await fetchOrganizationBySlug(orgSlug);
+        if (!organization) return;
 
-          const eventsWithSelected = eventsData.map((event: Event) => ({
-            ...event,
-            id: event.eventid,
-            selected: false,
-          }));
-          const usersWithSelected = usersData.map((user: CombinedUserData) => ({
-            ...user,
-            selected: false,
-          }));
+        const organizationId = organization.organizationid;
+        if (!organizationId) return;
 
-          // Sort emails by date_created in descending order before setting the state
-          const sortedEmails = sortEmails(emailsData, "date_created", "desc");
-          setEvents(eventsWithSelected);
-          setUsers(usersWithSelected);
-          setSentEmails(sortedEmails);
+        setHasPermission(await check_permissions(user.id!, organizationId, "send_newsletters"));
+        
+        if (await check_permissions(user.id!, organizationId, "send_newsletters")) {
+          const fetchedEvents = await fetchEventsByOrganization(organizationId);
+          console.log("Fetched Events:", fetchedEvents);
+          setEvents(fetchedEvents);
+
+          const fetchedUsers = await fetchMembersByOrganization(organizationId);
+          console.log("Fetched Users:", fetchedUsers);
+          setUsers(fetchedUsers);
+
+          supabase.channel("emails")
+            .on("postgres_changes", { event: "*", schema: "public", table: "emails" }, async () => {
+              if (user && user.id) {
+                setSentEmails(await fetchSentEmailsByAdmin(user.id));
+              }
+            })
+            .subscribe();
+        } else {
+          setHasPermission(false);
         }
+      } else {
+        setHasPermission(false);
       }
-    }
-
-    async function checkPermission() {
-      if (user && orgSlug) {
-        const organization = await fetchOrganizationBySlug(orgSlug as string);
-        if (organization) {
-          const hasPermission = await check_permissions(
-            user.id || "",
-            organization.organizationid,
-            "send_newsletters"
-          );
-          setHasPermission(hasPermission);
-        }
-      }
-    }
-
-    fetchData();
-    checkPermission();
+    };
+    fetchInitialData();
   }, [user, orgSlug]);
-
-  const transformUserData = (userDataArray: Array<{ data: CombinedUserData }>) => {
-    return userDataArray.map(({ data }) => ({
-      id: data.id,
-      email: data.email,
-      role: data.role,
-      created_at: data.created_at,
-      updated_at: data.updated_at,
-      first_name: data.first_name,
-      last_name: data.last_name,
-      gender: data.gender,
-      dateofbirth: data.dateofbirth,
-      description: data.description,
-      company: data.company,
-      website: data.website,
-      updatedat: data.updatedat,
-    }));
-  };
 
   const handleSendNewsletter = async () => {
     setSending(true);
-    const selectedEventIds = events
-      .filter((event) => event.selected)
-      .map((event) => event.eventid);
-    const selectedUserIds = users.filter((user) => user.selected).map((user) => user.id);
-
-    const eventMembers = await Promise.all(
-      selectedEventIds.map((eventId) => fetchMembersByEvent(eventId))
-    );
-
-    const selectedUsers = await Promise.all(
-      selectedUserIds.map((userId) => getCombinedUserDataById(userId || ""))
-    );
-
-    const transformedUsers = transformUserData(selectedUsers);
-
-    const allUsers = [...new Set([...eventMembers.flat(), ...transformedUsers])].map(
-      (item) => item
-    );
-
-    if (subject.trim()) {
-      setFormErrors((prevErrors) => ({ ...prevErrors, subject: "" }));
-    }
-
-    if (editorState.trim()) {
-      setFormErrors((prevErrors) => ({ ...prevErrors, content: "" }));
-    }
-
     try {
-      newsletterSchema.parse({
-        subject: subject,
-        content: editorState,
-      });
-      if (allUsers.length === 0) {
-        setSending(false);
-        toast.error(
-          "Please select at least one recipient. The event you selected may not have any members."
-        );
-        return;
-      }
+      newsletterSchema.parse({ subject, content: editorState });
+      const selectedEventIds = events.filter(e => e.getSelected()).map(e => e.getEventId());
+      const selectedUserIds = users.filter(u => u.getSelected()).map(u => u.getId());
 
-      const organization = await fetchOrganizationBySlug(orgSlug as string); // Ensure organization is fetched here
+      const allUsers = [
+        ...new Set([
+          ...selectedEventIds.flatMap(eventId => fetchMembersByEvent(eventId)),
+          ...selectedUserIds.map(userId => getCombinedUserDataById(userId)),
+        ]),
+      ];
 
-      const sendNewsletterPromise = sendNewsletter(
+      if (!allUsers.length) throw new Error("No recipients selected");
+
+      const organization = await fetchOrganizationBySlug(orgSlug);
+      if (!organization) throw new Error("Organization not found");
+
+      const { successCount, failures } = await sendNewsletter(
         subject,
         editorState,
-        allUsers,
+        await Promise.all(allUsers),
         attachments,
-        organization?.name || "",
-        organization?.organizationid || ""
+        organization.name,
+        organization.organizationid
       );
 
-      // console.log("subject", subject, "\ncontent", editorState, "\nallUsers", allUsers, "\nattachments", attachments, "\norganization", organization?.name || "")
-
-      const { successCount, failures } = await sendNewsletterPromise;
-
-      if (successCount > 0) {
-        toast.success(`Newsletter sent successfully to ${successCount} recipients!`);
-
-        if (user) {
-          const emailsData = await fetchSentEmailsByAdmin(user.id || "");
-          // Sort emails by date_created in descending order before setting the state
-          const sortedEmails = sortEmails(emailsData, "date_created", "desc");
-          setSentEmails(sortedEmails);
-        }
-      }
-
-      if (failures.length > 0) {
-        let errorCount = 0;
-        let otherFailuresCount = 0;
-
-        failures.forEach((failure) => {
-          if (errorCount < 2) {
-            toast.error(`Failed to send to ${failure.email}: ${failure.reason}`);
-            errorCount++;
-          } else {
-            otherFailuresCount++;
-          }
-        });
-
-        if (otherFailuresCount > 0) {
-          toast.error(
-            `${otherFailuresCount} other emails failed to send due to similar errors.`
-          );
-        }
-      }
-
+      if (successCount) toast.success(`Newsletter sent to ${successCount} recipients!`);
+      if (failures.length) toast.error(`Failed to send to some recipients.`);
       setSending(false);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const fieldErrors = error.flatten().fieldErrors;
-        const transformedErrors: Record<string, string> = {};
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Please fill in all required fields");
+      setSending(false);
+    }
+  };
 
-        Object.keys(fieldErrors).forEach((key) => {
-          if (fieldErrors[key] !== undefined) {
-            transformedErrors[key] = fieldErrors[key]!.join(", ");
-          } else {
-            transformedErrors[key] = "No error message provided.";
-          }
-        });
+  if (hasPermission === null) return <div className="text-white text-center">Loading...</div>;
+  if (!hasPermission) return <div className="text-white text-center">You do not have permission to create newsletters for this organization.</div>;
+  if (!orgSlug) return <div className="text-white text-center">Please select an organization to create a newsletter.</div>;
 
-        setFormErrors(transformedErrors);
-        setSending(false);
-        toast.error("Please fill in all required fields");
+  const eventColumns: GridColDef[] = [
+    { field: "eventid", headerName: "Event ID", width: 100 },
+    { field: "title", headerName: "Event Name", width: 200 },
+    { 
+      field: "eventdatetime", 
+      headerName: "Date and Time", 
+      width: 180,
+      valueFormatter: (params: any) => {
+        if (params.value) {
+          return new Date(params.value).toLocaleString();
+        }
+        return "N/A"; // Handle null or undefined values
       }
-    }
-  };
+    },
+    { field: "location", headerName: "Location", width: 150 },
+    { field: "registrationfee", headerName: "Fee", width: 100,
+      valueFormatter: (params: any) => `$${Number(params.value).toFixed(2)}` },
+    { field: "capacity", headerName: "Capacity", width: 100 },
+    { field: "tags", headerName: "Tags", width: 150 },
+    { field: "privacy", headerName: "Privacy", width: 100 },
+    { field: "description", headerName: "Description", width: 300 },
+    { field: "organizationid", headerName: "Organization ID", width: 150 },
+    { field: "createdat", headerName: "Created At", width: 180,
+      valueFormatter: (params: any) => new Date(params.value).toLocaleString() },
+    { field: "updatedat", headerName: "Updated At", width: 180,
+      valueFormatter: (params: any) => new Date(params.value).toLocaleString() },
+  ];
 
-  const handleAttachmentChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files ? Array.from(event.target.files) : [];
-    let totalSize = files.reduce((total, file) => total + file.size, 0);
+  const userColumns: GridColDef[] = [
+    { field: "id", headerName: "User ID", width: 250 },
+    { field: "email", headerName: "Email Address", width: 200 },
+    { field: "role", headerName: "Role", width: 120 },
+    { 
+      field: "created_at", 
+      headerName: "Created At", 
+      width: 180,
+      valueFormatter: (params: any) => {
+        if (params.value) {
+          return new Date(params.value).toLocaleString();
+        }
+        return "N/A"; // Handle null or undefined values
+      }
+    },
+    { 
+      field: "updated_at", 
+      headerName: "Updated At", 
+      width: 180,
+      valueFormatter: (params: any) => {
+        if (params.value) {
+          return new Date(params.value).toLocaleString();
+        }
+        return "N/A"; // Handle null or undefined values
+      }
+    },
+    { field: "first_name", headerName: "First Name", width: 120 },
+    { field: "last_name", headerName: "Last Name", width: 120 },
+    { field: "gender", headerName: "Gender", width: 100 },
+    { 
+      field: "dateofbirth", 
+      headerName: "Date of Birth", 
+      width: 120,
+      valueFormatter: (params: any) => {
+        if (params.value) {
+          return new Date(params.value).toLocaleDateString();
+        }
+        return "N/A"; // Handle null or undefined values
+      }
+    },
+    { field: "description", headerName: "Description", width: 300 },
+    { field: "company", headerName: "Company", width: 150 },
+    { field: "website", headerName: "Website", width: 200 },
+    { 
+      field: "updatedat", 
+      headerName: "Updated At", 
+      width: 180,
+      valueFormatter: (params: any) => {
+        if (params.value) {
+          return new Date(params.value).toLocaleString();
+        }
+        return "N/A"; // Handle null or undefined values
+      }
+    },
+  ];
 
-    if (totalSize > 600 * 1024) {
-      setFileError("Total size of attachments should not exceed 600KB");
-      return;
-    }
-
-    setSelectedFiles(files);
-    setFileError("");
-  };
-
-  const handleSubjectChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.value;
-    setSubject(value);
-    setSubjectLength(value.length);
-    setFormErrors((prevErrors) => ({ ...prevErrors, subject: "" }));
-  };
-
-  const onEditorStateChange = (value: string) => {
-    if (value.length <= 1007) {
-      setEditorState(value);
-      setContentLength(value.replace(/<(.|\n)*?>/g, "").length);
-    }
-    setFormErrors((prevErrors) => ({ ...prevErrors, content: "" }));
-  };
-
-  const toggleSelection = (
-    list: Array<{ id: string; selected: boolean }>,
-    id: string
-  ) => {
-    return list.map((item) => ({
-      ...item,
-      selected: item.id === id ? !item.selected : item.selected,
-    }));
-  };
-
-  const toggleEventSelection = (list: Event[], id: string): Event[] => {
-    return list.map((item) => ({
-      ...item,
-      selected: item.id === id ? !item.selected : item.selected,
-    }));
-  };
-
-  const toggleCombinedUserSelection = (
-    list: CombinedUserData[],
-    id: string
-  ): CombinedUserData[] => {
-    return list.map((item) => ({
-      ...item,
-      selected: item.id === id ? !item.selected : item.selected,
-    }));
-  };
-
-  if (hasPermission === null) {
-    return <Preloader />;
-  }
-
-  if (!hasPermission) {
-    return (
-      <div className="bg-raisin flex min-h-screen items-center justify-center p-10 font-sans text-white">
-        <div className="text-center">
-          <h1 className="mb-4 text-3xl">Newsletter Creation</h1>
-          <p className="text-lg">
-            You do not have permission to create newsletters for this organization.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!orgSlug) {
-    return (
-      <div className="bg-raisin flex min-h-screen items-center justify-center p-10 font-sans text-white">
-        <div className="text-center">
-          <h1 className="mb-4 text-3xl">Newsletter Creation</h1>
-          <p className="text-lg">Please select an organization to create a newsletter.</p>
-        </div>
-      </div>
-    );
-  }
+  const sentEmailColumns: GridColDef[] = [
+    { field: "subject", headerName: "Subject", width: 200 },
+    { field: "sent_at", headerName: "Sent At", width: 180,
+      valueFormatter: (params: any) => new Date(params.value).toLocaleString() },
+    { field: "recipient_count", headerName: "Recipients", width: 120 },
+    // Add any other relevant fields for sent emails
+  ];
 
   return (
     <>
-      <ToastContainer
-        position="bottom-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="dark"
-      />
-      <div
-        ref={scrollRef}
-        className="bg-raisin mb-40 max-w-full space-y-6 rounded-lg p-10 font-sans text-white"
-      >
-        <h1 className="border-b-2 border-primary pb-4 text-3xl">Newsletter Creation</h1>
+      <ToastContainer position="bottom-right" autoClose={5000} theme="dark" />
+      <div className="bg-gray-900 text-white p-8 space-y-8">
+        <h1 className="text-3xl font-bold text-center border-b border-gray-700 pb-4">Newsletter Creation</h1>
         <div className="space-y-4">
-          <div className="relative w-full">
-            <input
-              className="w-full rounded border bg-charleston p-4 text-base focus:border-primary"
-              type="text"
-              placeholder="Subject*"
-              value={subject}
-              onChange={handleSubjectChange}
-              maxLength={100}
-              style={{ paddingRight: "50px" }} // reserve space for the character count
-            />
-            <p className="absolute bottom-1 right-3 text-sm text-gray-400">
-              {subjectLength}/100
-            </p>
-          </div>
-          {formErrors.subject && (
-            <p className="text-sm text-red-500">{formErrors.subject}</p>
-          )}
-        </div>
-        <div className="relative space-y-4 text-white">
-          <ReactQuill
-            theme="snow"
-            value={editorState}
-            onChange={onEditorStateChange}
-            className="rounded border border-primary p-2 text-white"
+          <input
+            type="text"
+            placeholder="Subject"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            maxLength={100}
+            className="w-full p-4 bg-gray-800 border border-gray-700 rounded"
           />
-          <p className="absolute bottom-3 right-5 text-sm text-gray-400">
-            {contentLength}/1000
-          </p>
+          <label htmlFor="editor" className="sr-only">Newsletter Content</label>
+          <ReactQuill id="editor" theme="snow" value={editorState} onChange={setEditorState} className="bg-gray-800 border border-gray-700 rounded" />
+          <label htmlFor="attachments" className="sr-only">Attachments</label>
+          <input
+            id="attachments"
+            type="file"
+            multiple
+            onChange={(e) => setAttachments(e.target.files ? Array.from(e.target.files) : [] )}
+            className="w-full p-4 bg-gray-800 border border-gray-700 rounded"
+          />
         </div>
-        {formErrors.content && (
-          <p className="text-sm text-red-500">{formErrors.content}</p>
-        )}
-        <div className="space-y-4">
-          <label htmlFor="attachments" className="mb-2 block text-lg">
-            Attachments:
-          </label>
-          <label
-            htmlFor="attachments"
-            className="mt-2 block cursor-pointer rounded bg-primary px-4 py-2 text-white"
-          >
-            Select attachments
-            <input
-              type="file"
-              multiple
-              id="attachments"
-              onChange={handleAttachmentChange}
-              className="hidden"
-            />
-          </label>
-
-          <ul>
-            {selectedFiles.map((file, index) => (
-              <li key={index}>
-                {file.name} ({Math.round(file.size / 1024)} KB)
-              </li>
-            ))}
-          </ul>
-
-          {fileError && <p className="text-sm text-red-500">{fileError}</p>}
-        </div>
-
-        <div className="h-12"></div>
-        <h2 className="border-b-2 border-primary pb-4 text-2xl">Select Recipients</h2>
-        <div className="space-y-4 rounded-lg bg-[#2a2a2a] p-6">
-          <details className="mb-4">
-            <summary className="cursor-pointer text-lg">
-              <strong>Events</strong> (Select an event to send emails to all its
-              registrants)
-            </summary>
-            <div className="overflow-x-auto rounded-lg bg-[#2a2a2a] p-6">
-              <EventsTable
-                events={events}
-                setEvents={setEvents}
-                toggleSelection={toggleEventSelection}
+        <h2 className="text-2xl font-semibold border-b border-gray-700 pb-2">Select Recipients</h2>
+        <div className="space-y-6">
+          <details className="bg-gray-800 rounded p-4">
+            <summary className="text-lg font-medium">Events</summary>
+            <div className="mt-4">
+              <DataGrid
+                rows={events}
+                columns={eventColumns}
+                checkboxSelection
+                autoHeight
+                getRowId={(row) => row.eventid}
+                className="bg-gray-800 text-white"
+                columnBufferPx={2}
               />
             </div>
           </details>
-          <hr className="my-6" />
-          <details className="mb-4">
-            <summary className="cursor-pointer text-lg">
-              <strong>Individual Users</strong> (Select specific users to send them
-              emails)
-            </summary>
-            <div className="overflow-x-auto rounded-lg bg-[#2a2a2a] p-6">
-              <CombinedUserDataTable
-                users={users}
-                setUsers={setUsers}
-                toggleSelection={toggleCombinedUserSelection}
+          <details className="bg-gray-800 rounded p-4">
+            <summary className="text-lg font-medium">Individual Users</summary>
+            <div className="mt-4">
+              <DataGrid
+                rows={users}
+                columns={userColumns}
+                checkboxSelection
+                autoHeight
+                getRowId={(row) => row.id}
+                className="bg-gray-800 text-white"
+                columnBufferPx={2}
               />
             </div>
           </details>
         </div>
-
         <button
           onClick={handleSendNewsletter}
-          className="mt-6 cursor-pointer rounded bg-primary px-6 py-3 text-lg text-white"
           disabled={sending}
+          className="w-full p-4 bg-blue-600 rounded text-lg font-semibold hover:bg-blue-500"
         >
           {sending ? "Sending..." : "Send Newsletter"}
         </button>
-        <div className="h-24"></div>
-        <h2 className="border-b-2 border-primary pb-4 text-2xl">Sent Emails</h2>
-        <div className="overflow-x-auto rounded-lg bg-[#2a2a2a] p-6">
-          <EmailsTable emails={sentEmails} setEmails={setSentEmails} />
+        <h2 className="text-2xl font-semibold border-b border-gray-700 pb-2">Sent Emails</h2>
+        <div className="bg-gray-800 rounded p-4">
+          <DataGrid
+            rows={sentEmails}
+            columns={sentEmailColumns}
+            autoHeight
+            getRowId={(row) => row.id}
+            className="bg-gray-800 text-white"
+            columnBufferPx={2}
+          />
         </div>
       </div>
     </>
   );
 }
 
-// Utility function to sort emails
-const sortEmails = (emails: Email[], column: string, direction: string) => {
-  return emails.sort((a, b) => {
-    if (a[column] === null) return 1;
-    if (b[column] === null) return -1;
-    if (a[column] === b[column]) return 0;
-    return direction === "asc"
-      ? a[column] > b[column]
-        ? 1
-        : -1
-      : a[column] < b[column]
-        ? 1
-        : -1;
-  });
-};

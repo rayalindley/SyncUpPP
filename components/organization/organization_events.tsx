@@ -1,7 +1,6 @@
 "use client";
 import { check_permissions } from "@/lib/organization";
 import { createClient } from "@/lib/supabase/client";
-// import { EventProps } from "@/lib/types";
 import { ArrowLongLeftIcon, ArrowLongRightIcon } from "@heroicons/react/20/solid";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
