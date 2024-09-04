@@ -7,7 +7,7 @@ import { getUser } from "@/lib/supabase/client";
 import Comments from "./comments";
 import { fetchComments } from "@/lib/comments";
 import { check_permissions } from "@/lib/organization";
-import { Posts } from "@/types/posts"; // Ensure this import matches your actual types
+import { Posts } from "@/types/posts"; 
 
 interface PostsCardProps {
   post: Posts;

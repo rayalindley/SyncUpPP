@@ -11,7 +11,8 @@ import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
-import { Member, Role } from "@/types/roles";
+import { Member } from "@/types/member";
+import { Role } from "@/types/role";
 
 const MySwal = withReactContent(Swal);
 

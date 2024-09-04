@@ -1,4 +1,4 @@
-import { Role } from "@/types/roles";
+import { Role } from "@/types/role";
 import { useState, useEffect, ChangeEvent } from "react";
 import { CirclePicker, ColorResult } from "react-color";
 import * as z from "zod";

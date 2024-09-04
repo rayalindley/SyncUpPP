@@ -9,8 +9,9 @@ export interface Posts {
   privacylevel?: any;
   targetmembershipid?: string;
   createdat?: string;
-  postphoto?: string;
   organizations?: Organizations;
   combined_user_data?: CombinedUserData;
   memberships?: Memberships;
+  postphoto?: string;
+  postphotos?: string[];
 }

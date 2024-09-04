@@ -2,9 +2,9 @@
 import { useState } from "react";
 
 import PropTypes from "prop-types";
-import { User_membership_info } from "@/types/users";
+import { UserMembershipInfo } from "@/types/user_membership_info";
 
-export default function MemberTable({ members }: { members: User_membership_info[] }) {
+export default function MemberTable({ members }: { members: UserMembershipInfo[] }) {
   const formatDate = (dateString: string): string => {
     const options: Intl.DateTimeFormatOptions = {
       month: "long",
