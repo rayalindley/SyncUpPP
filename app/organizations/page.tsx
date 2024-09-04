@@ -1,7 +1,7 @@
 "use client";
-import Footer from "@/components/Footer";
-import Header from "@/components/Header";
-import OrganizationCard from "@/components/app/OrganizationCard";
+import Footer from "@/components/footer";
+import Header from "@/components/header";
+import OrganizationCard from "@/components/app/organization_card";
 import { createClient, getUser } from "@/lib/supabase/client";
 import { Organization } from "@/lib/types"; // Adjust the import path as necessary
 import { ArrowLongLeftIcon, ArrowLongRightIcon } from "@heroicons/react/20/solid";

@@ -1,5 +1,5 @@
 "use client";
-import OrganizationCard from "@/components/app/OrganizationCard";
+import OrganizationCard from "@/components/app/organization_card";
 import { Organization } from "@/lib/types";
 import { ArrowLongLeftIcon, ArrowLongRightIcon } from "@heroicons/react/20/solid";
 import { useState } from "react";

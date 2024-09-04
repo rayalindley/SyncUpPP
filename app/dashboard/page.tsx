@@ -1,7 +1,7 @@
 "use client";
 
 import AdminAnalyticsDashboard from "@/components/dashboard/AdminAnalyticsDashboard";
-import OrganizationsSection from "@/components/dashboard/OrganizationsSection";
+import OrganizationsSection from "@/components/dashboard/organizations_section";
 import { createClient, getUser } from "@/lib/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { useEffect, useRef, useState } from "react";

@@ -1,6 +1,6 @@
 "use client";
-import Footer from "@/components/Footer";
-import Header from "@/components/Header";
+import Footer from "@/components/footer";
+import Header from "@/components/header";
 import EventsCard from "@/components/organization/events_card";
 import { createClient, getUser } from "@/lib/supabase/client";
 import { Event } from "@/lib/types";

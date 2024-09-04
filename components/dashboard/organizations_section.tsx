@@ -1,7 +1,7 @@
 "use client";
 import { ArrowLongLeftIcon, ArrowLongRightIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
-import OrganizationCard from "../app/OrganizationCard";
+import OrganizationCard from "../app/organization_card";
 import { Organizations } from "@/lib/types";
 
 interface OrgSummary extends Organizations {

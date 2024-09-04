@@ -1,7 +1,7 @@
 "use client";
 
-import Footer from "@/components/Footer";
-import Header from "@/components/Header";
+import Footer from "@/components/footer";
+import Header from "@/components/header";
 import UserEvents from "@/components/user/user_events";
 import UserOrganizations from "@/components/user/user_organizations";
 import { fetchEventsForUser } from "@/lib/events";

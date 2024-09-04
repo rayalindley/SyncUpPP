@@ -1,10 +1,10 @@
-import Community from "@/components/Community";
-import ContactUs from "@/components/ContactUs";
-import FeaturesSection from "@/components/FeaturesSection";
-import Footer from "@/components/Footer";
-import Header from "@/components/Header";
-import Hero from "@/components/Hero";
-import PricingSection from "@/components/PricingSection";
+import Community from "@/components/community";
+import ContactUs from "@/components/contact_us";
+import FeaturesSection from "@/components/features_section";
+import Footer from "@/components/footer";
+import Header from "@/components/header";
+import Hero from "@/components/hero";
+import PricingSection from "@/components/pricing_section";
 import { createClient, getUser } from "@/lib/supabase/server";
 
 import { Organization } from "@/lib/types";

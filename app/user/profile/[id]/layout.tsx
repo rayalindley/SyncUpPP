@@ -1,7 +1,7 @@
 import { UserProvider } from "@/context/UserContext";
 import { getUser } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import Header from "@/components/Header";
+import Header from "@/components/header";
 
 export default async function ProfilePage({
   children,
