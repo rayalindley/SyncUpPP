@@ -1,4 +1,4 @@
-export type CombinedUserData = {
+export interface CombinedUserData {
   selected?: boolean;
   id?: string | undefined;
   email?: string;
