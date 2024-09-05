@@ -1,5 +1,5 @@
 "use client";
-import AnalyticsDashboard from "@/components/dashboard/_analytics";
+import AnalyticsDashboard from "@/components/dashboard/analytics";
 import { deleteOrganization, fetchOrganizationBySlug } from "@/lib/organization";
 import { Organization } from "@/types/organization";
 import { useParams, useRouter } from "next/navigation";

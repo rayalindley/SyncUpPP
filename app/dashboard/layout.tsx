@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import Header from "@/components/dashboard/_header";
+import Header from "@/components/dashboard/header";
 import SideNavMenuForAdmins from "@/components/dashboard/side_nav_menu_for_admins";
 import SideNavMenuForUsers from "@/components/dashboard/side_nav_menu_for_users";
 import { UserProvider } from "@/context/user_context";
