@@ -1,15 +1,13 @@
 "use server";
 import { createClient } from "@/lib/supabase/server";
 import { Resend } from "resend";
-import {
-  EmailContent,
-  AdminUuid,
-  User,
-  OrganizationUuid,
-  EventUuid,
-  CreateEmailResponse,
-  Organization,
-} from "./types";
+import { EmailContent } from "@/types/email_content";
+import { AdminUuid } from "@/types/admin_uuid";
+import { User } from "@/types/user";
+import { OrganizationUuid } from "@/types/organization_uuid";
+import { EventUuid } from "@/types/event_uuid";
+import { Organization } from "@/types/organization";
+
 import { PostgrestError } from "@supabase/supabase-js";
 
 export async function fetchSentEmailsByAdmin(adminUserId: AdminUuid) {
