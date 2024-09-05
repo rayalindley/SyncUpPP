@@ -1,6 +1,6 @@
 "use client";
-import Footer from "@/components/footer";
-import Header from "@/components/header";
+import Footer from "@/components/_footer";
+import Header from "@/components/_header";
 import Preloader from "@/components/preloader";
 import {
   checkEventPrivacyAndMembership,

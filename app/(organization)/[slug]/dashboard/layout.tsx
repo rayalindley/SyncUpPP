@@ -1,4 +1,4 @@
-import Header from "@/components/dashboard/header";
+import Header from "@/components/dashboard/_header";
 import SideNavMenuForUsers from "@/components/dashboard/side_nav_menu_for_users";
 import { fetchOrganizationsForUser } from "@/lib/organization";
 import { getUser } from "@/lib/supabase/server";

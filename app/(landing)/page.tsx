@@ -1,9 +1,9 @@
-import Community from "@/components/community";
+import Community from "@/components/_community";
 import ContactUs from "@/components/contact_us";
 import FeaturesSection from "@/components/features_section";
-import Footer from "@/components/footer";
-import Header from "@/components/header";
-import Hero from "@/components/hero";
+import Footer from "@/components/_footer";
+import Header from "@/components/_header";
+import Hero from "@/components/_hero";
 import PricingSection from "@/components/pricing_section";
 import { createClient, getUser } from "@/lib/supabase/server";
 
