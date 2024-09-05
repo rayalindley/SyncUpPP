@@ -1,5 +1,4 @@
 export interface CombinedUserData {
-  selected?: boolean;
   id?: string | undefined;
   email?: string;
   role?: string;
@@ -14,4 +13,5 @@ export interface CombinedUserData {
   website?: string;
   updatedat?: Date;
   profilepicture?: string;
+  selected?: boolean;
 };

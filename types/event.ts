@@ -16,5 +16,5 @@ export interface Event {
   tags: string[];
   privacy: string;
   createdat: Date;
-  selected?: string | boolean;
+  selected?: boolean;
 }
