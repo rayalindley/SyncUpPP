@@ -1,6 +1,6 @@
 "use server";
 import { createClient } from "@/lib/supabase/server";
-import { UserProfile } from "./types";
+import { UserProfile } from "@/types/user_profile";
 
 export async function sendPasswordRecovery(email: string) {
   const supabase = createClient();
