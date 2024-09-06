@@ -83,10 +83,10 @@ export default function OrganizationUserView() {
                 placeholder="Search organizations by name"
                 value={searchTerm}
                 onChange={handleSearch}
-                className="w-full rounded-md border border-charleston bg-charleston px-4 py-2 pl-4 pr-10 text-sm text-light focus:border-primary focus:ring-primary"
+                className="w-full rounded-md border border-charleston bg-charleston px-4 py-2 pl-10 pr-10 text-sm text-light focus:border-primary focus:ring-primary"
               />
               {/* Search Icon */}
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+              <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center pr-3">
                 <MagnifyingGlassIcon className="h-5 w-5 text-gray-500" />
               </div>
             </div>
