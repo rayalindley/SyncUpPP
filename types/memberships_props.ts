@@ -1,4 +1,4 @@
-import { Membership } from './membership';so
+import { Membership } from './membership';
 
 export interface MembershipsProps {
   memberships: Membership[];
