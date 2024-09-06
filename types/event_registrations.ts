@@ -1,3 +1,6 @@
+import { CombinedUserData } from './combined_user_data';
+import { Events } from './events';
+import { OrganizationMembers } from './organization_members';
 
 export interface EventRegistrations {
   eventregistrationid: string;
