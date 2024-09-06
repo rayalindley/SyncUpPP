@@ -14,7 +14,7 @@ export async function fetchNotifications(userId: string) {
     if (!error) {
       // console.log("Notifications data:", data);
       if (data !== null) {
-        const unreadCount = data.filter(notification => !notification.isread).length;
+        const unreadCount = data.filter((notification: { isread: boolean }) => !notification.isread).length;
         return { data, unreadCount, error: null };
       } else {
         return { data: null, unreadCount: 0, error: null };
