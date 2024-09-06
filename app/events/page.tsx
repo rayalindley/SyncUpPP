@@ -93,13 +93,13 @@ export default function EventsPublicView() {
               <div className="relative w-full flex-grow">
                 <input
                   type="text"
-                  placeholder="Search events"
+                  placeholder="Search events..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-lg border border-charleston bg-charleston p-2 pl-4 pr-10 text-sm text-light focus:border-primary focus:ring-primary"
+                  className="w-full rounded-lg border border-charleston bg-charleston p-2 pl-10 pr-4 text-sm text-light focus:border-primary focus:ring-primary"
                 />
                 {/* Magnifying Glass Icon */}
-                <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
                   <MagnifyingGlassIcon
                     className="h-5 w-5 text-gray-500"
                     aria-hidden="true"
