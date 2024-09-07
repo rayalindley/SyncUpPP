@@ -10,22 +10,26 @@ import { getUserProfileById } from "@/lib/user_actions";
 import { useUser } from "@/context/user_context";
 import { check_permissions } from "@/lib/organization";
 import "react-toastify/dist/ReactToastify.css";
-import { Posts } from "@/types/posts"; // Ensure this matches your actual types
+import { Posts } from "@/types/posts";
 
 const postSchema = z.object({
-  content: z
-    .string()
-    .min(1, "Content is required")
-    .max(500, "Content cannot exceed 500 characters"),
-  privacyLevel: z.enum(["public", "private"]),
+  content: z.string().min(1, "Content is required").max(500, "Content cannot exceed 500 characters"),
+  privacyLevel: z.enum(["public", "private", "role_based"]),
+  selectedRoles: z.array(z.string()).optional(), // Array of selected roles for role-based posts
 });
 
 const privacyLevels = [
   { name: "Public", value: "public" },
   { name: "Private", value: "private" },
+  { name: "Role Based", value: "role_based" },
 ];
 
 const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
+
+interface Role {
+  role_id: string;
+  role: string;
+}
 
 interface PostsTextAreaProps {
   organizationid: string;
@@ -54,11 +58,15 @@ export default function PostsTextArea({
   const [isMember, setIsMember] = useState(false);
   const [canCreate, setCanCreate] = useState(false);
   const [canEdit, setCanEdit] = useState(false);
+  const [roles, setRoles] = useState<Role[]>([]); // State to hold available roles
+  const privacyLevelValue = watch("privacyLevel");
+  const selectedRoles = watch("selectedRoles") || [];
 
   useEffect(() => {
     if (editingPost) {
       setValue("content", editingPost.content);
       setValue("privacyLevel", editingPost.privacylevel);
+      setValue("selectedRoles", editingPost.privacylevel ?? []); // Handle existing selected roles
       setPhotos(editingPost.postphotos || []);
     }
   }, [editingPost, setValue]);
@@ -68,11 +76,7 @@ export default function PostsTextArea({
       if (user?.id) {
         const { data, error } = await getUserProfileById(user.id);
         if (data) {
-          setProfilePicture(
-            data.profilepicture
-              ? `${supabaseStorageBaseUrl}/${data.profilepicture}`
-              : null
-          );
+          setProfilePicture(data.profilepicture ? `${supabaseStorageBaseUrl}/${data.profilepicture}` : null);
         } else {
           console.error("Error fetching user profile:", error);
         }
@@ -99,6 +103,24 @@ export default function PostsTextArea({
     checkMembershipAndPermissions();
   }, [organizationid, user]);
 
+  // Fetch available roles for the organization
+  useEffect(() => {
+    const fetchRoles = async () => {
+      const { data, error } = await createClient()
+        .from("organization_roles")
+        .select("role_id, role")
+        .eq("org_id", organizationid);
+
+      if (error) {
+        console.error("Error fetching roles:", error);
+      } else {
+        setRoles(data || []);
+      }
+    };
+
+    fetchRoles();
+  }, [organizationid]);
+
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     const imageFiles = files.filter((file) => file.type.startsWith("image/"));
@@ -123,8 +145,7 @@ export default function PostsTextArea({
   };
 
   const handleRemovePhoto = (index: number) => {
-    const newPhotos = photos.filter((_, i) => i !== index);
-    setPhotos(newPhotos);
+    setPhotos((prevPhotos) => prevPhotos.filter((_, i) => i !== index));
   };
 
   const resetForm = () => {
@@ -136,17 +157,20 @@ export default function PostsTextArea({
   const onSubmit = async (formData: any) => {
     setIsLoading(true);
     try {
-      const postData = { ...formData, organizationid, postphotos: photos };
+      const postData = {
+        ...formData,
+        organizationid,
+        postphotos: photos,
+        privacylevel: formData.privacyLevel === "role_based" ? formData.selectedRoles : [], // Handle multiple roles for role-based privacy
+      };
       const { data: postResponse, error } = editingPost
         ? await updatePost({ ...postData, postid: editingPost.postid })
         : await insertPost(postData, organizationid);
 
       if (!error) {
         if (editingPost) {
-          setPostsData(
-            postsData.map((post) =>
-              post.postid === postResponse.postid ? postResponse : post
-            )
+          setPostsData((prevPosts) =>
+            prevPosts.map((post) => (post.postid === postResponse.postid ? postResponse : post))
           );
           toast.success("Post updated successfully");
         } else {
@@ -166,15 +190,10 @@ export default function PostsTextArea({
 
   const contentValue = watch("content");
 
-  if (!isMember) {
-    return null;
-  }
+  if (!isMember) return null;
 
   return (
-    <form
-      onSubmit={handleSubmit(onSubmit)}
-      className="relative rounded-2xl bg-[#3b3b3b] p-6 shadow-lg"
-    >
+    <form onSubmit={handleSubmit(onSubmit)} className="relative rounded-2xl bg-[#3b3b3b] p-6 shadow-lg">
       <div className="rounded-2xl">
         <label htmlFor="content" className="sr-only">
           Description
@@ -248,13 +267,7 @@ export default function PostsTextArea({
             className={`rounded-2xl p-3 text-white shadow-lg ${isLoading || !(contentValue ?? "").trim() ? "cursor-not-allowed bg-[#171717]" : "bg-primary hover:bg-[#37996b]"}`}
             disabled={isLoading || !(contentValue ?? "").trim() || (!canCreate && !editingPost)}
           >
-            {isLoading
-              ? editingPost
-                ? "Updating..."
-                : "Creating..."
-              : editingPost
-                ? "Update"
-                : "Create"}
+            {isLoading ? (editingPost ? "Updating..." : "Creating...") : editingPost ? "Update" : "Create"}
           </button>
           {editingPost && (
             <button
@@ -269,6 +282,44 @@ export default function PostsTextArea({
             </button>
           )}
         </div>
+
+        {/* Role selection field for role-based privacy */}
+        {privacyLevelValue === "role_based" && (
+          <div className="mb-4">
+            <label htmlFor="selectedRoles" className="text-white">
+              Select Roles:
+            </label>
+            <Controller
+              name="selectedRoles"
+              control={control}
+              defaultValue={[]}
+              render={({ field }) => (
+                <div className="rounded-lg bg-[#222222] p-4">
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                    {roles.map((role) => (
+                      <label key={role.role_id} className="flex items-center space-x-2 text-white">
+                        <input
+                          type="checkbox"
+                          value={role.role_id}
+                          checked={field.value.includes(role.role_id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              field.onChange([...field.value, role.role_id]);
+                            } else {
+                              field.onChange(field.value.filter((id: string) => id !== role.role_id));
+                            }
+                          }}
+                        />
+                        <span>{role.role}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            />
+          </div>
+        )}
+
         <div className="flex flex-wrap gap-2">
           {photos.map((photo, index) => (
             <div key={index} className="relative">
@@ -292,3 +343,4 @@ export default function PostsTextArea({
     </form>
   );
 }
+

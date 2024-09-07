@@ -6,7 +6,7 @@ export interface Posts {
   organizationid: string;
   authorid: string;
   content?: string;
-  privacylevel?: any;
+  privacylevel?: string;
   targetmembershipid?: string;
   createdat?: string;
   organizations?: Organizations;
