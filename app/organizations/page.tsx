@@ -1,15 +1,21 @@
 "use client";
+import OrganizationCard from "@/components/app/organization_card";
 import Footer from "@/components/footer";
 import Header from "@/components/header";
-import OrganizationCard from "@/components/app/organization_card";
 import { createClient, getUser } from "@/lib/supabase/client";
 import { Organization } from "@/types/organization";
-import { ArrowLongLeftIcon, ArrowLongRightIcon } from "@heroicons/react/20/solid";
+import {
+  ArrowLongLeftIcon,
+  ArrowLongRightIcon,
+  MagnifyingGlassIcon,
+} from "@heroicons/react/20/solid";
 import { useEffect, useState } from "react";
 
 export default function OrganizationUserView() {
   const [user, setUser] = useState<any>(null); // Adjust the user type based on your actual user structure
   const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [filteredOrganizations, setFilteredOrganizations] = useState<Organization[]>([]); // For filtered data
+  const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const organizationsPerPage = 6;
 
@@ -25,6 +31,7 @@ export default function OrganizationUserView() {
 
       if (!error) {
         setOrganizations(organizations);
+        setFilteredOrganizations(organizations); // Initialize with all organizations
       } else {
         console.error("Error fetching organizations:", error);
       }
@@ -33,10 +40,21 @@ export default function OrganizationUserView() {
     fetchUserAndOrganizations();
   }, []);
 
+  // Handle search input
+  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const searchValue = event.target.value.toLowerCase();
+    setSearchTerm(searchValue);
+    const filtered = organizations.filter((org) =>
+      org.name.toLowerCase().includes(searchValue)
+    );
+    setFilteredOrganizations(filtered);
+    setCurrentPage(1); // Reset to first page when searching
+  };
+
   // Calculate the current organizations to display
   const indexOfLastOrganization = currentPage * organizationsPerPage;
   const indexOfFirstOrganization = indexOfLastOrganization - organizationsPerPage;
-  const currentOrganizations = organizations.slice(
+  const currentOrganizations = filteredOrganizations.slice(
     indexOfFirstOrganization,
     indexOfLastOrganization
   );
@@ -44,7 +62,7 @@ export default function OrganizationUserView() {
   // Pagination handlers
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
   const isFirstPage = currentPage === 1;
-  const isLastPage = indexOfLastOrganization >= organizations.length;
+  const isLastPage = indexOfLastOrganization >= filteredOrganizations.length;
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -58,25 +76,41 @@ export default function OrganizationUserView() {
             <p>Browse and view organizations that fit your interests.</p>
           </div>
 
-          <div className="mt-8 grid gap-6 sm:mt-12 sm:grid-cols-2 lg:grid-cols-3">
-            {currentOrganizations.map((org) => (
-              <OrganizationCard
-                key={org.id}
-                name={org.name}
-                description={org.description}
-                organization_size={org.organization_size}
-                photo={org.photo}
-                slug={org.slug}
-                banner={org.banner}
-                total_members={org.total_members}
-                total_posts={org.total_posts}
-                total_events={org.total_events}
+            {/* Search Input with Heroicons Magnifying Glass */}
+            <div className="relative mt-6 flex w-full justify-center">
+              <input
+                type="text"
+                placeholder="Search organizations by name"
+                value={searchTerm}
+                onChange={handleSearch}
+                className="w-full rounded-md border border-charleston bg-charleston px-4 py-2 pl-10 pr-10 text-sm text-light focus:border-primary focus:ring-primary"
               />
-            ))}
+              {/* Search Icon */}
+              <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center pr-3">
+                <MagnifyingGlassIcon className="h-5 w-5 text-gray-500" />
+              </div>
+            </div>
+
+            <div className="min-w-2xl mx-auto mt-10 grid w-full grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
+              {currentOrganizations.map((org) => (
+                <OrganizationCard
+                  key={org.id}
+                  name={org.name}
+                  description={org.description}
+                  organization_size={org.organization_size}
+                  photo={org.photo}
+                  slug={org.slug}
+                  banner={org.banner}
+                  total_members={org.total_members}
+                  total_posts={org.total_posts}
+                  total_events={org.total_events}
+                />
+              ))}
+            </div>
           </div>
         </div>
-        <nav className="mt-8 flex items-center justify-between border-t border-gray-200 pt-4">
-          <div className="flex w-0 flex-1">
+        <nav className="mt-8 flex w-full items-center justify-between border-t border-gray-200 px-4 sm:px-0">
+          <div className="-mt-px flex w-0 flex-1">
             <button
               disabled={isFirstPage}
               onClick={() => paginate(currentPage - 1)}
@@ -92,7 +126,7 @@ export default function OrganizationUserView() {
           </div>
           <div className="hidden sm:flex">
             {Array.from(
-              { length: Math.ceil(organizations.length / organizationsPerPage) },
+              { length: Math.ceil(filteredOrganizations.length / organizationsPerPage) },
               (_, index) => (
                 <button
                   key={index}
