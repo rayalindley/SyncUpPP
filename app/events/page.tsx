@@ -80,7 +80,7 @@ export default function EventsPublicView() {
   return (
     <div className="flex min-h-screen flex-col">
       <Header user={user} />
-      <main className="isolate flex-grow px-4 sm:px-6 lg:px-8 xl:px-16 2xl:px-24">
+      <main className="isolate flex-grow px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="mt-8 sm:mt-16">
             <h1 className="text-center text-3xl font-bold text-light">Events</h1>
@@ -89,8 +89,8 @@ export default function EventsPublicView() {
             </div>
 
             {/* Search Bar and Filters */}
-            <div className="mx-auto mt-6 flex w-full justify-center space-x-4 px-2">
-              <div className="relative w-full flex-grow">
+            <div className="mx-auto mt-6 flex w-full max-w-3xl flex-col space-y-4 px-2 sm:flex-row sm:space-x-4 sm:space-y-0">
+              <div className="relative flex-grow">
                 <input
                   type="text"
                   placeholder="Search events..."
@@ -111,7 +111,7 @@ export default function EventsPublicView() {
               <select
                 value={eventStatusFilter}
                 onChange={(e) => setEventStatusFilter(e.target.value)}
-                className="w-32 rounded-lg border border-charleston bg-charleston p-2 pl-4 pr-8 text-sm text-light focus:border-primary focus:ring-primary"
+                className="w-full rounded-lg border border-charleston bg-charleston p-2 pl-4 pr-8 text-sm text-light focus:border-primary focus:ring-primary sm:w-32"
               >
                 <option value="">All Events</option>
                 <option value="Upcoming">Upcoming</option>
@@ -123,7 +123,7 @@ export default function EventsPublicView() {
               <select
                 value={eventPrivacyFilter}
                 onChange={(e) => setEventPrivacyFilter(e.target.value)}
-                className="w-32 rounded-lg border border-charleston bg-charleston p-2 pl-4 pr-8 text-sm text-light focus:border-primary focus:ring-primary"
+                className="w-full rounded-lg border border-charleston bg-charleston p-2 pl-4 pr-8 text-sm text-light focus:border-primary focus:ring-primary sm:w-32"
               >
                 <option value="">Default</option>
                 <option value="public">Public</option>
@@ -132,7 +132,7 @@ export default function EventsPublicView() {
             </div>
 
             {/* Event Cards */}
-            <div className="min-w-2xl mx-auto mt-20 grid justify-items-center gap-x-1 gap-y-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+            <div className="mx-auto mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {currentEvents.map((event) => (
                 <EventsCard
                   key={event.eventid}

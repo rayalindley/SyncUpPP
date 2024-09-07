@@ -114,51 +114,51 @@ const OrganizationCard: React.FC<OrganizationCardProps> = ({
   return (
     <Link
       href={`/${slug}`}
-      className="flex flex-col overflow-hidden rounded-2xl border border-[#2e2e2e] bg-[#232323] transition duration-200 hover:scale-[1.03] hover:bg-charleston"
+      className="flex flex-col overflow-hidden rounded-lg border border-[#2e2e2e] bg-[#232323] transition duration-200 hover:scale-[1.02] hover:bg-charleston"
     >
       <div className="relative">
         {banner ? (
           <img
-            className="h-24 w-full object-cover sm:h-32 lg:h-36"
+            className="h-20 w-full object-cover sm:h-24 md:h-28 lg:h-32"
             src={`${supabaseStorageBaseUrl}/${banner}`}
             alt="Banner"
           />
         ) : (
-          <div className="h-24 w-full bg-light sm:h-32 lg:h-36"></div>
+          <div className="h-20 w-full bg-light sm:h-24 md:h-28 lg:h-32"></div>
         )}
         {photo ? (
           <img
-            className="absolute bottom-0 left-4 h-20 w-20 translate-y-1/2 transform rounded-lg border-4 border-primary object-cover sm:left-6 sm:h-24 sm:w-24 lg:left-8 lg:h-28 lg:w-28"
+            className="absolute bottom-0 left-3 h-16 w-16 translate-y-1/2 transform rounded-lg border-2 border-primary object-cover sm:left-4 sm:h-20 sm:w-20 md:left-5 md:h-24 md:w-24 lg:left-6 lg:h-28 lg:w-28"
             src={`${supabaseStorageBaseUrl}/${photo}`}
             alt="Profile"
           />
         ) : (
-          <div className="absolute bottom-0 left-4 flex h-20 w-20 translate-y-1/2 transform items-center justify-center rounded-lg border-4 border-primary bg-zinc-700 sm:left-6 sm:h-24 sm:w-24 lg:left-8 lg:h-28 lg:w-28">
-            <span className="text-3xl font-medium uppercase text-light sm:text-4xl lg:text-5xl">
+          <div className="absolute bottom-0 left-3 flex h-16 w-16 translate-y-1/2 transform items-center justify-center rounded-lg border-2 border-primary bg-zinc-700 sm:left-4 sm:h-20 sm:w-20 md:left-5 md:h-24 md:w-24 lg:left-6 lg:h-28 lg:w-28">
+            <span className="text-2xl font-medium uppercase text-light sm:text-3xl md:text-4xl lg:text-5xl">
               {getInitials(name)}
             </span>
           </div>
         )}
       </div>
-      <div className="flex flex-1 flex-col px-4 py-6 pt-12 sm:px-6 sm:pt-14 lg:px-8 lg:pt-16">
-        <h3 className="text-base font-semibold leading-7 tracking-tight text-light sm:text-lg">
+      <div className="flex flex-1 flex-col px-3 py-4 pt-10 sm:px-4 sm:pt-12 md:px-5 md:pt-14 lg:px-6 lg:pt-16">
+        <h3 className="text-sm font-semibold leading-6 tracking-tight text-light sm:text-base md:text-lg">
           {name}
         </h3>
-        <div className="mt-2 flex flex-wrap gap-2 text-xs leading-6 text-light sm:text-sm">
+        <div className="mt-1 flex flex-wrap gap-2 text-xs leading-5 text-light sm:mt-2 sm:text-sm">
           <div className="flex items-center">
-            <UserGroupIcon className="mr-1 h-4 w-4 text-primary sm:h-5 sm:w-5" />
+            <UserGroupIcon className="mr-1 h-3 w-3 text-primary sm:h-4 sm:w-4" />
             {total_members}
           </div>
           <div className="flex items-center">
-            <InboxIcon className="mr-1 h-4 w-4 text-primary sm:h-5 sm:w-5" />
+            <InboxIcon className="mr-1 h-3 w-3 text-primary sm:h-4 sm:w-4" />
             {total_posts}
           </div>
           <div className="flex items-center">
-            <CalendarIcon className="mr-1 h-4 w-4 text-primary sm:h-5 sm:w-5" />
+            <CalendarIcon className="mr-1 h-3 w-3 text-primary sm:h-4 sm:w-4" />
             {total_events}
           </div>
         </div>
-        <p className="mt-3 text-sm font-normal text-light sm:mt-4 sm:text-base">
+        <p className="mt-2 text-xs font-normal text-light sm:mt-3 sm:text-sm">
           {truncatedDescription}
         </p>
       </div>

@@ -65,33 +65,36 @@ export default function OrganizationUserView() {
   const isLastPage = indexOfLastOrganization >= filteredOrganizations.length;
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div>
       <Header user={user} />
-      <main className="flex-1 px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <h1 className="text-center text-2xl font-bold text-light sm:text-3xl">
-            Organizations
-          </h1>
-          <div className="mt-2 text-center text-sm text-light">
-            <p>Browse and view organizations that fit your interests.</p>
-          </div>
+      <main className="isolate flex flex-col items-center px-4 sm:px-6 md:px-8 lg:px-12">
+        <div className="relative w-full max-w-7xl">
+          <div className="mt-4 sm:mt-8 md:mt-12 lg:mt-16">
+            <h1 className="text-center text-2xl font-bold text-light sm:text-3xl md:text-4xl">
+              Organizations
+            </h1>
+            <div className="mt-2 px-2 text-center text-xs text-light sm:text-sm md:px-4 lg:px-6">
+              <p>Browse and view organizations that fit your interests.</p>
+            </div>
 
             {/* Search Input with Heroicons Magnifying Glass */}
-            <div className="relative mt-6 flex w-full justify-center">
-              <input
-                type="text"
-                placeholder="Search organizations by name"
-                value={searchTerm}
-                onChange={handleSearch}
-                className="w-full rounded-md border border-charleston bg-charleston px-4 py-2 pl-10 pr-10 text-sm text-light focus:border-primary focus:ring-primary"
-              />
-              {/* Search Icon */}
-              <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center pr-3">
-                <MagnifyingGlassIcon className="h-5 w-5 text-gray-500" />
+            <div className="relative mt-4 flex w-full justify-center sm:mt-6">
+              <div className="relative w-full max-w-xl">
+                <input
+                  type="text"
+                  placeholder="Search organizations by name"
+                  value={searchTerm}
+                  onChange={handleSearch}
+                  className="w-full rounded-md border border-charleston bg-charleston px-3 py-2 pl-10 pr-3 text-xs text-light focus:border-primary focus:ring-primary sm:text-sm"
+                />
+                {/* Search Icon */}
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                  <MagnifyingGlassIcon className="h-4 w-4 text-gray-500 sm:h-5 sm:w-5" />
+                </div>
               </div>
             </div>
 
-            <div className="min-w-2xl mx-auto mt-10 grid w-full grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
+            <div className="mt-6 grid w-full grid-cols-1 gap-4 sm:mt-8 sm:grid-cols-2 md:mt-10 md:gap-6 lg:grid-cols-3 xl:gap-8">
               {currentOrganizations.map((org) => (
                 <OrganizationCard
                   key={org.id}
@@ -109,32 +112,32 @@ export default function OrganizationUserView() {
             </div>
           </div>
         </div>
-        <nav className="mt-8 flex w-full items-center justify-between border-t border-gray-200 px-4 sm:px-0">
+        <nav className="mt-6 flex w-full max-w-7xl items-center justify-between border-t border-gray-200 px-2 pt-4 sm:mt-8 sm:px-4 md:mt-10">
           <div className="-mt-px flex w-0 flex-1">
             <button
               disabled={isFirstPage}
               onClick={() => paginate(currentPage - 1)}
-              className={`inline-flex items-center text-sm font-medium ${
+              className={`inline-flex items-center border-t-2 border-transparent pr-1 pt-4 text-sm font-medium ${
                 isFirstPage
                   ? "cursor-not-allowed text-gray-500"
-                  : "text-light hover:text-primary"
+                  : "text-light hover:border-primary hover:text-primary"
               }`}
             >
-              <ArrowLongLeftIcon className="mr-3 h-5 w-5" aria-hidden="true" />
+              <ArrowLongLeftIcon className="mr-3 h-5 w-5 text-light" aria-hidden="true" />
               Previous
             </button>
           </div>
-          <div className="hidden sm:flex">
+          <div className="hidden md:-mt-px md:flex">
             {Array.from(
               { length: Math.ceil(filteredOrganizations.length / organizationsPerPage) },
               (_, index) => (
                 <button
                   key={index}
                   onClick={() => paginate(index + 1)}
-                  className={`mx-1 inline-flex items-center px-4 py-2 text-sm font-medium ${
+                  className={`inline-flex items-center border-t-2 border-transparent px-4 pt-4 text-sm font-medium ${
                     currentPage === index + 1
-                      ? "text-dark bg-primary"
-                      : "text-light hover:text-primary"
+                      ? "border-primarydark text-primary"
+                      : "text-light hover:border-primary hover:text-primary"
                   }`}
                 >
                   {index + 1}
@@ -142,18 +145,21 @@ export default function OrganizationUserView() {
               )
             )}
           </div>
-          <div className="flex w-0 flex-1 justify-end">
+          <div className="-mt-px flex w-0 flex-1 justify-end">
             <button
               disabled={isLastPage}
               onClick={() => paginate(currentPage + 1)}
-              className={`inline-flex items-center text-sm font-medium ${
+              className={`inline-flex items-center border-t-2 border-transparent pl-1 pt-4 text-sm font-medium ${
                 isLastPage
                   ? "cursor-not-allowed text-gray-500"
-                  : "text-light hover:text-primary"
+                  : "text-light hover:border-primary hover:text-primary"
               }`}
             >
               Next
-              <ArrowLongRightIcon className="ml-3 h-5 w-5" aria-hidden="true" />
+              <ArrowLongRightIcon
+                className="ml-3 h-5 w-5 text-light"
+                aria-hidden="true"
+              />
             </button>
           </div>
         </nav>
