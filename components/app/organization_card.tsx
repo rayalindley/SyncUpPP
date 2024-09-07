@@ -114,51 +114,53 @@ const OrganizationCard: React.FC<OrganizationCardProps> = ({
   return (
     <Link
       href={`/${slug}`}
-      className="mx-auto max-w-2xl transform rounded-2xl border border-[#2e2e2e] bg-[#232323] transition duration-200 hover:scale-[1.03] hover:bg-charleston lg:mx-0 lg:max-w-none"
+      className="flex flex-col overflow-hidden rounded-2xl border border-[#2e2e2e] bg-[#232323] transition duration-200 hover:scale-[1.03] hover:bg-charleston"
     >
       <div className="relative">
         {banner ? (
           <img
-            className="h-32 w-full rounded-t-2xl object-cover lg:h-36"
+            className="h-24 w-full object-cover sm:h-32 lg:h-36"
             src={`${supabaseStorageBaseUrl}/${banner}`}
             alt="Banner"
           />
         ) : (
-          <div className="h-32 w-full rounded-t-2xl bg-light lg:h-36"></div>
+          <div className="h-24 w-full bg-light sm:h-32 lg:h-36"></div>
         )}
         {photo ? (
           <img
-            className="absolute bottom-0 left-8 h-28 w-28 translate-y-1/2 transform rounded-lg border-4 border-primary object-cover"
+            className="absolute bottom-0 left-4 h-20 w-20 translate-y-1/2 transform rounded-lg border-4 border-primary object-cover sm:left-6 sm:h-24 sm:w-24 lg:left-8 lg:h-28 lg:w-28"
             src={`${supabaseStorageBaseUrl}/${photo}`}
             alt="Profile"
           />
         ) : (
-          <div className="absolute bottom-0 left-8 flex h-28 w-28 translate-y-1/2 transform items-center justify-center rounded-lg border-4 border-primary bg-zinc-700">
-            <span className="text-5xl font-medium uppercase text-light">
+          <div className="absolute bottom-0 left-4 flex h-20 w-20 translate-y-1/2 transform items-center justify-center rounded-lg border-4 border-primary bg-zinc-700 sm:left-6 sm:h-24 sm:w-24 lg:left-8 lg:h-28 lg:w-28">
+            <span className="text-3xl font-medium uppercase text-light sm:text-4xl lg:text-5xl">
               {getInitials(name)}
             </span>
           </div>
         )}
       </div>
-      <div className="mt-2 px-8 py-10 pt-16">
-        <h3 className="text-lg font-semibold leading-7 tracking-tight text-light">
+      <div className="flex flex-1 flex-col px-4 py-6 pt-12 sm:px-6 sm:pt-14 lg:px-8 lg:pt-16">
+        <h3 className="text-base font-semibold leading-7 tracking-tight text-light sm:text-lg">
           {name}
         </h3>
-        <div className="justify-left mt-2 flex space-x-4 text-sm leading-6 text-light">
+        <div className="mt-2 flex flex-wrap gap-2 text-xs leading-6 text-light sm:text-sm">
           <div className="flex items-center">
-            <UserGroupIcon className="-mt-1 mr-2 h-5 w-5 text-primary" />
-            {total_members} members
+            <UserGroupIcon className="mr-1 h-4 w-4 text-primary sm:h-5 sm:w-5" />
+            {total_members}
           </div>
           <div className="flex items-center">
-            <InboxIcon className="-mt-1 mr-2 h-5 w-5 text-primary" />
-            {total_posts} posts
+            <InboxIcon className="mr-1 h-4 w-4 text-primary sm:h-5 sm:w-5" />
+            {total_posts}
           </div>
           <div className="flex items-center">
-            <CalendarIcon className="-mt-1 mr-2 h-5 w-5 text-primary" />
-            {total_events} events
+            <CalendarIcon className="mr-1 h-4 w-4 text-primary sm:h-5 sm:w-5" />
+            {total_events}
           </div>
         </div>
-        <p className="mt-4 text-base font-normal text-light">{truncatedDescription}</p>
+        <p className="mt-3 text-sm font-normal text-light sm:mt-4 sm:text-base">
+          {truncatedDescription}
+        </p>
       </div>
     </Link>
   );

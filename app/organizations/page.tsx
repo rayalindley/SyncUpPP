@@ -47,61 +47,60 @@ export default function OrganizationUserView() {
   const isLastPage = indexOfLastOrganization >= organizations.length;
 
   return (
-    <div>
+    <div className="flex min-h-screen flex-col">
       <Header user={user} />
-      <main className="isolate flex flex-col items-center sm:px-4 md:px-6 lg:px-80">
-        <div className="relative w-full">
-          <div className="mt-4 sm:mt-16 lg:mt-24">
-            <h1 className="text-center text-3xl font-bold text-light">Organizations</h1>
-            <div className="mt-2 flex items-center justify-center"></div>
-            <div className="mt-2 px-4 text-center text-sm text-light sm:px-8 lg:px-10">
-              <p>Browse and view organizations that fit your interests.</p>
-            </div>
+      <main className="flex-1 px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <h1 className="text-center text-2xl font-bold text-light sm:text-3xl">
+            Organizations
+          </h1>
+          <div className="mt-2 text-center text-sm text-light">
+            <p>Browse and view organizations that fit your interests.</p>
+          </div>
 
-            <div className="min-w-2xl mx-auto mt-20 grid w-full grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
-              {currentOrganizations.map((org) => (
-                <OrganizationCard
-                  key={org.id}
-                  name={org.name}
-                  description={org.description}
-                  organization_size={org.organization_size}
-                  photo={org.photo}
-                  slug={org.slug}
-                  banner={org.banner}
-                  total_members={org.total_members}
-                  total_posts={org.total_posts}
-                  total_events={org.total_events}
-                />
-              ))}
-            </div>
+          <div className="mt-8 grid gap-6 sm:mt-12 sm:grid-cols-2 lg:grid-cols-3">
+            {currentOrganizations.map((org) => (
+              <OrganizationCard
+                key={org.id}
+                name={org.name}
+                description={org.description}
+                organization_size={org.organization_size}
+                photo={org.photo}
+                slug={org.slug}
+                banner={org.banner}
+                total_members={org.total_members}
+                total_posts={org.total_posts}
+                total_events={org.total_events}
+              />
+            ))}
           </div>
         </div>
-        <nav className="mt-8 flex w-full items-center justify-between border-t border-gray-200 px-4 sm:px-0">
-          <div className="-mt-px flex w-0 flex-1">
+        <nav className="mt-8 flex items-center justify-between border-t border-gray-200 pt-4">
+          <div className="flex w-0 flex-1">
             <button
               disabled={isFirstPage}
               onClick={() => paginate(currentPage - 1)}
-              className={`inline-flex items-center border-t-2 border-transparent pr-1 pt-4 text-sm font-medium ${
+              className={`inline-flex items-center text-sm font-medium ${
                 isFirstPage
                   ? "cursor-not-allowed text-gray-500"
-                  : "text-light hover:border-primary hover:text-primary"
+                  : "text-light hover:text-primary"
               }`}
             >
-              <ArrowLongLeftIcon className="mr-3 h-5 w-5 text-light" aria-hidden="true" />
+              <ArrowLongLeftIcon className="mr-3 h-5 w-5" aria-hidden="true" />
               Previous
             </button>
           </div>
-          <div className="hidden md:-mt-px md:flex">
+          <div className="hidden sm:flex">
             {Array.from(
               { length: Math.ceil(organizations.length / organizationsPerPage) },
               (_, index) => (
                 <button
                   key={index}
                   onClick={() => paginate(index + 1)}
-                  className={`inline-flex items-center border-t-2 border-transparent px-4 pt-4 text-sm font-medium ${
+                  className={`mx-1 inline-flex items-center px-4 py-2 text-sm font-medium ${
                     currentPage === index + 1
-                      ? "border-primarydark text-primary"
-                      : "text-light hover:border-primary hover:text-primary"
+                      ? "text-dark bg-primary"
+                      : "text-light hover:text-primary"
                   }`}
                 >
                   {index + 1}
@@ -109,21 +108,18 @@ export default function OrganizationUserView() {
               )
             )}
           </div>
-          <div className="-mt-px flex w-0 flex-1 justify-end">
+          <div className="flex w-0 flex-1 justify-end">
             <button
               disabled={isLastPage}
               onClick={() => paginate(currentPage + 1)}
-              className={`inline-flex items-center border-t-2 border-transparent pl-1 pt-4 text-sm font-medium ${
+              className={`inline-flex items-center text-sm font-medium ${
                 isLastPage
                   ? "cursor-not-allowed text-gray-500"
-                  : "text-light hover:border-primary hover:text-primary"
+                  : "text-light hover:text-primary"
               }`}
             >
               Next
-              <ArrowLongRightIcon
-                className="ml-3 h-5 w-5 text-light"
-                aria-hidden="true"
-              />
+              <ArrowLongRightIcon className="ml-3 h-5 w-5" aria-hidden="true" />
             </button>
           </div>
         </nav>

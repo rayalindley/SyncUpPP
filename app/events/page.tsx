@@ -49,18 +49,17 @@ export default function EventsPublicView() {
   const isLastPage = indexOfLastEvent >= events.length;
 
   return (
-    <div>
+    <div className="flex min-h-screen flex-col">
       <Header user={user} />
-      <main className="isolate flex flex-col items-center sm:px-4 md:px-6 lg:px-80">
-        <div className="relative w-full">
-          <div className="mt-4 sm:mt-16 lg:mt-24">
+      <main className="isolate flex-grow px-4 sm:px-6 lg:px-8 xl:px-16 2xl:px-24">
+        <div className="mx-auto max-w-7xl">
+          <div className="mt-8 sm:mt-16">
             <h1 className="text-center text-3xl font-bold text-light">Events</h1>
-            <div className="mt-2 flex items-center justify-center"></div>
-            <div className="mt-2 px-4 text-center text-sm text-light sm:px-8 lg:px-10">
+            <div className="mt-2 text-center text-sm text-light">
               <p>Browse and view events that fit your interests.</p>
             </div>
 
-            <div className="min-w-2xl mx-auto mt-20 grid justify-items-center gap-x-1 gap-y-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 ">
+            <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {currentEvents.map((event) => (
                 <EventsCard
                   key={event.eventid}
@@ -87,7 +86,7 @@ export default function EventsPublicView() {
             </div>
           </div>
         </div>
-        <nav className="mt-8 flex w-full  items-center justify-between border-t border-gray-200 px-4 sm:px-0">
+        <nav className="mt-8 flex items-center justify-between border-t border-gray-200 pt-4">
           <div className="-mt-px flex w-0 flex-1">
             <button
               disabled={isFirstPage}
