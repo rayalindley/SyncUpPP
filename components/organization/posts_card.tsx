@@ -84,7 +84,7 @@ const PostsCard: React.FC<PostsCardProps> = ({
         .map((comment: CommentData) => ({
           ...comment,
           created_at: new Date(comment.created_at).toLocaleString("en-US", {
-            timeZone: "Asia/Manila", // Set to Philippine Standard Time
+            timeZone: "Asia/Manila",
           }),
         }))
         .sort(
@@ -100,7 +100,7 @@ const PostsCard: React.FC<PostsCardProps> = ({
       const { data, error } = await supabase
         .from("organization_roles")
         .select("role")
-        .in("role_id", privacylevel); // privacylevel is now an array
+        .in("role_id", privacylevel);
 
       if (!error && data) {
         const names = data.map((role: { role: string }) => role.role);
@@ -113,7 +113,7 @@ const PostsCard: React.FC<PostsCardProps> = ({
     handleAuthorDetails();
     checkPermissions();
     loadComments();
-    fetchRoleNames(); // Fetch role names
+    fetchRoleNames();
   }, [handleAuthorDetails, checkPermissions, loadComments, fetchRoleNames]);
 
   const handleDelete = () => setShowDeleteModal(true);
@@ -164,21 +164,21 @@ const PostsCard: React.FC<PostsCardProps> = ({
             <p className="flex items-center text-white">
               {authorDetails.firstName} {authorDetails.lastName}
               <div className="ml-auto flex flex-col md:flex-row md:items-center">
-                <span className="text-xs text-gray-400">
-                  {calculateTimeElapsed()} •{" "}
-                </span>
-                <div className="flex flex-wrap items-center gap-2 mt-1 md:mt-0">
-                  {roleNames.length > 0 ? (
+                <span className="text-xs text-gray-400">{calculateTimeElapsed()} • </span>
+                <div className="mt-1 flex flex-wrap items-center gap-2 md:mt-0">
+                  {privacylevel?.length === 0 ? (
+                    <span className="inline-block rounded-full bg-green-600 px-2 py-1 text-xs text-white">
+                      Public
+                    </span>
+                  ) : (
                     roleNames.map((role, index) => (
                       <span
                         key={index}
                         className="inline-block rounded-full bg-blue-600 px-2 py-1 text-xs text-white"
                       >
-                        #{role}
+                        {role}
                       </span>
                     ))
-                  ) : (
-                    <span>Unknown</span>
                   )}
                 </div>
               </div>
@@ -186,7 +186,12 @@ const PostsCard: React.FC<PostsCardProps> = ({
             <div className="mt-2 text-sm text-white">
               <p className="mb-3">{content}</p>
               {Array.isArray(postphotos) && postphotos.length > 0 && (
-                <Carousel showArrows={true} dynamicHeight={true} swipeable={true} showThumbs={false}>
+                <Carousel
+                  showArrows={true}
+                  dynamicHeight={true}
+                  swipeable={true}
+                  showThumbs={false}
+                >
                   {postphotos.map((photo, index) => (
                     <div key={index}>
                       <img
@@ -201,6 +206,25 @@ const PostsCard: React.FC<PostsCardProps> = ({
             </div>
           </div>
         </div>
+      </div>
+      <div className="absolute bottom-2 right-2 flex items-center gap-2">
+        {(canEdit || isCurrentUserAuthor) && (
+          <button
+            onClick={() => startEdit(post)}
+            className="flex items-center p-1 text-gray-500 hover:text-gray-400"
+          >
+            <PencilIcon className="h-4 w-4" aria-hidden="true" />
+          </button>
+        )}
+
+        {(canDelete || isCurrentUserAuthor) && (
+          <button
+            onClick={handleDelete}
+            className="flex items-center p-1 text-gray-500 hover:text-gray-400"
+          >
+            <TrashIcon className="h-4 w-4" aria-hidden="true" />
+          </button>
+        )}
       </div>
       <div className="mb-4 ml-16 flex flex-row">
         <button
@@ -218,7 +242,9 @@ const PostsCard: React.FC<PostsCardProps> = ({
           <div className="flex min-h-screen items-center justify-center p-4">
             <div className="w-full max-w-lg rounded-lg bg-[#3b3b3b] p-6">
               <h3 className="text-white">Delete Post</h3>
-              <p className="mb-4 mt-2 text-white">Are you sure you want to delete this post?</p>
+              <p className="mb-4 mt-2 text-white">
+                Are you sure you want to delete this post?
+              </p>
               <div className="flex justify-end">
                 <button
                   onClick={confirmDelete}
