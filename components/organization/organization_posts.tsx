@@ -31,10 +31,10 @@ const OrganizationPostsComponent = ({
     async (isMember: boolean) => {
       const { data, error } = await fetchPosts(organizationid);
       if (!error) {
-        const visibleData = isMember
-          ? data
-          : data.filter((post) => post.privacylevel !== "private");
-        setPostsData(visibleData);
+        // const visibleData = isMember
+        //   ? data
+        //   : data.filter((post) => post.privacylevel !== "private");
+        // setPostsData(visibleData);
         // console.log("isMemberOfOrganization", isMember);
       } else {
         console.error("Error fetching posts:", error);
