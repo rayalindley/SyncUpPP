@@ -6,8 +6,8 @@ import { deletePost, getAuthorDetails } from "@/lib/posts";
 import { getUser } from "@/lib/supabase/client";
 import Comments from "./comments";
 import { fetchComments } from "@/lib/comments";
-import { check_permissions } from "@/lib/organization";
-import { Posts } from "@/types/posts"; 
+import { Posts } from "@/types/posts";
+import { createClient } from "@/lib/supabase/client";
 
 interface PostsCardProps {
   post: Posts;
@@ -19,18 +19,17 @@ interface PostsCardProps {
   canComment: boolean;
 }
 
-interface State {
-  showDeleteModal: boolean;
-  isImageVisible: boolean;
-  comments: any[]; // You might want to create a type for comments if you have one
-  accordionOpen: boolean;
-  authorDetails: {
-    firstName: string;
-    lastName: string;
-    profilePicture: string | null;
-  };
-  isCurrentUserAuthor: boolean;
-  isLoading: boolean;
+interface AuthorDetails {
+  firstName: string;
+  lastName: string;
+  profilePicture: string | null;
+}
+
+interface CommentData {
+  commentid: string;
+  created_at: string;
+  authorid: string;
+  comment: string;
 }
 
 const PostsCard: React.FC<PostsCardProps> = ({
@@ -52,27 +51,21 @@ const PostsCard: React.FC<PostsCardProps> = ({
     organizationid,
   } = post;
 
-  const [state, setState] = useState<State>({
-    showDeleteModal: false,
-    isImageVisible: true,
-    comments: [],
-    accordionOpen: false,
-    authorDetails: {
-      firstName: "",
-      lastName: "",
-      profilePicture: null,
-    },
-    isCurrentUserAuthor: false,
-    isLoading: false,
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [comments, setComments] = useState<CommentData[]>([]);
+  const [accordionOpen, setAccordionOpen] = useState(false);
+  const [authorDetails, setAuthorDetails] = useState<AuthorDetails>({
+    firstName: "",
+    lastName: "",
+    profilePicture: null,
   });
-
-  const handleInputChange = (key: keyof State, value: any) => {
-    setState((prevState) => ({ ...prevState, [key]: value }));
-  };
+  const [isCurrentUserAuthor, setIsCurrentUserAuthor] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [roleNames, setRoleNames] = useState<string[]>([]);
 
   const handleAuthorDetails = useCallback(async () => {
     const { first_name, last_name, profilepicture } = await getAuthorDetails(authorid);
-    handleInputChange("authorDetails", {
+    setAuthorDetails({
       firstName: first_name,
       lastName: last_name,
       profilePicture: profilepicture,
@@ -81,57 +74,65 @@ const PostsCard: React.FC<PostsCardProps> = ({
 
   const checkPermissions = useCallback(async () => {
     const currentUser = await getUser();
-    handleInputChange("isCurrentUserAuthor", currentUser?.user?.id === authorid);
+    setIsCurrentUserAuthor(currentUser?.user?.id === authorid);
   }, [authorid]);
 
   const loadComments = useCallback(async () => {
     const { data, error } = await fetchComments(postid);
     if (!error) {
       const convertedData = data
-        .map((comment) => {
-          const philippineTime = new Date(comment.created_at).toLocaleString("en-US", {
+        .map((comment: CommentData) => ({
+          ...comment,
+          created_at: new Date(comment.created_at).toLocaleString("en-US", {
             timeZone: "Asia/Manila",
-          });
-          return { ...comment, created_at: philippineTime };
-        })
+          }),
+        }))
         .sort(
           (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
-      handleInputChange("comments", convertedData);
+      setComments(convertedData);
     }
   }, [postid]);
+
+  const fetchRoleNames = useCallback(async () => {
+    const supabase = createClient();
+    if (Array.isArray(privacylevel) && privacylevel.length > 0) {
+      const { data, error } = await supabase
+        .from("organization_roles")
+        .select("role")
+        .in("role_id", privacylevel);
+
+      if (!error && data) {
+        const names = data.map((role: { role: string }) => role.role);
+        setRoleNames(names);
+      }
+    }
+  }, [privacylevel]);
 
   useEffect(() => {
     handleAuthorDetails();
     checkPermissions();
     loadComments();
-  }, [handleAuthorDetails, checkPermissions, loadComments]);
+    fetchRoleNames();
+  }, [handleAuthorDetails, checkPermissions, loadComments, fetchRoleNames]);
 
-  const handleDelete = () => {
-    handleInputChange("showDeleteModal", true);
-  };
+  const handleDelete = () => setShowDeleteModal(true);
 
   const confirmDelete = async () => {
-    handleInputChange("isLoading", true);
+    setIsLoading(true);
     const { error } = await deletePost(postid, authorid);
-
     if (!error) {
       setPostsData((prevPosts) => prevPosts.filter((p) => p.postid !== postid));
-      handleInputChange("showDeleteModal", false);
+      setShowDeleteModal(false);
     } else {
       console.error("Error deleting post:", error);
     }
-    handleInputChange("isLoading", false);
-  };
-
-  const cancelDelete = () => {
-    handleInputChange("showDeleteModal", false);
+    setIsLoading(false);
   };
 
   const calculateTimeElapsed = () => {
     const currentTime = new Date();
-    const postTime = new Date(createdat ?? "");
-    postTime.setHours(postTime.getHours() + 8);
+    const postTime = createdat ? new Date(createdat) : new Date();
     const elapsedTime = currentTime.getTime() - postTime.getTime();
     const minutes = Math.floor(elapsedTime / 60000);
     if (minutes < 1) return "Just now";
@@ -148,10 +149,10 @@ const PostsCard: React.FC<PostsCardProps> = ({
         <div className="flex flex-row">
           <div>
             <div className="mt-2 flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-[#424242]">
-              {state.authorDetails.profilePicture ? (
+              {authorDetails.profilePicture ? (
                 <img
-                  src={`${supabaseStorageBaseUrl}/${state.authorDetails.profilePicture}`}
-                  alt={`${state.authorDetails.firstName}'s profile`}
+                  src={`${supabaseStorageBaseUrl}/${authorDetails.profilePicture}`}
+                  alt={`${authorDetails.firstName}'s profile`}
                   className="h-full max-h-full w-full max-w-full rounded-full object-cover"
                 />
               ) : (
@@ -161,36 +162,37 @@ const PostsCard: React.FC<PostsCardProps> = ({
           </div>
           <div className="ml-2 flex-1">
             <p className="flex items-center text-white">
-              {state.authorDetails.firstName} {state.authorDetails.lastName}
-              <span className="ml-1 text-xs text-gray-400">
-                • {calculateTimeElapsed()} •{" "}
-                {privacylevel.charAt(0).toUpperCase() + privacylevel.slice(1)}
-              </span>
-              {(state.isCurrentUserAuthor || canEdit || canDelete) && (
-                <div className="ml-auto flex items-center">
-                  {(state.isCurrentUserAuthor || canEdit) && (
-                    <button onClick={() => startEdit(post)} className="text-gray-400">
-                      <PencilIcon className="h-5 w-5 text-white" />
-                    </button>
-                  )}
-                  {(state.isCurrentUserAuthor || canDelete) && (
-                    <button onClick={handleDelete} className="ml-2 text-gray-400">
-                      <TrashIcon className="h-5 w-5 text-white" />
-                    </button>
+              {authorDetails.firstName} {authorDetails.lastName}
+              <div className="ml-auto flex flex-col md:flex-row md:items-center">
+                <span className="text-xs text-gray-400">{calculateTimeElapsed()} • </span>
+                <div className="mt-1 flex flex-wrap items-center gap-2 md:mt-0">
+                  {privacylevel?.length === 0 ? (
+                    <span className="inline-block rounded-full bg-green-600 px-2 py-1 text-xs text-white">
+                      Public
+                    </span>
+                  ) : (
+                    roleNames.map((role, index) => (
+                      <span
+                        key={index}
+                        className="inline-block rounded-full bg-blue-600 px-2 py-1 text-xs text-white"
+                      >
+                        {role}
+                      </span>
+                    ))
                   )}
                 </div>
-              )}
+              </div>
             </p>
             <div className="mt-2 text-sm text-white">
               <p className="mb-3">{content}</p>
-              {Array.isArray(post.postphotos) && post.postphotos.length > 0 && (
+              {Array.isArray(postphotos) && postphotos.length > 0 && (
                 <Carousel
                   showArrows={true}
                   dynamicHeight={true}
                   swipeable={true}
                   showThumbs={false}
                 >
-                  {post.postphotos.map((photo: string, index: number) => (
+                  {postphotos.map((photo, index) => (
                     <div key={index}>
                       <img
                         src={`${supabaseStorageBaseUrl}/post-images/${photo}`}
@@ -205,23 +207,37 @@ const PostsCard: React.FC<PostsCardProps> = ({
           </div>
         </div>
       </div>
+      <div className="absolute bottom-2 right-2 flex items-center gap-2">
+        {(canEdit || isCurrentUserAuthor) && (
+          <button
+            onClick={() => startEdit(post)}
+            className="flex items-center p-1 text-gray-500 hover:text-gray-400"
+          >
+            <PencilIcon className="h-4 w-4" aria-hidden="true" />
+          </button>
+        )}
+
+        {(canDelete || isCurrentUserAuthor) && (
+          <button
+            onClick={handleDelete}
+            className="flex items-center p-1 text-gray-500 hover:text-gray-400"
+          >
+            <TrashIcon className="h-4 w-4" aria-hidden="true" />
+          </button>
+        )}
+      </div>
       <div className="mb-4 ml-16 flex flex-row">
         <button
-          onClick={() => handleInputChange("accordionOpen", !state.accordionOpen)}
-          className={`flex items-center outline-none ${state.accordionOpen ? "text-primary" : "text-gray-400"}`}
+          onClick={() => setAccordionOpen(!accordionOpen)}
+          className={`flex items-center outline-none ${accordionOpen ? "text-primary" : "text-gray-400"}`}
         >
           <span className="mt-1 text-xs">
-            {state.accordionOpen ? "Hide Comments" : "Show Comments"}
+            {accordionOpen ? "Hide Comments" : "Show Comments"}
           </span>
         </button>
       </div>
-      {state.accordionOpen && (
-        <div>
-          <Comments postid={postid} canComment={canComment} />
-        </div>
-      )}
-
-      {state.showDeleteModal && (
+      {accordionOpen && <Comments postid={postid} canComment={canComment} />}
+      {showDeleteModal && (
         <div className="fixed inset-0 z-10 overflow-y-auto bg-black bg-opacity-75">
           <div className="flex min-h-screen items-center justify-center p-4">
             <div className="w-full max-w-lg rounded-lg bg-[#3b3b3b] p-6">
@@ -233,12 +249,12 @@ const PostsCard: React.FC<PostsCardProps> = ({
                 <button
                   onClick={confirmDelete}
                   className="mr-2 rounded bg-red-600 px-4 py-2 text-white"
-                  disabled={state.isLoading}
+                  disabled={isLoading}
                 >
-                  {state.isLoading ? "Deleting..." : "Delete"}
+                  {isLoading ? "Deleting..." : "Delete"}
                 </button>
                 <button
-                  onClick={cancelDelete}
+                  onClick={() => setShowDeleteModal(false)}
                   className="rounded bg-white px-4 py-2 text-black"
                 >
                   Cancel

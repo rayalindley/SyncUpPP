@@ -8,7 +8,7 @@ export async function insertPost(formData: any, organizationid: string) {
     const insertValues = {
       content: formData.content,
       organizationid: organizationid,
-      privacylevel: formData.privacyLevel,
+      privacylevel: formData.privacylevel || [], // Ensure this is an array of UUIDs
       postphotos: formData.postphotos || [], // Ensure this is an array
     };
 
@@ -33,30 +33,40 @@ export async function insertPost(formData: any, organizationid: string) {
   }
 }
 
-export async function fetchPosts(organizationid: string) {
+export async function fetchPosts(organizationid: string, userid: string | null) {
   const supabase = createClient();
+
+  // Log the input parameters to verify them
+  console.log("fetchPosts called with:", { organizationid, userid });
+
   try {
     const { data, error } = await supabase
-      .from("posts")
-      .select("*")
-      .eq("organizationid", organizationid)
-      .order("createdat", { ascending: false });
+      .rpc('get_visible_posts', {
+        p_user_id: userid,  // Use the correct parameter name 'p_user_id'
+        p_org_id: organizationid,  // Use the correct parameter name 'p_org_id'
+      });
+
+    // Log the response data and error
+    console.log("RPC get_visible_posts response:", { data, error });
 
     if (!error) {
+      // Log when data is successfully returned
+      console.log("fetchPosts success, returning data:", data);
       return { data, error: null };
     } else {
+      // Log when an error is encountered
+      console.error("fetchPosts error:", error);
       return { data: null, error: { message: error.message } };
     }
   } catch (e: any) {
-    console.error("Unexpected error:", e);
+    // Log unexpected errors
+    console.error("Unexpected error in fetchPosts:", e);
     return {
       data: null,
       error: { message: e.message || "An unexpected error occurred" },
     };
   }
 }
-
-// lib/posts.ts
 
 export const checkIsMemberOfOrganization = async (organizationid: string) => {
   const supabase = createClient();
@@ -79,7 +89,7 @@ export const checkIsMemberOfOrganization = async (organizationid: string) => {
 export async function updatePost(updatedPost: {
   postid: string;
   content?: string;
-  privacyLevel?: string;
+  privacylevel?: string[];  // Update to handle array of UUIDs
   postphotos?: string[];
 }) {
   const supabase = createClient();
@@ -87,7 +97,7 @@ export async function updatePost(updatedPost: {
     // Only include fields that are provided in the updatedPost object
     const updateFields: any = {};
     if (updatedPost.content) updateFields.content = updatedPost.content;
-    if (updatedPost.privacyLevel) updateFields.privacylevel = updatedPost.privacyLevel;
+    if (updatedPost.privacylevel) updateFields.privacylevel = updatedPost.privacylevel;  // Update to array
     if (updatedPost.postphotos !== undefined)
       updateFields.postphotos = updatedPost.postphotos;
 

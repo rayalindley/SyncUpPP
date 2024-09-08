@@ -4,12 +4,10 @@ import TabsComponent from "@/components/organization/organization_view_tabs";
 import SocialIcons from "@/components/organization/social_icons";
 import { fetchEvents } from "@/lib/events";
 import { getMemberships } from "@/lib/memberships";
-import { fetchPosts } from "@/lib/posts";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { CalendarIcon, InboxIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { ToastContainer } from "react-toastify";
-
 import { check_permissions, getUserOrganizationInfo } from "@/lib/organization";
 
 const getInitials = (name: string): string => {
@@ -21,81 +19,20 @@ const getInitials = (name: string): string => {
   }
 };
 
-export default async function OrganizationUserView({
-  params,
-  searchParams,
-}: {
-  params: { slug: string };
-  searchParams?: { [key: string]: string | string[] | undefined };
-}) {
+export default async function OrganizationUserView({ params, searchParams }: { params: { slug: string }; searchParams?: { [key: string]: string | string[] | undefined }; }) {
   const { user } = await getUser();
-
   const { slug } = params;
-
-  // console.log("slug:", slug);
-
-  // ! GET Request on Get Organization by Slug, then display the data, pass it to the nested components
-
   const supabase = createClient();
-
-  let { data: org, error } = await supabase
-    .from("organization_summary")
-    .select("*")
-    .eq("slug", slug)
-    .single();
-
-  // console.log(org);
-
-  // console.log(user?.id, org.organizationid);
-
+  let { data: org, error } = await supabase.from("organization_summary").select("*").eq("slug", slug).single();
   let userOrgInfo = await getUserOrganizationInfo(user?.id!, org.organizationid);
-
-  // console.log(userOrgInfo);
-
-  // Inside your component
-  const currentPage = 1; // Set the current page
-  const postsPerPage = 6; // Set the number of posts per page
-
-  // Fetch organization posts
-  const { data: posts, error: postsError } = await fetchPosts(org.organizationid);
-
-  // Handle any errors from fetching posts
-  if (postsError) {
-    console.error("Error fetching posts:", postsError);
-    return; // Optionally, handle the error in your UI
-  }
-
-  // Fetch events data
-  const eventsPerPage = 6; // Set the number of events per page
-  const { data: events, error: eventsError } = await fetchEvents(
-    org.organizationid,
-    currentPage,
-    eventsPerPage
-  );
-
-  // Handle any errors from fetching events
-  if (eventsError) {
-    console.error("Error fetching events:", eventsError);
-    return; // Optionally, handle the error in your UI
-  }
-
+  const currentPage = 1;
+  const eventsPerPage = 6;
+  const { data: events, error: eventsError } = await fetchEvents(org.organizationid, currentPage, eventsPerPage);
   const memberships = await getMemberships(org.organizationid);
-
-  // Assuming `org` is an object retrieved from your database that contains the social media links object
-  const socials = org?.socials || {}; // Use default empty object if `org.socials` is undefined or null
-
-  const facebookLink = socials.facebook; // Access the Facebook link
-  const twitterLink = socials.twitter; // Access the Twitter link
-  const linkedinLink = socials.linkedin; // Access the LinkedIn link
-
-  // Now you can use these links in your code as needed
-  // console.log("Facebook Link:", facebookLink);
-  // console.log("Twitter Link:", twitterLink);
-  // console.log("LinkedIn Link:", linkedinLink);
-  // console.log("Org ID:", org?.organizationid)
-  // console.log("Memberships: ", memberships)
-  // console.log(user?.id)
-
+  const socials = org?.socials || {};
+  const facebookLink = socials.facebook;
+  const twitterLink = socials.twitter;
+  const linkedinLink = socials.linkedin;
   const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
 
   return (
@@ -127,22 +64,13 @@ export default async function OrganizationUserView({
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center rounded-lg bg-zinc-700">
-                    <span className="text-5xl font-medium uppercase text-light">
-                      {getInitials(org.name)}
-                    </span>
+                    <span className="text-5xl font-medium uppercase text-light">{getInitials(org.name)}</span>
                   </div>
                 )}
               </div>
               <div className="mt-4 sm:mt-0">
-                {(await check_permissions(
-                  user?.id || "",
-                  org.organizationid,
-                  "view_dashboard"
-                )) && (
-                  <Link
-                    className="rounded-lg bg-primary px-4 py-2 text-white hover:bg-primarydark"
-                    href={`${slug}/dashboard`}
-                  >
+                {(await check_permissions(user?.id || "", org.organizationid, "view_dashboard")) && (
+                  <Link className="rounded-lg bg-primary px-4 py-2 text-white hover:bg-primarydark" href={`${slug}/dashboard`}>
                     Manage
                   </Link>
                 )}
@@ -166,19 +94,8 @@ export default async function OrganizationUserView({
               </div>
             </div>
             <div className="text-sm text-light">{org.description}</div>
-            <SocialIcons
-              facebook={facebookLink}
-              twitter={twitterLink}
-              linkedin={linkedinLink}
-            />
-
-            <TabsComponent
-              organizationid={org.organizationid}
-              memberships={memberships}
-              events={events}
-              posts={posts}
-              id={user?.id}
-            />
+            <SocialIcons facebook={facebookLink} twitter={twitterLink} linkedin={linkedinLink} />
+            <TabsComponent organizationid={org.organizationid} memberships={memberships} events={events} id={user?.id ?? ""} />
           </div>
         </div>
       </main>
