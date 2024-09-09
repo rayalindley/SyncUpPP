@@ -223,7 +223,7 @@ export default function OrganizationUserView() {
                 {/* Organization Type Filter */}
                 <Menu as="div" className="relative">
                   <Menu.Button className="flex items-center text-sm font-medium text-light">
-                    Filter by Type
+                    Type
                     <ChevronDownIcon className="ml-1 h-5 w-5" />
                   </Menu.Button>
                   <Menu.Items className="absolute right-0 z-50 mt-2 w-52 rounded-md bg-charleston shadow-lg">
