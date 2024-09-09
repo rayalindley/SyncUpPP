@@ -141,6 +141,21 @@ const EventsCard = ({ event }: { event: Event }) => {
     fetchRegisteredCount();
   }, []);
 
+  // Function to determine the event status
+  const getEventStatus = () => {
+    const now = new Date();
+    const start = new Date(starteventdatetime);
+    const end = new Date(endeventdatetime);
+
+    if (now < start) {
+      return "Open";
+    } else if (now >= start && now <= end) {
+      return "Ongoing";
+    } else {
+      return "Closed";
+    }
+  };
+
   const handleCardClick = () => {
     router.push(`/e/${event.eventslug}`);
   };
@@ -160,13 +175,26 @@ const EventsCard = ({ event }: { event: Event }) => {
         ) : (
           <div className="h-full w-full rounded-t-lg bg-fadedgrey" />
         )}
-        <span
-          className={`absolute right-2 top-2 rounded-full bg-opacity-75 px-2 py-1 text-xs font-medium shadow-2xl ${
-            privacy === "public" ? "bg-green-500 text-white" : "bg-red-500 text-white"
-          }`}
-        >
-          {privacy === "public" ? "Public" : "Members only"}
-        </span>
+        <div className="absolute right-2 top-2 flex space-x-2">
+          <span
+            className={`rounded-full bg-opacity-75 px-2 py-1 text-xs font-medium shadow-2xl ${
+              privacy === "public" ? "bg-green-500 text-white" : "bg-red-500 text-white"
+            }`}
+          >
+            {privacy === "public" ? "Public" : "Members only"}
+          </span>
+          <span
+            className={`rounded-full bg-opacity-75 px-2 py-1 text-xs font-medium shadow-2xl ${
+              getEventStatus() === "Open"
+                ? "bg-green-500 text-white"
+                : getEventStatus() === "Ongoing"
+                  ? "bg-yellow-500 text-white"
+                  : "bg-red-500 text-white"
+            }`}
+          >
+            {getEventStatus()}
+          </span>
+        </div>
       </div>
       <div className="flex flex-grow flex-col justify-between p-4 text-left">
         <div>

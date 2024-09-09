@@ -5,12 +5,34 @@ import EventsCard from "@/components/organization/events_card";
 import { createClient, getUser } from "@/lib/supabase/client";
 import { User } from "@/node_modules/@supabase/auth-js/src/lib/types";
 import { Event } from "@/types/event";
+import { Menu, Popover } from "@headlessui/react";
 import {
   ArrowLongLeftIcon,
   ArrowLongRightIcon,
+  ChevronDownIcon,
   MagnifyingGlassIcon,
 } from "@heroicons/react/20/solid";
 import { useEffect, useState } from "react";
+
+const sortOptions = [
+  { name: "Title A-Z", value: "title-asc" },
+  { name: "Title Z-A", value: "title-desc" },
+  { name: "Date Newest First", value: "date-desc" },
+  { name: "Date Oldest First", value: "date-asc" },
+];
+
+const eventStatusFilters = [
+  { name: "All Events", value: "" },
+  { name: "Open", value: "Open" },
+  { name: "Ongoing", value: "Ongoing" },
+  { name: "Closed", value: "Closed" },
+];
+
+const eventPrivacyFilters = [
+  { name: "Default", value: "" },
+  { name: "Public", value: "public" },
+  { name: "Members Only", value: "private" },
+];
 
 export default function EventsPublicView() {
   const [user, setUser] = useState<User | null>(null);
@@ -19,6 +41,7 @@ export default function EventsPublicView() {
   const [searchQuery, setSearchQuery] = useState(""); // Search query state
   const [eventStatusFilter, setEventStatusFilter] = useState(""); // Event status filter state
   const [eventPrivacyFilter, setEventPrivacyFilter] = useState(""); // Privacy filter state
+  const [sortOption, setSortOption] = useState("title-asc"); // Sort option state
   const eventsPerPage = 8;
 
   useEffect(() => {
@@ -44,29 +67,51 @@ export default function EventsPublicView() {
 
   const now = new Date();
 
-  // Filter events based on search query and filters
-  const filteredEvents = events.filter((event) => {
-    const matchesSearchQuery = event.title
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
+  // Filter and sort events based on search query and filters
+  const filteredEvents = events
+    .filter((event) => {
+      const matchesSearchQuery = event.title
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
 
-    const isUpcoming =
-      eventStatusFilter === "Upcoming" && new Date(event.starteventdatetime) > now;
-    const isOngoing =
-      eventStatusFilter === "Ongoing" &&
-      new Date(event.starteventdatetime) <= now &&
-      new Date(event.endeventdatetime) > now;
-    const isCompleted =
-      eventStatusFilter === "Completed" && new Date(event.endeventdatetime) < now;
+      const isUpcoming =
+        eventStatusFilter === "Open" && new Date(event.starteventdatetime) > now;
+      const isOngoing =
+        eventStatusFilter === "Ongoing" &&
+        new Date(event.starteventdatetime) <= now &&
+        new Date(event.endeventdatetime) > now;
+      const isCompleted =
+        eventStatusFilter === "Closed" && new Date(event.endeventdatetime) < now;
 
-    const matchesStatus =
-      eventStatusFilter === "" || isUpcoming || isOngoing || isCompleted;
+      const matchesStatus =
+        eventStatusFilter === "" || isUpcoming || isOngoing || isCompleted;
 
-    const matchesPrivacy =
-      eventPrivacyFilter === "" || event.privacy === eventPrivacyFilter;
+      const matchesPrivacy =
+        eventPrivacyFilter === "" || event.privacy === eventPrivacyFilter;
 
-    return matchesSearchQuery && matchesStatus && matchesPrivacy;
-  });
+      return matchesSearchQuery && matchesStatus && matchesPrivacy;
+    })
+    .sort((a, b) => {
+      // Sort by selected option (title or event date)
+      switch (sortOption) {
+        case "title-asc":
+          return a.title.localeCompare(b.title);
+        case "title-desc":
+          return b.title.localeCompare(a.title);
+        case "date-asc":
+          return (
+            new Date(a.starteventdatetime).getTime() -
+            new Date(b.starteventdatetime).getTime()
+          );
+        case "date-desc":
+          return (
+            new Date(b.starteventdatetime).getTime() -
+            new Date(a.starteventdatetime).getTime()
+          );
+        default:
+          return 0;
+      }
+    });
 
   // Pagination
   const indexOfLastEvent = currentPage * eventsPerPage;
@@ -88,8 +133,8 @@ export default function EventsPublicView() {
               <p>Browse and view events that fit your interests.</p>
             </div>
 
-            {/* Search Bar and Filters */}
-            <div className="mx-auto mt-6 flex w-full max-w-3xl flex-col space-y-4 px-2 sm:flex-row sm:space-x-4 sm:space-y-0">
+            {/* Search Bar and Sort/Filter */}
+            <div className="mx-auto mt-6 flex max-w-3xl justify-between">
               <div className="relative flex-grow">
                 <input
                   type="text"
@@ -98,7 +143,6 @@ export default function EventsPublicView() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full rounded-lg border border-charleston bg-charleston p-2 pl-10 pr-4 text-sm text-light focus:border-primary focus:ring-primary"
                 />
-                {/* Magnifying Glass Icon */}
                 <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
                   <MagnifyingGlassIcon
                     className="h-5 w-5 text-gray-500"
@@ -107,28 +151,83 @@ export default function EventsPublicView() {
                 </div>
               </div>
 
-              {/* Event Status Filter */}
-              <select
-                value={eventStatusFilter}
-                onChange={(e) => setEventStatusFilter(e.target.value)}
-                className="w-full rounded-lg border border-charleston bg-charleston p-2 pl-4 pr-8 text-sm text-light focus:border-primary focus:ring-primary sm:w-32"
-              >
-                <option value="">All Events</option>
-                <option value="Upcoming">Upcoming</option>
-                <option value="Ongoing">Ongoing</option>
-                <option value="Completed">Completed</option>
-              </select>
+              <div className="flex items-center space-x-4 pl-8">
+                {/* Sort Menu */}
+                <Menu as="div" className="relative">
+                  <Menu.Button className="flex items-center text-sm font-medium text-light">
+                    Sort by
+                    <ChevronDownIcon className="ml-1 h-5 w-5" />
+                  </Menu.Button>
+                  <Menu.Items className="absolute right-0 z-50 mt-2 w-44 rounded-md bg-charleston shadow-lg">
+                    {sortOptions.map((option) => (
+                      <Menu.Item key={option.value}>
+                        {({ active }) => (
+                          <div
+                            onClick={() => setSortOption(option.value)}
+                            className={`cursor-pointer px-4 py-2 text-sm ${
+                              sortOption === option.value
+                                ? "bg-[#383838] text-white"
+                                : active
+                                  ? "bg-[#383838] text-light"
+                                  : "text-light"
+                            }`}
+                          >
+                            {option.name}
+                          </div>
+                        )}
+                      </Menu.Item>
+                    ))}
+                  </Menu.Items>
+                </Menu>
 
-              {/* Event Privacy Filter */}
-              <select
-                value={eventPrivacyFilter}
-                onChange={(e) => setEventPrivacyFilter(e.target.value)}
-                className="w-full rounded-lg border border-charleston bg-charleston p-2 pl-4 pr-8 text-sm text-light focus:border-primary focus:ring-primary sm:w-32"
-              >
-                <option value="">Default</option>
-                <option value="public">Public</option>
-                <option value="private">Private</option>
-              </select>
+                {/* Filter Popovers */}
+                <Popover.Group className="flex items-center space-x-4">
+                  <Popover className="relative">
+                    <Popover.Button className="flex items-center text-sm font-medium text-light">
+                      Status
+                      <ChevronDownIcon className="ml-1 h-5 w-5" />
+                    </Popover.Button>
+
+                    <Popover.Panel className="absolute right-0 z-50 mt-2 w-36 rounded-md bg-charleston shadow-lg">
+                      {eventStatusFilters.map((filter) => (
+                        <div
+                          key={filter.value}
+                          onClick={() => setEventStatusFilter(filter.value)}
+                          className={`cursor-pointer px-4 py-2 text-sm ${
+                            eventStatusFilter === filter.value
+                              ? "bg-[#383838] text-white"
+                              : "text-light hover:bg-[#383838]"
+                          }`}
+                        >
+                          {filter.name}
+                        </div>
+                      ))}
+                    </Popover.Panel>
+                  </Popover>
+
+                  <Popover className="relative">
+                    <Popover.Button className="flex items-center text-sm font-medium text-light">
+                      Privacy
+                      <ChevronDownIcon className="ml-1 h-5 w-5" />
+                    </Popover.Button>
+                    <Popover.Panel className="absolute right-0 z-50 mt-2 w-36 rounded-md bg-charleston shadow-lg">
+                      {eventPrivacyFilters.map((filter) => (
+                        <div
+                          key={filter.value}
+                          onClick={() => setEventPrivacyFilter(filter.value)}
+                          className={`cursor-pointer px-4 py-2 text-sm ${
+                            eventPrivacyFilter === filter.value
+                              ? "bg-[#383838] text-white"
+                              : "text-light hover:bg-[#383838]"
+                          }`}
+                        >
+                          {filter.name}
+                        </div>
+                      ))}
+                    </Popover.Panel>
+                  </Popover>
+                </Popover.Group>
+              </div>
             </div>
 
             {/* Event Cards */}
@@ -158,60 +257,33 @@ export default function EventsPublicView() {
               ))}
             </div>
           </div>
-        </div>
 
-        {/* Pagination */}
-        <nav className="mt-8 flex w-full items-center justify-between border-t border-gray-200 px-4 sm:px-0">
-          <div className="-mt-px flex w-0 flex-1">
-            <button
-              disabled={isFirstPage}
-              onClick={() => paginate(currentPage - 1)}
-              className={`inline-flex items-center border-t-2 border-transparent pr-1 pt-4 text-sm font-medium ${
-                isFirstPage
-                  ? "cursor-not-allowed text-gray-500"
-                  : "text-light hover:border-primary hover:text-primary"
-              }`}
-            >
-              <ArrowLongLeftIcon className="mr-3 h-5 w-5 text-light" aria-hidden="true" />
-              Previous
-            </button>
-          </div>
-          <div className="hidden md:-mt-px md:flex">
-            {Array.from(
-              { length: Math.ceil(filteredEvents.length / eventsPerPage) },
-              (_, index) => (
-                <button
-                  key={index}
-                  onClick={() => paginate(index + 1)}
-                  className={`inline-flex items-center border-t-2 border-transparent px-4 pt-4 text-sm font-medium ${
-                    currentPage === index + 1
-                      ? "border-primarydark text-primary"
-                      : "text-light hover:border-primary hover:text-primary"
-                  }`}
-                >
-                  {index + 1}
-                </button>
-              )
-            )}
-          </div>
-          <div className="-mt-px flex w-0 flex-1 justify-end">
-            <button
-              disabled={isLastPage}
-              onClick={() => paginate(currentPage + 1)}
-              className={`inline-flex items-center border-t-2 border-transparent pl-1 pt-4 text-sm font-medium ${
-                isLastPage
-                  ? "cursor-not-allowed text-gray-500"
-                  : "text-light hover:border-primary hover:text-primary"
-              }`}
-            >
-              Next
-              <ArrowLongRightIcon
-                className="ml-3 h-5 w-5 text-light"
-                aria-hidden="true"
-              />
-            </button>
-          </div>
-        </nav>
+          {/* Pagination */}
+          {filteredEvents.length > eventsPerPage && (
+            <div className="mt-6 flex justify-center gap-6">
+              <button
+                onClick={() => paginate(currentPage - 1)}
+                disabled={isFirstPage}
+                className={`flex items-center rounded-full border border-light px-4 py-2 text-light ${
+                  isFirstPage ? "cursor-not-allowed opacity-50" : "hover:bg-primary"
+                }`}
+              >
+                <ArrowLongLeftIcon className="mr-2 h-5 w-5" />
+                Previous
+              </button>
+              <button
+                onClick={() => paginate(currentPage + 1)}
+                disabled={isLastPage}
+                className={`flex items-center rounded-full border border-light px-4 py-2 text-light ${
+                  isLastPage ? "cursor-not-allowed opacity-50" : "hover:bg-primary"
+                }`}
+              >
+                Next
+                <ArrowLongRightIcon className="ml-2 h-5 w-5" />
+              </button>
+            </div>
+          )}
+        </div>
       </main>
       <Footer />
     </div>
