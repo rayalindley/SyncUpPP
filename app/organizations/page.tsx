@@ -4,18 +4,62 @@ import Footer from "@/components/footer";
 import Header from "@/components/header";
 import { createClient, getUser } from "@/lib/supabase/client";
 import { Organization } from "@/types/organization";
+import { Menu } from "@headlessui/react";
 import {
   ArrowLongLeftIcon,
   ArrowLongRightIcon,
+  ChevronDownIcon,
   MagnifyingGlassIcon,
 } from "@heroicons/react/20/solid";
 import { useEffect, useState } from "react";
+
+const sortOptions = [
+  { name: "Most Popular", value: "most-popular" },
+  { name: "Number of Events", value: "most-events" },
+  { name: "Organization Name A-Z", value: "name-asc" },
+  { name: "Organization Name Z-A", value: "name-desc" },
+  { name: "Date Established (Newest First)", value: "date-newest" },
+  { name: "Date Established (Oldest First)", value: "date-oldest" },
+];
+
+const organizationTypeFilters = [
+  { name: "All Types", value: "" },
+  { name: "Nonprofit", value: "Nonprofit" },
+  { name: "For-Profit", value: "For-Profit" },
+  { name: "Governmental", value: "Governmental" },
+  { name: "Educational", value: "Educational" },
+  { name: "Partnership", value: "Partnership" },
+  { name: "Corporation", value: "Corporation" },
+  { name: "Sole Proprietorship", value: "Sole Proprietorship" },
+  { name: "Limited Liability Company (LLC)", value: "Limited Liability Company (LLC)" },
+];
+
+const industryFilters = [
+  { name: "All Industries", value: "" },
+  { name: "Agriculture", value: "Agriculture" },
+  { name: "Automotive", value: "Automotive" },
+  { name: "Education", value: "Education" },
+  { name: "Energy", value: "Energy" },
+  { name: "Entertainment", value: "Entertainment" },
+  { name: "Finance", value: "Finance" },
+  { name: "Healthcare", value: "Healthcare" },
+  { name: "Hospitality", value: "Hospitality" },
+  { name: "Information Technology", value: "Information Technology" },
+  { name: "Manufacturing", value: "Manufacturing" },
+  { name: "Retail", value: "Retail" },
+  { name: "Telecommunications", value: "Telecommunications" },
+  { name: "Transportation", value: "Transportation" },
+  { name: "Other", value: "Other" },
+];
 
 export default function OrganizationUserView() {
   const [user, setUser] = useState<any>(null); // Adjust the user type based on your actual user structure
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [filteredOrganizations, setFilteredOrganizations] = useState<Organization[]>([]); // For filtered data
   const [searchTerm, setSearchTerm] = useState("");
+  const [organizationTypeFilter, setOrganizationTypeFilter] = useState(""); // Organization Type filter
+  const [industryFilter, setIndustryFilter] = useState(""); // Industry filter
+  const [sortOption, setSortOption] = useState("most-popular"); // Sort option state
   const [currentPage, setCurrentPage] = useState(1);
   const organizationsPerPage = 6;
 
@@ -44,11 +88,61 @@ export default function OrganizationUserView() {
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     const searchValue = event.target.value.toLowerCase();
     setSearchTerm(searchValue);
-    const filtered = organizations.filter((org) =>
-      org.name.toLowerCase().includes(searchValue)
-    );
-    setFilteredOrganizations(filtered);
+    applyFilters(searchValue, organizationTypeFilter, industryFilter);
     setCurrentPage(1); // Reset to first page when searching
+  };
+
+  // Filter organizations based on search, organization type, and industry
+  const applyFilters = (searchValue: string, orgType: string, industry: string) => {
+    const filtered = organizations.filter((org) => {
+      const matchesSearch = org.name.toLowerCase().includes(searchValue);
+      const matchesOrgType = orgType === "" || org.organization_type === orgType;
+      const matchesIndustry = industry === "" || org.industry === industry;
+      return matchesSearch && matchesOrgType && matchesIndustry;
+    });
+    setFilteredOrganizations(filtered);
+  };
+
+  // Handle sorting
+  const handleSort = (option: string) => {
+    setSortOption(option);
+    const sorted = [...filteredOrganizations].sort((a, b) => {
+      switch (option) {
+        case "name-asc":
+          return a.name.localeCompare(b.name);
+        case "name-desc":
+          return b.name.localeCompare(a.name);
+        case "date-newest":
+          return (
+            new Date(b.date_established).getTime() -
+            new Date(a.date_established).getTime()
+          );
+        case "date-oldest":
+          return (
+            new Date(a.date_established).getTime() -
+            new Date(b.date_established).getTime()
+          );
+        case "most-popular":
+          return b.total_members - a.total_members;
+        case "most-events":
+          return b.total_events - a.total_events;
+        default:
+          return 0;
+      }
+    });
+    setFilteredOrganizations(sorted);
+  };
+
+  // Handle organization type filter
+  const handleOrganizationTypeFilter = (type: string) => {
+    setOrganizationTypeFilter(type);
+    applyFilters(searchTerm, type, industryFilter);
+  };
+
+  // Handle industry filter
+  const handleIndustryFilter = (industry: string) => {
+    setIndustryFilter(industry);
+    applyFilters(searchTerm, organizationTypeFilter, industry);
   };
 
   // Calculate the current organizations to display
@@ -77,23 +171,114 @@ export default function OrganizationUserView() {
               <p>Browse and view organizations that fit your interests.</p>
             </div>
 
-            {/* Search Input with Heroicons Magnifying Glass */}
-            <div className="relative mt-4 flex w-full justify-center sm:mt-6">
-              <div className="relative w-full max-w-xl">
+            {/* Search Input with Sort and Filters */}
+            <div className="mx-auto mt-6 flex max-w-3xl justify-between">
+              {/* Search Bar */}
+              <div className="relative flex-grow">
                 <input
                   type="text"
-                  placeholder="Search organizations by name"
+                  placeholder="Search organizations..."
                   value={searchTerm}
                   onChange={handleSearch}
-                  className="w-full rounded-md border border-charleston bg-charleston px-3 py-2 pl-10 pr-3 text-xs text-light focus:border-primary focus:ring-primary sm:text-sm"
+                  className="w-full rounded-lg border border-charleston bg-charleston p-2 pl-10 pr-4 text-sm text-light focus:border-primary focus:ring-primary"
                 />
-                {/* Search Icon */}
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                  <MagnifyingGlassIcon className="h-4 w-4 text-gray-500 sm:h-5 sm:w-5" />
+                <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
+                  <MagnifyingGlassIcon
+                    className="h-5 w-5 text-gray-500"
+                    aria-hidden="true"
+                  />
                 </div>
+              </div>
+
+              {/* Sort and Filters */}
+              <div className="flex items-center space-x-4 pl-8">
+                {/* Sort Menu */}
+                <Menu as="div" className="relative">
+                  <Menu.Button className="flex items-center text-sm font-medium text-light">
+                    Sort by
+                    <ChevronDownIcon className="ml-1 h-5 w-5" />
+                  </Menu.Button>
+                  <Menu.Items className="absolute right-0 z-50 mt-2 w-44 rounded-md bg-charleston shadow-lg">
+                    {sortOptions.map((option) => (
+                      <Menu.Item key={option.value}>
+                        {({ active }) => (
+                          <div
+                            onClick={() => handleSort(option.value)}
+                            className={`cursor-pointer px-4 py-2 text-sm ${
+                              sortOption === option.value
+                                ? "bg-primary text-white"
+                                : active
+                                  ? "bg-[#383838] text-light"
+                                  : "text-light"
+                            }`}
+                          >
+                            {option.name}
+                          </div>
+                        )}
+                      </Menu.Item>
+                    ))}
+                  </Menu.Items>
+                </Menu>
+
+                {/* Organization Type Filter */}
+                <Menu as="div" className="relative">
+                  <Menu.Button className="flex items-center text-sm font-medium text-light">
+                    Filter by Type
+                    <ChevronDownIcon className="ml-1 h-5 w-5" />
+                  </Menu.Button>
+                  <Menu.Items className="absolute right-0 z-50 mt-2 w-52 rounded-md bg-charleston shadow-lg">
+                    {organizationTypeFilters.map((option) => (
+                      <Menu.Item key={option.value}>
+                        {({ active }) => (
+                          <div
+                            onClick={() => handleOrganizationTypeFilter(option.value)}
+                            className={`cursor-pointer px-4 py-2 text-sm ${
+                              organizationTypeFilter === option.value
+                                ? "bg-primary text-white"
+                                : active
+                                  ? "bg-[#383838] text-light"
+                                  : "text-light"
+                            }`}
+                          >
+                            {option.name}
+                          </div>
+                        )}
+                      </Menu.Item>
+                    ))}
+                  </Menu.Items>
+                </Menu>
+
+                {/* Industry Filter */}
+                <Menu as="div" className="relative">
+                  <Menu.Button className="flex items-center text-sm font-medium text-light">
+                    Industry
+                    <ChevronDownIcon className="ml-1 h-5 w-5" />
+                  </Menu.Button>
+                  <Menu.Items className="absolute right-0 z-50 mt-2 w-64 rounded-md bg-charleston shadow-lg">
+                    {industryFilters.map((option) => (
+                      <Menu.Item key={option.value}>
+                        {({ active }) => (
+                          <div
+                            onClick={() => handleIndustryFilter(option.value)}
+                            className={`cursor-pointer px-4 py-2 text-sm ${
+                              industryFilter === option.value
+                                ? "bg-primary text-white"
+                                : active
+                                  ? "bg-[#383838] text-light"
+                                  : "text-light"
+                            }`}
+                          >
+                            {option.name}
+                          </div>
+                        )}
+                      </Menu.Item>
+                    ))}
+                  </Menu.Items>
+                </Menu>
               </div>
             </div>
 
+            {/* Organization Cards */}
             <div className="mt-6 grid w-full grid-cols-1 gap-4 sm:mt-8 sm:grid-cols-2 md:mt-10 md:gap-6 lg:grid-cols-3 xl:gap-8">
               {currentOrganizations.map((org) => (
                 <OrganizationCard
@@ -112,6 +297,8 @@ export default function OrganizationUserView() {
             </div>
           </div>
         </div>
+
+        {/* Pagination */}
         <nav className="mt-6 flex w-full max-w-7xl items-center justify-between border-t border-gray-200 px-2 pt-4 sm:mt-8 sm:px-4 md:mt-10">
           <div className="-mt-px flex w-0 flex-1">
             <button

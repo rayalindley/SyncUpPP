@@ -166,7 +166,7 @@ export default function EventsPublicView() {
                             onClick={() => setSortOption(option.value)}
                             className={`cursor-pointer px-4 py-2 text-sm ${
                               sortOption === option.value
-                                ? "bg-[#383838] text-white"
+                                ? "bg-primary text-white"
                                 : active
                                   ? "bg-[#383838] text-light"
                                   : "text-light"
@@ -195,7 +195,7 @@ export default function EventsPublicView() {
                           onClick={() => setEventStatusFilter(filter.value)}
                           className={`cursor-pointer px-4 py-2 text-sm ${
                             eventStatusFilter === filter.value
-                              ? "bg-[#383838] text-white"
+                              ? "bg-primary text-white"
                               : "text-light hover:bg-[#383838]"
                           }`}
                         >
@@ -217,7 +217,7 @@ export default function EventsPublicView() {
                           onClick={() => setEventPrivacyFilter(filter.value)}
                           className={`cursor-pointer px-4 py-2 text-sm ${
                             eventPrivacyFilter === filter.value
-                              ? "bg-[#383838] text-white"
+                              ? "bg-primary text-white"
                               : "text-light hover:bg-[#383838]"
                           }`}
                         >

@@ -1,4 +1,3 @@
-
 export interface Organization {
   id: string;
   selected?: boolean;
@@ -15,7 +14,7 @@ export interface Organization {
   socials: string[];
   total_members: number;
   total_posts: number;
-  date_established?: string;
+  date_established: string;
   industry: string;
   total_events: number;
 }
