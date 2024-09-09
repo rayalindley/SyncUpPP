@@ -19,11 +19,17 @@ const postSchema = z.object({
     .min(1, "Content is required")
     .max(500, "Content cannot exceed 500 characters"),
   privacylevel: z.array(z.string()).nonempty("At least one privacy level is required"),
+  targetmembershipid: z.string().optional(),
 });
 
 interface Role {
   role_id: string;
   role: string;
+}
+
+interface Membership {
+  membershipid: string;
+  name: string;
 }
 
 interface PostsTextAreaProps {
@@ -34,6 +40,7 @@ interface PostsTextAreaProps {
   cancelEdit: () => void;
   setEditingPost: React.Dispatch<React.SetStateAction<Posts | null>>;
   availableRoles: { id: string; name: string }[];
+  availableMemberships: Membership[];
 }
 
 export default function PostsTextArea({
@@ -44,6 +51,7 @@ export default function PostsTextArea({
   cancelEdit,
   setEditingPost,
   availableRoles,
+  availableMemberships,
 }: PostsTextAreaProps) {
   const { register, handleSubmit, control, watch, setValue, reset } = useForm({
     resolver: zodResolver(postSchema),
@@ -58,8 +66,9 @@ export default function PostsTextArea({
   useEffect(() => {
     if (editingPost) {
       setValue("content", editingPost.content);
-      setValue("privacylevel", editingPost.privacylevel || []); // Empty array for public
+      setValue("privacylevel", editingPost.privacylevel || []);
       setPhotos(editingPost.postphotos || []);
+      setValue("targetmembershipid", editingPost.targetmembershipid || "");
     }
   }, [editingPost, setValue]);
 
@@ -135,19 +144,19 @@ export default function PostsTextArea({
   const onSubmit = async (formData: any) => {
     setIsLoading(true);
     try {
-      // Map role names back to UUIDs for submission
       const privacyArray: string[] = formData.privacylevel.includes("Public")
         ? []
         : formData.privacylevel.map((roleName: string) => {
             const role = availableRoles.find((role) => role.name === roleName);
-            return role ? role.id : roleName; // Map back to UUID
+            return role ? role.id : roleName;
           });
 
       const postData = {
         ...formData,
         organizationid,
         postphotos: photos,
-        privacylevel: privacyArray, // UUIDs or empty for Public
+        privacylevel: privacyArray,
+        targetmembershipid: formData.targetmembershipid,
       };
 
       const { data: postResponse, error } = editingPost
@@ -171,6 +180,7 @@ export default function PostsTextArea({
         throw new Error(error.message);
       }
     } catch (error: any) {
+      console.error("Failed to create/update post:", error);
       toast.error("Failed to create/update post. Please try again later.");
     } finally {
       setIsLoading(false);
@@ -230,33 +240,53 @@ export default function PostsTextArea({
             defaultValue={[]}
             render={({ field }) => {
               const validRoles = ["Public", ...availableRoles.map((role) => role.name)];
+              const validMemberships = availableMemberships.map(
+                (membership) => membership.name
+              );
+              const validSuggestions = [...validRoles, ...validMemberships];
 
               return (
                 <TagsInput
-                  value={field.value.map((roleId: string) => {
-                    const role = availableRoles.find((role) => role.id === roleId);
-                    return role ? role.name : roleId; // Display role name if available
+                  value={field.value.map((tag: string) => {
+                    const role = availableRoles.find((role) => role.id === tag);
+                    const membership = availableMemberships.find(
+                      (membership) => membership.membershipid === tag
+                    );
+
+                    return role ? role.name : membership ? membership.name : tag;
                   })}
-                  onChange={(tags) => {
-                    // Filter out invalid roles
-                    const validTags = tags.filter((tag) => {
-                      if (!validRoles.includes(tag)) {
-                        toast.error(`"${tag}" is not a valid role.`);
+                  onChange={(tags: string[]) => {
+                    const validTags = tags.filter((tag: string) => {
+                      if (!validSuggestions.includes(tag)) {
+                        toast.error(`"${tag}" is not a valid role or membership.`);
                         return false;
                       }
                       return true;
                     });
 
-                    // Map role names back to their IDs for form submission
-                    const mappedRoles = validTags.map((tag) => {
+                    const roles: string[] = [];
+                    let membershipId: string | null = null;
+
+                    validTags.forEach((tag: string) => {
                       const role = availableRoles.find((role) => role.name === tag);
-                      return role ? role.id : tag; // Map back to role ID
+                      if (role) {
+                        roles.push(role.id);
+                      } else {
+                        const membership = availableMemberships.find(
+                          (membership) => membership.name === tag
+                        );
+                        if (membership) {
+                          membershipId = membership.membershipid;
+                          roles.push(membership.membershipid);
+                        }
+                      }
                     });
 
-                    field.onChange(mappedRoles); // Only update with valid roles
+                    field.onChange(roles);
+                    setValue("targetmembershipid", membershipId);
                   }}
-                  suggestions={validRoles} // Only suggest valid roles
-                  placeholder="Type 'Public' or choose from valid roles..."
+                  suggestions={validSuggestions}
+                  placeholder="Type 'Public', choose a role, or choose a membership..."
                 />
               );
             }}

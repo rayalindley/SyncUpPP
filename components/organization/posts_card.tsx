@@ -8,6 +8,7 @@ import Comments from "./comments";
 import { fetchComments } from "@/lib/comments";
 import { Posts } from "@/types/posts";
 import { createClient } from "@/lib/supabase/client";
+import { fetchMembershipById } from "@/lib/memberships";
 
 interface PostsCardProps {
   post: Posts;
@@ -48,7 +49,7 @@ const PostsCard: React.FC<PostsCardProps> = ({
     authorid,
     postid,
     privacylevel,
-    organizationid,
+    targetmembershipid,
   } = post;
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -62,6 +63,7 @@ const PostsCard: React.FC<PostsCardProps> = ({
   const [isCurrentUserAuthor, setIsCurrentUserAuthor] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [roleNames, setRoleNames] = useState<string[]>([]);
+  const [membershipName, setMembershipName] = useState<string | null>(null);
 
   const handleAuthorDetails = useCallback(async () => {
     const { first_name, last_name, profilepicture } = await getAuthorDetails(authorid);
@@ -109,12 +111,28 @@ const PostsCard: React.FC<PostsCardProps> = ({
     }
   }, [privacylevel]);
 
+  const fetchMembershipName = useCallback(async () => {
+    if (targetmembershipid) {
+      const { data, error } = await fetchMembershipById(targetmembershipid);
+      if (!error && data) {
+        setMembershipName(data.name);
+      }
+    }
+  }, [targetmembershipid]);
+
   useEffect(() => {
     handleAuthorDetails();
     checkPermissions();
     loadComments();
     fetchRoleNames();
-  }, [handleAuthorDetails, checkPermissions, loadComments, fetchRoleNames]);
+    fetchMembershipName();
+  }, [
+    handleAuthorDetails,
+    checkPermissions,
+    loadComments,
+    fetchRoleNames,
+    fetchMembershipName,
+  ]);
 
   const handleDelete = () => setShowDeleteModal(true);
 
@@ -179,6 +197,15 @@ const PostsCard: React.FC<PostsCardProps> = ({
                         {role}
                       </span>
                     ))
+                  )}
+                  {membershipName && (
+                    <span
+                      className={`inline-block rounded-full ${
+                        membershipName === "VIP" ? "bg-red-600" : "bg-yellow-600"
+                      } px-2 py-1 text-xs text-white`}
+                    >
+                      {membershipName} Exclusive
+                    </span>
                   )}
                 </div>
               </div>

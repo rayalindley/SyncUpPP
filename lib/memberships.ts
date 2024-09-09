@@ -1,19 +1,20 @@
 "use server";
 import { createClient } from "@/lib/supabase/server";
 
-export async function getMemberships(id: any) {
+export async function getMemberships(id: string) {
   const supabase = createClient();
-  let { data: memberships, error } = await supabase
+
+  const { data: memberships, error } = await supabase
     .from("memberships")
     .select("*")
     .eq("organizationid", id);
 
   if (error) {
     console.error("Failed to fetch memberships:", error.message);
-    return [];
+    return { data: [], error };
   }
 
-  return memberships || [];
+  return { data: memberships || [], error: null };
 }
 
 export async function getOrgMem(id: any) {
@@ -74,7 +75,7 @@ export async function fetchMembershipById(membershipId: string) {
       .from("memberships")
       .select("*")
       .eq("membershipid", membershipId)
-      .single(); // Use .single() to return only one record
+      .single();
 
     if (!error && data) {
       return { data, error: null };
@@ -197,4 +198,22 @@ export async function fetchMembersBySlug(slug: string) {
     console.error("Unexpected error:", e);
     return [];
   }
+}
+
+export async function getUserMembership(orgId: string, userId: string) {
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from("organizationmembers")
+    .select("membershipid")
+    .eq("organizationid", orgId)
+    .eq("userid", userId)
+    .single();
+
+  if (error) {
+    console.error("Error fetching user's membership:", error.message);
+    return null;
+  }
+
+  return data?.membershipid || null;
 }

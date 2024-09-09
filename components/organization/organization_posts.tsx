@@ -1,6 +1,7 @@
 import Preloader from "@/components/preloader";
 import { check_permissions, getUserOrganizationInfo } from "@/lib/organization";
 import { fetchPosts } from "@/lib/posts";
+import { getMemberships } from "@/lib/memberships";
 import { createClient } from "@/lib/supabase/client";
 import { ArrowLeftIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
 import { useEffect, useRef, useState, useCallback } from "react";
@@ -24,6 +25,9 @@ const OrganizationPostsComponent = ({ organizationid }: { organizationid: string
   const [availableRoles, setAvailableRoles] = useState<{ id: string; name: string }[]>(
     []
   );
+  const [availableMemberships, setAvailableMemberships] = useState<
+    { membershipid: string; name: string }[]
+  >([]);
   const [filter, setFilter] = useState<string>("All");
   const [loading, setLoading] = useState(true);
   const postsPerPage = 5;
@@ -87,43 +91,49 @@ const OrganizationPostsComponent = ({ organizationid }: { organizationid: string
     }
   }, [organizationid, supabase]);
 
+  const fetchAvailableMemberships = useCallback(async () => {
+    const { data: memberships, error: membershipError } =
+      await getMemberships(organizationid);
+
+    if (!membershipError) {
+      setAvailableMemberships(memberships);
+    } else {
+      console.error("Error fetching memberships:", membershipError);
+    }
+  }, [organizationid]);
+
   const applyFilter = useCallback(() => {
     let filtered = postsData;
-  
+
     if (filter === "Public") {
-      // Filter posts that are public (privacylevel is empty)
       filtered = postsData.filter((post) => post.privacylevel?.length === 0);
     } else if (filter !== "All") {
-      // Filter posts that have the selected role, regardless of whether other roles are present
       filtered = postsData.filter(
-        (post) =>
-          Array.isArray(post.privacylevel) &&
-          post.privacylevel.includes(filter) // Check if the selected role is in privacylevel array
+        (post) => Array.isArray(post.privacylevel) && post.privacylevel.includes(filter)
       );
     }
-  
+
     if (searchQuery.trim()) {
-      // Further filter by search query
       filtered = filtered.filter((post) =>
         post.content?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
-  
+
     setFilteredPosts(filtered);
   }, [filter, searchQuery, postsData]);
-  
 
   useEffect(() => {
     const loadData = async () => {
       if (user && user.id) {
         const userId = user.id ?? "";
         await fetchAvailableRoles();
+        await fetchAvailableMemberships();
         await fetchData(userId);
         await fetchPermissions();
       }
     };
     loadData();
-  }, [user, fetchData, fetchAvailableRoles, fetchPermissions]);
+  }, [user, fetchData, fetchAvailableRoles, fetchAvailableMemberships, fetchPermissions]);
 
   useEffect(() => {
     applyFilter();
@@ -154,6 +164,11 @@ const OrganizationPostsComponent = ({ organizationid }: { organizationid: string
                   {role.name}
                 </option>
               ))}
+              {availableMemberships.map((membership) => (
+                <option key={membership.membershipid} value={membership.membershipid}>
+                  {membership.name}
+                </option>
+              ))}
             </select>
 
             <input
@@ -174,7 +189,8 @@ const OrganizationPostsComponent = ({ organizationid }: { organizationid: string
                 editingPost={editingPost}
                 cancelEdit={() => setEditingPost(null)}
                 setEditingPost={setEditingPost}
-                availableRoles={availableRoles} // Pass roles with UUID
+                availableRoles={availableRoles}
+                availableMemberships={availableMemberships}
               />
             ) : (
               <p className="text-red-500">You do not have permission to create posts.</p>
