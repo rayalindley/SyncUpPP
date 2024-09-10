@@ -27,6 +27,7 @@ export async function createOrganization(formData: any) {
       twitter: formData.twitterLink,
       linkedin: formData.linkedinLink,
     },
+    organization_access: formData.organizationAccess,
   };
 
   const supabase = createClient();
@@ -74,6 +75,7 @@ export async function updateOrganization(organizationid: string, formData: any) 
       twitter: formData.twitterLink,
       linkedin: formData.linkedinLink,
     },
+    organization_access: formData.organizationAccess,
   };
 
   const supabase = createClient();
@@ -103,13 +105,12 @@ export async function updateOrganization(organizationid: string, formData: any) 
 export async function fetchOrganizationBySlug(slug: string) {
   const supabase = createClient();
 
-  // console.log("slug", slug);
   try {
     const { data, error } = await supabase
       .from("organizations")
       .select("*")
       .eq("slug", slug)
-      .single(); // Use .single() to ensure that only one record is returned
+      .single(); // Use .single() to ensure that only one record is returned'
 
     if (error) {
       console.error("Error fetching organization:", error);

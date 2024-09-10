@@ -19,15 +19,29 @@ const getInitials = (name: string): string => {
   }
 };
 
-export default async function OrganizationUserView({ params, searchParams }: { params: { slug: string }; searchParams?: { [key: string]: string | string[] | undefined }; }) {
+export default async function OrganizationUserView({
+  params,
+  searchParams,
+}: {
+  params: { slug: string };
+  searchParams?: { [key: string]: string | string[] | undefined };
+}) {
   const { user } = await getUser();
   const { slug } = params;
   const supabase = createClient();
-  let { data: org, error } = await supabase.from("organization_summary").select("*").eq("slug", slug).single();
+  let { data: org, error } = await supabase
+    .from("organization_summary")
+    .select("*")
+    .eq("slug", slug)
+    .single();
   let userOrgInfo = await getUserOrganizationInfo(user?.id!, org.organizationid);
   const currentPage = 1;
   const eventsPerPage = 6;
-  const { data: events, error: eventsError } = await fetchEvents(org.organizationid, currentPage, eventsPerPage);
+  const { data: events, error: eventsError } = await fetchEvents(
+    org.organizationid,
+    currentPage,
+    eventsPerPage
+  );
   const memberships = await getMemberships(org.organizationid);
   const socials = org?.socials || {};
   const facebookLink = socials.facebook;
@@ -64,13 +78,25 @@ export default async function OrganizationUserView({ params, searchParams }: { p
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center rounded-lg bg-zinc-700">
-                    <span className="text-5xl font-medium uppercase text-light">{getInitials(org.name)}</span>
+                    <span className="text-5xl font-medium uppercase text-light">
+                      {getInitials(org.name)}
+                    </span>
                   </div>
                 )}
               </div>
-              <div className="mt-4 sm:mt-0">
-                {(await check_permissions(user?.id || "", org.organizationid, "view_dashboard")) && (
-                  <Link className="rounded-lg bg-primary px-4 py-2 text-white hover:bg-primarydark" href={`${slug}/dashboard`}>
+              <div className="mt-4 flex gap-2 sm:mt-0">
+                <button className="rounded-lg bg-primary px-4 py-2 text-white hover:bg-primarydark">
+                  Join
+                </button>
+                {(await check_permissions(
+                  user?.id || "",
+                  org.organizationid,
+                  "view_dashboard"
+                )) && (
+                  <Link
+                    className="rounded-lg bg-primary px-4 py-2 text-white hover:bg-primarydark"
+                    href={`${slug}/dashboard`}
+                  >
                     Manage
                   </Link>
                 )}
@@ -94,8 +120,17 @@ export default async function OrganizationUserView({ params, searchParams }: { p
               </div>
             </div>
             <div className="text-sm text-light">{org.description}</div>
-            <SocialIcons facebook={facebookLink} twitter={twitterLink} linkedin={linkedinLink} />
-            <TabsComponent organizationid={org.organizationid} memberships={memberships} events={events} id={user?.id ?? ""} />
+            <SocialIcons
+              facebook={facebookLink}
+              twitter={twitterLink}
+              linkedin={linkedinLink}
+            />
+            <TabsComponent
+              organizationid={org.organizationid}
+              memberships={memberships}
+              events={events}
+              id={user?.id ?? ""}
+            />
           </div>
         </div>
       </main>
