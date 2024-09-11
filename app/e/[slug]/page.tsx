@@ -3,7 +3,6 @@ import Footer from "@/components/footer";
 import Header from "@/components/header";
 import Preloader from "@/components/preloader";
 import {
-  checkEventPrivacyAndMembership,
   checkMembership,
   checkUserRegistration,
   countRegisteredUsers,
@@ -12,9 +11,9 @@ import {
   unregisterFromEvent,
 } from "@/lib/events";
 import { createClient, getUser } from "@/lib/supabase/client";
+import { User } from "@/node_modules/@supabase/auth-js/src/lib/types";
 import { Event } from "@/types/event";
 import { Organization } from "@/types/organization";
-import { User } from "@/node_modules/@supabase/auth-js/src/lib/types";
 import {
   CalendarIcon,
   ChevronDownIcon,
@@ -59,6 +58,60 @@ const EventPage = () => {
   const [isOrgMember, setIsOrgMember] = useState(false);
   const [eventFinished, setEventFinished] = useState(false);
   const [registrationClosed, setRegistrationClosed] = useState(false);
+  const [canJoin, setCanJoin] = useState(false); // Added state to manage if the user can join based on role/tier
+
+  async function checkUserRoleAndMembership(
+    userId: string,
+    organizationId: string,
+    roles: string[],
+    membershipTiers: string[],
+    allowAllRoles: boolean,
+    allowAllMemberships: boolean
+  ): Promise<boolean> {
+    const supabase = createClient();
+
+    // Query the view organization_members_roles for the user's roles and memberships in the organization
+    const { data: memberData, error: memberError } = await supabase
+      .from("organization_members_roles")
+      .select("role, membership_name")
+      .eq("userid", userId)
+      .eq("organizationid", organizationId);
+
+    console.log("memberData", memberData);
+
+    if (memberError || !memberData || memberData.length === 0) {
+      console.error("Error fetching membership data or user not a member:", memberError);
+      return false;
+    }
+
+    // If allowAllRoles and allowAllMemberships are both true, no further checks are required
+    if (allowAllRoles && allowAllMemberships) {
+      return true;
+    }
+
+    // Check if the user has a valid role
+    const hasValidRole =
+      allowAllRoles ||
+      (roles.length > 0 && memberData.some((member) => roles.includes(member.role)));
+
+    // Check if the user has a valid membership tier
+    const hasValidMembership =
+      allowAllMemberships ||
+      (membershipTiers.length > 0 &&
+        memberData.some((member) => membershipTiers.includes(member.membership_name)));
+
+    // Logic to handle when either roles or membership tiers are empty
+    if (roles.length === 0 && membershipTiers.length > 0) {
+      // If no roles are specified, user must have a valid membership tier
+      return hasValidMembership;
+    } else if (membershipTiers.length === 0 && roles.length > 0) {
+      // If no membership tiers are specified, user must have a valid role
+      return hasValidRole;
+    }
+
+    // The user can join the event if they have either a valid role or a valid membership
+    return hasValidRole || hasValidMembership;
+  }
 
   useEffect(() => {
     async function fetchData() {
@@ -67,6 +120,7 @@ const EventPage = () => {
 
       try {
         const supabase = createClient();
+
         const { data: eventData, error: eventError } = await supabase
           .from("events")
           .select("*")
@@ -104,20 +158,31 @@ const EventPage = () => {
           );
           setIsRegistered(isRegistered);
 
-          const { isMember } = await checkEventPrivacyAndMembership(
-            eventData.eventid,
-            user.id
-          );
-          setIsMember(isMember);
+          if (eventData.privacy?.type === "private") {
+            const { roles, membership_tiers, allow_all_roles, allow_all_memberships } =
+              eventData.privacy;
+
+            const canUserJoin = await checkUserRoleAndMembership(
+              user.id,
+              eventData.organizationid,
+              roles,
+              membership_tiers,
+              allow_all_roles,
+              allow_all_memberships
+            );
+
+            setCanJoin(canUserJoin); // Set the value if the user can join
+            setIsMember(true); // Set the user as a member if they belong to the organization
+          } else {
+            setIsMember(true);
+          }
         }
 
         if (user && eventData) {
           const { isMember } = await checkMembership(user.id, eventData.organizationid);
           setIsOrgMember(isMember);
-          // console.log("isMember", isMember);
         }
 
-        // Check if the event is finished or registration is closed
         const now = new Date();
         if (new Date(eventData.endeventdatetime) < now) {
           setEventFinished(true);
@@ -145,7 +210,7 @@ const EventPage = () => {
   }
 
   const handleEventRegistration = async () => {
-    if (isRegistered || !isMember) return;
+    if (isRegistered || !canJoin) return;
 
     const result = await Swal.fire({
       title: "Are you sure?",
@@ -167,11 +232,8 @@ const EventPage = () => {
         return;
       }
 
-      // Check if the event registration is free or paid
       if (event.registrationfee > 0) {
         try {
-          // Create Xendit invoice
-
           const data: CreateInvoiceRequest = {
             amount: event.registrationfee,
             payerEmail: user.email,
@@ -184,7 +246,6 @@ const EventPage = () => {
             data,
           });
 
-          // Insert payment data into the payments table
           const { error: paymentError } = await supabase.from("payments").insert([
             {
               amount: event.registrationfee,
@@ -203,14 +264,12 @@ const EventPage = () => {
             return;
           }
 
-          // Redirect to the invoice URL
           window.location.href = invoice.invoiceUrl;
         } catch (error) {
           console.error("Error creating invoice:", error);
           toast.error("Failed to create invoice. Please try again.");
         }
       } else {
-        // Free registration
         const { data, error } = await registerForEvent(event.eventid, userId);
 
         if (error) {
@@ -294,9 +353,13 @@ const EventPage = () => {
                   <div className="h-full w-full bg-fadedgrey" />
                 )}
                 <span
-                  className={`absolute right-2 top-2 rounded-full bg-opacity-75 px-2 py-1 text-xs font-medium shadow-2xl ${event.privacy === "public" ? "bg-green-500 text-white" : "bg-red-500 text-white"}`}
+                  className={`absolute right-2 top-2 rounded-full bg-opacity-75 px-2 py-1 text-xs font-medium shadow-2xl ${
+                    event.privacy.type === "public"
+                      ? "bg-green-500 text-white"
+                      : "bg-red-500 text-white"
+                  }`}
                 >
-                  {event.privacy === "public" ? "Public" : "Members only"}
+                  {event.privacy.type === "public" ? "Public" : "Members only"}
                 </span>
               </div>
 
@@ -352,6 +415,50 @@ const EventPage = () => {
                     )}
                   </div>
                 </div>
+              )}
+
+              {/* Roles and Memberships Section */}
+              {event.privacy?.type === "private" && (
+                <>
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-semibold text-light">Allowed Roles</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {event.privacy.allow_all_roles ? (
+                        <span className="text-sm text-light">All Roles</span>
+                      ) : (
+                        event.privacy.roles &&
+                        event.privacy.roles.map((role) => (
+                          <span
+                            key={role}
+                            className="cursor-pointer rounded-full bg-charleston px-3 py-2 text-sm text-light transition-colors duration-300 hover:bg-raisinblack"
+                          >
+                            {role}
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-semibold text-light">
+                      Allowed Membership Tiers
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {event.privacy.allow_all_memberships ? (
+                        <span className="text-sm text-light">All Membership Tiers</span>
+                      ) : (
+                        event.privacy.membership_tiers &&
+                        event.privacy.membership_tiers.map((tier) => (
+                          <span
+                            key={tier}
+                            className="cursor-pointer rounded-full bg-charleston px-3 py-2 text-sm text-light transition-colors duration-300 hover:bg-raisinblack"
+                          >
+                            {tier}
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </>
               )}
 
               <hr className="border-t border-fadedgrey opacity-50" />
@@ -426,7 +533,9 @@ const EventPage = () => {
                 <div className="flex items-center space-x-2">
                   <UsersIcon className="h-6 w-6 text-primary sm:h-8 sm:w-8" />
                   <span
-                    className={`text-sm sm:text-base ${attendeesCount >= event.capacity ? "text-red-500" : "text-light"}`}
+                    className={`text-sm sm:text-base ${
+                      attendeesCount >= event.capacity ? "text-red-500" : "text-light"
+                    }`}
                   >
                     {event.capacity > 0
                       ? `${attendeesCount} / ${event.capacity} attending`
@@ -454,7 +563,7 @@ const EventPage = () => {
                   className={`w-full rounded-md px-6 py-3 text-white ${
                     eventFinished ||
                     registrationClosed ||
-                    (event.privacy === "private" && !isMember) ||
+                    (event.privacy.type === "private" && (!isOrgMember || !canJoin)) ||
                     (eventFull && !isRegistered)
                       ? "cursor-not-allowed bg-fadedgrey"
                       : isRegistered
@@ -467,7 +576,7 @@ const EventPage = () => {
                   disabled={
                     eventFinished ||
                     registrationClosed ||
-                    (event.privacy === "private" && !isMember) ||
+                    (event.privacy.type === "private" && (!isOrgMember || !canJoin)) ||
                     (eventFull && !isRegistered)
                   }
                 >
@@ -475,13 +584,15 @@ const EventPage = () => {
                     ? "Event Finished"
                     : registrationClosed
                       ? "Registration Closed"
-                      : event.privacy === "private" && !isMember
+                      : event.privacy.type === "private" && !isOrgMember
                         ? "Event for Org Members Only"
-                        : eventFull && !isRegistered
-                          ? "Event Full"
-                          : isRegistered
-                            ? "Unregister"
-                            : "Register"}
+                        : event.privacy.type === "private" && isOrgMember && !canJoin
+                          ? "Event for Selected Roles and Membership Tiers Only"
+                          : eventFull && !isRegistered
+                            ? "Event Full"
+                            : isRegistered
+                              ? "Unregister"
+                              : "Register"}
                 </button>
               </div>
 
