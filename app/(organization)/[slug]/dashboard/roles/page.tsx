@@ -482,8 +482,8 @@ export default function SettingsRolesPage() {
         roleId: selectedInviteRole,
       });
 
-      console.log("Sending invites to:", inviteEmails);
-      console.log("Selected role:", selectedInviteRole);
+      // console.log("Sending invites to:", inviteEmails);
+      // console.log("Selected role:", selectedInviteRole);
       // TODO: Implement the API call to send invites
       closeInviteModal();
     } catch (error) {

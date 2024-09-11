@@ -38,21 +38,30 @@ const OrganizationPostsComponent = ({ organizationid }: { organizationid: string
 
   const fetchData = useCallback(
     async (userId: string | null) => {
-      if (organizationid && userId) {
-        const { data, error } = await fetchPosts(organizationid, userId);
-        if (!error) {
-          setPostsData(data);
-          setFilteredPosts(data);
-        } else {
-          console.error("Error fetching posts:", error);
+      // console.log("fetchData called with userId:", userId);
+      try {
+        if (organizationid && userId) {
+          const { data, error } = await fetchPosts(organizationid, userId);
+          if (!error) {
+            // console.log("Fetched posts data:", data);
+            setPostsData(data);
+            setFilteredPosts(data);
+          } else {
+            console.error("Error fetching posts:", error);
+          }
         }
+      } catch (error) {
+        console.error("Error in fetchData:", error);
+      } finally {
+        setLoading(false);  // Ensure loading is set to false after data is fetched
+        // console.log("fetchData completed");
       }
-      setLoading(false);
     },
     [organizationid]
   );
 
   const fetchPermissions = useCallback(async () => {
+    // console.log("fetchPermissions called");
     if (user?.id) {
       try {
         const [create, edit, deletePerm, comment] = await Promise.all([
@@ -61,6 +70,8 @@ const OrganizationPostsComponent = ({ organizationid }: { organizationid: string
           check_permissions(user.id, organizationid, "delete_posts"),
           check_permissions(user.id, organizationid, "comment_on_posts"),
         ]);
+
+        // console.log("Fetched permissions:", { create, edit, deletePerm, comment });
 
         setPermissions({
           create_posts: create,
@@ -72,37 +83,44 @@ const OrganizationPostsComponent = ({ organizationid }: { organizationid: string
         console.error("Error fetching permissions:", error);
       }
     }
-  }, [user, organizationid]);
+  }, [user?.id, organizationid]);
 
   const fetchAvailableRoles = useCallback(async () => {
-    const { data: roleData, error: roleError } = await supabase
-      .from("organization_roles")
-      .select("role_id, role")
-      .eq("org_id", organizationid);
+    // console.log("fetchAvailableRoles called");
+    try {
+      const { data: roleData, error: roleError } = await supabase
+        .from("organization_roles")
+        .select("role_id, role")
+        .eq("org_id", organizationid);
 
-    if (!roleError && roleData) {
-      const roles = roleData.map((row: { role_id: string; role: string }) => ({
-        id: row.role_id,
-        name: row.role,
-      }));
-      setAvailableRoles(roles);
-    } else {
-      console.error("Error fetching roles:", roleError);
+      if (!roleError && roleData) {
+        const roles = roleData.map((row: { role_id: string; role: string }) => ({
+          id: row.role_id,
+          name: row.role,
+        }));
+        // console.log("Fetched roles data:", roles);
+        setAvailableRoles(roles);
+      } else {
+        console.error("Error fetching roles:", roleError);
+      }
+    } catch (error) {
+      console.error("Error in fetchAvailableRoles:", error);
     }
   }, [organizationid, supabase]);
 
   const fetchAvailableMemberships = useCallback(async () => {
-    const { data: memberships, error: membershipError } =
-      await getMemberships(organizationid);
-
-    if (!membershipError) {
+    // console.log("fetchAvailableMemberships called");
+    try {
+      const memberships = await getMemberships(organizationid);
+      // console.log("Fetched memberships data:", memberships);
       setAvailableMemberships(memberships);
-    } else {
-      console.error("Error fetching memberships:", membershipError);
+    } catch (error) {
+      console.error("Error in fetchAvailableMemberships:", error);
     }
   }, [organizationid]);
 
   const applyFilter = useCallback(() => {
+    // console.log("applyFilter called with filter:", filter, "and searchQuery:", searchQuery);
     let filtered = postsData;
 
     if (filter === "Public") {
@@ -119,6 +137,7 @@ const OrganizationPostsComponent = ({ organizationid }: { organizationid: string
       );
     }
 
+    // console.log("Filtered posts data:", filtered);
     setFilteredPosts(filtered);
   }, [filter, searchQuery, postsData]);
 
@@ -130,12 +149,16 @@ const OrganizationPostsComponent = ({ organizationid }: { organizationid: string
         await fetchAvailableMemberships();
         await fetchData(userId);
         await fetchPermissions();
+      } else {
+        // console.log("User is null or undefined");
       }
     };
     loadData();
   }, [user, fetchData, fetchAvailableRoles, fetchAvailableMemberships, fetchPermissions]);
+  
 
   useEffect(() => {
+    // console.log("useEffect applyFilter called");
     applyFilter();
   }, [filter, searchQuery, postsData, applyFilter]);
 
@@ -152,7 +175,9 @@ const OrganizationPostsComponent = ({ organizationid }: { organizationid: string
           </h2>
 
           <div className="mb-4 flex justify-between">
+            <label htmlFor="filter-select" className="sr-only">Filter Posts</label>
             <select
+              id="filter-select"
               className="rounded-md border bg-[#1e1e1e] p-2 text-white"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
