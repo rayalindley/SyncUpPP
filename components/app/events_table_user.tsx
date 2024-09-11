@@ -132,6 +132,7 @@ export default function EventsTableUser({
 
 function EventRow({ event, userId }: { event: Event; userId: string }) {
   const [open, setOpen] = useState(false);
+
   // Convert eventdatetime to PST
   const formattedDateTime = (utcDateString: string) => {
     const date = new Date(utcDateString);
@@ -145,9 +146,16 @@ function EventRow({ event, userId }: { event: Event; userId: string }) {
     });
   };
 
-  // Call the formattedDateTime function with the event's datetime
   const startEventDateTimePST = formattedDateTime(event.starteventdatetime.toString());
   const endEventDateTimePST = formattedDateTime(event.endeventdatetime.toString());
+
+  // Safely access the privacy field.
+  // Ensure you're only rendering a string like "Public" or "Private"
+  const privacyInfo =
+    event.privacy && typeof event.privacy === "object" && event.privacy.type === "public"
+      ? "Public"
+      : "Private";
+
   return (
     <tr key={event.id}>
       <td
@@ -171,7 +179,9 @@ function EventRow({ event, userId }: { event: Event; userId: string }) {
       <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
         {event.capacity || "N/A"}
       </td>
-      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">{event.privacy}</td>
+      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
+        {privacyInfo} {/* Only display "Public" or "Private" */}
+      </td>
       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
         <EventOptions
           selectedEvent={event}

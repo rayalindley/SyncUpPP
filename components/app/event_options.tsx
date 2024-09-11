@@ -444,8 +444,79 @@ export default function EventOptions({
                                   <td className="p-2 font-bold text-gray-400">
                                     Privacy:
                                   </td>
-                                  <td className="p-2">{selectedEvent.privacy}</td>
+                                  <td className="p-2">
+                                    {selectedEvent.privacy &&
+                                    typeof selectedEvent.privacy === "object" ? (
+                                      <>
+                                        {selectedEvent.privacy.type === "public" ? (
+                                          <span>Public</span>
+                                        ) : (
+                                          <div>
+                                            {/* Show roles as blue tags */}
+                                            {selectedEvent.privacy.roles &&
+                                              selectedEvent.privacy.roles.length > 0 && (
+                                                <div className="mt-2">
+                                                  <div className="mt-1 flex flex-wrap gap-2">
+                                                    {selectedEvent.privacy.roles.map(
+                                                      (role, index) => (
+                                                        <span
+                                                          key={index}
+                                                          className="inline-block rounded bg-primary px-3 py-1 text-sm font-semibold text-white"
+                                                        >
+                                                          {role}
+                                                        </span>
+                                                      )
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              )}
+
+                                            {/* Show membership tiers as pink tags */}
+                                            {selectedEvent.privacy.membership_tiers &&
+                                              selectedEvent.privacy.membership_tiers
+                                                .length > 0 && (
+                                                <div className="mt-2">
+                                                  <div className="mt-1 flex flex-wrap gap-2">
+                                                    {selectedEvent.privacy.membership_tiers.map(
+                                                      (tier, index) => (
+                                                        <span
+                                                          key={index}
+                                                          className="inline-block rounded bg-primary px-3 py-1 text-sm font-semibold text-white"
+                                                        >
+                                                          {tier}
+                                                        </span>
+                                                      )
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              )}
+
+                                            {/* If all roles or all memberships are allowed */}
+                                            {selectedEvent.privacy.allow_all_roles && (
+                                              <div className="mt-2">
+                                                <span className="font-semibold text-gray-400">
+                                                  All roles allowed
+                                                </span>
+                                              </div>
+                                            )}
+
+                                            {selectedEvent.privacy
+                                              .allow_all_memberships && (
+                                              <div className="mt-2">
+                                                <span className="font-semibold text-gray-400">
+                                                  All membership tiers allowed
+                                                </span>
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+                                      </>
+                                    ) : (
+                                      "Unknown"
+                                    )}
+                                  </td>
                                 </tr>
+
                                 <tr>
                                   <td className="p-2 font-bold text-gray-400">Tags:</td>
                                   <td className="flex flex-wrap gap-2 p-2 ">
