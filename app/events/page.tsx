@@ -86,8 +86,11 @@ export default function EventsPublicView() {
       const matchesStatus =
         eventStatusFilter === "" || isUpcoming || isOngoing || isCompleted;
 
+      // Check for privacy filter
       const matchesPrivacy =
-        eventPrivacyFilter === "" || event.privacy === eventPrivacyFilter;
+        eventPrivacyFilter === "" ||
+        (event.privacy?.type === eventPrivacyFilter &&
+          (eventPrivacyFilter === "public" || eventPrivacyFilter === "private"));
 
       return matchesSearchQuery && matchesStatus && matchesPrivacy;
     })
