@@ -494,7 +494,7 @@ export default function EventOptions({
                                             {/* If all roles or all memberships are allowed */}
                                             {selectedEvent.privacy.allow_all_roles && (
                                               <div className="mt-2">
-                                                <span className="font-semibold text-gray-400">
+                                                <span className="inline-block rounded bg-primary px-3 py-1 text-sm font-semibold text-white">
                                                   All roles allowed
                                                 </span>
                                               </div>
@@ -503,7 +503,7 @@ export default function EventOptions({
                                             {selectedEvent.privacy
                                               .allow_all_memberships && (
                                               <div className="mt-2">
-                                                <span className="font-semibold text-gray-400">
+                                                <span className="inline-block rounded bg-primary px-3 py-1 text-sm font-semibold text-white">
                                                   All membership tiers allowed
                                                 </span>
                                               </div>
