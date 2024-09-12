@@ -8,7 +8,7 @@ import { fetchOrganizationBySlug } from "@/lib/organization";
 import { createClient } from "@/lib/supabase/client";
 import { Memberships } from "@/types/memberships";
 import { Organizations } from "@/types/organizations";
-import { User_membership_info } from "@/types/users";
+import { UserMembershipInfo } from "@/types/user_membership_info";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
@@ -19,7 +19,7 @@ export default function Example() {
   const { slug } = useParams() as { slug: string };
 
   const [memberships, setMemberships] = useState<Memberships[] | null>(null);
-  const [members, setMembers] = useState<User_membership_info[] | null>(null);
+  const [members, setMembers] = useState<UserMembershipInfo[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [organization, setOrganization] = useState<Organizations | null>(null);
   const [showModal, setShowModal] = useState(false);

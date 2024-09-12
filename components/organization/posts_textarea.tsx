@@ -6,26 +6,25 @@ import { toast, ToastContainer } from "react-toastify";
 import { createClient } from "@/lib/supabase/client";
 import { insertPost, updatePost, checkIsMemberOfOrganization } from "@/lib/posts";
 import { PhotoIcon, XCircleIcon, UserCircleIcon } from "@heroicons/react/24/solid";
-import { getUserProfileById } from "@/lib/userActions";
-import { useUser } from "@/context/UserContext";
-import { check_permissions } from "@/lib/organization";
+import { getUserProfileById } from "@/lib/user_actions";
+import { useUser } from "@/context/user_context";
+import TagsInput from "@/components/custom/tags-input";
 import "react-toastify/dist/ReactToastify.css";
-import { Posts } from "@/types/posts"; // Ensure this matches your actual types
+import { Posts } from "@/types/posts";
+import { check_permissions } from "@/lib/organization";
 
 const postSchema = z.object({
   content: z
     .string()
     .min(1, "Content is required")
     .max(500, "Content cannot exceed 500 characters"),
-  privacyLevel: z.enum(["public", "private"]),
+  privacylevel: z.array(z.string()).nonempty("At least one privacy level is required"),
 });
 
-const privacyLevels = [
-  { name: "Public", value: "public" },
-  { name: "Private", value: "private" },
-];
-
-const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
+interface Role {
+  role_id: string;
+  role: string;
+}
 
 interface PostsTextAreaProps {
   organizationid: string;
@@ -34,6 +33,7 @@ interface PostsTextAreaProps {
   editingPost: Posts | null;
   cancelEdit: () => void;
   setEditingPost: React.Dispatch<React.SetStateAction<Posts | null>>;
+  availableRoles: { id: string; name: string }[];
 }
 
 export default function PostsTextArea({
@@ -43,6 +43,7 @@ export default function PostsTextArea({
   editingPost,
   cancelEdit,
   setEditingPost,
+  availableRoles,
 }: PostsTextAreaProps) {
   const { register, handleSubmit, control, watch, setValue, reset } = useForm({
     resolver: zodResolver(postSchema),
@@ -53,12 +54,11 @@ export default function PostsTextArea({
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [isMember, setIsMember] = useState(false);
   const [canCreate, setCanCreate] = useState(false);
-  const [canEdit, setCanEdit] = useState(false);
 
   useEffect(() => {
     if (editingPost) {
       setValue("content", editingPost.content);
-      setValue("privacyLevel", editingPost.privacylevel);
+      setValue("privacylevel", editingPost.privacylevel || []); // Empty array for public
       setPhotos(editingPost.postphotos || []);
     }
   }, [editingPost, setValue]);
@@ -70,7 +70,7 @@ export default function PostsTextArea({
         if (data) {
           setProfilePicture(
             data.profilepicture
-              ? `${supabaseStorageBaseUrl}/${data.profilepicture}`
+              ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${data.profilepicture}`
               : null
           );
         } else {
@@ -87,12 +87,12 @@ export default function PostsTextArea({
         const isMember = await checkIsMemberOfOrganization(organizationid);
         setIsMember(isMember);
         if (user?.id) {
-          const [createPermission, editPermission] = await Promise.all([
-            check_permissions(user.id, organizationid, "create_posts"),
-            check_permissions(user.id, organizationid, "edit_posts"),
-          ]);
+          const createPermission = await check_permissions(
+            user.id,
+            organizationid,
+            "create_posts"
+          );
           setCanCreate(createPermission);
-          setCanEdit(editPermission);
         }
       }
     };
@@ -123,8 +123,7 @@ export default function PostsTextArea({
   };
 
   const handleRemovePhoto = (index: number) => {
-    const newPhotos = photos.filter((_, i) => i !== index);
-    setPhotos(newPhotos);
+    setPhotos((prevPhotos) => prevPhotos.filter((_, i) => i !== index));
   };
 
   const resetForm = () => {
@@ -136,15 +135,29 @@ export default function PostsTextArea({
   const onSubmit = async (formData: any) => {
     setIsLoading(true);
     try {
-      const postData = { ...formData, organizationid, postphotos: photos };
+      // Map role names back to UUIDs for submission
+      const privacyArray: string[] = formData.privacylevel.includes("Public")
+        ? []
+        : formData.privacylevel.map((roleName: string) => {
+            const role = availableRoles.find((role) => role.name === roleName);
+            return role ? role.id : roleName; // Map back to UUID
+          });
+
+      const postData = {
+        ...formData,
+        organizationid,
+        postphotos: photos,
+        privacylevel: privacyArray, // UUIDs or empty for Public
+      };
+
       const { data: postResponse, error } = editingPost
         ? await updatePost({ ...postData, postid: editingPost.postid })
         : await insertPost(postData, organizationid);
 
       if (!error) {
         if (editingPost) {
-          setPostsData(
-            postsData.map((post) =>
+          setPostsData((prevPosts) =>
+            prevPosts.map((post) =>
               post.postid === postResponse.postid ? postResponse : post
             )
           );
@@ -166,9 +179,7 @@ export default function PostsTextArea({
 
   const contentValue = watch("content");
 
-  if (!isMember) {
-    return null;
-  }
+  if (!isMember) return null;
 
   return (
     <form
@@ -186,6 +197,8 @@ export default function PostsTextArea({
                 src={profilePicture}
                 alt="Profile"
                 className="h-10 w-10 rounded-full object-cover"
+                width={40}
+                height={40}
               />
             ) : (
               <UserCircleIcon className="h-10 w-10 text-white" />
@@ -212,24 +225,43 @@ export default function PostsTextArea({
         </div>
         <div className="mb-4 flex items-center gap-2">
           <Controller
-            name="privacyLevel"
+            name="privacylevel"
             control={control}
-            defaultValue={privacyLevels[0].value}
-            render={({ field }) => (
-              <select
-                value={field.value}
-                onChange={(e) => field.onChange(e.target.value)}
-                className="w-40 rounded-2xl border border-[#3d3d3d] bg-[#171717] p-3 text-white focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
-                disabled={!canCreate && !editingPost}
-              >
-                {privacyLevels.map((level) => (
-                  <option key={level.value} value={level.value}>
-                    {level.name}
-                  </option>
-                ))}
-              </select>
-            )}
+            defaultValue={[]}
+            render={({ field }) => {
+              const validRoles = ["Public", ...availableRoles.map((role) => role.name)];
+
+              return (
+                <TagsInput
+                  value={field.value.map((roleId: string) => {
+                    const role = availableRoles.find((role) => role.id === roleId);
+                    return role ? role.name : roleId; // Display role name if available
+                  })}
+                  onChange={(tags) => {
+                    // Filter out invalid roles
+                    const validTags = tags.filter((tag) => {
+                      if (!validRoles.includes(tag)) {
+                        toast.error(`"${tag}" is not a valid role.`);
+                        return false;
+                      }
+                      return true;
+                    });
+
+                    // Map role names back to their IDs for form submission
+                    const mappedRoles = validTags.map((tag) => {
+                      const role = availableRoles.find((role) => role.name === tag);
+                      return role ? role.id : tag; // Map back to role ID
+                    });
+
+                    field.onChange(mappedRoles); // Only update with valid roles
+                  }}
+                  suggestions={validRoles} // Only suggest valid roles
+                  placeholder="Type 'Public' or choose from valid roles..."
+                />
+              );
+            }}
           />
+
           <input
             type="file"
             accept="image/*"
@@ -246,7 +278,9 @@ export default function PostsTextArea({
           <button
             type="submit"
             className={`rounded-2xl p-3 text-white shadow-lg ${isLoading || !(contentValue ?? "").trim() ? "cursor-not-allowed bg-[#171717]" : "bg-primary hover:bg-[#37996b]"}`}
-            disabled={isLoading || !(contentValue ?? "").trim() || (!canCreate && !editingPost)}
+            disabled={
+              isLoading || !(contentValue ?? "").trim() || (!canCreate && !editingPost)
+            }
           >
             {isLoading
               ? editingPost
@@ -269,13 +303,16 @@ export default function PostsTextArea({
             </button>
           )}
         </div>
+
         <div className="flex flex-wrap gap-2">
           {photos.map((photo, index) => (
             <div key={index} className="relative">
               <img
-                src={`${supabaseStorageBaseUrl}/post-images/${photo}`}
+                src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/post-images/${photo}`}
                 alt={`Attachment ${index + 1}`}
                 className="h-20 w-20 rounded-md object-cover"
+                width={80}
+                height={80}
               />
               <button
                 type="button"

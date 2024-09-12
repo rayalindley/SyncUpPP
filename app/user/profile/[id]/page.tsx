@@ -1,13 +1,15 @@
 "use client";
 
-import Footer from "@/components/Footer";
-import Header from "@/components/Header";
+import Footer from "@/components/footer";
+import Header from "@/components/header";
 import UserEvents from "@/components/user/user_events";
 import UserOrganizations from "@/components/user/user_organizations";
 import { fetchEventsForUser } from "@/lib/events";
 import { createClient, getUser } from "@/lib/supabase/client";
-import { Event, Organization, UserProfile } from "@/lib/types";
-import { updateUserProfileById } from "@/lib/userActions";
+import { Event } from "@/types/event";
+import { Organization } from "@/types/organization";
+import { UserProfile } from "@/types/user_profile";
+import { updateUserProfileById } from "@/lib/user_actions";
 import { PencilIcon } from "@heroicons/react/24/solid";
 import { User } from "@supabase/auth-js";
 import Link from "next/link";

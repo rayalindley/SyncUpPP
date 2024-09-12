@@ -1,123 +1,52 @@
-"use client";
-import AnalyticsDashboard from "@/components/dashboard/Analytics";
-import { deleteOrganization, fetchOrganizationBySlug } from "@/lib/organization";
-import { Organization } from "@/lib/types";
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import Swal from "sweetalert2";
 import { createClient } from "@/lib/supabase/client";
+import AnalyticsDashboard from "@/components/dashboard/analytics";
+import RequestsTable from "@/components/organization/requests_table";
+import { fetchOrganizationBySlug } from "@/lib/organization";
+import { Organization } from "@/types/organization";
+import DeleteButton from "@/components/organization/delete_button";
 
 const supabase = createClient();
 
-export default function SettingsPage() {
-  const router = useRouter();
-  const { slug } = useParams() as { slug: string }; // Ensure slug is a string
+async function fetchOrganizationRequests(organizationId: string) {
+  const { data, error } = await supabase
+    .from("organization_requests_view")
+    .select("*")
+    .eq("organizationid", organizationId);
 
-  const [formValues, setFormValues] = useState<Organization | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [reloadFlag, setReloadFlag] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  const saveScrollPosition = () => {
-    if (scrollRef.current) {
-      const { scrollTop } = scrollRef.current;
-      localStorage.setItem("scrollPosition", scrollTop.toString());
+  if (error) {
+    console.error("Error fetching organization requests:", error);
+    return [];
+  } else {
+    console.log("Fetched requests:", data); // Log the fetched data
+    if (data && data.length > 0) {
+      // Check if the data is not empty
+      console.log("Data is not empty");
+      data.forEach((request, index) => {
+        console.log(`Request ${index + 1}:`, request);
+      });
+      return data;
+    } else {
+      console.log("No requests found for this organization");
+      return [];
     }
-  };
+  }
+}
 
-  const restoreScrollPosition = () => {
-    if (scrollRef.current) {
-      const scrollPosition = localStorage.getItem("scrollPosition");
-      if (scrollPosition) {
-        scrollRef.current.scrollTop = parseInt(scrollPosition, 10);
-      }
-    }
-  };
+export default async function SettingsPage({ params }: { params: { slug: string } }) {
+  const { slug } = params;
+  const { data: organization, error } = await fetchOrganizationBySlug(slug);
 
-  useEffect(() => {
-    restoreScrollPosition();
-  }, []);
+  if (error || !organization) {
+    return <div>Error loading organization data</div>;
+  }
 
-  useEffect(() => {
-    // console.log(slug);
-    if (slug) {
-      (async () => {
-        try {
-          const { data, error } = await fetchOrganizationBySlug(slug);
-
-          // console.log(data, error);
-          if (error) {
-            setError(error.message);
-            console.error(error);
-          } else {
-            setFormValues(data);
-          }
-        } catch (err) {
-          console.error("Failed to fetch organization:", err);
-          setError((err as Error).message);
-        }
-      })();
-    }
-  }, [slug]);
-
-  useEffect(() => {
-    const channels = ["organizationmembers", "events", "posts", "comments"];
-    channels.forEach((channel) => {
-      supabase
-        .channel(channel)
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: channel },
-          (payload) => {
-            // console.log("Change received!", payload);
-            saveScrollPosition();
-            setReloadFlag((prev) => !prev); // Toggle the flag to force re-render
-          }
-        )
-        .subscribe();
-    });
-  }, []);
-
-  useEffect(() => {
-    restoreScrollPosition();
-  }, [reloadFlag]);
-
-  const handleDeleteOrg = async (orgID: string) => {
-    // console.log(orgID);
-
-    const confirmResult = await Swal.fire({
-      title: "Are you sure?",
-      text: "You won't be able to revert this!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Yes, delete it!",
-      cancelButtonText: "No, cancel!",
-      reverseButtons: true,
-    });
-
-    if (confirmResult.isConfirmed) {
-      const response = await deleteOrganization(orgID);
-      if (!response.error) {
-        await Swal.fire({
-          title: "Deleted!",
-          text: "The organization was successfully deleted.",
-          icon: "success",
-        });
-        // Redirect to /dashboard after successful deletion
-        router.push("/dashboard");
-      } else {
-        Swal.fire({
-          title: "Failed!",
-          text: response.error.message,
-          icon: "error",
-        });
-      }
-    }
-  };
+  const organizationRequests = await fetchOrganizationRequests(
+    organization.organizationid
+  );
 
   return (
-    <div ref={scrollRef} className="min-h-full flex-1 flex-col justify-center bg-eerieblack px-6 py-12 lg:px-8">
-      <AnalyticsDashboard organizationid={formValues?.organizationid ?? ""} />
+    <div className="min-h-full flex-1 flex-col justify-center bg-eerieblack px-6 py-12 lg:px-8">
+      <AnalyticsDashboard organizationid={organization.organizationid} />
       <div className="mt-4 flex gap-2">
         <a
           className="border-1 rounded-md border border-primary bg-primarydark p-1 px-2 text-sm text-gray-100 hover:cursor-pointer"
@@ -125,12 +54,10 @@ export default function SettingsPage() {
         >
           Edit Organization
         </a>
-        <button
-          className="border-1 rounded-md border border-red-500 bg-red-600 p-1 px-2 text-sm text-gray-100 hover:cursor-pointer"
-          onClick={() => handleDeleteOrg(formValues?.organizationid ?? "")}
-        >
-          Delete Org
-        </button>
+        <DeleteButton organizationId={organization.organizationid} />
+      </div>
+      <div className="mt-8">
+        <RequestsTable requests={organizationRequests} />
       </div>
     </div>
   );

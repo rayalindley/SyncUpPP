@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { z } from "zod";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Membership } from "@/lib/types";
+import { Membership } from "@/types/membership";
 
 interface CreateMembershipModalProps {
   organizationid: string;

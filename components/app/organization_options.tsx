@@ -8,7 +8,7 @@ import Swal from "sweetalert2";
 import { FaRegEdit } from "react-icons/fa";
 import JSONPretty from "react-json-pretty";
 import Link from "next/link";
-import { useOpenStore } from "@/store/useOpenStore";
+import { useOpenStore } from "@/store/use_open_store";
 import { ReactNode } from "react";
 
 const jsonTheme = {

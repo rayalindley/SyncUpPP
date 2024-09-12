@@ -1,6 +1,6 @@
 // @/models/Role.ts
 
-import { Member } from "../types/roles";
+import { Member } from "@/types/member";
 
 export class Role {
   constructor(

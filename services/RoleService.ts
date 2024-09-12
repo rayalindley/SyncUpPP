@@ -2,7 +2,7 @@
 
 import { createClient } from "../lib/supabase/server";
 import { Role } from "../models/Role";
-import { Member } from "../types/roles";
+import { Member } from "@/types/member";
 
 export class RoleService {
   private supabase = createClient();

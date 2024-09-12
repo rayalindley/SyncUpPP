@@ -1,27 +1,17 @@
-import { Memberships } from "./memberships";
-import { Organizations } from "./organizations";
-import { Combined_user_data } from "./users";
-
+import { Organizations } from '@/types/organizations';
+import { CombinedUserData } from '@/types/combined_user_data';
+import { Memberships } from '@/types/memberships';
 export interface Posts {
   postid: string;
   organizationid: string;
   authorid: string;
   content?: string;
-  privacylevel?: any;
+  privacylevel?: string;
   targetmembershipid?: string;
   createdat?: string;
-  postphotos?: string[];
   organizations?: Organizations;
-  combined_user_data?: Combined_user_data;
+  combined_user_data?: CombinedUserData;
   memberships?: Memberships;
-}
-
-export interface Post_comments {
-  commentid: string /* primary key */;
-  created_at: string;
-  postid: string /* foreign key to posts.postid */;
-  authorid?: string /* foreign key to combined_user_data.id */;
-  comment?: string;
-  posts?: Posts;
-  combined_user_data?: Combined_user_data;
+  postphoto?: string;
+  postphotos?: string[];
 }

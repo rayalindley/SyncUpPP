@@ -1,5 +1,5 @@
 import MembershipTiers from "./membership_tiers";
-import { Membership, MembershipsProps } from "@/lib/types";
+import { MembershipsProps } from "@/types/memberships_props";
 
 const OrganizationMembershipsComponent: React.FC<MembershipsProps> = ({
   memberships,

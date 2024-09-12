@@ -1,8 +1,9 @@
 
-import EventsTable from "@/components/app/EventsTable";
+import EventsTable from "@/components/app/events_table";
 import { fetchAllOrganizations, fetchOrganizationsForUser } from "@/lib/organization";
 import { createClient, getUser } from "@/lib/supabase/server";
-import { Event, Organization } from "@/lib/types";
+import { Event } from "@/types/event";
+import { Organization } from "@/types/organization";
 import { redirect } from "next/navigation";
 
 export default async function DashboardPage() {

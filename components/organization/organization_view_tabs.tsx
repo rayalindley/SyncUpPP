@@ -1,26 +1,12 @@
 "use client";
-
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import OrganizationEventsComponent from "./organization_events";
 import OrganizationMembershipsComponent from "../memberships/organization_membership";
 import OrganizationPostsComponent from "./organization_posts";
 
-const TabsComponent = ({
-  organizationid,
-  memberships,
-  events,
-  posts,
-  id,
-}: {
-  organizationid: any;
-  memberships: any;
-  events: any;
-  posts: any;
-  id: any;
-}) => {
+const TabsComponent = ({ organizationid, memberships, events, id }: { organizationid: string; memberships: any; events: any; id: string }) => {
   const { orgslug } = useParams() as { orgslug: string };
-
   const [activeTab, setActiveTab] = useState("posts");
 
   useEffect(() => {
@@ -44,7 +30,7 @@ const TabsComponent = ({
     }
   }, []);
 
-  const handleTabChange = (tab: any) => {
+  const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     if (typeof window !== "undefined") {
       const query = new URLSearchParams(window.location.search);
@@ -58,17 +44,9 @@ const TabsComponent = ({
   if (activeTab === "posts") {
     tabContent = <OrganizationPostsComponent organizationid={organizationid} />;
   } else if (activeTab === "membership") {
-    tabContent = (
-      <OrganizationMembershipsComponent memberships={memberships} userid={id} />
-    );
+    tabContent = <OrganizationMembershipsComponent memberships={memberships} userid={id} />;
   } else if (activeTab === "events") {
-    tabContent = (
-      <OrganizationEventsComponent
-        events={events}
-        userid={id}
-        organizationId={organizationid}
-      />
-    );
+    tabContent = <OrganizationEventsComponent events={events} userid={id} organizationId={organizationid} />;
   }
 
   return (
@@ -79,9 +57,7 @@ const TabsComponent = ({
             <button
               onClick={() => handleTabChange("posts")}
               className={`whitespace-nowrap border-b-2 px-1 py-4 text-base font-medium ${
-                activeTab === "posts"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-light hover:border-gray-300 hover:text-gray-300"
+                activeTab === "posts" ? "border-primary text-primary" : "border-transparent text-light hover:border-gray-300 hover:text-gray-300"
               }`}
             >
               Posts
@@ -89,9 +65,7 @@ const TabsComponent = ({
             <button
               onClick={() => handleTabChange("membership")}
               className={`whitespace-nowrap border-b-2 px-1 py-4 text-base font-medium ${
-                activeTab === "membership"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-light hover:border-gray-300 hover:text-gray-300"
+                activeTab === "membership" ? "border-primary text-primary" : "border-transparent text-light hover:border-gray-300 hover:text-gray-300"
               }`}
             >
               Membership
@@ -99,9 +73,7 @@ const TabsComponent = ({
             <button
               onClick={() => handleTabChange("events")}
               className={`whitespace-nowrap border-b-2 px-1 py-4 text-base font-medium ${
-                activeTab === "events"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-light hover:border-gray-300 hover:text-gray-300"
+                activeTab === "events" ? "border-primary text-primary" : "border-transparent text-light hover:border-gray-300 hover:text-gray-300"
               }`}
             >
               Events

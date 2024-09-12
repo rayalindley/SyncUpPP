@@ -72,6 +72,7 @@ interface OrganizationFormValues {
   linkedinLink?: string;
   photo?: string;
   banner?: string;
+  organizationAccess: "open" | "approval";
 }
 
 const OrganizationSchema = z.object({
@@ -95,6 +96,9 @@ const OrganizationSchema = z.object({
   facebookLink: z.string().url("Invalid URL format").optional().or(z.literal("")),
   twitterLink: z.string().url("Invalid URL format").optional().or(z.literal("")),
   linkedinLink: z.string().url("Invalid URL format").optional().or(z.literal("")),
+  organizationAccess: z.enum(["open", "approval"], {
+    errorMap: () => ({ message: "Please select an organization access type" }),
+  }),
 });
 const datepicker_options: IOptions = {
   title: "Calendar",
@@ -213,6 +217,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
         facebookLink: formValues.socials.facebook,
         twitterLink: formValues.socials.twitter,
         linkedinLink: formValues.socials.linkedin,
+        organizationAccess: formValues.organization_access,
       });
       setPhoto(formValues.photo);
       setBanner(formValues.banner);
@@ -728,6 +733,55 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                   <p className="text-red-500">{errors.dateEstablished.message}</p>
                 )}
               </div>
+            </div>
+            <div>
+              <label
+                htmlFor="organizationAccess"
+                className="block text-sm font-medium leading-6 text-white"
+              >
+                Organization Access
+              </label>
+              <div className="mt-2 space-y-2">
+                <div className="flex items-center">
+                  <input
+                    id="open"
+                    type="radio"
+                    value="open"
+                    className="h-4 w-4 border-gray-300 text-green-600 focus:ring-green-500"
+                    {...register("organizationAccess")}
+                  />
+                  <label
+                    htmlFor="open"
+                    className="ml-3 block text-sm font-medium text-white"
+                  >
+                    Open to All
+                  </label>
+                </div>
+                <p className="ml-7 text-xs text-gray-400">
+                  Anyone can join your organization without approval.
+                </p>
+                <div className="flex items-center">
+                  <input
+                    id="approval"
+                    type="radio"
+                    value="approval"
+                    className="h-4 w-4 border-gray-300 text-green-600 focus:ring-green-500"
+                    {...register("organizationAccess")}
+                  />
+                  <label
+                    htmlFor="approval"
+                    className="ml-3 block text-sm font-medium text-white"
+                  >
+                    Requires Approval
+                  </label>
+                </div>
+                <p className="ml-7 text-xs text-gray-400">
+                  New members must be approved by an administrator.
+                </p>
+              </div>
+              {errors.organizationAccess && (
+                <p className="text-red-500">{errors.organizationAccess.message}</p>
+              )}
             </div>
           </div>
           {/* Step 2 */}

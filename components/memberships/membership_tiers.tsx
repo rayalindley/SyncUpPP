@@ -6,7 +6,7 @@ import "react-toastify/dist/ReactToastify.css";
 import MembershipCard from "./membership_card";
 import { PlusCircleIcon } from "@heroicons/react/24/outline";
 import { RadioGroup } from "@headlessui/react";
-import { Membership } from "@/lib/types";
+import { Membership } from "@/types/membership";
 import { Xendit, Invoice as InvoiceClient } from "xendit-node";
 import { getUser } from "@/lib/supabase/client";
 import type { CreateInvoiceRequest, Invoice } from "xendit-node/invoice/models";
@@ -214,14 +214,15 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
           } else {
             toast.success("Invoice created successfully.");
 
-            // console.log({
-            //   amount: amount,
-            //   invoiceId: invoice.id,
-            //   organizationId: organizationid,
-            //   type: "membership",
-            //   invoiceUrl: invoice.invoiceUrl,
-            //   invoiceData: invoice,
-            // });
+            console.log({
+              amount: amount,
+              invoiceId: invoice.id,
+              organizationId: organizationid,
+              type: "membership",
+              invoiceUrl: invoice.invoiceUrl,
+              invoiceData: invoice,
+            });
+
             const { data, error } = await supabase
               .from("payments")
               .insert([

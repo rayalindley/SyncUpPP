@@ -1,9 +1,10 @@
 "use client";
-import EventsTableUser from "@/components/app/EventsTableUser";
+import EventsTableUser from "@/components/app/events_table_user";
 import Preloader from "@/components/preloader";
 import { fetchOrganizationBySlug } from "@/lib/organization";
 import { createClient, getUser } from "@/lib/supabase/client";
-import { Event, Organization } from "@/lib/types";
+import { Event } from "@/types/event";
+import { Organization } from "@/types/organization";
 import { User } from "@/node_modules/@supabase/auth-js/src/lib/types";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";

@@ -1,6 +1,6 @@
 "use client";
-import Footer from "@/components/Footer";
-import Header from "@/components/Header";
+import Footer from "@/components/footer";
+import Header from "@/components/header";
 import Preloader from "@/components/preloader";
 import {
   checkEventPrivacyAndMembership,
@@ -12,7 +12,8 @@ import {
   unregisterFromEvent,
 } from "@/lib/events";
 import { createClient, getUser } from "@/lib/supabase/client";
-import { Event, Organization } from "@/lib/types";
+import { Event } from "@/types/event";
+import { Organization } from "@/types/organization";
 import { User } from "@/node_modules/@supabase/auth-js/src/lib/types";
 import {
   CalendarIcon,
@@ -275,44 +276,47 @@ const EventPage = () => {
   const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col bg-eerieblack text-light">
       <Header user={user} />
       <ToastContainer />
-      <main className="isolate mb-10 flex flex-1 justify-center pt-4 sm:px-4 md:px-6 lg:px-80">
-        <div className="w-full max-w-screen-lg text-light">
-          <div className="grid grid-cols-[2fr,3fr] gap-8 md:grid-cols-[1fr,1.5fr]">
-            <div className="relative h-96 w-full">
-              {event.eventphoto ? (
-                <img
-                  src={`${supabaseStorageBaseUrl}/${event.eventphoto}`}
-                  alt={event.title}
-                  className="h-96 w-full rounded-lg object-cover"
-                />
-              ) : (
-                <div className="bg- h-96 w-full rounded-lg bg-fadedgrey" />
-              )}
-              <span
-                className={`absolute right-2 top-2 rounded-full bg-opacity-75 px-2	py-1 text-xs font-medium shadow-2xl ${event.privacy === "public" ? "bg-green-500 text-white" : "bg-red-500 text-white"}`}
-              >
-                {event.privacy === "public" ? "Public" : "Members only"}
-              </span>
+      <main className="flex-1 px-4 py-8 sm:px-6 lg:px-8 xl:px-0">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid gap-8 lg:grid-cols-[1fr,1.5fr]">
+            <div className="space-y-6">
+              <div className="relative aspect-video w-full overflow-hidden rounded-lg">
+                {event.eventphoto ? (
+                  <img
+                    src={`${supabaseStorageBaseUrl}/${event.eventphoto}`}
+                    alt={event.title}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="h-full w-full bg-fadedgrey" />
+                )}
+                <span
+                  className={`absolute right-2 top-2 rounded-full bg-opacity-75 px-2 py-1 text-xs font-medium shadow-2xl ${event.privacy === "public" ? "bg-green-500 text-white" : "bg-red-500 text-white"}`}
+                >
+                  {event.privacy === "public" ? "Public" : "Members only"}
+                </span>
+              </div>
+
               {organization && (
-                <div className="mt-4">
+                <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center">
+                    <div className="flex items-center space-x-4">
                       {organization.photo ? (
                         <img
                           src={`${supabaseStorageBaseUrl}/${organization.photo}`}
                           alt={organization.name}
-                          className="mr-4 h-10 w-10 rounded-full object-cover"
+                          className="h-10 w-10 rounded-full object-cover"
                         />
                       ) : (
-                        <div className="mr-4 h-10 w-10 rounded-full bg-white" />
+                        <div className="h-10 w-10 rounded-full bg-white" />
                       )}
                       <div>
-                        <p className="text-sm font-medium">Hosted By</p>
+                        <p className="text-sm font-medium text-light">Hosted By</p>
                         <Link href={`/${organization.slug}`}>
-                          <p className="text-md group flex items-center font-semibold hover:text-primary">
+                          <p className="group flex items-center text-base font-semibold text-light hover:text-primary">
                             {organization.name}
                             <ChevronRightIcon className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
                           </p>
@@ -320,23 +324,21 @@ const EventPage = () => {
                       </div>
                     </div>
                     {!isOrgMember && (
-                      <div className="ml-auto">
-                        <button
-                          className="rounded-full bg-primary px-4 py-2 text-sm text-white hover:bg-primarydark"
-                          onClick={() => {
-                            router.push(`/${organization.slug}?tab=membership`);
-                          }}
-                        >
-                          Join Org
-                        </button>
-                      </div>
+                      <button
+                        className="rounded-full bg-primary px-4 py-2 text-sm text-white hover:bg-primarydark"
+                        onClick={() => {
+                          router.push(`/${organization.slug}?tab=membership`);
+                        }}
+                      >
+                        Join Org
+                      </button>
                     )}
                   </div>
 
                   <div
                     className={`relative ${showFullDescription ? "" : "group max-h-24 overflow-hidden"}`}
                   >
-                    <p className="mt-3 text-justify text-sm">
+                    <p className="text-justify text-sm text-light">
                       {organization.description}
                     </p>
                     {!showFullDescription && organization.description.length > 130 && (
@@ -351,28 +353,35 @@ const EventPage = () => {
                   </div>
                 </div>
               )}
-              <hr className="my-4 border-t border-fadedgrey opacity-50" />
+
+              <hr className="border-t border-fadedgrey opacity-50" />
 
               {event.tags && (
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <h3 className="w-full text-lg font-semibold">Tags</h3>
-                  {event.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="cursor-pointer rounded-full bg-charleston px-3 py-2 text-sm text-light transition-colors duration-300 hover:bg-raisinblack"
-                    >
-                      {tag}
-                    </span>
-                  ))}
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-light">Tags</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {event.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="cursor-pointer rounded-full bg-charleston px-3 py-2 text-sm text-light transition-colors duration-300 hover:bg-raisinblack"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
-            <div className="">
-              <h1 className="text-5xl font-bold">{event.title}</h1>
-              <div className="mt-6 flex items-center text-base">
-                <CalendarIcon className="mr-2 h-10 w-10 text-primary" />
-                <div>
-                  <span className="text-base font-medium leading-tight">
+
+            <div className="space-y-6">
+              <h1 className="text-3xl font-bold text-light sm:text-4xl lg:text-5xl">
+                {event.title}
+              </h1>
+
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <CalendarIcon className="h-6 w-6 text-primary sm:h-8 sm:w-8" />
+                  <span className="text-sm text-light sm:text-base">
                     {new Date(event.starteventdatetime).toLocaleDateString("en-US", {
                       weekday: "short",
                       month: "short",
@@ -398,93 +407,88 @@ const EventPage = () => {
                     })}
                   </span>
                 </div>
-              </div>
 
-              <div className="mb-2 mt-2 flex items-center text-base">
-                <MapPinIcon className="mr-2 h-10 w-10 text-primary" />
-                {isUrl(event.location) ? (
-                  <Link href={event.location}>
-                    <p className="text-primary hover:underline">Virtual Event</p>
-                  </Link>
-                ) : (
-                  event.location
-                )}
-              </div>
-              <div className="mb-4 flex items-center text-base">
-                <UsersIcon className="mr-2 h-10 w-10 text-primary" />
-                {event.capacity > 0 ? (
-                  <span
-                    className={`text-base ${
-                      attendeesCount >= event.capacity ? "text-red-500" : "text-light"
-                    }`}
-                  >
-                    {attendeesCount} / {event.capacity} attending
-                  </span>
-                ) : (
-                  <span className="text-base text-light">{attendeesCount} attending</span>
-                )}
-              </div>
-
-              <div className="rounded-lg bg-raisinblack p-1 shadow-md">
-                <div className="rounded-t-lg bg-charleston px-4 py-2 text-light">
-                  <h2 className="text-base font-medium">Registration</h2>
+                <div className="flex items-center space-x-2">
+                  <MapPinIcon className="h-6 w-6 text-primary sm:h-8 sm:w-8" />
+                  {isUrl(event.location) ? (
+                    <Link href={event.location}>
+                      <p className="text-sm text-primary hover:underline sm:text-base">
+                        Virtual Event
+                      </p>
+                    </Link>
+                  ) : (
+                    <span className="text-sm text-light sm:text-base">
+                      {event.location}
+                    </span>
+                  )}
                 </div>
-                <p className="mt-2 px-6 text-sm text-light">
+
+                <div className="flex items-center space-x-2">
+                  <UsersIcon className="h-6 w-6 text-primary sm:h-8 sm:w-8" />
+                  <span
+                    className={`text-sm sm:text-base ${attendeesCount >= event.capacity ? "text-red-500" : "text-light"}`}
+                  >
+                    {event.capacity > 0
+                      ? `${attendeesCount} / ${event.capacity} attending`
+                      : `${attendeesCount} attending`}
+                  </span>
+                </div>
+              </div>
+
+              <div className="rounded-lg bg-raisinblack p-4 shadow-md">
+                <h2 className="mb-2 text-lg font-medium text-light">Registration</h2>
+                <p className="mb-4 text-sm text-light">
                   Hello! To join the event, please register below:
                 </p>
-                <div className="mt-2">
-                  <p className="px-6 text-light">
-                    {event.registrationfee ? (
-                      <>
-                        <span>Registration Fee:</span> Php{" "}
-                        {event.registrationfee.toFixed(2)}
-                      </>
-                    ) : (
-                      "Free Registration"
-                    )}
-                  </p>
-                </div>
-
-                <div className="p-2">
-                  <button
-                    className={`mt-2 w-full rounded-md px-6 py-3 text-white ${
-                      eventFinished ||
-                      registrationClosed ||
-                      (event.privacy === "private" && !isMember) ||
-                      (eventFull && !isRegistered)
-                        ? "cursor-not-allowed bg-fadedgrey"
-                        : isRegistered
-                          ? "bg-red-600 hover:bg-red-700"
-                          : "bg-primary hover:bg-primarydark"
-                    }`}
-                    onClick={
-                      isRegistered ? handleEventUnregistration : handleEventRegistration
-                    }
-                    disabled={
-                      eventFinished ||
-                      registrationClosed ||
-                      (event.privacy === "private" && !isMember) ||
-                      (eventFull && !isRegistered)
-                    }
-                  >
-                    {eventFinished
-                      ? "Event Finished"
-                      : registrationClosed
-                        ? "Registration Closed"
-                        : event.privacy === "private" && !isMember
-                          ? "Event for Org Members Only"
-                          : eventFull && !isRegistered
-                            ? "Event Full"
-                            : isRegistered
-                              ? "Unregister"
-                              : "Register"}
-                  </button>
-                </div>
+                <p className="mb-4 text-light">
+                  {event.registrationfee ? (
+                    <>
+                      <span>Registration Fee:</span> Php{" "}
+                      {event.registrationfee.toFixed(2)}
+                    </>
+                  ) : (
+                    "Free Registration"
+                  )}
+                </p>
+                <button
+                  className={`w-full rounded-md px-6 py-3 text-white ${
+                    eventFinished ||
+                    registrationClosed ||
+                    (event.privacy === "private" && !isMember) ||
+                    (eventFull && !isRegistered)
+                      ? "cursor-not-allowed bg-fadedgrey"
+                      : isRegistered
+                        ? "bg-red-600 hover:bg-red-700"
+                        : "bg-primary hover:bg-primarydark"
+                  }`}
+                  onClick={
+                    isRegistered ? handleEventUnregistration : handleEventRegistration
+                  }
+                  disabled={
+                    eventFinished ||
+                    registrationClosed ||
+                    (event.privacy === "private" && !isMember) ||
+                    (eventFull && !isRegistered)
+                  }
+                >
+                  {eventFinished
+                    ? "Event Finished"
+                    : registrationClosed
+                      ? "Registration Closed"
+                      : event.privacy === "private" && !isMember
+                        ? "Event for Org Members Only"
+                        : eventFull && !isRegistered
+                          ? "Event Full"
+                          : isRegistered
+                            ? "Unregister"
+                            : "Register"}
+                </button>
               </div>
-              <div className="mt-6">
+
+              <div className="space-y-2">
                 <p className="text-sm font-medium text-light">Event Description</p>
-                <hr className="my-2 border-t border-fadedgrey opacity-50" />
-                <div className="whitespace-pre-wrap text-justify">
+                <hr className="border-t border-fadedgrey opacity-50" />
+                <div className="prose prose-invert max-w-none">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {event.description}
                   </ReactMarkdown>

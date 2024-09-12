@@ -1,5 +1,5 @@
-import EventsCard from "@/components/organization/events_card"; // Ensure this path is correct
-import { Event } from "@/lib/types";
+import EventsCard from "@/components/organization/events_card";
+import { Event } from "@/types/event"; 
 import { ArrowLongLeftIcon, ArrowLongRightIcon } from "@heroicons/react/24/solid";
 import { useState } from "react";
 

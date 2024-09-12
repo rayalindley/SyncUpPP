@@ -1,5 +1,5 @@
-import OrganizationsTable from "@/components/app/OrganizationsTable";
-import UsersTable from "@/components/app/UsersTable";
+import OrganizationsTable from "@/components/app/organizations_table";
+import UsersTable from "@/components/app/users_table";
 import { createClient, getUser } from "@/lib/supabase/server";
 
 export default async function DashboardPage() {

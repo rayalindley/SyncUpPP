@@ -15,8 +15,12 @@ import { useEffect, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { Dialog, Transition } from "@headlessui/react";
+import { Fragment } from "react";
+import { z } from "zod";
 
-import { Role, Member } from "@/types/roles";
+import { Role } from "@/types/role";
+import { Member } from "@/types/member";
 
 interface Permission {
   perm_key: string;
@@ -24,6 +28,14 @@ interface Permission {
   category: string;
   description: string;
 }
+
+const emailSchema = z.string().email("Invalid email address");
+const inviteSchema = z.object({
+  emails: z
+    .array(z.string().email("Invalid email address"))
+    .min(1, "At least one email is required"),
+  roleId: z.string().min(1, "A role must be selected"),
+});
 
 export default function SettingsRolesPage() {
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
@@ -39,6 +51,11 @@ export default function SettingsRolesPage() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [orgID, setOrgID] = useState<string | null>(null);
   const params = useParams() as { slug: string };
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [inviteEmailsInput, setInviteEmailsInput] = useState("");
+  const [inviteEmails, setInviteEmails] = useState<string[]>([]);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [selectedInviteRole, setSelectedInviteRole] = useState<string>("");
 
   const slug = params.slug;
 
@@ -394,6 +411,110 @@ export default function SettingsRolesPage() {
     });
   };
 
+  const handleInvite = () => {
+    setIsInviteModalOpen(true);
+  };
+
+  const handleInviteEmailsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInviteEmailsInput(e.target.value);
+    setEmailError(null);
+  };
+
+  const processEmails = (emailString: string) => {
+    const emailsArray = emailString
+      .split(/[\s,]+/)
+      .filter((email) => email.trim() !== "");
+    const newValidEmails: string[] = [];
+    let errors: string[] = [];
+
+    emailsArray.forEach((email) => {
+      try {
+        emailSchema.parse(email);
+        if (!inviteEmails.includes(email) && !newValidEmails.includes(email)) {
+          newValidEmails.push(email);
+        }
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          errors.push(`${email}: ${error.errors[0].message}`);
+        }
+      }
+    });
+
+    if (newValidEmails.length > 0) {
+      setInviteEmails((prev) => [...prev, ...newValidEmails]);
+      setInviteEmailsInput("");
+    }
+
+    if (errors.length > 0) {
+      setEmailError(errors.join(", "));
+    }
+  };
+
+  const handleInviteEmailsKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      processEmails(inviteEmailsInput);
+    }
+  };
+
+  const handleInviteEmailsPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedText = e.clipboardData.getData("text");
+    processEmails(pastedText);
+  };
+
+  const removeInviteEmail = (emailToRemove: string) => {
+    setInviteEmails(inviteEmails.filter((email) => email !== emailToRemove));
+  };
+
+  const closeInviteModal = () => {
+    setIsInviteModalOpen(false);
+    setInviteEmails([]);
+    setInviteEmailsInput("");
+    setEmailError(null);
+    setSelectedInviteRole("");
+  };
+
+  const handleSendInvites = async () => {
+    try {
+      inviteSchema.parse({
+        emails: inviteEmails,
+        roleId: selectedInviteRole,
+      });
+
+      console.log("Sending invites to:", inviteEmails);
+      console.log("Selected role:", selectedInviteRole);
+      // TODO: Implement the API call to send invites
+      closeInviteModal();
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        error.errors.forEach((err) => {
+          toast.error(err.message, {
+            position: "bottom-right",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+            theme: "light",
+          });
+        });
+      } else {
+        toast.error("An unexpected error occurred", {
+          position: "bottom-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+        });
+      }
+    }
+  };
+
   return (
     <div className="bg-eerieblack p-6 text-white">
       <ToastContainer />
@@ -414,6 +535,12 @@ export default function SettingsRolesPage() {
           onClick={handleAddRole}
         >
           Create Role
+        </button>
+        <button
+          className="rounded-md bg-primary p-2 px-4 text-sm hover:bg-primarydark"
+          onClick={handleInvite}
+        >
+          Invite
         </button>
       </div>
 
@@ -617,6 +744,112 @@ export default function SettingsRolesPage() {
           </div>
         </div>
       )}
+
+      <Transition appear show={isInviteModalOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-10" onClose={closeInviteModal}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-black bg-opacity-25" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 text-center">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-eerieblack p-6 text-left align-middle shadow-xl transition-all">
+                  <Dialog.Title
+                    as="h3"
+                    className="text-lg font-medium leading-6 text-white"
+                  >
+                    Invite and Assign role
+                  </Dialog.Title>
+                  <p className="mt-2 text-sm text-white">
+                    Using this invite will automatically accept them into the
+                    organization, skipping membership approval.
+                  </p>
+                  <div className="mt-2">
+                    <input
+                      type="text"
+                      value={inviteEmailsInput}
+                      onChange={handleInviteEmailsChange}
+                      onKeyDown={handleInviteEmailsKeyDown}
+                      onPaste={handleInviteEmailsPaste}
+                      placeholder="Type or paste emails and press Enter"
+                      className={`block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ${
+                        emailError ? "ring-red-500" : "ring-charleston"
+                      } focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6`}
+                    />
+                    {emailError && (
+                      <p className="mt-2 text-sm text-red-500">{emailError}</p>
+                    )}
+
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {inviteEmails.map((email, index) => (
+                        <span
+                          key={index}
+                          className="flex items-center rounded-full bg-primary px-2 py-1 text-sm text-white"
+                        >
+                          {email}
+                          <button
+                            onClick={() => removeInviteEmail(email)}
+                            className="ml-2 text-xs"
+                          >
+                            &times;
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <label
+                      htmlFor="role-select"
+                      className="block text-sm font-medium text-white"
+                    >
+                      Select Role
+                    </label>
+                    <select
+                      id="role-select"
+                      className="mt-1 block w-full rounded-md border border-[#525252] bg-charleston px-3 py-2 text-white shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+                      value={selectedInviteRole}
+                      onChange={(e) => setSelectedInviteRole(e.target.value)}
+                    >
+                      <option value="">Select a role</option>
+                      {rolesData?.map((role) => (
+                        <option key={role.role_id} value={role.role_id}>
+                          {role.role}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="mt-4">
+                    <button
+                      type="button"
+                      className="inline-flex justify-center rounded-md border border-transparent bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primarydark focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                      onClick={handleSendInvites}
+                    >
+                      Send invites
+                    </button>
+                  </div>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
     </div>
   );
 }
