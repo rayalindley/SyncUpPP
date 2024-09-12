@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/client";
 import { PhotoIcon } from "@heroicons/react/20/solid";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Tagify from "@yaireo/tagify";
+import TagsInput from "./custom/tags-input";
+
 import "@yaireo/tagify/dist/tagify.css";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -45,7 +47,6 @@ const EventSchema = z
       .nonnegative("Registration Fee cannot be negative")
       .optional()
       .nullable(),
-    privacy: z.enum(["public", "private"]),
   })
   .refine((data) => isValidEventPeriod(data.starteventdatetime, data.endeventdatetime), {
     message: "End Event Date & Time should be after Start Event Date & Time",
@@ -61,7 +62,7 @@ interface EventFormValues {
   location: string;
   capacity?: number | null;
   registrationfee?: number | null;
-  privacy: "public" | "private";
+  privacy: any;
   organizationid: string;
   eventphoto: string | null;
   tags: string[];
@@ -93,6 +94,23 @@ const CreateEventForm = ({
   const [isLoading, setIsLoading] = useState(false);
   const [removeImageFlag, setRemoveImageFlag] = useState(false);
   const [imageError, setImageError] = useState("");
+
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const [selectedMemberships, setSelectedMemberships] = useState<string[]>([]);
+  const [privacyType, setPrivacyType] = useState<string>(event?.privacy.type || "public");
+
+  const [roleSuggestions, setRoleSuggestions] = useState<string[]>([]);
+  const [membershipSuggestions, setMembershipSuggestions] = useState<string[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(true); // Loading state for suggestions
+  const [privacyValue, setPrivacyValue] = useState<string>(event?.privacy || "public");
+
+  const [allowAllRoles, setAllowAllRoles] = useState<boolean>(
+    event?.privacy.allow_all_roles || false
+  );
+  const [allowAllMemberships, setAllowAllMemberships] = useState<boolean>(
+    event?.privacy.allow_all_memberships || false
+  );
+
   const router = useRouter();
 
   const formOptions = event ? { defaultValues: event } : {};
@@ -103,6 +121,7 @@ const CreateEventForm = ({
     reset,
     setValue,
     trigger,
+    watch,
   } = useForm<EventFormValues>({
     resolver: zodResolver(EventSchema),
     mode: "onChange",
@@ -140,11 +159,94 @@ const CreateEventForm = ({
     };
   }
 
+  useEffect(() => {
+    if (organizationid) {
+      const fetchRolesAndMemberships = async () => {
+        const supabase = createClient();
+        try {
+          // Fetch roles
+          const { data: rolesData } = await supabase
+            .from("organization_roles")
+            .select("role")
+            .eq("org_id", organizationid);
+
+          // Fetch membership tiers
+          const { data: membershipsData } = await supabase
+            .from("organization_memberships")
+            .select("name")
+            .eq("organizationid", organizationid);
+
+          setRoleSuggestions([
+            "All Roles",
+            ...(rolesData?.map((role) => role.role) || []),
+          ]);
+          setMembershipSuggestions([
+            "All Membership Tiers",
+            ...(membershipsData?.map((membership) => membership.name) || []),
+          ]);
+
+          // If editing event, set the selected roles and memberships
+          if (event) {
+            setSelectedRoles(event.privacy?.roles || []);
+            setSelectedMemberships(event.privacy?.membership_tiers || []);
+            setPrivacyType(event.privacy?.type || "public");
+            setAllowAllRoles(event.privacy?.allow_all_roles || false);
+            setAllowAllMemberships(event.privacy?.allow_all_memberships || false);
+          }
+        } catch (error) {
+          toast.error("Error fetching roles or memberships. Please try again.");
+        }
+      };
+      fetchRolesAndMemberships();
+    }
+  }, [organizationid, event]);
+
+  // Handle event data when editing
+  useEffect(() => {
+    if (event) {
+      // Populate the roles and memberships when editing an event
+      setSelectedRoles(event.privacy?.roles || []);
+      setSelectedMemberships(event.privacy?.membership_tiers || []);
+      setPrivacyType(event.privacy?.type || "public"); // Default to "public" if not set
+
+      // Set form values based on the event data
+      (Object.keys(event) as (keyof typeof event)[]).forEach((key) => {
+        if (key === "starteventdatetime" || key === "endeventdatetime") {
+          const formattedDate = formatDateForInput(
+            new Date(event[key] as unknown as string)
+          );
+          setValue(key as keyof EventFormValues, formattedDate);
+        } else {
+          setValue(key as keyof EventFormValues, event[key] as any);
+        }
+      });
+      setPreviousPhotoUrl(event.eventphoto || null);
+    }
+  }, [event, setValue]);
+
   const onSubmit: SubmitHandler<EventFormValues> = async (formData) => {
+    if (
+      privacyType === "private" &&
+      selectedRoles.length === 0 &&
+      selectedMemberships.length === 0
+    ) {
+      toast.error(
+        "Please select at least one role or membership tier for private events."
+      );
+      return;
+    }
     setIsLoading(true);
 
     const finalCapacityValue = capacityValue;
     const finalRegistrationFeeValue = registrationFeeValue;
+
+    const privacySettings = {
+      type: privacyType,
+      roles: allowAllRoles ? [] : selectedRoles,
+      membership_tiers: allowAllMemberships ? [] : selectedMemberships,
+      allow_all_roles: allowAllRoles,
+      allow_all_memberships: allowAllMemberships,
+    };
 
     const supabase = createClient();
 
@@ -227,6 +329,7 @@ const CreateEventForm = ({
       registrationfee: finalRegistrationFeeValue,
       tags: formattedTags,
       slug: event ? event.eventslug : slug,
+      privacy: privacySettings,
     };
 
     const { data, error } = event
@@ -284,22 +387,6 @@ const CreateEventForm = ({
   }, [event]);
 
   useEffect(() => {
-    if (event) {
-      (Object.keys(event) as (keyof typeof event)[]).forEach((key) => {
-        if (key === "starteventdatetime" || key === "endeventdatetime") {
-          const formattedDate = formatDateForInput(
-            new Date(event[key] as unknown as string) // Converts the datetime to a Date and formats it
-          );
-          setValue(key as keyof EventFormValues, formattedDate); // Sets the formatted date in the form
-        } else {
-          setValue(key as keyof EventFormValues, event[key] as any); // Sets other fields directly
-        }
-      });
-      setPreviousPhotoUrl(event.eventphoto || null); // Sets the existing event photo URL, if any
-    }
-  }, [event, setValue]); // Re-run if event or setValue changes
-
-  useEffect(() => {
     if (event && event.eventphoto) {
       const imageUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${event.eventphoto}`;
       setEventPhoto(imageUrl);
@@ -342,6 +429,26 @@ const CreateEventForm = ({
   };
 
   const [tags, setTags] = useState<string[]>(event?.tags || []);
+
+  const handleRolesChange = (roles: string[]) => {
+    if (roles.includes("All Roles")) {
+      setAllowAllRoles(true);
+      setSelectedRoles(["All Roles"]); // Make sure "All Roles" is added as a tag
+    } else {
+      setAllowAllRoles(false);
+      setSelectedRoles(roles);
+    }
+  };
+
+  const handleMembershipsChange = (memberships: string[]) => {
+    if (memberships.includes("All Membership Tiers")) {
+      setAllowAllMemberships(true);
+      setSelectedMemberships(["All Membership Tiers"]); // Make sure "All Membership Tiers" is added as a tag
+    } else {
+      setAllowAllMemberships(false);
+      setSelectedMemberships(memberships);
+    }
+  };
 
   return (
     <>
@@ -632,22 +739,50 @@ const CreateEventForm = ({
               )}
             </div>
           )}
+          {/* Privacy Section */}
           <div className="space-y-1 text-light">
             <label htmlFor="privacy" className="text-sm font-medium text-white">
               Privacy
             </label>
             <select
               id="privacy"
-              {...register("privacy")}
-              className="mt-1 block w-full rounded-md border border-[#525252] bg-charleston px-3 py-2 text-white shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+              value={privacyType}
+              onChange={(e) => setPrivacyType(e.target.value)}
+              className="block w-full rounded-md bg-charleston py-1.5 text-light shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
             >
-              <option value="" disabled>
-                Select privacy
-              </option>
               <option value="public">Public</option>
               <option value="private">Private</option>
             </select>
           </div>
+
+          {privacyType === "private" && (
+            <>
+              {/* Roles */}
+              <div className="mt-4 space-y-1 text-light">
+                <label className="text-sm font-medium text-white">Select Roles</label>
+                <TagsInput
+                  value={selectedRoles}
+                  onChange={handleRolesChange}
+                  suggestions={roleSuggestions}
+                  allowCustomTags={false}
+                />
+              </div>
+
+              {/* Membership Tiers */}
+              <div className="mt-4 space-y-1 text-light">
+                <label className="text-sm font-medium text-white">
+                  Select Membership Tiers
+                </label>
+                <TagsInput
+                  value={selectedMemberships}
+                  onChange={handleMembershipsChange}
+                  suggestions={membershipSuggestions}
+                  allowCustomTags={false}
+                />
+              </div>
+            </>
+          )}
+
           <div className="space-y-1 text-light">
             <label htmlFor="tags" className="text-sm font-medium text-white">
               Tags
