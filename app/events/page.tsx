@@ -263,28 +263,60 @@ export default function EventsPublicView() {
 
           {/* Pagination */}
           {filteredEvents.length > eventsPerPage && (
-            <div className="mt-6 flex justify-center gap-6">
-              <button
-                onClick={() => paginate(currentPage - 1)}
-                disabled={isFirstPage}
-                className={`flex items-center rounded-full border border-light px-4 py-2 text-light ${
-                  isFirstPage ? "cursor-not-allowed opacity-50" : "hover:bg-primary"
-                }`}
-              >
-                <ArrowLongLeftIcon className="mr-2 h-5 w-5" />
-                Previous
-              </button>
-              <button
-                onClick={() => paginate(currentPage + 1)}
-                disabled={isLastPage}
-                className={`flex items-center rounded-full border border-light px-4 py-2 text-light ${
-                  isLastPage ? "cursor-not-allowed opacity-50" : "hover:bg-primary"
-                }`}
-              >
-                Next
-                <ArrowLongRightIcon className="ml-2 h-5 w-5" />
-              </button>
-            </div>
+            <nav className="flex items-center justify-between border-t border-gray-200 px-4 sm:px-0">
+              <div className="-mt-px flex w-0 flex-1">
+                <button
+                  disabled={isFirstPage}
+                  onClick={() => paginate(currentPage - 1)}
+                  className={`inline-flex items-center border-t-2 border-transparent pr-1 pt-4 text-sm font-medium ${
+                    isFirstPage
+                      ? "cursor-not-allowed text-gray-500"
+                      : "text-light hover:border-primary hover:text-primary"
+                  }`}
+                >
+                  <ArrowLongLeftIcon
+                    className="mr-3 h-5 w-5 text-light"
+                    aria-hidden="true"
+                  />
+                  Previous
+                </button>
+              </div>
+              <div className="hidden md:-mt-px md:flex">
+                {Array.from(
+                  { length: Math.ceil(filteredEvents.length / eventsPerPage) },
+                  (_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => paginate(index + 1)}
+                      className={`inline-flex items-center border-t-2 border-transparent px-4 pt-4 text-sm font-medium ${
+                        currentPage === index + 1
+                          ? "border-primary-dark text-primary"
+                          : "text-light hover:border-primary hover:text-primary"
+                      }`}
+                    >
+                      {index + 1}
+                    </button>
+                  )
+                )}
+              </div>
+              <div className="-mt-px flex w-0 flex-1 justify-end">
+                <button
+                  disabled={isLastPage}
+                  onClick={() => paginate(currentPage + 1)}
+                  className={`inline-flex items-center border-t-2 border-transparent pl-1 pt-4 text-sm font-medium ${
+                    isLastPage
+                      ? "cursor-not-allowed text-gray-500"
+                      : "text-light hover:border-primary hover:text-primary"
+                  }`}
+                >
+                  Next
+                  <ArrowLongRightIcon
+                    className="ml-3 h-5 w-5 text-light"
+                    aria-hidden="true"
+                  />
+                </button>
+              </div>
+            </nav>
           )}
         </div>
       </main>
