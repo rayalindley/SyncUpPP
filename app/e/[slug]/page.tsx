@@ -58,7 +58,7 @@ const EventPage = () => {
   const [isOrgMember, setIsOrgMember] = useState(false);
   const [eventFinished, setEventFinished] = useState(false);
   const [registrationClosed, setRegistrationClosed] = useState(false);
-  const [canJoin, setCanJoin] = useState(false); // Added state to manage if the user can join based on role/tier
+  const [canJoin, setCanJoin] = useState(false);
 
   async function checkUserRoleAndMembership(
     userId: string,
@@ -70,7 +70,6 @@ const EventPage = () => {
   ): Promise<boolean> {
     const supabase = createClient();
 
-    // Query the view organization_members_roles for the user's roles and memberships in the organization
     const { data: memberData, error: memberError } = await supabase
       .from("organization_members_roles")
       .select("role, membership_name")
@@ -84,32 +83,25 @@ const EventPage = () => {
       return false;
     }
 
-    // If allowAllRoles and allowAllMemberships are both true, no further checks are required
     if (allowAllRoles && allowAllMemberships) {
       return true;
     }
 
-    // Check if the user has a valid role
     const hasValidRole =
       allowAllRoles ||
       (roles.length > 0 && memberData.some((member) => roles.includes(member.role)));
 
-    // Check if the user has a valid membership tier
     const hasValidMembership =
       allowAllMemberships ||
       (membershipTiers.length > 0 &&
         memberData.some((member) => membershipTiers.includes(member.membership_name)));
 
-    // Logic to handle when either roles or membership tiers are empty
     if (roles.length === 0 && membershipTiers.length > 0) {
-      // If no roles are specified, user must have a valid membership tier
       return hasValidMembership;
     } else if (membershipTiers.length === 0 && roles.length > 0) {
-      // If no membership tiers are specified, user must have a valid role
       return hasValidRole;
     }
 
-    // The user can join the event if they have either a valid role or a valid membership
     return hasValidRole || hasValidMembership;
   }
 
@@ -171,8 +163,8 @@ const EventPage = () => {
               allow_all_memberships
             );
 
-            setCanJoin(canUserJoin); // Set the value if the user can join
-            setIsMember(true); // Set the user as a member if they belong to the organization
+            setCanJoin(canUserJoin);
+            setIsMember(true);
           } else {
             setIsMember(true);
           }
@@ -416,51 +408,6 @@ const EventPage = () => {
                   </div>
                 </div>
               )}
-
-              {/* Roles and Memberships Section */}
-              {event.privacy?.type === "private" && (
-                <>
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-semibold text-light">Allowed Roles</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {event.privacy.allow_all_roles ? (
-                        <span className="text-sm text-light">All Roles</span>
-                      ) : (
-                        event.privacy.roles &&
-                        event.privacy.roles.map((role) => (
-                          <span
-                            key={role}
-                            className="cursor-pointer rounded-full bg-charleston px-3 py-2 text-sm text-light transition-colors duration-300 hover:bg-raisinblack"
-                          >
-                            {role}
-                          </span>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-semibold text-light">
-                      Allowed Membership Tiers
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {event.privacy.allow_all_memberships ? (
-                        <span className="text-sm text-light">All Membership Tiers</span>
-                      ) : (
-                        event.privacy.membership_tiers &&
-                        event.privacy.membership_tiers.map((tier) => (
-                          <span
-                            key={tier}
-                            className="cursor-pointer rounded-full bg-charleston px-3 py-2 text-sm text-light transition-colors duration-300 hover:bg-raisinblack"
-                          >
-                            {tier}
-                          </span>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-
               <hr className="border-t border-fadedgrey opacity-50" />
 
               {event.tags && (
@@ -478,6 +425,36 @@ const EventPage = () => {
                   </div>
                 </div>
               )}
+
+              {/* Roles and Memberships Section */}
+              {/* Roles and Memberships Section */}
+              {event.privacy?.type === "private" &&
+                !event.privacy.allow_all_roles &&
+                !event.privacy.allow_all_memberships && (
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-semibold text-light">
+                      Permitted Roles and Membership Tiers
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {event.privacy.roles?.map((role) => (
+                        <span
+                          key={role}
+                          className="cursor-pointer rounded-full bg-charleston px-3 py-2 text-sm text-light transition-colors duration-300 hover:bg-raisinblack"
+                        >
+                          {role}
+                        </span>
+                      ))}
+                      {event.privacy.membership_tiers?.map((tier) => (
+                        <span
+                          key={tier}
+                          className="cursor-pointer rounded-full bg-charleston px-3 py-2 text-sm text-light transition-colors duration-300 hover:bg-raisinblack"
+                        >
+                          {tier}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
             </div>
 
             <div className="space-y-6">
