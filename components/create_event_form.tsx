@@ -176,30 +176,27 @@ const CreateEventForm = ({
             .select("name")
             .eq("organizationid", organizationid);
 
-          setRoleSuggestions([
+          const fetchedRoleSuggestions = [
             "All Roles",
             ...(rolesData?.map((role) => role.role) || []),
-          ]);
-          setMembershipSuggestions([
+          ];
+          const fetchedMembershipSuggestions = [
             "All Membership Tiers",
             ...(membershipsData?.map((membership) => membership.name) || []),
-          ]);
+          ];
 
-          // If editing event, set the selected roles and memberships
-          if (event) {
-            setSelectedRoles(event.privacy?.roles || []);
-            setSelectedMemberships(event.privacy?.membership_tiers || []);
-            setPrivacyType(event.privacy?.type || "public");
-            setAllowAllRoles(event.privacy?.allow_all_roles || false);
-            setAllowAllMemberships(event.privacy?.allow_all_memberships || false);
-          }
+          console.log("Fetched Role Suggestions:", fetchedRoleSuggestions);
+          console.log("Fetched Membership Suggestions:", fetchedMembershipSuggestions);
+
+          setRoleSuggestions(fetchedRoleSuggestions);
+          setMembershipSuggestions(fetchedMembershipSuggestions);
         } catch (error) {
           toast.error("Error fetching roles or memberships. Please try again.");
         }
       };
       fetchRolesAndMemberships();
     }
-  }, [organizationid, event]);
+  }, [organizationid]);
 
   // Handle event data when editing
   useEffect(() => {
@@ -208,6 +205,8 @@ const CreateEventForm = ({
       setSelectedRoles(event.privacy?.roles || []);
       setSelectedMemberships(event.privacy?.membership_tiers || []);
       setPrivacyType(event.privacy?.type || "public"); // Default to "public" if not set
+      setAllowAllRoles(event.privacy?.allow_all_roles || false);
+      setAllowAllMemberships(event.privacy?.allow_all_memberships || false);
 
       // Set form values based on the event data
       (Object.keys(event) as (keyof typeof event)[]).forEach((key) => {
@@ -739,50 +738,51 @@ const CreateEventForm = ({
               )}
             </div>
           )}
-          {/* Privacy Section */}
-          <div className="space-y-1 text-light">
-            <label htmlFor="privacy" className="text-sm font-medium text-white">
-              Privacy
-            </label>
-            <select
-              id="privacy"
-              value={privacyType}
-              onChange={(e) => setPrivacyType(e.target.value)}
-              className="block w-full rounded-md bg-charleston py-1.5 text-light shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-            >
-              <option value="public">Public</option>
-              <option value="private">Private</option>
-            </select>
-          </div>
+        {/* Privacy Section */}
+        <div className="space-y-1 text-light">
+          <label htmlFor="privacy" className="text-sm font-medium text-white">
+            Privacy
+          </label>
+          <select
+            id="privacy"
+            value={privacyType}
+            onChange={(e) => setPrivacyType(e.target.value)}
+            className="block w-full rounded-md bg-charleston py-1.5 text-light shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+          >
+            <option value="public">Public</option>
+            <option value="private">Private</option>
+          </select>
+        </div>
 
-          {privacyType === "private" && (
-            <>
-              {/* Roles */}
-              <div className="mt-4 space-y-1 text-light">
-                <label className="text-sm font-medium text-white">Select Roles</label>
-                <TagsInput
-                  value={selectedRoles}
-                  onChange={handleRolesChange}
-                  suggestions={roleSuggestions}
-                  allowCustomTags={false}
-                />
-              </div>
+        {privacyType === "private" && (
+          <>
+            {/* Roles */}
+            <div className="mt-4 space-y-1 text-light">
+              <label className="text-sm font-medium text-white">Select Roles</label>
+              <TagsInput
+                key={event ? event.eventid : "new-event"} // Force re-render on event change
+                value={selectedRoles}
+                onChange={handleRolesChange}
+                suggestions={roleSuggestions}
+                allowCustomTags={false}
+              />
+            </div>
 
-              {/* Membership Tiers */}
-              <div className="mt-4 space-y-1 text-light">
-                <label className="text-sm font-medium text-white">
-                  Select Membership Tiers
-                </label>
-                <TagsInput
-                  value={selectedMemberships}
-                  onChange={handleMembershipsChange}
-                  suggestions={membershipSuggestions}
-                  allowCustomTags={false}
-                />
-              </div>
-            </>
-          )}
-
+            {/* Membership Tiers */}
+            <div className="mt-4 space-y-1 text-light">
+              <label className="text-sm font-medium text-white">
+                Select Membership Tiers
+              </label>
+              <TagsInput
+                key={event ? event.eventid : "new-event"} // Force re-render on event change
+                value={selectedMemberships}
+                onChange={handleMembershipsChange}
+                suggestions={membershipSuggestions}
+                allowCustomTags={false}
+              />
+            </div>
+          </>
+        )}
           <div className="space-y-1 text-light">
             <label htmlFor="tags" className="text-sm font-medium text-white">
               Tags
