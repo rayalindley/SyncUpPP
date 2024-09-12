@@ -46,6 +46,16 @@ export class AuthService {
       return redirect(`/signin?error=${error.message || "Invalid email or password"}`);
     }
 
+    const referer = headers().get("referer");
+    if (
+      referer &&
+      !referer.includes("/signin") &&
+      !referer.includes("/signup") &&
+      !referer.includes("/")
+    ) {
+      return redirect(referer);
+    }
+
     return redirect("/dashboard");
   }
 
@@ -71,6 +81,16 @@ export class AuthService {
 
     if (error) {
       return redirect(`/signup?error=${error.message || "Could not sign up"}`);
+    }
+
+    const referer = headers().get("referer");
+    if (
+      referer &&
+      !referer.includes("/signin") &&
+      !referer.includes("/signup") &&
+      !referer.includes("/")
+    ) {
+      return redirect(referer);
     }
 
     return redirect("/signup?success=Check your email to continue signing up.");
