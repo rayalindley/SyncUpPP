@@ -90,7 +90,7 @@ const RequestsTable: React.FC<RequestsTableProps> = ({ requests }) => {
           <select
             value={row.status}
             onChange={(e) => handleStatusChange(row.id, e.target.value)}
-            className={`cursor-pointer rounded-2xl border px-2 py-1 text-xs ${
+            className={`cursor-pointer rounded-2xl border px-2 py-1 pl-4 pr-6 text-xs   ${
               row.status === "pending"
                 ? "border-yellow-400 bg-yellow-200 text-yellow-800"
                 : row.status === "approved"
