@@ -16,6 +16,8 @@ import Link from "next/link";
 import { Fragment, useEffect, useState } from "react";
 import { FaRegEdit } from "react-icons/fa";
 import Swal from "sweetalert2";
+import { saveAs } from "file-saver"; // Install file-saver package if not already installed
+import { format } from "date-fns"; // For formatting the current date
 
 const jsonTheme = {
   main: "line-height:1.3;color:#383a42;background:#ffffff;overflow:hidden;word-wrap:break-word;white-space: pre-wrap;word-wrap: break-word;",
@@ -183,6 +185,35 @@ export default function EventOptions({
 
     checkPermissions();
   }, [userId, selectedEvent.organizationid]);
+
+  const exportToCsv = () => {
+    if (!attendees || attendees.length === 0) {
+      Swal.fire({
+        title: "No Attendees!",
+        text: "There are no attendees to export.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    const csvContent = [
+      ["First Name", "Last Name"],
+      ...(Array.isArray(attendees) ? attendees.map((attendee: UserProfile) => [
+        attendee.first_name,
+        attendee.last_name,
+      ]) : []),
+    ]
+      .map((row) => row.join(","))
+      .join("\n");
+
+    const currentDate = format(new Date(), "yyyyMMdd"); // Format date as yyyyMMdd
+    const fileName = `${selectedEvent.title}_${selectedEvent.eventslug}_${currentDate}.csv`
+      .replace(/ /g, "_")
+      .toLowerCase(); // Format file name: remove spaces, lowercase
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    saveAs(blob, fileName);
+  };
 
   return (
     <>
@@ -562,12 +593,21 @@ export default function EventOptions({
                             </div>
                           </>
                         )}
-                        {currentTab === "Attendees" && (
-                          <div className="space-y-4">
-                            {loadingAttendees ? (
-                              <Preloader />
-                            ) : Array.isArray(attendees) && attendees.length > 0 ? (
-                              attendees.map((attendee: UserProfile, index: number) => (
+                      {currentTab === "Attendees" && (
+                        <div className="space-y-4">
+                          {loadingAttendees ? (
+                            <Preloader />
+                          ) : Array.isArray(attendees) && attendees.length > 0 ? (
+                            <>
+                              <div>
+                                <button
+                                  onClick={exportToCsv}
+                                  className="mb-4 rounded-md bg-primary px-4 py-2 text-center text-white hover:bg-primarydark"
+                                >
+                                  Export Attendees to CSV
+                                </button>
+                              </div>
+                              {attendees.map((attendee: UserProfile, index: number) => (
                                 <div key={index} className="flex items-center space-x-3">
                                   <div className="relative h-8 w-8 flex-shrink-0">
                                     <img
@@ -578,11 +618,12 @@ export default function EventOptions({
                                   </div>
                                   <div>{`${attendee.first_name} ${attendee.last_name}`}</div>
                                 </div>
-                              ))
-                            ) : (
-                              <div>No attendees registered for this event.</div>
-                            )}
-                          </div>
+                              ))}
+                            </>
+                          ) : (
+                            <div>No attendees registered for this event.</div>
+                          )}
+                        </div>
                         )}
                       </div>
                     </div>
