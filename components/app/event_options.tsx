@@ -57,6 +57,8 @@ export default function EventOptions({
   const [loadingAttendees, setLoadingAttendees] = useState(false);
   const [canEditEvents, setCanEditEvents] = useState(false);
   const [canDeleteEvents, setCanDeleteEvents] = useState(false);
+  const [filteredAttendees, setFilteredAttendees] = useState<UserProfile[] | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const deleteBtn = () => {
     Swal.fire({
@@ -144,12 +146,11 @@ export default function EventOptions({
     if (currentTab === "Attendees") {
       const fetchAttendees = async () => {
         setLoadingAttendees(true);
-        const { users, error } = await fetchRegisteredUsersForEvent(
-          selectedEvent.eventid
-        );
+        const { users, error } = await fetchRegisteredUsersForEvent(selectedEvent.eventid);
         setLoadingAttendees(false);
         if (!error) {
           setAttendees(users);
+          setFilteredAttendees(users);
         } else {
           Swal.fire({
             title: "Error!",
@@ -185,6 +186,17 @@ export default function EventOptions({
 
     checkPermissions();
   }, [userId, selectedEvent.organizationid]);
+
+  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const query = event.target.value.toLowerCase();
+    setSearchQuery(query);
+    if (Array.isArray(attendees)) {
+      const filtered = attendees.filter((attendee: UserProfile) =>
+        `${attendee.first_name} ${attendee.last_name}`.toLowerCase().includes(query)
+      );
+      setFilteredAttendees(filtered);
+    }
+  };
 
   const exportToCsv = () => {
     if (!attendees || attendees.length === 0) {
@@ -593,21 +605,27 @@ export default function EventOptions({
                             </div>
                           </>
                         )}
-                      {currentTab === "Attendees" && (
-                        <div className="space-y-4">
-                          {loadingAttendees ? (
-                            <Preloader />
-                          ) : Array.isArray(attendees) && attendees.length > 0 ? (
-                            <>
-                              <div>
-                                <button
-                                  onClick={exportToCsv}
-                                  className="mb-4 rounded-md bg-primary px-4 py-2 text-center text-white hover:bg-primarydark"
-                                >
-                                  Export Attendees to CSV
-                                </button>
-                              </div>
-                              {attendees.map((attendee: UserProfile, index: number) => (
+                       {currentTab === "Attendees" && (
+                          <div className="space-y-4">
+                            <div className="flex justify-between">
+                              <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={handleSearch}
+                                placeholder="Search attendees..."
+                                className="flex-1 rounded-lg border border-charleston bg-charleston px-4 py-2 text-sm text-light focus:border-primary focus:ring-primary"
+                              />
+                              <button
+                                onClick={exportToCsv}
+                                className="ml-4 rounded-md bg-primary px-4 py-2 text-white hover:bg-primarydark"
+                              >
+                                Export to CSV
+                              </button>
+                            </div>
+                            {loadingAttendees ? (
+                              <Preloader />
+                            ) : filteredAttendees && filteredAttendees.length > 0 ? (
+                              filteredAttendees.map((attendee: UserProfile, index: number) => (
                                 <div key={index} className="flex items-center space-x-3">
                                   <div className="relative h-8 w-8 flex-shrink-0">
                                     <img
@@ -618,12 +636,11 @@ export default function EventOptions({
                                   </div>
                                   <div>{`${attendee.first_name} ${attendee.last_name}`}</div>
                                 </div>
-                              ))}
-                            </>
-                          ) : (
-                            <div>No attendees registered for this event.</div>
-                          )}
-                        </div>
+                              ))
+                            ) : (
+                              <div>No attendees registered for this event.</div>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
