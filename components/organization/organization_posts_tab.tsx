@@ -1,6 +1,6 @@
 import Preloader from "@/components/preloader";
 import { check_permissions, getUserOrganizationInfo } from "@/lib/organization";
-import { fetchPosts } from "@/lib/posts";
+import { fetchPosts } from "@/lib/groups/posts_tab";
 import { getMemberships } from "@/lib/memberships";
 import { createClient } from "@/lib/supabase/client";
 import { ArrowLeftIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
@@ -11,7 +11,7 @@ import PostsTextArea from "./posts_textarea";
 import { Posts } from "@/types/posts";
 import { useUser } from "@/context/user_context";
 
-const OrganizationPostsComponent = ({ organizationid }: { organizationid: string }) => {
+const OrganizationPostsTab = ({ organizationid }: { organizationid: string }) => {
   const [postsData, setPostsData] = useState<Posts[]>([]);
   const [filteredPosts, setFilteredPosts] = useState<Posts[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -22,12 +22,8 @@ const OrganizationPostsComponent = ({ organizationid }: { organizationid: string
     delete_posts?: boolean;
     comment_on_posts?: boolean;
   }>({});
-  const [availableRoles, setAvailableRoles] = useState<{ id: string; name: string }[]>(
-    []
-  );
-  const [availableMemberships, setAvailableMemberships] = useState<
-    { membershipid: string; name: string }[]
-  >([]);
+  const [availableRoles, setAvailableRoles] = useState<{ id: string; name: string }[]>([]);
+  const [availableMemberships, setAvailableMemberships] = useState<{ membershipid: string; name: string }[]>([]);
   const [filter, setFilter] = useState<string>("All");
   const [loading, setLoading] = useState(true);
   const postsPerPage = 5;
@@ -38,12 +34,10 @@ const OrganizationPostsComponent = ({ organizationid }: { organizationid: string
 
   const fetchData = useCallback(
     async (userId: string | null) => {
-      // console.log("fetchData called with userId:", userId);
       try {
         if (organizationid && userId) {
           const { data, error } = await fetchPosts(organizationid, userId);
           if (!error) {
-            // console.log("Fetched posts data:", data);
             setPostsData(data);
             setFilteredPosts(data);
           } else {
@@ -53,15 +47,13 @@ const OrganizationPostsComponent = ({ organizationid }: { organizationid: string
       } catch (error) {
         console.error("Error in fetchData:", error);
       } finally {
-        setLoading(false);  // Ensure loading is set to false after data is fetched
-        // console.log("fetchData completed");
+        setLoading(false);
       }
     },
     [organizationid]
   );
 
   const fetchPermissions = useCallback(async () => {
-    // console.log("fetchPermissions called");
     if (user?.id) {
       try {
         const [create, edit, deletePerm, comment] = await Promise.all([
@@ -70,8 +62,6 @@ const OrganizationPostsComponent = ({ organizationid }: { organizationid: string
           check_permissions(user.id, organizationid, "delete_posts"),
           check_permissions(user.id, organizationid, "comment_on_posts"),
         ]);
-
-        // console.log("Fetched permissions:", { create, edit, deletePerm, comment });
 
         setPermissions({
           create_posts: create,
@@ -86,7 +76,6 @@ const OrganizationPostsComponent = ({ organizationid }: { organizationid: string
   }, [user?.id, organizationid]);
 
   const fetchAvailableRoles = useCallback(async () => {
-    // console.log("fetchAvailableRoles called");
     try {
       const { data: roleData, error: roleError } = await supabase
         .from("organization_roles")
@@ -98,7 +87,6 @@ const OrganizationPostsComponent = ({ organizationid }: { organizationid: string
           id: row.role_id,
           name: row.role,
         }));
-        // console.log("Fetched roles data:", roles);
         setAvailableRoles(roles);
       } else {
         console.error("Error fetching roles:", roleError);
@@ -109,10 +97,8 @@ const OrganizationPostsComponent = ({ organizationid }: { organizationid: string
   }, [organizationid, supabase]);
 
   const fetchAvailableMemberships = useCallback(async () => {
-    // console.log("fetchAvailableMemberships called");
     try {
       const memberships = await getMemberships(organizationid);
-      // console.log("Fetched memberships data:", memberships);
       setAvailableMemberships(memberships);
     } catch (error) {
       console.error("Error in fetchAvailableMemberships:", error);
@@ -120,11 +106,12 @@ const OrganizationPostsComponent = ({ organizationid }: { organizationid: string
   }, [organizationid]);
 
   const applyFilter = useCallback(() => {
-    // console.log("applyFilter called with filter:", filter, "and searchQuery:", searchQuery);
     let filtered = postsData;
 
     if (filter === "Public") {
-      filtered = postsData.filter((post) => post.privacylevel?.length === 0);
+      filtered = postsData.filter(
+        (post) => post.privacylevel?.length === 0 && !post.targetmembershipid
+      );
     } else if (filter !== "All") {
       filtered = postsData.filter(
         (post) => Array.isArray(post.privacylevel) && post.privacylevel.includes(filter)
@@ -137,7 +124,6 @@ const OrganizationPostsComponent = ({ organizationid }: { organizationid: string
       );
     }
 
-    // console.log("Filtered posts data:", filtered);
     setFilteredPosts(filtered);
   }, [filter, searchQuery, postsData]);
 
@@ -149,20 +135,23 @@ const OrganizationPostsComponent = ({ organizationid }: { organizationid: string
         await fetchAvailableMemberships();
         await fetchData(userId);
         await fetchPermissions();
-      } else {
-        // console.log("User is null or undefined");
       }
     };
     loadData();
   }, [user, fetchData, fetchAvailableRoles, fetchAvailableMemberships, fetchPermissions]);
-  
 
   useEffect(() => {
-    // console.log("useEffect applyFilter called");
     applyFilter();
   }, [filter, searchQuery, postsData, applyFilter]);
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
+  const handleStartEdit = (post: Posts) => {
+    setEditingPost(post);
+    if (postsTextAreaRef.current) {
+      postsTextAreaRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -230,7 +219,7 @@ const OrganizationPostsComponent = ({ organizationid }: { organizationid: string
                     post={post}
                     setPostsData={setPostsData}
                     postsData={postsData}
-                    startEdit={setEditingPost}
+                    startEdit={handleStartEdit}
                     canEdit={permissions.edit_posts ?? false}
                     canDelete={permissions.delete_posts ?? false}
                     canComment={permissions.comment_on_posts ?? false}
@@ -281,4 +270,4 @@ const OrganizationPostsComponent = ({ organizationid }: { organizationid: string
   );
 };
 
-export default OrganizationPostsComponent;
+export default OrganizationPostsTab;

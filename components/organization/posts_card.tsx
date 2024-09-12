@@ -66,9 +66,7 @@ const PostsCard: React.FC<PostsCardProps> = ({
   const [membershipName, setMembershipName] = useState<string | null>(null);
 
   const handleAuthorDetails = useCallback(async () => {
-    // console.log("handleAuthorDetails called");
     const { first_name, last_name, profilepicture } = await getAuthorDetails(authorid);
-    // console.log("Fetched author details:", { first_name, last_name, profilepicture });
     setAuthorDetails({
       firstName: first_name,
       lastName: last_name,
@@ -77,14 +75,11 @@ const PostsCard: React.FC<PostsCardProps> = ({
   }, [authorid]);
 
   const checkPermissions = useCallback(async () => {
-    // console.log("checkPermissions called");
     const currentUser = await getUser();
-    // console.log("Fetched current user:", currentUser);
     setIsCurrentUserAuthor(currentUser?.user?.id === authorid);
   }, [authorid]);
 
   const loadComments = useCallback(async () => {
-    // console.log("loadComments called");
     const { data, error } = await fetchComments(postid);
     if (!error) {
       const convertedData = data
@@ -97,7 +92,6 @@ const PostsCard: React.FC<PostsCardProps> = ({
         .sort(
           (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
-      // console.log("Fetched and converted comments:", convertedData);
       setComments(convertedData);
     } else {
       console.error("Error fetching comments:", error);
@@ -105,7 +99,6 @@ const PostsCard: React.FC<PostsCardProps> = ({
   }, [postid]);
 
   const fetchRoleNames = useCallback(async () => {
-    // console.log("fetchRoleNames called");
     const supabase = createClient();
     if (Array.isArray(privacylevel) && privacylevel.length > 0) {
       const { data, error } = await supabase
@@ -115,7 +108,6 @@ const PostsCard: React.FC<PostsCardProps> = ({
 
       if (!error && data) {
         const names = data.map((role: { role: string }) => role.role);
-        // console.log("Fetched role names:", names);
         setRoleNames(names);
       } else {
         console.error("Error fetching role names:", error);
@@ -124,11 +116,9 @@ const PostsCard: React.FC<PostsCardProps> = ({
   }, [privacylevel]);
 
   const fetchMembershipName = useCallback(async () => {
-    // console.log("fetchMembershipName called");
     if (targetmembershipid) {
       const { data, error } = await fetchMembershipById(targetmembershipid);
       if (!error && data) {
-        // console.log("Fetched membership name:", data.name);
         setMembershipName(data.name);
       } else {
         console.error("Error fetching membership name:", error);
@@ -137,7 +127,6 @@ const PostsCard: React.FC<PostsCardProps> = ({
   }, [targetmembershipid]);
 
   useEffect(() => {
-    // console.log("useEffect called");
     handleAuthorDetails();
     checkPermissions();
     loadComments();
@@ -152,16 +141,13 @@ const PostsCard: React.FC<PostsCardProps> = ({
   ]);
 
   const handleDelete = () => {
-    // console.log("handleDelete called");
     setShowDeleteModal(true);
   };
 
   const confirmDelete = async () => {
-    // console.log("confirmDelete called");
     setIsLoading(true);
     const { error } = await deletePost(postid, authorid);
     if (!error) {
-      // console.log("Post deleted successfully");
       setPostsData((prevPosts) => prevPosts.filter((p) => p.postid !== postid));
       setShowDeleteModal(false);
     } else {
@@ -206,28 +192,30 @@ const PostsCard: React.FC<PostsCardProps> = ({
               <div className="ml-auto flex flex-col md:flex-row md:items-center">
                 <span className="text-xs text-gray-400">{calculateTimeElapsed()} • </span>
                 <div className="mt-1 flex flex-wrap items-center gap-2 md:mt-0">
-                  {privacylevel?.length === 0 ? (
+                  {privacylevel?.length === 0 && !targetmembershipid ? (
                     <span className="inline-block rounded-full bg-green-600 px-2 py-1 text-xs text-white">
                       Public
                     </span>
                   ) : (
-                    roleNames.map((role, index) => (
-                      <span
-                        key={index}
-                        className="inline-block rounded-full bg-blue-600 px-2 py-1 text-xs text-white"
-                      >
-                        {role}
-                      </span>
-                    ))
-                  )}
-                  {membershipName && (
-                    <span
-                      className={`inline-block rounded-full ${
-                        membershipName === "VIP" ? "bg-red-600" : "bg-yellow-600"
-                      } px-2 py-1 text-xs text-white`}
-                    >
-                      {membershipName} Exclusive
-                    </span>
+                    <>
+                      {roleNames.length > 0 && roleNames.map((role, index) => (
+                        <span
+                          key={index}
+                          className="inline-block rounded-full bg-blue-600 px-2 py-1 text-xs text-white"
+                        >
+                          {role}
+                        </span>
+                      ))}
+                      {membershipName && (
+                        <span
+                          className={`inline-block rounded-full ${
+                            membershipName === "VIP" ? "bg-red-600" : "bg-yellow-600"
+                          } px-2 py-1 text-xs text-white`}
+                        >
+                          {membershipName} Exclusive
+                        </span>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -259,9 +247,8 @@ const PostsCard: React.FC<PostsCardProps> = ({
       <div className="absolute bottom-2 right-2 flex items-center gap-2">
         {(canEdit || isCurrentUserAuthor) && (
           <button
-            title="Edit Post"  // Added title attribute
+            title="Edit Post" 
             onClick={() => {
-              // console.log("Edit button clicked");
               startEdit(post);
             }}
             className="flex items-center p-1 text-gray-500 hover:text-gray-400"
@@ -272,7 +259,7 @@ const PostsCard: React.FC<PostsCardProps> = ({
 
         {(canDelete || isCurrentUserAuthor) && (
           <button
-            title="Delete Post"  // Added title attribute
+            title="Delete Post"
             onClick={handleDelete}
             className="flex items-center p-1 text-gray-500 hover:text-gray-400"
           >
@@ -283,7 +270,6 @@ const PostsCard: React.FC<PostsCardProps> = ({
       <div className="mb-4 ml-16 flex flex-row">
         <button
           onClick={() => {
-            // console.log("Accordion button clicked");
             setAccordionOpen(!accordionOpen);
           }}
           className={`flex items-center outline-none ${accordionOpen ? "text-primary" : "text-gray-400"}`}
@@ -312,7 +298,6 @@ const PostsCard: React.FC<PostsCardProps> = ({
                 </button>
                 <button
                   onClick={() => {
-                    // console.log("Cancel delete modal");
                     setShowDeleteModal(false);
                   }}
                   className="rounded bg-white px-4 py-2 text-black"

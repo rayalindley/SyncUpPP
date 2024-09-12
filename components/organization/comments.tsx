@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { insertComment, updateComment, deleteComment, fetchComments } from "@/lib/comments";
+import { insertComment, updateComment, deleteComment, fetchComments } from "@/lib/groups/posts_tab";
 import { getUserProfileById } from "@/lib/user_actions";
 import { useUser } from "@/context/user_context";
 import { createClient } from "@/lib/supabase/client";

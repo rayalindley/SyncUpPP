@@ -3,20 +3,19 @@ import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast, ToastContainer } from "react-toastify";
-import { createClient } from "@/lib/supabase/client";
-import { insertPost, updatePost, checkIsMemberOfOrganization } from "@/lib/posts";
 import { PhotoIcon, XCircleIcon, UserCircleIcon } from "@heroicons/react/24/solid";
-import { getUserProfileById } from "@/lib/user_actions";
 import { useUser } from "@/context/user_context";
 import TagsInput from "@/components/custom/tags-input";
 import "react-toastify/dist/ReactToastify.css";
-import { Posts } from "@/types/posts";
-import { check_permissions } from "@/lib/organization";
 import { Switch } from "@headlessui/react";
+import { insertPost, updatePost, checkIsMemberOfOrganization, getUserProfileById, check_permissions } from "@/lib/groups/posts_tab";
+import { createClient } from "@/lib/supabase/client";
+import { Posts } from "@/types/posts";
+
 
 const postSchema = z.object({
   content: z.string().min(1, "Content is required").max(500, "Content cannot exceed 500 characters"),
-  privacylevel: z.array(z.string()).nonempty("At least one privacy level is required"),
+  privacylevel: z.array(z.string()).optional(),
   targetmembershipid: z.string().optional(),
 });
 
@@ -64,9 +63,19 @@ export default function PostsTextArea({
 
   useEffect(() => {
     if (editingPost) {
+      console.log("Editing post:", editingPost);
       setValue("content", editingPost.content);
 
-      // Ensure privacylevel is an array before mapping
+      if (
+        Array.isArray(editingPost.privacylevel) &&
+        editingPost.privacylevel.length === 0 &&
+        !editingPost.targetmembershipid
+      ) {
+        setIsPublic(true);
+      } else {
+        setIsPublic(false);
+      }
+
       const roleNames = Array.isArray(editingPost.privacylevel)
         ? editingPost.privacylevel.map((roleId: string) => {
             const role = availableRoles.find((role) => role.id === roleId);
@@ -77,9 +86,10 @@ export default function PostsTextArea({
 
       setPhotos(editingPost.postphotos || []);
 
-      const membershipName = availableMemberships.find(
-        (membership) => membership.membershipid === editingPost.targetmembershipid
-      )?.name || "";
+      const membershipName =
+        availableMemberships.find(
+          (membership) => membership.membershipid === editingPost.targetmembershipid
+        )?.name || "";
       setValue("targetmembershipid", membershipName);
     }
   }, [editingPost, setValue, availableRoles, availableMemberships]);
@@ -151,34 +161,32 @@ export default function PostsTextArea({
     reset();
     setPhotos([]);
     setEditingPost(null);
-    // Clear the TagsInput fields by resetting privacylevel and targetmembershipid to empty
     setValue("privacylevel", []);
     setValue("targetmembershipid", "");
   };
 
   const onSubmit = async (formData: any) => {
+    console.log("Form submitted with data:", formData);
     setIsLoading(true);
     try {
       let privacyArray: string[] = [];
       let membershipId: string | null = null;
-
-      // If public, clear both privacylevel and targetmembershipid
+  
       if (!isPublic) {
-        // Map role names back to their corresponding UUIDs
         privacyArray = formData.privacylevel.map((roleName: string) => {
           const role = availableRoles.find((role) => role.name === roleName);
           return role ? role.id : roleName;
         });
-        // Map membership name back to its corresponding UUID
         membershipId = formData.targetmembershipid
           ? availableMemberships.find((membership) => membership.name === formData.targetmembershipid)?.membershipid ?? null
           : null;
       } else {
-        // Clear both privacy settings if post is public
         privacyArray = [];
-        membershipId = null;
+        membershipId = formData.targetmembershipid
+          ? availableMemberships.find((membership) => membership.name === formData.targetmembershipid)?.membershipid ?? null
+          : null;
       }
-
+  
       const postData = {
         ...formData,
         organizationid,
@@ -187,10 +195,12 @@ export default function PostsTextArea({
         targetmembershipid: membershipId,
       };
 
+      console.log("Post data to be submitted:", postData);
+  
       const { data: postResponse, error } = editingPost
         ? await updatePost({ ...postData, postid: editingPost.postid })
         : await insertPost(postData, organizationid);
-
+  
       if (!error) {
         if (editingPost) {
           setPostsData((prevPosts) =>
@@ -203,7 +213,7 @@ export default function PostsTextArea({
           setPostsData([postResponse, ...postsData]);
           toast.success("Post created successfully");
         }
-        resetForm(); // Clear form inputs after successful submission
+        resetForm();
       } else {
         throw new Error(error.message);
       }
@@ -262,7 +272,6 @@ export default function PostsTextArea({
           </div>
         </div>
 
-        {/* Public Switch */}
         <div className="flex items-center mb-4">
           <label className="text-white">Public:</label>
           <Switch
@@ -279,7 +288,6 @@ export default function PostsTextArea({
           </Switch>
         </div>
 
-        {/* Roles Input */}
         <div className="mb-4">
           <Controller
             name="privacylevel"
@@ -290,14 +298,13 @@ export default function PostsTextArea({
                 value={field.value}
                 onChange={(tags) => field.onChange(tags)}
                 suggestions={availableRoles.map((role) => role.name)}
-                placeholder="Add roles..."
+                placeholder="Add roles to make exclusive to..."
                 disabled={isPublic}
               />
             )}
           />
         </div>
 
-        {/* Memberships Input */}
         <div className="mb-4">
           <Controller
             name="targetmembershipid"
@@ -308,7 +315,7 @@ export default function PostsTextArea({
                 value={field.value ? [field.value] : []}
                 onChange={(tags) => field.onChange(tags.length ? tags[0] : null)}
                 suggestions={availableMemberships.map((membership) => membership.name)}
-                placeholder="Add membership..."
+                placeholder="Add membership to make exclusive to..."
                 disabled={isPublic}
               />
             )}
