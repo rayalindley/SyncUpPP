@@ -86,9 +86,11 @@ const RequestsTable: React.FC<RequestsTableProps> = ({ requests }) => {
       selector: (row: OrganizationRequest) => row.status,
       sortable: true,
       cell: (row: OrganizationRequest) => (
-        <div className="group relative">
-          <span
-            className={`cursor-pointer rounded-2xl border px-2 py-1 text-xs ${
+        <div className="relative">
+          <select
+            value={row.status}
+            onChange={(e) => handleStatusChange(row.id, e.target.value)}
+            className={`cursor-pointer rounded-2xl border px-2 py-1 pl-4 pr-6 text-xs   ${
               row.status === "pending"
                 ? "border-yellow-400 bg-yellow-200 text-yellow-800"
                 : row.status === "approved"
@@ -96,22 +98,10 @@ const RequestsTable: React.FC<RequestsTableProps> = ({ requests }) => {
                   : "border-red-400 bg-red-200 text-red-800"
             }`}
           >
-            {row.status.charAt(0).toUpperCase() + row.status.slice(1)}
-          </span>
-          <div className="absolute z-50 mt-1 hidden min-w-[100px] !rounded-md bg-charleston shadow-lg group-hover:block">
-            <div
-              className="cursor-pointer p-3 text-white hover:bg-gray-600"
-              onClick={() => handleStatusChange(row.id, "approved")}
-            >
-              Approve
-            </div>
-            <div
-              className="cursor-pointer p-3 text-white hover:bg-gray-600"
-              onClick={() => handleStatusChange(row.id, "rejected")}
-            >
-              Reject
-            </div>
-          </div>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
         </div>
       ),
     },
