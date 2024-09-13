@@ -7,12 +7,13 @@ import { getUser } from "@/lib/supabase/client";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Event } from "@/types/event";
 
 export default function EditEventPage() {
   const router = useRouter();
   const params = useParams() as { eventId: string };
   const eventId = params.eventId;
-  const [event, setEvent] = useState(null); // State to hold the event data
+  const [event, setEvent] = useState<Event | null>(null); // State to hold the event data
   const [error, setError] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
@@ -101,7 +102,7 @@ export default function EditEventPage() {
           </h2>
         </div>
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-lg">
-          <CreateEventForm organizationid="" event={event} />
+        <CreateEventForm organizationid={event.organizationid} event={event} />
         </div>
       </div>
     </>

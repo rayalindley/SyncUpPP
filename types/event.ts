@@ -1,3 +1,4 @@
+import { Privacy } from "./privacy";
 
 export interface Event {
   id: string;
@@ -14,7 +15,7 @@ export interface Event {
   eventslug: string;
   imageUrl: string;
   tags: string[];
-  privacy: string;
+  privacy: Privacy;
   createdat: Date;
   selected?: boolean;
 }
