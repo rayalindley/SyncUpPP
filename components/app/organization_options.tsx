@@ -309,26 +309,26 @@ export default function OrganizationOptions({
 
                         <div className="mt-5 flex gap-2">
                           <Link
-                            className="font-regular text-foreground relative inline-flex h-[26px] cursor-pointer items-center justify-center space-x-2 rounded-md border-[1px] border-zinc-600 bg-zinc-800 px-3 py-1 text-center text-xs hover:bg-opacity-60"
+                            className="font-regular relative inline-flex h-[26px] cursor-pointer items-center justify-center space-x-2 rounded-md border-[1px] border-zinc-600 bg-zinc-800 px-3 py-1 text-center text-xs text-foreground hover:bg-opacity-60"
                             href={`/${selectedOrg.slug}`}
                           >
                             Visit Page
                           </Link>
                           <Link
-                            className="font-regular text-foreground relative inline-flex h-[26px] cursor-pointer items-center justify-center space-x-2 rounded-md border-[1px] border-zinc-600 bg-zinc-800 px-3 py-1 text-center text-xs hover:bg-opacity-60"
+                            className="font-regular relative inline-flex h-[26px] cursor-pointer items-center justify-center space-x-2 rounded-md border-[1px] border-zinc-600 bg-zinc-800 px-3 py-1 text-center text-xs text-foreground hover:bg-opacity-60"
                             href={`/${selectedOrg.slug}/dashboard`}
                           >
                             View Settings
                           </Link>
                           <Link
-                            className="font-regular text-foreground relative inline-flex h-[26px] cursor-pointer items-center justify-center space-x-2 rounded-md border-[1px] border-zinc-600 bg-zinc-800 px-3 py-1 text-center text-xs hover:bg-opacity-60"
+                            className="font-regular relative inline-flex h-[26px] cursor-pointer items-center justify-center space-x-2 rounded-md border-[1px] border-zinc-600 bg-zinc-800 px-3 py-1 text-center text-xs text-foreground hover:bg-opacity-60"
                             href={`/organization/edit/${selectedOrg.slug}`}
                           >
                             Edit
                           </Link>
 
                           <button
-                            className="font-regular text-foreground relative inline-flex h-[26px] cursor-pointer items-center justify-center space-x-2 rounded-md border-[1px] border-red-300 bg-red-500 px-3 py-1 text-center text-xs hover:bg-opacity-60"
+                            className="font-regular relative inline-flex h-[26px] cursor-pointer items-center justify-center space-x-2 rounded-md border-[1px] border-red-300 bg-red-500 px-3 py-1 text-center text-xs text-foreground hover:bg-opacity-60"
                             onClick={deleteBtn}
                           >
                             Delete
