@@ -31,7 +31,8 @@ import Swal from "sweetalert2";
 import ImageGallery from "react-image-gallery";
 import "react-image-gallery/styles/css/image-gallery.css";
 import { createClient } from "@/lib/supabase/client";
-import { toast } from "react-toastify";
+
+import { format } from "date-fns";
 
 const supabase = createClient();
 
@@ -166,7 +167,11 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId }) => {
         uploadedUrls.push(imageUrl);
       } else {
         console.error("Error uploading image:", error);
-        toast.error("Error uploading image. Please try again.");
+        Swal.fire({
+          icon: "error",
+          title: "Oops...",
+          text: "Error uploading image. Please try again.",
+        });
         return null;
       }
     }
@@ -181,14 +186,22 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId }) => {
     setEditingPost(null);
     setIsPublic(false);
   };
-  
+
   const onSubmit = async (formData: any) => {
     if (!canCreate && !editingPost) {
-      toast.error("You do not have permission to create posts.");
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: "You do not have permission to create posts.",
+      });
       return;
     }
     if (!canEdit && editingPost) {
-      toast.error("You do not have permission to edit posts.");
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: "You do not have permission to edit posts.",
+      });
       return;
     }
     setIsLoading(true);
@@ -297,34 +310,6 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId }) => {
       const dateB = new Date(b.createdat ?? 0).getTime();
       return dateB - dateA;
     });
-
-  // check user permissions
-  // useEffect(() => {
-  //   const logUserRolesAndPermissions = async () => {
-  //     if (user) {
-  //       const createPermission = user?.id
-  //         ? await check_permissions(user.id, organizationId, "create_posts")
-  //         : false;
-  //       const editPermission = user?.id
-  //         ? await check_permissions(user.id, organizationId, "edit_posts")
-  //         : false;
-  //       const deletePermission = user?.id
-  //         ? await check_permissions(user.id, organizationId, "delete_posts")
-  //         : false;
-
-  //       console.log("User ID:", user.id);
-  //       console.log("Organization ID:", organizationId);
-  //       console.log("User Permissions:");
-  //       console.log("Create Posts Permission:", createPermission);
-  //       console.log("Edit Posts Permission:", editPermission);
-  //       console.log("Delete Posts Permission:", deletePermission);
-  //     } else {
-  //       console.log("No user logged in.");
-  //     }
-  //   };
-
-  //   logUserRolesAndPermissions();
-  // }, [user, organizationId]);
 
   useEffect(() => {
     if (editingPost) {
@@ -590,7 +575,7 @@ const PostCard: React.FC<{
     canDelete,
     organizationId,
   }) => {
-    const { content, authorid, postphotos, postid } = post;
+    const { content, authorid, postphotos, postid, createdat } = post;
     const [authorDetails, setAuthorDetails] = useState<{
       firstName: string;
       lastName: string;
@@ -641,7 +626,11 @@ const PostCard: React.FC<{
 
     const handleDelete = () => {
       if (!canDelete) {
-        toast.error("You do not have permission to delete posts.");
+        Swal.fire({
+          icon: "error",
+          title: "Oops...",
+          text: "You do not have permission to delete posts.",
+        });
         return;
       }
 
@@ -676,7 +665,11 @@ const PostCard: React.FC<{
 
     const handleEdit = () => {
       if (!canEdit) {
-        toast.error("You do not have permission to edit posts.");
+        Swal.fire({
+          icon: "error",
+          title: "Oops...",
+          text: "You do not have permission to edit posts.",
+        });
         return;
       }
 
@@ -786,6 +779,9 @@ const PostCard: React.FC<{
           <div>
             <p className="text-white">
               {authorDetails.firstName} {authorDetails.lastName}
+            </p>
+            <p className="text-sm text-gray-400">
+              {createdat ? format(new Date(createdat), "MMMM dd, yyyy") : "Unknown date"}
             </p>
             <div className="flex space-x-2">{generatePrivacyLabel()}</div>
           </div>

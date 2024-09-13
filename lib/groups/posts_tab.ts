@@ -1,4 +1,3 @@
-// import @/lib/pages/posts_tab.ts
 "use server";
 import { createClient, getUser } from "@/lib/supabase/server";
 
@@ -55,15 +54,16 @@ export async function insertComment(formData: any) {
   }
 }
 
-// lib\groups\posts_tab.ts
-export async function updateComment(editingCommentId: string, p0: { comment: string; }, updatedComment: {
-  commentid: string;
-  comment?: string;
-
-}) {
+export async function updateComment(
+  editingCommentId: string,
+  p0: { comment: string },
+  updatedComment: {
+    commentid: string;
+    comment?: string;
+  }
+) {
   const supabase = createClient();
   try {
-    // Only include fields that are provided in the updatedPost object
     const updateFields: any = {};
     if (updatedComment.comment) updateFields.comment = updatedComment.comment;
 
@@ -91,7 +91,6 @@ export async function updateComment(editingCommentId: string, p0: { comment: str
 export async function deleteComment(commentid: string, authorid: string) {
   const supabase = createClient();
   try {
-    // Retrieve the comment to ensure it exists and to get the author ID
     const { data: comment, error: fetchError } = await supabase
       .from("post_comments")
       .select("authorid")
@@ -103,7 +102,6 @@ export async function deleteComment(commentid: string, authorid: string) {
       return { data: null, error: { message: "Comment not found" } };
     }
 
-    // Check if the current user is the author of the comment
     if (comment.authorid !== authorid) {
       console.error("Unauthorized: Only the author can delete this comment");
       return {
@@ -112,7 +110,6 @@ export async function deleteComment(commentid: string, authorid: string) {
       };
     }
 
-    // Delete the comment if the current user is the author
     const { data, error } = await supabase
       .from("post_comments")
       .delete()
@@ -137,12 +134,11 @@ export async function deleteComment(commentid: string, authorid: string) {
 export async function insertPost(formData: any, organizationid: string) {
   const supabase = createClient();
 
-  // Insert the post first
   const insertValues = {
     content: formData.content,
     organizationid: organizationid,
     postphotos: formData.postphotos || [],
-    authorid: formData.authorid, // Author ID is required
+    authorid: formData.authorid,
     createdat: new Date().toISOString(),
   };
 
@@ -158,7 +154,6 @@ export async function insertPost(formData: any, organizationid: string) {
 
   const postId = data.postid;
 
-  // Insert roles tied to the post into post_roles
   if (formData.targetroles && formData.targetroles.length > 0) {
     const roleInserts = formData.targetroles.map((roleid: string) => ({
       postid: postId,
@@ -172,14 +167,15 @@ export async function insertPost(formData: any, organizationid: string) {
     }
   }
 
-  // Insert memberships tied to the post into post_memberships
   if (formData.targetmemberships && formData.targetmemberships.length > 0) {
     const membershipInserts = formData.targetmemberships.map((membershipid: string) => ({
       postid: postId,
       membershipid: membershipid,
     }));
 
-    const { error: membershipError } = await supabase.from("post_memberships").insert(membershipInserts);
+    const { error: membershipError } = await supabase
+      .from("post_memberships")
+      .insert(membershipInserts);
     if (membershipError) {
       console.error("Error inserting post memberships:", membershipError.message);
       return { data: null, error: { message: membershipError.message } };
@@ -214,7 +210,6 @@ export async function updatePost(updatedPost: {
     return { data: null, error: { message: error.message } };
   }
 
-  // Clear and re-insert post_roles if targetroles is provided
   if (updatedPost.targetroles) {
     await supabase.from("post_roles").delete().eq("postid", updatedPost.postid);
 
@@ -232,17 +227,20 @@ export async function updatePost(updatedPost: {
     }
   }
 
-  // Clear and re-insert post_memberships if targetmemberships is provided
   if (updatedPost.targetmemberships) {
     await supabase.from("post_memberships").delete().eq("postid", updatedPost.postid);
 
     if (updatedPost.targetmemberships.length > 0) {
-      const membershipInserts = updatedPost.targetmemberships.map((membershipid: string) => ({
-        postid: updatedPost.postid,
-        membershipid: membershipid,
-      }));
+      const membershipInserts = updatedPost.targetmemberships.map(
+        (membershipid: string) => ({
+          postid: updatedPost.postid,
+          membershipid: membershipid,
+        })
+      );
 
-      const { error: membershipError } = await supabase.from("post_memberships").insert(membershipInserts);
+      const { error: membershipError } = await supabase
+        .from("post_memberships")
+        .insert(membershipInserts);
       if (membershipError) {
         console.error("Error updating post memberships:", membershipError.message);
         return { data: null, error: { message: membershipError.message } };
@@ -252,7 +250,6 @@ export async function updatePost(updatedPost: {
 
   return { data, error: null };
 }
-
 
 export async function deletePost(postid: string, authorid: string) {
   const supabase = createClient();
@@ -364,9 +361,7 @@ export async function fetchEvents(
     : { data: null, error: { message: error.message } };
 }
 
-
 export async function fetchPosts(organizationid: string, userid: string | null) {
-  // console.log("fetchPosts called with organizationid:", organizationid, "and userid:", userid);
   const supabase = createClient();
 
   try {
@@ -376,7 +371,6 @@ export async function fetchPosts(organizationid: string, userid: string | null) 
     });
 
     if (!error) {
-      // console.log("Fetched posts successfully:", data);
       return { data, error: null };
     } else {
       console.error("fetchPosts error:", error);
@@ -391,12 +385,9 @@ export async function fetchPosts(organizationid: string, userid: string | null) 
   }
 }
 
-// Filename: lib/groups/posts_tab.ts\
-
 export async function fetchRolesAndMemberships(organizationId: string) {
   const supabase = createClient();
 
-  // Fetch roles
   const { data: rolesData, error: rolesError } = await supabase
     .from("organization_roles")
     .select("role_id, role")
@@ -406,7 +397,6 @@ export async function fetchRolesAndMemberships(organizationId: string) {
     return { roles: [], memberships: [], error: rolesError.message };
   }
 
-  // Fetch memberships
   const { data: membershipsData, error: membershipsError } = await supabase
     .from("memberships")
     .select("membershipid, name")
@@ -421,10 +411,12 @@ export async function fetchRolesAndMemberships(organizationId: string) {
     name: role.role,
   }));
 
-  const memberships = membershipsData.map((membership: { membershipid: string; name: string }) => ({
-    membershipid: membership.membershipid,
-    name: membership.name,
-  }));
+  const memberships = membershipsData.map(
+    (membership: { membershipid: string; name: string }) => ({
+      membershipid: membership.membershipid,
+      name: membership.name,
+    })
+  );
 
   return { roles, memberships, error: null };
 }
