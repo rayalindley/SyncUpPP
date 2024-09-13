@@ -55,9 +55,11 @@ export async function insertComment(formData: any) {
   }
 }
 
-export async function updateComment(updatedComment: {
+// lib\groups\posts_tab.ts
+export async function updateComment(editingCommentId: string, p0: { comment: string; }, updatedComment: {
   commentid: string;
   comment?: string;
+
 }) {
   const supabase = createClient();
   try {
@@ -132,48 +134,125 @@ export async function deleteComment(commentid: string, authorid: string) {
     };
   }
 }
-
 export async function insertPost(formData: any, organizationid: string) {
   const supabase = createClient();
+
+  // Insert the post first
   const insertValues = {
     content: formData.content,
     organizationid: organizationid,
-    privacylevel: formData.privacylevel || [],
-    targetmembershipid: formData.targetmembershipid || null,
     postphotos: formData.postphotos || [],
+    authorid: formData.authorid, // Author ID is required
+    createdat: new Date().toISOString(),
   };
+
   const { data, error } = await supabase
     .from("posts")
     .insert([insertValues])
     .select()
     .single();
-  return !error
-    ? { data, error: null }
-    : { data: null, error: { message: error.message } };
+
+  if (error) {
+    return { data: null, error: { message: error.message } };
+  }
+
+  const postId = data.postid;
+
+  // Insert roles tied to the post into post_roles
+  if (formData.targetroles && formData.targetroles.length > 0) {
+    const roleInserts = formData.targetroles.map((roleid: string) => ({
+      postid: postId,
+      roleid: roleid,
+    }));
+
+    const { error: roleError } = await supabase.from("post_roles").insert(roleInserts);
+    if (roleError) {
+      console.error("Error inserting post roles:", roleError.message);
+      return { data: null, error: { message: roleError.message } };
+    }
+  }
+
+  // Insert memberships tied to the post into post_memberships
+  if (formData.targetmemberships && formData.targetmemberships.length > 0) {
+    const membershipInserts = formData.targetmemberships.map((membershipid: string) => ({
+      postid: postId,
+      membershipid: membershipid,
+    }));
+
+    const { error: membershipError } = await supabase.from("post_memberships").insert(membershipInserts);
+    if (membershipError) {
+      console.error("Error inserting post memberships:", membershipError.message);
+      return { data: null, error: { message: membershipError.message } };
+    }
+  }
+
+  return { data, error: null };
 }
 
 export async function updatePost(updatedPost: {
   postid: string;
   content?: string;
-  privacylevel?: string[];
   postphotos?: string[];
+  targetroles?: string[];
+  targetmemberships?: string[];
 }) {
   const supabase = createClient();
+
   const updateFields: any = {
     ...(updatedPost.content && { content: updatedPost.content }),
-    ...(updatedPost.privacylevel && { privacylevel: updatedPost.privacylevel }),
     ...(updatedPost.postphotos !== undefined && { postphotos: updatedPost.postphotos }),
   };
+
   const { data, error } = await supabase
     .from("posts")
     .update(updateFields)
     .eq("postid", updatedPost.postid)
     .select()
     .single();
-  return !error
-    ? { data, error: null }
-    : { data: null, error: { message: error.message } };
+
+  if (error) {
+    return { data: null, error: { message: error.message } };
+  }
+
+  // Clear and re-insert post_roles if targetroles is provided
+  if (updatedPost.targetroles) {
+    await supabase.from("post_roles").delete().eq("postid", updatedPost.postid);
+
+    if (updatedPost.targetroles.length > 0) {
+      const roleInserts = updatedPost.targetroles.map((roleid: string) => ({
+        postid: updatedPost.postid,
+        roleid: roleid,
+      }));
+
+      const { error: roleError } = await supabase.from("post_roles").insert(roleInserts);
+      if (roleError) {
+        console.error("Error updating post roles:", roleError.message);
+        return { data: null, error: { message: roleError.message } };
+      }
+    }
+  }
+
+  // Clear and re-insert post_memberships if targetmemberships is provided
+  if (updatedPost.targetmemberships) {
+    await supabase.from("post_memberships").delete().eq("postid", updatedPost.postid);
+
+    if (updatedPost.targetmemberships.length > 0) {
+      const membershipInserts = updatedPost.targetmemberships.map((membershipid: string) => ({
+        postid: updatedPost.postid,
+        membershipid: membershipid,
+      }));
+
+      const { error: membershipError } = await supabase.from("post_memberships").insert(membershipInserts);
+      if (membershipError) {
+        console.error("Error updating post memberships:", membershipError.message);
+        return { data: null, error: { message: membershipError.message } };
+      }
+    }
+  }
+
+  return { data, error: null };
 }
+
 
 export async function deletePost(postid: string, authorid: string) {
   const supabase = createClient();
@@ -311,3 +390,73 @@ export async function fetchPosts(organizationid: string, userid: string | null) 
     };
   }
 }
+
+// Filename: lib/groups/posts_tab.ts\
+
+export async function fetchRolesAndMemberships(organizationId: string) {
+  const supabase = createClient();
+
+  // Fetch roles
+  const { data: rolesData, error: rolesError } = await supabase
+    .from("organization_roles")
+    .select("role_id, role")
+    .eq("org_id", organizationId);
+
+  if (rolesError) {
+    return { roles: [], memberships: [], error: rolesError.message };
+  }
+
+  // Fetch memberships
+  const { data: membershipsData, error: membershipsError } = await supabase
+    .from("memberships")
+    .select("membershipid, name")
+    .eq("organizationid", organizationId);
+
+  if (membershipsError) {
+    return { roles: [], memberships: [], error: membershipsError.message };
+  }
+
+  const roles = rolesData.map((role: { role_id: string; role: string }) => ({
+    id: role.role_id,
+    name: role.role,
+  }));
+
+  const memberships = membershipsData.map((membership: { membershipid: string; name: string }) => ({
+    membershipid: membership.membershipid,
+    name: membership.name,
+  }));
+
+  return { roles, memberships, error: null };
+}
+
+export const fetchPostRoles = async (postId: string) => {
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from("post_roles")
+    .select("roleid")
+    .eq("postid", postId);
+
+  if (error) {
+    console.error("Error fetching post roles:", error.message);
+    return [];
+  }
+
+  return data.map((record: { roleid: string }) => record.roleid);
+};
+
+export const fetchPostMemberships = async (postId: string) => {
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from("post_memberships")
+    .select("membershipid")
+    .eq("postid", postId);
+
+  if (error) {
+    console.error("Error fetching post memberships:", error.message);
+    return [];
+  }
+
+  return data.map((record: { membershipid: string }) => record.membershipid);
+};

@@ -1,12 +1,11 @@
 import Footer from "@/components/footer";
 import Header from "@/components/header";
-import TabsComponent from "@/components/organization/organization_view_tabs";
+import OrganizationViewTabs from "@/components/organization/organization_view_tabs";
 import SocialIcons from "@/components/organization/social_icons";
 import { fetchEvents } from "@/lib/events";
 import { getMemberships } from "@/lib/memberships";
 import { createClient, getUser } from "@/lib/supabase/server";
 import Link from "next/link";
-import { ToastContainer } from "react-toastify";
 import { check_permissions, getUserOrganizationInfo } from "@/lib/organization";
 import { User } from "@supabase/supabase-js";
 import { CalendarIcon, InboxIcon, UserGroupIcon } from "@heroicons/react/24/outline";
@@ -30,7 +29,6 @@ export default async function OrganizationUserView({ params }: { params: { slug:
   return (
     <div>
       <Header user={user as User | null} />
-      <ToastContainer />
       <main className="isolate flex flex-col items-center sm:px-4 md:px-6 lg:px-80">
         <div className="relative w-full max-w-7xl">
           {org.banner ? (
@@ -72,7 +70,7 @@ export default async function OrganizationUserView({ params }: { params: { slug:
             </div>
             <div className="text-sm text-light">{org.description}</div>
             <SocialIcons facebook={socials.facebook} twitter={socials.twitter} linkedin={socials.linkedin} />
-            <TabsComponent organizationid={org.organizationid} memberships={memberships} events={events} id={user?.id ?? ""} />
+            <OrganizationViewTabs organizationid={org.organizationid} memberships={memberships} events={events} id={user?.id ?? ""} />
           </div>
         </div>
       </main>

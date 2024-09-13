@@ -3,9 +3,9 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import OrganizationEventsComponent from "./organization_events";
 import OrganizationMembershipsComponent from "../memberships/organization_membership";
-import OrganizationPostsTab from "./organization_posts_tab";
+import PostsSection from "./posts_section";
 
-const TabsComponent = ({ organizationid, memberships, events, id }: { organizationid: string; memberships: any; events: any; id: string }) => {
+const OrganizationViewTabs = ({ organizationid, memberships, events, id }: { organizationid: string; memberships: any; events: any; id: string }): JSX.Element => {
   const { orgslug } = useParams() as { orgslug: string };
   const [activeTab, setActiveTab] = useState("posts");
 
@@ -33,7 +33,8 @@ const TabsComponent = ({ organizationid, memberships, events, id }: { organizati
   };
 
   const tabContent = {
-    posts: <OrganizationPostsTab organizationid={organizationid} />,
+    // posts: <OrganizationPostsTab organizationid={organizationid} />,
+    posts: <PostsSection organizationId={organizationid}/>,
     membership: <OrganizationMembershipsComponent memberships={memberships} userid={id} />,
     events: <OrganizationEventsComponent events={events} userid={id} organizationId={organizationid} />,
   }[activeTab];
@@ -60,4 +61,4 @@ const TabsComponent = ({ organizationid, memberships, events, id }: { organizati
   );
 };
 
-export default TabsComponent;
+export default OrganizationViewTabs;
