@@ -1,16 +1,25 @@
-export function isValidURL(str: string) {
-  const pattern = new RegExp('^(https?:\\/\\/)?'+ // protocol
-    '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|'+ // domain name
-    '((\\d{1,3}\\.){3}\\d{1,3}))'+ // OR ip (v4) address
-    '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*'+ // port and path
-    '(\\?[;&a-z\\d%_.~+=-]*)?'+ // query string
-    '(\\#[-a-z\\d_]*)?$','i'); // fragment locator
-  return !!pattern.test(str);
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
 }
 
-// Helper function to check if a date is within a range
-export function isDateValid(dateString: string) {
+// Function to validate date
+export function isDateValid(dateString: string): boolean {
   const date = new Date(dateString);
   const today = new Date();
-  return date <= today && today.getFullYear() - date.getFullYear() >= 13;
-};
+  const age = today.getFullYear() - date.getFullYear();
+  const monthDiff = today.getMonth() - date.getMonth();
+  const dayDiff = today.getDate() - date.getDate();
+
+  // Check if the date is valid and the user is at least 18 years old
+  if (
+    date instanceof Date &&
+    !isNaN(date.getTime()) &&
+    (age > 18 || (age === 18 && (monthDiff > 0 || (monthDiff === 0 && dayDiff >= 0))))
+  ) {
+    return true;
+  }
+  return false;
+}

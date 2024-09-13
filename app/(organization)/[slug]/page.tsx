@@ -9,6 +9,7 @@ import { CalendarIcon, InboxIcon, UserGroupIcon } from "@heroicons/react/24/outl
 import Link from "next/link";
 import { ToastContainer } from "react-toastify";
 import { check_permissions, getUserOrganizationInfo } from "@/lib/organization";
+import JoinButton from "@/components/organization/join_organization_button";
 
 const getInitials = (name: string): string => {
   const words = name.split(" ");
@@ -29,12 +30,53 @@ export default async function OrganizationUserView({
   const { user } = await getUser();
   const { slug } = params;
   const supabase = createClient();
+
+  // Fetch organization data
   let { data: org, error } = await supabase
     .from("organization_summary")
     .select("*")
     .eq("slug", slug)
     .single();
-  let userOrgInfo = await getUserOrganizationInfo(user?.id!, org.organizationid);
+
+  if (error || !org) {
+    // Handle error or not found case
+    return <div>Organization not found</div>;
+  }
+
+  // Check if the user is a member, admin, or has a pending request
+  let membershipStatus: "none" | "member" | "pending" | "admin" = "none";
+
+  if (user) {
+    if (user.id === org.adminid) {
+      membershipStatus = "admin";
+    } else {
+      // Check if user is a member
+      const { data: memberData } = await supabase
+        .from("organizationmembers")
+        .select("*")
+        .eq("organizationid", org.organizationid)
+        .eq("userid", user.id)
+        .single();
+
+      if (memberData) {
+        membershipStatus = "member";
+      } else {
+        // Check if user has a pending request
+        const { data: requestData } = await supabase
+          .from("organization_requests")
+          .select("*")
+          .eq("org_id", org.organizationid)
+          .eq("user_id", user.id)
+          .eq("status", "pending")
+          .single();
+
+        if (requestData) {
+          membershipStatus = "pending";
+        }
+      }
+    }
+  }
+
   const currentPage = 1;
   const eventsPerPage = 6;
   const { data: events, error: eventsError } = await fetchEvents(
@@ -85,9 +127,13 @@ export default async function OrganizationUserView({
                 )}
               </div>
               <div className="mt-4 flex gap-2 sm:mt-0">
-                <button className="rounded-lg bg-primary px-4 py-2 text-white hover:bg-primarydark">
-                  Join
-                </button>
+                {membershipStatus !== "admin" && (
+                  <JoinButton
+                    organizationId={org.organizationid}
+                    organizationAccess={org.organization_access}
+                    initialMembershipStatus={membershipStatus}
+                  />
+                )}
                 {(await check_permissions(
                   user?.id || "",
                   org.organizationid,
