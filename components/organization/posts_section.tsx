@@ -555,6 +555,8 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId }) => {
   );
 };
 
+PostsSection.displayName = "PostsSection";
+
 const PostCard: React.FC<{
   post: Posts;
   setPosts: React.Dispatch<React.SetStateAction<Posts[]>>;
@@ -802,5 +804,7 @@ const PostCard: React.FC<{
     );
   }
 );
+
+PostCard.displayName = "PostCard";
 
 export default PostsSection;
