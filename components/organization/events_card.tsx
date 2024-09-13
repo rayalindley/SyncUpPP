@@ -25,17 +25,14 @@ const EventsCard = ({ event }: { event: Event }) => {
     eventslug,
     privacy,
   } = event;
-  const hasImageUrl = !!imageUrl; // Check if imageUrl is provided
+  const hasImageUrl = !!imageUrl;
   const truncatedDescription =
     description.length > 250 ? `${description.slice(0, 245)}...` : description;
 
-  const router = useRouter(); // Next.js router for navigation
+  const router = useRouter();
 
   const formattedDateTime = (utcDateString: string) => {
-    // Create a Date object from the UTC date string
     const date = new Date(utcDateString);
-
-    // Format the PST date
     return date.toLocaleString("en-US", {
       timeZone: "Asia/Manila",
       year: "numeric",
@@ -46,18 +43,14 @@ const EventsCard = ({ event }: { event: Event }) => {
     });
   };
 
-  // Determine if the location is a URL and create a clickable link
   const locationContent =
     location && location.startsWith("http") ? "Virtual Event" : location;
 
-  // Define the base URL for your Supabase storage bucket
   const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
 
   const handleEventRegistration = async () => {
-    // Initialize Supabase client
     const supabase = createClient();
 
-    // Confirmation dialog with SweetAlert
     const result = await Swal.fire({
       title: "Are you sure?",
       text: "You won't be able to revert this!",
@@ -69,11 +62,9 @@ const EventsCard = ({ event }: { event: Event }) => {
     });
 
     if (result.isConfirmed) {
-      // Retrieve the current user's data
       const { user } = await getUser();
       const userId = user?.id;
 
-      // Check if the user data is retrieved successfully
       if (!userId) {
         console.error("User not found");
         toast.error("User not found. Please log in.");
@@ -83,7 +74,6 @@ const EventsCard = ({ event }: { event: Event }) => {
       const { data, error } = await supabase.from("eventregistrations").insert([
         {
           eventid: event.eventid,
-          // organizationmemberid: userId,
           registrationdate: new Date().toISOString(),
           status: "registered",
         },
@@ -93,17 +83,13 @@ const EventsCard = ({ event }: { event: Event }) => {
         console.error("Registration failed:", error);
         toast.error("Registration failed. Please try again.");
       } else {
-        // console.log("Registration successful:", data);
         toast.success("You have successfully joined the event!");
-        // Additional logic after successful registration (e.g., close dialog, show message)
       }
     }
   };
 
-  // State to store the count of registered users
   const [registeredCount, setRegisteredCount] = useState(0);
 
-  // Function to fetch and set the count of registered users
   const fetchRegisteredCount = async () => {
     const { count, error } = await countRegisteredUsers(event.eventid);
     if (error) {
@@ -114,7 +100,6 @@ const EventsCard = ({ event }: { event: Event }) => {
     }
   };
 
-  // Format date and time
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = {
       month: "short",
@@ -125,23 +110,19 @@ const EventsCard = ({ event }: { event: Event }) => {
     return new Date(dateString).toLocaleDateString("en-US", options);
   };
 
-  // Format registration fee
   const formatFee = (fee: number) => {
     return fee && fee > 0 ? `Php ${parseFloat(fee.toString()).toFixed(2)}` : "Free";
   };
 
-  // Determine the display text for the number of attendees
   const attendeesDisplay =
     event.capacity > 0
       ? `${registeredCount} attendees / ${event.capacity}`
       : `${registeredCount} attendees`;
 
-  // Call fetchRegisteredCount when the component mounts
   useEffect(() => {
     fetchRegisteredCount();
   }, []);
 
-  // Function to determine the event status
   const getEventStatus = () => {
     const now = new Date();
     const start = new Date(starteventdatetime);
@@ -176,13 +157,20 @@ const EventsCard = ({ event }: { event: Event }) => {
           <div className="h-full w-full rounded-t-lg bg-fadedgrey" />
         )}
         <div className="absolute right-2 top-2 flex space-x-2">
-          <span
-            className={`rounded-full bg-opacity-75 px-2 py-1 text-xs font-medium shadow-2xl ${
-              privacy === "public" ? "bg-green-500 text-white" : "bg-red-500 text-white"
-            }`}
-          >
-            {privacy === "public" ? "Public" : "Members only"}
-          </span>
+          {/* Privacy Tag */}
+          {privacy && (
+            <span
+              className={`rounded-full bg-opacity-75 px-2 py-1 text-xs font-medium shadow-2xl ${
+                privacy.type === "public"
+                  ? "bg-green-500 text-white"
+                  : "bg-red-500 text-white"
+              }`}
+            >
+              {privacy.type === "public" ? "Public" : "Members Only"}
+            </span>
+          )}
+
+          {/* Event Status Tag */}
           <span
             className={`rounded-full bg-opacity-75 px-2 py-1 text-xs font-medium shadow-2xl ${
               getEventStatus() === "Open"
@@ -211,7 +199,7 @@ const EventsCard = ({ event }: { event: Event }) => {
         </div>
         <div className="mt-3 flex items-center text-sm text-light">
           <UserGroupIcon className="mr-2 h-5 w-5 text-primary" aria-hidden="true" />
-          <span>{registeredCount} attendees</span>
+          <span>{attendeesDisplay}</span>
         </div>
       </div>
     </Link>

@@ -16,6 +16,8 @@ import Link from "next/link";
 import { Fragment, useEffect, useState } from "react";
 import { FaRegEdit } from "react-icons/fa";
 import Swal from "sweetalert2";
+import { saveAs } from "file-saver"; // Install file-saver package if not already installed
+import { format } from "date-fns"; // For formatting the current date
 
 const jsonTheme = {
   main: "line-height:1.3;color:#383a42;background:#ffffff;overflow:hidden;word-wrap:break-word;white-space: pre-wrap;word-wrap: break-word;",
@@ -55,6 +57,8 @@ export default function EventOptions({
   const [loadingAttendees, setLoadingAttendees] = useState(false);
   const [canEditEvents, setCanEditEvents] = useState(false);
   const [canDeleteEvents, setCanDeleteEvents] = useState(false);
+  const [filteredAttendees, setFilteredAttendees] = useState<UserProfile[] | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const deleteBtn = () => {
     Swal.fire({
@@ -142,12 +146,11 @@ export default function EventOptions({
     if (currentTab === "Attendees") {
       const fetchAttendees = async () => {
         setLoadingAttendees(true);
-        const { users, error } = await fetchRegisteredUsersForEvent(
-          selectedEvent.eventid
-        );
+        const { users, error } = await fetchRegisteredUsersForEvent(selectedEvent.eventid);
         setLoadingAttendees(false);
         if (!error) {
           setAttendees(users);
+          setFilteredAttendees(users);
         } else {
           Swal.fire({
             title: "Error!",
@@ -183,6 +186,46 @@ export default function EventOptions({
 
     checkPermissions();
   }, [userId, selectedEvent.organizationid]);
+
+  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const query = event.target.value.toLowerCase();
+    setSearchQuery(query);
+    if (Array.isArray(attendees)) {
+      const filtered = attendees.filter((attendee: UserProfile) =>
+        `${attendee.first_name} ${attendee.last_name}`.toLowerCase().includes(query)
+      );
+      setFilteredAttendees(filtered);
+    }
+  };
+
+  const exportToCsv = () => {
+    if (!attendees || attendees.length === 0) {
+      Swal.fire({
+        title: "No Attendees!",
+        text: "There are no attendees to export.",
+        icon: "warning",
+      });
+      return;
+    }
+
+    const csvContent = [
+      ["First Name", "Last Name"],
+      ...(Array.isArray(attendees) ? attendees.map((attendee: UserProfile) => [
+        attendee.first_name,
+        attendee.last_name,
+      ]) : []),
+    ]
+      .map((row) => row.join(","))
+      .join("\n");
+
+    const currentDate = format(new Date(), "yyyyMMdd"); // Format date as yyyyMMdd
+    const fileName = `${selectedEvent.title}_${selectedEvent.eventslug}_${currentDate}.csv`
+      .replace(/ /g, "_")
+      .toLowerCase(); // Format file name: remove spaces, lowercase
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    saveAs(blob, fileName);
+  };
 
   return (
     <>
@@ -444,8 +487,79 @@ export default function EventOptions({
                                   <td className="p-2 font-bold text-gray-400">
                                     Privacy:
                                   </td>
-                                  <td className="p-2">{selectedEvent.privacy}</td>
+                                  <td className="p-2">
+                                    {selectedEvent.privacy &&
+                                    typeof selectedEvent.privacy === "object" ? (
+                                      <>
+                                        {selectedEvent.privacy.type === "public" ? (
+                                          <span>Public</span>
+                                        ) : (
+                                          <div>
+                                            {/* Show roles as blue tags */}
+                                            {selectedEvent.privacy.roles &&
+                                              selectedEvent.privacy.roles.length > 0 && (
+                                                <div className="mt-2">
+                                                  <div className="mt-1 flex flex-wrap gap-2">
+                                                    {selectedEvent.privacy.roles.map(
+                                                      (role, index) => (
+                                                        <span
+                                                          key={index}
+                                                          className="inline-block rounded bg-primary px-3 py-1 text-sm font-semibold text-white"
+                                                        >
+                                                          {role}
+                                                        </span>
+                                                      )
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              )}
+
+                                            {/* Show membership tiers as pink tags */}
+                                            {selectedEvent.privacy.membership_tiers &&
+                                              selectedEvent.privacy.membership_tiers
+                                                .length > 0 && (
+                                                <div className="mt-2">
+                                                  <div className="mt-1 flex flex-wrap gap-2">
+                                                    {selectedEvent.privacy.membership_tiers.map(
+                                                      (tier, index) => (
+                                                        <span
+                                                          key={index}
+                                                          className="inline-block rounded bg-primary px-3 py-1 text-sm font-semibold text-white"
+                                                        >
+                                                          {tier}
+                                                        </span>
+                                                      )
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              )}
+
+                                            {/* If all roles or all memberships are allowed */}
+                                            {selectedEvent.privacy.allow_all_roles && (
+                                              <div className="mt-2">
+                                                <span className="inline-block rounded bg-primary px-3 py-1 text-sm font-semibold text-white">
+                                                  All roles allowed
+                                                </span>
+                                              </div>
+                                            )}
+
+                                            {selectedEvent.privacy
+                                              .allow_all_memberships && (
+                                              <div className="mt-2">
+                                                <span className="inline-block rounded bg-primary px-3 py-1 text-sm font-semibold text-white">
+                                                  All membership tiers allowed
+                                                </span>
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+                                      </>
+                                    ) : (
+                                      "Unknown"
+                                    )}
+                                  </td>
                                 </tr>
+
                                 <tr>
                                   <td className="p-2 font-bold text-gray-400">Tags:</td>
                                   <td className="flex flex-wrap gap-2 p-2 ">
@@ -491,12 +605,27 @@ export default function EventOptions({
                             </div>
                           </>
                         )}
-                        {currentTab === "Attendees" && (
+                       {currentTab === "Attendees" && (
                           <div className="space-y-4">
+                            <div className="flex justify-between">
+                              <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={handleSearch}
+                                placeholder="Search attendees..."
+                                className="flex-1 rounded-lg border border-charleston bg-charleston px-4 py-2 text-sm text-light focus:border-primary focus:ring-primary"
+                              />
+                              <button
+                                onClick={exportToCsv}
+                                className="ml-4 rounded-md bg-primary px-4 py-2 text-white hover:bg-primarydark"
+                              >
+                                Export to CSV
+                              </button>
+                            </div>
                             {loadingAttendees ? (
                               <Preloader />
-                            ) : Array.isArray(attendees) && attendees.length > 0 ? (
-                              attendees.map((attendee: UserProfile, index: number) => (
+                            ) : filteredAttendees && filteredAttendees.length > 0 ? (
+                              filteredAttendees.map((attendee: UserProfile, index: number) => (
                                 <div key={index} className="flex items-center space-x-3">
                                   <div className="relative h-8 w-8 flex-shrink-0">
                                     <img

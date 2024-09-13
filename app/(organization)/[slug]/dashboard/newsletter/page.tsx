@@ -1,7 +1,14 @@
 "use client";
 
 import { useUser } from "@/context/user_context";
-import { fetchEventsByOrganization, fetchMembersByEvent, fetchMembersByOrganization, fetchOrganizationBySlug, fetchSentEmailsByAdmin, sendNewsletter } from "@/lib/newsletter_actions";
+import {
+  fetchEventsByOrganization,
+  fetchMembersByEvent,
+  fetchMembersByOrganization,
+  fetchOrganizationBySlug,
+  fetchSentEmailsByAdmin,
+  sendNewsletter,
+} from "@/lib/newsletter_actions";
 import { CombinedUserData } from "@/types/combined_user_data";
 import { Email } from "@/types/email";
 import { Event } from "@/types/event";
@@ -10,16 +17,15 @@ import React, { useEffect, useState } from "react";
 import DataTable from "react-data-table-component";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import "react-quill/dist/quill.snow.css";
+// import "react-quill/dist/quill.snow.css";
 import dynamic from "next/dynamic";
 import { z } from "zod";
-
-const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
+import ReactQuill from "react-quill";
 
 const newsletterSchema = z.object({
   subject: z
     .string()
-    .nonempty({ message: "Subject field is required" })
+    .min(1, { message: "Subject field is required" })
     .max(100, { message: "Subject cannot exceed 100 characters" }),
   content: z
     .string()
@@ -72,21 +78,45 @@ export default function NewsletterPage() {
   const eventColumns = [
     { name: "Title", selector: (row: Event) => row.title, sortable: true },
     { name: "Location", selector: (row: Event) => row.location, sortable: true },
-    { name: "Start Date", selector: (row: Event) => new Date(row.starteventdatetime).toLocaleString(), sortable: true },
-    { name: "End Date", selector: (row: Event) => new Date(row.endeventdatetime).toLocaleString(), sortable: true },
+    {
+      name: "Start Date",
+      selector: (row: Event) => new Date(row.starteventdatetime).toLocaleString(),
+      sortable: true,
+    },
+    {
+      name: "End Date",
+      selector: (row: Event) => new Date(row.endeventdatetime).toLocaleString(),
+      sortable: true,
+    },
   ];
 
   const userColumns = [
-    { name: "Email", selector: (row: CombinedUserData) => row.email || "", sortable: true },
-    { name: "First Name", selector: (row: CombinedUserData) => row.first_name || "", sortable: true },
-    { name: "Last Name", selector: (row: CombinedUserData) => row.last_name || "", sortable: true },
+    {
+      name: "Email",
+      selector: (row: CombinedUserData) => row.email || "",
+      sortable: true,
+    },
+    {
+      name: "First Name",
+      selector: (row: CombinedUserData) => row.first_name || "",
+      sortable: true,
+    },
+    {
+      name: "Last Name",
+      selector: (row: CombinedUserData) => row.last_name || "",
+      sortable: true,
+    },
   ];
 
   const emailColumns = [
     { name: "Subject", selector: (row: Email) => row.subject, sortable: true },
     { name: "Receiver", selector: (row: Email) => row.receiver, sortable: true },
     { name: "Status", selector: (row: Email) => row.status, sortable: true },
-    { name: "Date Sent", selector: (row: Email) => new Date(row.date_created).toLocaleString(), sortable: true },
+    {
+      name: "Date Sent",
+      selector: (row: Email) => new Date(row.date_created).toLocaleString(),
+      sortable: true,
+    },
   ];
 
   // Custom styles for dark mode
@@ -112,7 +142,7 @@ export default function NewsletterPage() {
       style: {
         backgroundColor: "#2a2a2a",
         color: "#ffffff",
-        '&:hover': {
+        "&:hover": {
           backgroundColor: "#3e3e3e",
         },
       },
@@ -135,7 +165,7 @@ export default function NewsletterPage() {
     <>
       <ToastContainer position="bottom-right" autoClose={5000} theme="dark" />
       <div className="bg-raisin mb-40 max-w-full space-y-6 rounded-lg p-10 font-sans text-white">
-        <h1 className="text-3xl border-b-2 border-primary pb-4">Newsletter Creation</h1>
+        <h1 className="border-b-2 border-primary pb-4 text-3xl">Newsletter Creation</h1>
 
         <input
           className="w-full rounded border bg-charleston p-4 text-base focus:border-primary"
@@ -145,9 +175,14 @@ export default function NewsletterPage() {
           onChange={(e) => setSubject(e.target.value)}
         />
 
-        <ReactQuill theme="snow" value={editorState} onChange={setEditorState} className="rounded border border-primary p-2 text-white" />
+        {/* <ReactQuill
+          theme="snow"
+          value={editorState}
+          onChange={setEditorState}
+          className="rounded border border-primary p-2 text-white"
+        /> */}
 
-        <h2 className="text-2xl border-b-2 border-primary pb-4">Select Recipients</h2>
+        <h2 className="border-b-2 border-primary pb-4 text-2xl">Select Recipients</h2>
 
         <details>
           <summary className="cursor-pointer text-lg">Events</summary>
@@ -173,11 +208,15 @@ export default function NewsletterPage() {
           />
         </details>
 
-        <button onClick={handleSendNewsletter} className="mt-6 cursor-pointer rounded bg-primary px-6 py-3 text-lg text-white" disabled={sending}>
+        <button
+          onClick={handleSendNewsletter}
+          className="mt-6 cursor-pointer rounded bg-primary px-6 py-3 text-lg text-white"
+          disabled={sending}
+        >
           {sending ? "Sending..." : "Send Newsletter"}
         </button>
 
-        <h2 className="text-2xl border-b-2 border-primary pb-4">Sent Emails</h2>
+        <h2 className="border-b-2 border-primary pb-4 text-2xl">Sent Emails</h2>
         <DataTable
           columns={emailColumns}
           data={sentEmails}
