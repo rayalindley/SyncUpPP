@@ -53,12 +53,12 @@ export default function EventOptions({
   userId: string;
 }) {
   const [currentTab, setCurrentTab] = useState("Info");
-  const [attendees, setAttendees] = useState<UserProfile | null>(null);
+  const [attendees, setAttendees] = useState<UserProfile[] | null>(null);
   const [loadingAttendees, setLoadingAttendees] = useState(false);
   const [canEditEvents, setCanEditEvents] = useState(false);
   const [canDeleteEvents, setCanDeleteEvents] = useState(false);
   const [filteredAttendees, setFilteredAttendees] = useState<UserProfile[] | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   const deleteBtn = () => {
     Swal.fire({
@@ -146,7 +146,9 @@ export default function EventOptions({
     if (currentTab === "Attendees") {
       const fetchAttendees = async () => {
         setLoadingAttendees(true);
-        const { users, error } = await fetchRegisteredUsersForEvent(selectedEvent.eventid);
+        const { users, error } = await fetchRegisteredUsersForEvent(
+          selectedEvent.eventid
+        );
         setLoadingAttendees(false);
         if (!error) {
           setAttendees(users);
@@ -187,7 +189,7 @@ export default function EventOptions({
     checkPermissions();
   }, [userId, selectedEvent.organizationid]);
 
-  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearch = (event: React.ChangeEvent) => {
     const query = event.target.value.toLowerCase();
     setSearchQuery(query);
     if (Array.isArray(attendees)) {
@@ -210,18 +212,21 @@ export default function EventOptions({
 
     const csvContent = [
       ["First Name", "Last Name"],
-      ...(Array.isArray(attendees) ? attendees.map((attendee: UserProfile) => [
-        attendee.first_name,
-        attendee.last_name,
-      ]) : []),
+      ...(Array.isArray(attendees)
+        ? attendees.map((attendee: UserProfile) => [
+            attendee.first_name,
+            attendee.last_name,
+          ])
+        : []),
     ]
       .map((row) => row.join(","))
       .join("\n");
 
     const currentDate = format(new Date(), "yyyyMMdd"); // Format date as yyyyMMdd
-    const fileName = `${selectedEvent.title}_${selectedEvent.eventslug}_${currentDate}.csv`
-      .replace(/ /g, "_")
-      .toLowerCase(); // Format file name: remove spaces, lowercase
+    const fileName =
+      `${selectedEvent.title}_${selectedEvent.eventslug}_${currentDate}.csv`
+        .replace(/ /g, "_")
+        .toLowerCase(); // Format file name: remove spaces, lowercase
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     saveAs(blob, fileName);
@@ -249,7 +254,7 @@ export default function EventOptions({
           <Menu.Items className="fixed right-[80px] z-[100] mt-2 w-56 origin-top-left divide-y divide-[#525252] rounded-md bg-charleston shadow-lg ring-1 ring-charleston ring-opacity-5 focus:outline-none">
             <div className="py-1">
               <Menu.Item>
-                {({ active }) => (
+                {({ active }: { active: boolean }) => (
                   <a
                     href="#"
                     className={classNames(
@@ -271,7 +276,7 @@ export default function EventOptions({
               </Menu.Item>
               {canEditEvents && (
                 <Menu.Item>
-                  {({ active }) => (
+                  {({ active }: { active: boolean }) => (
                     <Link
                       className={classNames(
                         active ? "bg-raisinblack text-light" : "text-light",
@@ -289,7 +294,7 @@ export default function EventOptions({
                 </Menu.Item>
               )}
               <Menu.Item>
-                {({ active }) => (
+                {({ active }: { active: boolean }) => (
                   <a
                     href="#"
                     className={classNames(
@@ -313,7 +318,7 @@ export default function EventOptions({
             <div className="py-1">
               {canDeleteEvents && (
                 <Menu.Item>
-                  {({ active }) => (
+                  {({ active }: { active: boolean }) => (
                     <a
                       href="#"
                       className={classNames(
@@ -605,7 +610,7 @@ export default function EventOptions({
                             </div>
                           </>
                         )}
-                       {currentTab === "Attendees" && (
+                        {currentTab === "Attendees" && (
                           <div className="space-y-4">
                             <div className="flex justify-between">
                               <input
@@ -625,18 +630,23 @@ export default function EventOptions({
                             {loadingAttendees ? (
                               <Preloader />
                             ) : filteredAttendees && filteredAttendees.length > 0 ? (
-                              filteredAttendees.map((attendee: UserProfile, index: number) => (
-                                <div key={index} className="flex items-center space-x-3">
-                                  <div className="relative h-8 w-8 flex-shrink-0">
-                                    <img
-                                      className="h-8 w-8 rounded-full object-cover"
-                                      src={`${supabaseStorageBaseUrl}/${attendee.profilepicture}`}
-                                      alt={`${attendee.first_name} ${attendee.last_name}`}
-                                    />
+                              filteredAttendees.map(
+                                (attendee: UserProfile, index: number) => (
+                                  <div
+                                    key={index}
+                                    className="flex items-center space-x-3"
+                                  >
+                                    <div className="relative h-8 w-8 flex-shrink-0">
+                                      <img
+                                        className="h-8 w-8 rounded-full object-cover"
+                                        src={`${supabaseStorageBaseUrl}/${attendee.profilepicture}`}
+                                        alt={`${attendee.first_name} ${attendee.last_name}`}
+                                      />
+                                    </div>
+                                    <div>{`${attendee.first_name} ${attendee.last_name}`}</div>
                                   </div>
-                                  <div>{`${attendee.first_name} ${attendee.last_name}`}</div>
-                                </div>
-                              ))
+                                )
+                              )
                             ) : (
                               <div>No attendees registered for this event.</div>
                             )}
