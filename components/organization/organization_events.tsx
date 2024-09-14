@@ -39,7 +39,11 @@ interface OrganizationEventsComponentProps {
   organizationId: string;
 }
 
-const OrganizationEventsComponent: React.FC = ({ events, userid, organizationId }) => {
+const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = ({
+  events,
+  userid,
+  organizationId,
+}) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isAdmin, setIsAdmin] = useState(false);
   const [organizationSlug, setOrganizationSlug] = useState<string | null>(null);
@@ -155,118 +159,118 @@ const OrganizationEventsComponent: React.FC = ({ events, userid, organizationId 
   const isLastPage = indexOfLastEvent >= filteredEvents.length;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-3xl text-center">
-        <p className="mt-2 text-2xl font-bold tracking-tight text-light sm:text-3xl">
+    <div className="mx-auto max-w-7xl px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl text-center">
+        <p className="mt-2 text-2xl font-bold tracking-tight text-light sm:text-2xl lg:mx-32 lg:px-96">
           Our Events
         </p>
       </div>
 
-      <div className="mx-auto mt-6 max-w-3xl">
-        <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-          <div className="relative flex-grow">
-            <input
-              type="text"
-              placeholder="Search events..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-md border border-charleston bg-charleston p-2 pl-10 pr-4 text-sm text-light focus:border-primary focus:ring-primary"
-            />
-            <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
-              <MagnifyingGlassIcon className="h-5 w-5 text-gray-500" aria-hidden="true" />
-            </div>
+      {/* Search, Sort, Filter, and Create Event Button */}
+      <div className="mx-auto mt-6 flex max-w-3xl justify-between">
+        <div className="relative flex-grow">
+          <input
+            type="text"
+            placeholder="Search events..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full rounded-md border border-charleston bg-charleston p-2 pl-10 pr-4 text-sm text-light focus:border-primary focus:ring-primary"
+          />
+          <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
+            <MagnifyingGlassIcon className="h-5 w-5 text-gray-500" aria-hidden="true" />
           </div>
+        </div>
 
-          <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:space-x-4 sm:space-y-0">
-            {/* Sort Menu */}
-            <Menu as="div" className="relative">
-              <Menu.Button className="flex items-center text-sm font-medium text-light">
-                Sort by
+        <div className="flex items-center space-x-4 pl-8">
+          {/* Sort Menu */}
+          <Menu as="div" className="relative">
+            <Menu.Button className="flex items-center text-sm font-medium text-light">
+              Sort by
+              <ChevronDownIcon className="ml-1 h-5 w-5" />
+            </Menu.Button>
+            <Menu.Items className="absolute right-0 z-50 mt-2 w-44 rounded-md bg-charleston shadow-lg">
+              {sortOptions.map((option) => (
+                <Menu.Item key={option.value}>
+                  {({ active }) => (
+                    <div
+                      onClick={() => setSortOption(option.value)}
+                      className={`cursor-pointer px-4 py-2 text-sm ${
+                        sortOption === option.value
+                          ? "bg-primary text-white"
+                          : active
+                            ? "bg-[#383838] text-light"
+                            : "text-light"
+                      }`}
+                    >
+                      {option.name}
+                    </div>
+                  )}
+                </Menu.Item>
+              ))}
+            </Menu.Items>
+          </Menu>
+
+          {/* Filter Popovers */}
+          <Popover.Group className="flex items-center space-x-4">
+            <Popover className="relative">
+              <Popover.Button className="flex items-center text-sm font-medium text-light">
+                Status
                 <ChevronDownIcon className="ml-1 h-5 w-5" />
-              </Menu.Button>
-              <Menu.Items className="absolute right-0 z-50 mt-2 w-44 rounded-md bg-charleston shadow-lg">
-                {sortOptions.map((option) => (
-                  <Menu.Item key={option.value}>
-                    {({ active }) => (
-                      <div
-                        onClick={() => setSortOption(option.value)}
-                        className={`cursor-pointer px-4 py-2 text-sm ${
-                          sortOption === option.value
-                            ? "bg-primary text-white"
-                            : active
-                              ? "bg-[#383838] text-light"
-                              : "text-light"
-                        }`}
-                      >
-                        {option.name}
-                      </div>
-                    )}
-                  </Menu.Item>
+              </Popover.Button>
+
+              <Popover.Panel className="absolute right-0 z-50 mt-2 w-36 rounded-md bg-charleston shadow-lg">
+                {eventStatusFilters.map((filter) => (
+                  <div
+                    key={filter.value}
+                    onClick={() => setEventStatusFilter(filter.value)}
+                    className={`cursor-pointer px-4 py-2 text-sm ${
+                      eventStatusFilter === filter.value
+                        ? "bg-primary text-white"
+                        : "text-light hover:bg-[#383838]"
+                    }`}
+                  >
+                    {filter.name}
+                  </div>
                 ))}
-              </Menu.Items>
-            </Menu>
+              </Popover.Panel>
+            </Popover>
 
-            {/* Filter Popovers */}
-            <Popover.Group className="flex items-center space-x-4">
-              <Popover className="relative">
-                <Popover.Button className="flex items-center text-sm font-medium text-light">
-                  Status
-                  <ChevronDownIcon className="ml-1 h-5 w-5" />
-                </Popover.Button>
+            <Popover className="relative">
+              <Popover.Button className="flex items-center text-sm font-medium text-light">
+                Privacy
+                <ChevronDownIcon className="ml-1 h-5 w-5" />
+              </Popover.Button>
+              <Popover.Panel className="absolute right-0 z-50 mt-2 w-36 rounded-md bg-charleston shadow-lg">
+                {eventPrivacyFilters.map((filter) => (
+                  <div
+                    key={filter.value}
+                    onClick={() => setEventPrivacyFilter(filter.value)}
+                    className={`cursor-pointer px-4 py-2 text-sm ${
+                      eventPrivacyFilter === filter.value
+                        ? "bg-primary text-white"
+                        : "text-light hover:bg-[#383838]"
+                    }`}
+                  >
+                    {filter.name}
+                  </div>
+                ))}
+              </Popover.Panel>
+            </Popover>
+          </Popover.Group>
 
-                <Popover.Panel className="absolute right-0 z-50 mt-2 w-36 rounded-md bg-charleston shadow-lg">
-                  {eventStatusFilters.map((filter) => (
-                    <div
-                      key={filter.value}
-                      onClick={() => setEventStatusFilter(filter.value)}
-                      className={`cursor-pointer px-4 py-2 text-sm ${
-                        eventStatusFilter === filter.value
-                          ? "bg-primary text-white"
-                          : "text-light hover:bg-[#383838]"
-                      }`}
-                    >
-                      {filter.name}
-                    </div>
-                  ))}
-                </Popover.Panel>
-              </Popover>
-
-              <Popover className="relative">
-                <Popover.Button className="flex items-center text-sm font-medium text-light">
-                  Privacy
-                  <ChevronDownIcon className="ml-1 h-5 w-5" />
-                </Popover.Button>
-                <Popover.Panel className="absolute right-0 z-50 mt-2 w-36 rounded-md bg-charleston shadow-lg">
-                  {eventPrivacyFilters.map((filter) => (
-                    <div
-                      key={filter.value}
-                      onClick={() => setEventPrivacyFilter(filter.value)}
-                      className={`cursor-pointer px-4 py-2 text-sm ${
-                        eventPrivacyFilter === filter.value
-                          ? "bg-primary text-white"
-                          : "text-light hover:bg-[#383838]"
-                      }`}
-                    >
-                      {filter.name}
-                    </div>
-                  ))}
-                </Popover.Panel>
-              </Popover>
-            </Popover.Group>
-
-            {/* Create Event Button */}
-            {canCreateEvents && (
-              <Link
-                href={`/events/create/${organizationSlug}`}
-                className="hover:bg-primary-dark rounded-lg bg-primary px-4 py-2 text-white sm:ml-4"
-              >
-                Create Event
-              </Link>
-            )}
-          </div>
+          {/* Create Event Button */}
+          {canCreateEvents && (
+            <Link
+              href={`/events/create/${organizationSlug}`}
+              className="hover:bg-primary-dark ml-4 rounded-lg bg-primary px-4 py-2 text-white"
+            >
+              Create Event
+            </Link>
+          )}
         </div>
       </div>
 
+      {/* Event Cards */}
       <div className="isolate mx-auto mt-8 grid max-w-lg grid-cols-1 justify-items-center gap-x-1 gap-y-8 sm:mt-12 md:mx-auto md:max-w-lg md:grid-cols-2 md:gap-x-4 lg:mx-0 lg:max-w-none lg:grid-cols-4">
         {currentEvents.map((event: any, index: number) => (
           <EventsCard
@@ -302,7 +306,8 @@ const OrganizationEventsComponent: React.FC = ({ events, userid, organizationId 
         </div>
       )}
 
-      <nav className="mt-8 flex items-center justify-between border-t border-gray-200 px-4 sm:px-0">
+      {/* Pagination */}
+      <nav className="flex items-center justify-between border-t border-gray-200 px-4 sm:px-0">
         <div className="-mt-px flex w-0 flex-1">
           <button
             disabled={isFirstPage}

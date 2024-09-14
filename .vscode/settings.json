@@ -11,7 +11,6 @@
     "**/build": true,
     "**/node_modules": true,
     "next-env.d.ts": true,
-
     "package-lock.json": true,
     "pnpm-lock.yaml": true,
     ".editorconfig": true,
@@ -21,5 +20,21 @@
     "postcss.config.js": true
   },
   "typescript.tsdk": "./node_modules/typescript/lib",
-  "files.eol": "\n"
+  "files.eol": "\n",
+  "editor.formatOnSave": false, // Disables formatting on save
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": false,
+    "source.fixAll": false
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": null // Disables default formatter for TypeScript
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": null // Disables default formatter for TypeScript React (TSX)
+  },
+  "editor.tabSize": 2, // Sets the tab size to 2 spaces
+  "editor.insertSpaces": true, // Converts tabs to spaces
+  "prettier.disableLanguages": ["typescript", "typescriptreact"], // Disables Prettier for TypeScript and TSX
+  "eslint.autoFixOnSave": false, // Disables ESLint auto-fix on save
+  "editor.codeLens": true // Enables CodeLens for better insights into your code
 }

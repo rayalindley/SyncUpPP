@@ -46,7 +46,7 @@ interface PostsSectionProps {
   organizationId: string;
 }
 
-const PostsSection: React.FC = ({ organizationId }) => {
+const PostsSection: React.FC<PostsSectionProps> = ({ organizationId }) => {
   const { user } = useUser();
   const [posts, setPosts] = useState<Posts[]>([]);
   const [editingPost, setEditingPost] = useState<Posts | null>(null);
@@ -137,7 +137,7 @@ const PostsSection: React.FC = ({ organizationId }) => {
     fetchPermissions();
   }, [fetchUserPosts, fetchRolesAndMembershipsData, fetchPermissions]);
 
-  const handleFileChange = async (event: React.ChangeEvent) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     setPhotoFiles(files);
     const newPhotos = files.map((file) => URL.createObjectURL(file));
@@ -557,7 +557,16 @@ const PostsSection: React.FC = ({ organizationId }) => {
 
 PostsSection.displayName = "PostsSection";
 
-const PostCard: React.FC = memo(
+const PostCard: React.FC<{
+  post: Posts;
+  setPosts: React.Dispatch<React.SetStateAction<Posts[]>>;
+  setEditingPost: React.Dispatch<React.SetStateAction<Posts | null>>;
+  availableRoles: { id: string; name: string }[];
+  availableMemberships: { membershipid: string; name: string }[];
+  canEdit: boolean;
+  canDelete: boolean;
+  organizationId: string;
+}> = memo(
   ({
     post,
     setPosts,

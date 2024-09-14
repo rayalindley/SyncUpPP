@@ -1,30 +1,42 @@
 {
   "compilerOptions": {
+    "target": "es2020", // Supports modern JavaScript features
     "lib": [
-      "es2020", // or any other valid value from the list
-      "dom"
-    ],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "incremental": true,
-    "downlevelIteration": true,
+      "dom",
+      "es2020"
+    ], // Includes 'dom' and 'es2020' for browser and modern JS features
+    "allowJs": false, // Disable JavaScript support since you're using TypeScript
+    "skipLibCheck": true, // Skips type checking for declaration files for faster builds
+    "strict": true, // Enables strict type checking
+    "noEmit": true, // Ensures no output files are created (Next.js handles this)
+    "esModuleInterop": true, // Ensures compatibility with CommonJS modules
+    "module": "esnext", // Uses modern ES modules
+    "moduleResolution": "node", // Uses Node's module resolution strategy
+    "resolveJsonModule": true, // Allows importing JSON files
+    "isolatedModules": true, // Necessary for Next.js (one module per file)
+    "jsx": "preserve", // Supports JSX in `.tsx` files for React
+    "incremental": true, // Enables faster incremental compilation
+    "downlevelIteration": true, // Supports down-level emitting of iteration (e.g., for...of)
     "plugins": [
       {
-        "name": "next"
+        "name": "next" // Next.js specific TypeScript plugin
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": [
+        "./*"
+      ] // Allows alias '@/' for easier imports
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "models", "services"]
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ], // Includes TypeScript files and Next.js types
+  "exclude": [
+    "node_modules",
+    "models",
+    "services"
+  ] // Excludes node_modules and other folders not required in compilation
 }
