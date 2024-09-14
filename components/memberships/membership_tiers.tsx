@@ -272,7 +272,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
                 value={option}
                 className={({ checked }) =>
                   classNames(
-                    checked ? "bg-indigo-600 text-white" : "text-gray-500",
+                    checked ? "bg-primary text-white" : "text-gray-500",
                     "cursor-pointer rounded-full px-2.5 py-1"
                   )
                 }
