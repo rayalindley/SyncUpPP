@@ -18,7 +18,7 @@ const features = [
   {
     name: "Event Management",
     description:
-      "Manage memberships seamlessly with tools for enrollment, profiles, and verification, ensuring accuracy and efficiency.",
+      "Easily create and manage events with tools for tracking and monitoring attendance",
     icon: CalendarIcon,
   },
   {
