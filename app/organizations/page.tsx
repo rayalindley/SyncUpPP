@@ -61,7 +61,7 @@ export default function OrganizationUserView() {
   const [industryFilter, setIndustryFilter] = useState(""); // Industry filter
   const [sortOption, setSortOption] = useState("most-popular"); // Sort option state
   const [currentPage, setCurrentPage] = useState(1);
-  const organizationsPerPage = 6;
+  const organizationsPerPage = 5;
 
   useEffect(() => {
     async function fetchUserAndOrganizations() {
@@ -159,9 +159,9 @@ export default function OrganizationUserView() {
   const isLastPage = indexOfLastOrganization >= filteredOrganizations.length;
 
   return (
-    <div>
+    <div className="flex min-h-screen flex-col">
       <Header user={user} />
-      <main className="isolate flex flex-col items-center px-4 sm:px-6 md:px-8 lg:px-12">
+      <main className="isolate flex flex-grow flex-col items-center px-4 sm:px-6 md:px-8 lg:px-12">
         <div className="relative w-full max-w-7xl">
           <div className="mt-4 sm:mt-8 md:mt-12 lg:mt-16">
             <h1 className="text-center text-2xl font-bold text-light sm:text-3xl md:text-4xl">
@@ -299,57 +299,59 @@ export default function OrganizationUserView() {
         </div>
 
         {/* Pagination */}
-        <nav className="mt-6 flex w-full max-w-7xl items-center justify-between border-t border-gray-200 px-2 pt-4 sm:mt-8 sm:px-4 md:mt-10">
-          <div className="-mt-px flex w-0 flex-1">
-            <button
-              disabled={isFirstPage}
-              onClick={() => paginate(currentPage - 1)}
-              className={`inline-flex items-center border-t-2 border-transparent pr-1 pt-4 text-sm font-medium ${
-                isFirstPage
-                  ? "cursor-not-allowed text-gray-500"
-                  : "text-light hover:border-primary hover:text-primary"
-              }`}
-            >
-              <ArrowLongLeftIcon className="mr-3 h-5 w-5 text-light" aria-hidden="true" />
-              Previous
-            </button>
-          </div>
-          <div className="hidden md:-mt-px md:flex">
-            {Array.from(
-              { length: Math.ceil(filteredOrganizations.length / organizationsPerPage) },
-              (_, index) => (
-                <button
-                  key={index}
-                  onClick={() => paginate(index + 1)}
-                  className={`inline-flex items-center border-t-2 border-transparent px-4 pt-4 text-sm font-medium ${
-                    currentPage === index + 1
-                      ? "border-primarydark text-primary"
-                      : "text-light hover:border-primary hover:text-primary"
-                  }`}
-                >
-                  {index + 1}
-                </button>
-              )
-            )}
-          </div>
-          <div className="-mt-px flex w-0 flex-1 justify-end">
-            <button
-              disabled={isLastPage}
-              onClick={() => paginate(currentPage + 1)}
-              className={`inline-flex items-center border-t-2 border-transparent pl-1 pt-4 text-sm font-medium ${
-                isLastPage
-                  ? "cursor-not-allowed text-gray-500"
-                  : "text-light hover:border-primary hover:text-primary"
-              }`}
-            >
-              Next
-              <ArrowLongRightIcon
-                className="ml-3 h-5 w-5 text-light"
-                aria-hidden="true"
-              />
-            </button>
-          </div>
-        </nav>
+              {filteredOrganizations.length > organizationsPerPage && (
+                        <nav className="mt-6 flex w-full max-w-7xl items-center justify-between border-t border-gray-200 px-2  sm:mt-8 sm:px-4 md:mt-10">
+                        <div className="-mt-px flex w-0 flex-1">
+                          <button
+                            disabled={isFirstPage}
+                            onClick={() => paginate(currentPage - 1)}
+                            className={`inline-flex items-center border-t-2 border-transparent pr-1 pt-4 text-sm font-medium ${
+                              isFirstPage
+                                ? "cursor-not-allowed text-gray-500"
+                                : "text-light hover:border-primary hover:text-primary"
+                            }`}
+                          >
+                            <ArrowLongLeftIcon className="mr-3 h-5 w-5 text-light" aria-hidden="true" />
+                            Previous
+                          </button>
+                        </div>
+                        <div className="hidden md:-mt-px md:flex">
+                          {Array.from(
+                            { length: Math.ceil(filteredOrganizations.length / organizationsPerPage) },
+                            (_, index) => (
+                              <button
+                                key={index}
+                                onClick={() => paginate(index + 1)}
+                                className={`inline-flex items-center border-t-2 border-transparent px-4 pt-4 text-sm font-medium ${
+                                  currentPage === index + 1
+                                    ? "border-primarydark text-primary"
+                                    : "text-light hover:border-primary hover:text-primary"
+                                }`}
+                              >
+                                {index + 1}
+                              </button>
+                            )
+                          )}
+                        </div>
+                        <div className="-mt-px flex w-0 flex-1 justify-end">
+                          <button
+                            disabled={isLastPage}
+                            onClick={() => paginate(currentPage + 1)}
+                            className={`inline-flex items-center border-t-2 border-transparent pl-1 pt-4 text-sm font-medium ${
+                              isLastPage
+                                ? "cursor-not-allowed text-gray-500"
+                                : "text-light hover:border-primary hover:text-primary"
+                            }`}
+                          >
+                            Next
+                            <ArrowLongRightIcon
+                              className="ml-3 h-5 w-5 text-light"
+                              aria-hidden="true"
+                            />
+                          </button>
+                        </div>
+                      </nav>
+              )}
       </main>
       <Footer />
     </div>

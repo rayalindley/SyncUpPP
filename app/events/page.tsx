@@ -69,52 +69,64 @@ export default function EventsPublicView() {
 
   // Filter and sort events based on search query and filters
   const filteredEvents = events
-    .filter((event) => {
-      const matchesSearchQuery = event.title
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase());
+  .filter((event: any) => {
+    const matchesSearchQuery = event.title
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
 
-      const isUpcoming =
-        eventStatusFilter === "Open" && new Date(event.starteventdatetime) > now;
-      const isOngoing =
-        eventStatusFilter === "Ongoing" &&
-        new Date(event.starteventdatetime) <= now &&
-        new Date(event.endeventdatetime) > now;
-      const isCompleted =
-        eventStatusFilter === "Closed" && new Date(event.endeventdatetime) < now;
+    const isUpcoming =
+      eventStatusFilter === "Open" && new Date(event.starteventdatetime) > now;
+    const isOngoing =
+      eventStatusFilter === "Ongoing" &&
+      new Date(event.starteventdatetime) <= now &&
+      new Date(event.endeventdatetime) > now;
+    const isCompleted =
+      eventStatusFilter === "Closed" && new Date(event.endeventdatetime) < now;
 
-      const matchesStatus =
-        eventStatusFilter === "" || isUpcoming || isOngoing || isCompleted;
+    const matchesStatus =
+      eventStatusFilter === "" || isUpcoming || isOngoing || isCompleted;
 
-      // Check for privacy filter
-      const matchesPrivacy =
-        eventPrivacyFilter === "" ||
-        (event.privacy?.type === eventPrivacyFilter &&
-          (eventPrivacyFilter === "public" || eventPrivacyFilter === "private"));
+    // Adjusted privacy logic based on the new structure of the privacy object
+    const eventPrivacy = event.privacy || {};
+    const isPublic = eventPrivacy.type === "public";
+    const isPrivate = eventPrivacy.type === "private";
 
-      return matchesSearchQuery && matchesStatus && matchesPrivacy;
-    })
-    .sort((a, b) => {
-      // Sort by selected option (title or event date)
-      switch (sortOption) {
-        case "title-asc":
-          return a.title.localeCompare(b.title);
-        case "title-desc":
-          return b.title.localeCompare(a.title);
-        case "date-asc":
-          return (
-            new Date(a.starteventdatetime).getTime() -
-            new Date(b.starteventdatetime).getTime()
-          );
-        case "date-desc":
-          return (
-            new Date(b.starteventdatetime).getTime() -
-            new Date(a.starteventdatetime).getTime()
-          );
-        default:
-          return 0;
-      }
-    });
+    let matchesPrivacy = false;
+
+    if (eventPrivacyFilter === "") {
+      // No privacy filter applied, so show all events
+      matchesPrivacy = true;
+    } else if (eventPrivacyFilter === "public") {
+      // Match public events
+      matchesPrivacy = isPublic;
+    } else if (eventPrivacyFilter === "private") {
+      // Match private events (check if it's private and if roles or memberships match)
+      matchesPrivacy = isPrivate;
+    }
+
+    return matchesSearchQuery && matchesStatus && matchesPrivacy;
+  })
+  .sort((a: any, b: any) => {
+    switch (sortOption) {
+      case "title-asc":
+        return a.title.localeCompare(b.title);
+      case "title-desc":
+        return b.title.localeCompare(a.title);
+      case "date-asc":
+        return (
+          new Date(a.starteventdatetime).getTime() -
+          new Date(b.starteventdatetime).getTime()
+        );
+      case "date-desc":
+        return (
+          new Date(b.starteventdatetime).getTime() -
+          new Date(a.starteventdatetime).getTime()
+        );
+      default:
+        return 0;
+    }
+  });
+
 
   // Pagination
   const indexOfLastEvent = currentPage * eventsPerPage;
