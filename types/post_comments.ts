@@ -6,7 +6,7 @@ export interface PostComments {
   created_at: string;
   postid: string;
   authorid?: string;
-  comment?: string;
+  comment: string;
   posts?: Posts;
   combined_user_data?: CombinedUserData;
 }

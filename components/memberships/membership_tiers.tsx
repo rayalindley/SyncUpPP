@@ -214,15 +214,6 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
           } else {
             toast.success("Invoice created successfully.");
 
-            console.log({
-              amount: amount,
-              invoiceId: invoice.id,
-              organizationId: organizationid,
-              type: "membership",
-              invoiceUrl: invoice.invoiceUrl,
-              invoiceData: invoice,
-            });
-
             const { data, error } = await supabase
               .from("payments")
               .insert([

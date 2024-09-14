@@ -175,6 +175,8 @@ export async function fetchOrganizationsForUser(userId: string) {
 
 export async function getUserOrganizationInfo(userId: string, organizationid: string) {
   const supabase = createClient();
+  // console.log("orgaiztion.ts userId", userId);
+  // console.log("orgaiztion.ts organizationid", organizationid);
 
   const { data, error } = await supabase
     .rpc("get_user_organization_info", {
