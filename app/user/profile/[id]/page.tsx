@@ -15,6 +15,8 @@ import { User } from "@supabase/auth-js";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { getUserMembership } from "@/lib/memberships";
+import { fetchOrganizationsForUser, fetchOrganizationsJoinedByUser } from "@/lib/organization";
 
 export default function ProfilePage() {
   const { id } = useParams() as { id: string };
@@ -51,11 +53,10 @@ export default function ProfilePage() {
           console.error("Error fetching user events:", eventsError);
         }
 
-        // Fetch user organizations using summary
-        const { data: organizationsData, error: organizationsError } = await supabase
-          .from("organization_summary")
-          .select("*")
-          .eq("adminid", user.id);
+        // Fetch user organizations
+        const { data: organizationsData, error: organizationsError } = await fetchOrganizationsJoinedByUser(
+          user.id
+        );
         if (organizationsData) {
           setUserOrganizations(organizationsData);
         } else {
