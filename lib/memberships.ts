@@ -181,7 +181,7 @@ export async function fetchOrgMemBySlug(slug: string | string[]) {
   }
 
   // console.log("memberships.ts: Fetched organization memberships by slug:", org_memberships);
-  return org_memberships || [];
+  return org_memberships ;
 }
 
 export async function fetchMembersBySlug(slug: string) {
