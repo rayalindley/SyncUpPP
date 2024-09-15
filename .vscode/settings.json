@@ -23,8 +23,8 @@
   "files.eol": "\n",
   "editor.formatOnSave": false, // Disables formatting on save
   "editor.codeActionsOnSave": {
-    "source.organizeImports": false,
-    "source.fixAll": false
+    "source.organizeImports": "never",
+    "source.fixAll": "never"
   },
   "[typescript]": {
     "editor.defaultFormatter": null // Disables default formatter for TypeScript
