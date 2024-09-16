@@ -38,6 +38,7 @@ const frequencies: Frequency[] = [
 interface MembershipTiersProps {
   memberships: Membership[];
   userid?: string;
+  organizationid: string; // Add organizationid prop
   isAuthenticated?: boolean;
   onCreateClick?: () => void;
   onDelete?: (membershipId: string) => void;
@@ -52,6 +53,7 @@ function classNames(...classes: string[]) {
 const MembershipTiers: React.FC<MembershipTiersProps> = ({
   memberships,
   userid,
+  organizationid, // Destructure organizationid
   isAuthenticated = false,
   onCreateClick = undefined,
   onDelete = () => {},
@@ -74,7 +76,11 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
       const { data: userMembershipsData, error } = await supabase
         .from("organizationmembers")
         .select("membershipid")
-        .eq("userid", userid);
+        .eq("userid", userid)
+        .eq("organizationid", organizationid)
+        .single(); // Use .single() to get a single record
+
+      console.log("fetchmemberships", userMembershipsData);
 
       if (error) {
         console.error("Error fetching user memberships: ", error);
@@ -82,10 +88,8 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
         return;
       }
 
-      const userMemberships =
-        userMembershipsData?.map(
-          (membership: { membershipid: string }) => membership.membershipid
-        ) || [];
+      // Check if userMembershipsData is not null and extract the membership ID
+      const userMemberships = userMembershipsData ? [userMembershipsData.membershipid] : [];
       setUserMemberships(userMemberships);
       setCurrentMembershipId(userMemberships.length > 0 ? userMemberships[0] : null);
     } catch (error) {
@@ -95,14 +99,14 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
   };
 
   const handleSubscribe = useCallback(
-    async (membershipId: string, organizationid: string) => {
+    async (membershipId: string) => { // Remove organizationid from here
       try {
         // Check if the user is a member of the organization
         const { data: orgMember, error: orgMemberError } = await supabase
           .from("organizationmembers")
           .select("*")
           .eq("userid", userid)
-          .eq("organizationid", organizationid)
+          .eq("organizationid", organizationid) // Use the passed organizationid
           .single();
 
         if (orgMemberError || !orgMember) {
@@ -258,8 +262,9 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
         toast.error("An error occurred. Please try again later.");
       }
     },
-    [userid, userMemberships, frequency, router]
+    [userid, userMemberships, frequency, router, organizationid] // Add organizationid to dependencies
   );
+
 
   return (
     <div>
