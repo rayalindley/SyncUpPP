@@ -23,14 +23,14 @@
   "files.eol": "\n",
   "editor.formatOnSave": false, // Disables formatting on save
   "editor.codeActionsOnSave": {
-    "source.organizeImports": false,
-    "source.fixAll": false
+    "source.organizeImports": "never",
+    "source.fixAll": "never"
   },
   "[typescript]": {
     "editor.defaultFormatter": null // Disables default formatter for TypeScript
   },
   "[typescriptreact]": {
-    "editor.defaultFormatter": null // Disables default formatter for TypeScript React (TSX)
+    "editor.defaultFormatter": "esbenp.prettier-vscode" // Disables default formatter for TypeScript React (TSX)
   },
   "editor.tabSize": 2, // Sets the tab size to 2 spaces
   "editor.insertSpaces": true, // Converts tabs to spaces

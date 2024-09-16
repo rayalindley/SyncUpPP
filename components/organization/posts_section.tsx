@@ -31,8 +31,9 @@ import Swal from "sweetalert2";
 import ImageGallery from "react-image-gallery";
 import "react-image-gallery/styles/css/image-gallery.css";
 import { createClient } from "@/lib/supabase/client";
-
 import { format } from "date-fns";
+import ReactDatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const supabase = createClient();
 
@@ -70,6 +71,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId }) => {
   const [filterByMembership, setFilterByMembership] = useState<string | null>(null);
   const [filterByAuthor, setFilterByAuthor] = useState<boolean>(false);
   const [filterByPublic, setFilterByPublic] = useState<boolean>(false);
+  const [filterByDate, setFilterByDate] = useState<Date | null>(null);
   const [canCreate, setCanCreate] = useState(false);
   const [canEdit, setCanEdit] = useState(false);
   const [canDelete, setCanDelete] = useState(false);
@@ -79,65 +81,80 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId }) => {
 
   const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
 
+  const isLoggedIn = user && user.id && user.id.length > 0;
+
   const fetchPermissions = useCallback(async () => {
-    if (user) {
-      const createPermission = user?.id
-        ? await check_permissions(user.id, organizationId, "create_posts")
-        : false;
-      const editPermission = user?.id
-        ? await check_permissions(user.id, organizationId, "edit_posts")
-        : false;
-      const deletePermission = user?.id
-        ? await check_permissions(user.id, organizationId, "delete_posts")
-        : false;
+    if (!isLoggedIn) {
+      setCanCreate(false);
+      setCanEdit(false);
+      setCanDelete(false);
+      return;
+    }
+
+    try {
+      const [createPermission, editPermission, deletePermission] = await Promise.all([
+        check_permissions(user?.id ?? "", organizationId, "create_posts"),
+        check_permissions(user?.id ?? "", organizationId, "edit_posts"),
+        check_permissions(user?.id ?? "", organizationId, "delete_posts"),
+      ]);
 
       setCanCreate(!!createPermission);
       setCanEdit(!!editPermission);
       setCanDelete(!!deletePermission);
+    } catch (error) {
+      console.error("Error checking permissions", error);
+      setCanCreate(false);
+      setCanEdit(false);
+      setCanDelete(false);
     }
-  }, [user, organizationId]);
+  }, [isLoggedIn, user?.id, organizationId]);
 
-  const fetchUserPosts = useCallback(async () => {
-    const data = await fetchPosts(organizationId, user?.id ?? null);
-    if (data.error) {
-      console.error("Error fetching posts:", data.error.message);
-      setCreationMessage({ text: data.error.message, type: "error" });
+  const fetchData = useCallback(async () => {
+    const [{ data: postData, error: postError }, rolesAndMemberships] = await Promise.all(
+      [
+        fetchPosts(organizationId, user?.id ?? null),
+        fetchRolesAndMemberships(organizationId),
+      ]
+    );
+
+    if (postError) {
+      console.error("Error fetching posts:", postError.message);
+      setCreationMessage({ text: postError.message, type: "error" });
     } else {
       const postsWithPrivacy = await Promise.all(
-        (data.data || []).map(async (post: Posts) => {
-          const roles = await fetchPostRoles(post.postid);
-          const memberships = await fetchPostMemberships(post.postid);
+        (postData || []).map(async (post: Posts) => {
+          const [roles, memberships] = await Promise.all([
+            fetchPostRoles(post.postid),
+            fetchPostMemberships(post.postid),
+          ]);
           return { ...post, roles, memberships, created_at: post.createdat };
         })
       );
-
       setPosts(postsWithPrivacy);
     }
-  }, [organizationId, user?.id]);
 
-  const fetchRolesAndMembershipsData = useCallback(async () => {
-    const { roles, memberships, error } = await fetchRolesAndMemberships(organizationId);
-    if (error) {
-      console.error("Error fetching roles and memberships:", error);
-      setCreationMessage({ text: error, type: "error" });
+    if (rolesAndMemberships.error) {
+      console.error("Error fetching roles and memberships:", rolesAndMemberships.error);
+      setCreationMessage({ text: rolesAndMemberships.error, type: "error" });
     } else {
-      setAvailableRoles(roles.map((role: any) => ({ id: role.id, name: role.name })));
+      setAvailableRoles(
+        rolesAndMemberships.roles.map((role: any) => ({ id: role.id, name: role.name }))
+      );
       setAvailableMemberships(
-        memberships.map((membership: any) => ({
+        rolesAndMemberships.memberships.map((membership: any) => ({
           membershipid: membership.membershipid,
           name: membership.name,
         }))
       );
     }
-  }, [organizationId]);
+  }, [organizationId, user?.id]);
 
   useEffect(() => {
-    fetchUserPosts();
-    fetchRolesAndMembershipsData();
+    fetchData();
     fetchPermissions();
-  }, [fetchUserPosts, fetchRolesAndMembershipsData, fetchPermissions]);
+  }, [fetchData, fetchPermissions]);
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     setPhotoFiles(files);
     const newPhotos = files.map((file) => URL.createObjectURL(file));
@@ -158,10 +175,8 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId }) => {
       const fileName = `post_${Date.now()}-${Math.random().toString(36).substring(7)}`;
       const { data: uploadResult, error } = await supabase.storage
         .from("post-images")
-        .upload(fileName, file, {
-          cacheControl: "3600",
-          upsert: false,
-        });
+        .upload(fileName, file);
+
       if (uploadResult) {
         const imageUrl = `${supabaseStorageBaseUrl}/post-images/${uploadResult.path}`;
         uploadedUrls.push(imageUrl);
@@ -188,6 +203,14 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId }) => {
   };
 
   const onSubmit = async (formData: any) => {
+    if (!isLoggedIn) {
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: "You must be logged in to create or edit posts.",
+      });
+      return;
+    }
     if (!canCreate && !editingPost) {
       Swal.fire({
         icon: "error",
@@ -204,36 +227,31 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId }) => {
       });
       return;
     }
+
     setIsLoading(true);
+
     try {
-      if (!user || !user.id) {
-        console.error("No user found, cannot submit post.");
-        setCreationMessage({
-          text: "You must be logged in to create a post.",
-          type: "error",
-        });
-        setIsLoading(false);
-        return;
+      const selectedRolesUUIDs =
+        formData.selectedRoles
+          ?.map(
+            (roleName: string) =>
+              availableRoles.find((role) => role.name === roleName)?.id
+          )
+          .filter(Boolean) || [];
+
+      const selectedMembershipUUIDs =
+        formData.selectedMemberships
+          ?.map(
+            (membershipName: string) =>
+              availableMemberships.find(
+                (membership) => membership.name === membershipName
+              )?.membershipid
+          )
+          .filter(Boolean) || [];
+
+      if (selectedRolesUUIDs.length === 0 && selectedMembershipUUIDs.length === 0) {
+        setIsPublic(true);
       }
-
-      const selectedRolesUUIDs = formData.selectedRoles
-        .map((roleName: string) => {
-          const matchedRole = availableRoles.find((role) => role.name === roleName);
-          return matchedRole ? matchedRole.id : null;
-        })
-        .filter((id: string | null) => id !== null);
-
-      const selectedMembershipUUIDs = formData.selectedMemberships
-        .map((membershipName: string) => {
-          const matchedMembership = availableMemberships.find(
-            (membership) => membership.name === membershipName
-          );
-          return matchedMembership ? matchedMembership.membershipid : null;
-        })
-        .filter((id: string | null) => id !== null);
-
-      const isPostPublic =
-        selectedRolesUUIDs.length === 0 && selectedMembershipUUIDs.length === 0;
 
       const uploadedPhotoUrls = await uploadPhotosToSupabase();
       if (uploadedPhotoUrls === null) {
@@ -266,7 +284,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId }) => {
           text: editingPost ? "Post updated" : "Post created",
           type: "success",
         });
-        await fetchUserPosts();
+        await fetchData();
       } else {
         console.error("Failed to save post:", result.error);
         setCreationMessage({ text: "Failed to save post", type: "error" });
@@ -278,38 +296,43 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId }) => {
         type: "error",
       });
     }
+
     setIsLoading(false);
     setTimeout(() => setCreationMessage(null), 3000);
   };
 
   const filteredPosts = posts
     .filter((post) => {
-      const matchesSearch = (post.content ?? "")
-        .toLowerCase()
+      const matchesSearch = post.content
+        ?.toLowerCase()
         .includes(searchTerm.toLowerCase());
-      const matchesRole = filterByRole
-        ? post.roles?.includes(filterByRole) ?? false
-        : true;
+      const matchesRole = filterByRole ? post.roles?.includes(filterByRole) : true;
       const matchesMembership = filterByMembership
-        ? post.memberships?.includes(filterByMembership) ?? false
+        ? post.memberships?.includes(filterByMembership)
         : true;
       const matchesAuthor = filterByAuthor ? post.authorid === user?.id : true;
       const matchesPublic = filterByPublic
-        ? post.roles?.length === 0 && post.memberships?.length === 0
+        ? !post.roles?.length && !post.memberships?.length
         : true;
+
+      const matchesDate = filterByDate
+        ? post.createdat &&
+          new Date(post.createdat).toDateString() === filterByDate.toDateString()
+        : true;
+
       return (
         matchesSearch &&
         matchesRole &&
         matchesMembership &&
         matchesAuthor &&
-        matchesPublic
+        matchesPublic &&
+        matchesDate
       );
     })
-    .sort((a, b) => {
-      const dateA = new Date(a.createdat ?? 0).getTime();
-      const dateB = new Date(b.createdat ?? 0).getTime();
-      return dateB - dateA;
-    });
+    .sort(
+      (a, b) =>
+        new Date(b.createdat ?? 0).getTime() - new Date(a.createdat ?? 0).getTime()
+    );
 
   useEffect(() => {
     if (editingPost) {
@@ -317,223 +340,252 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId }) => {
       setPhotos(editingPost.postphotos || []);
       setValue("selectedRoles", editingPost.selectedRoles || []);
       setValue("selectedMemberships", editingPost.selectedMemberships || []);
-
-      const postIsPublic =
-        (editingPost.selectedRoles ?? []).length === 0 &&
-        (editingPost.selectedMemberships ?? []).length === 0;
-      setIsPublic(postIsPublic);
-
-      const formElement = document.getElementById("post-form");
-      if (formElement) {
-        formElement.scrollIntoView({ behavior: "smooth" });
-      }
+      setIsPublic(
+        !editingPost.selectedRoles?.length && !editingPost.selectedMemberships?.length
+      );
     }
   }, [editingPost, setValue]);
 
+  const handleFilterByPublicChange = (checked: boolean) => {
+    setFilterByPublic(checked);
+    if (checked) {
+      setFilterByRole(null);
+      setFilterByMembership(null);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-4xl p-4 sm:p-6 lg:p-8">
-      <div className="space-y-4 rounded-lg bg-[#3b3b3b] p-4 shadow-lg sm:p-6 lg:p-8">
-        <form id="post-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <textarea
-            {...register("content")}
-            className="w-full resize-none rounded-lg border border-[#3d3d3d] bg-[#171717] p-2 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-primary sm:p-3 lg:p-4"
-            placeholder="Write a post..."
-            maxLength={500}
-            disabled={isLoading}
-          />
-          <div className="flex min-w-0 flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-x-4 sm:space-y-0">
-            <div className="flex items-center space-x-2">
-              <label className="text-white">Public</label>
-              <Switch
-                checked={isPublic}
-                onChange={(checked) => {
-                  setIsPublic(checked);
-                  if (checked) {
-                    setValue("selectedRoles", []);
-                    setValue("selectedMemberships", []);
-                  }
-                }}
-                className={`${
-                  isPublic ? "bg-green-600" : "bg-gray-700"
-                } relative inline-flex h-6 w-11 items-center rounded-full`}
-              >
-                <span
+      {isLoggedIn && canCreate && (
+        <div className="space-y-4 rounded-lg bg-[#3b3b3b] p-4 shadow-lg sm:p-6 lg:p-8">
+          <form id="post-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <textarea
+              {...register("content")}
+              className="w-full resize-none rounded-lg border border-[#3d3d3d] bg-[#171717] p-2 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-primary sm:p-3 lg:p-4"
+              placeholder="Write a post..."
+              maxLength={500}
+              disabled={isLoading}
+            />
+            <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center space-x-2">
+                <label className="text-white">Public</label>
+                <Switch
+                  checked={isPublic}
+                  onChange={(checked) => {
+                    setIsPublic(checked);
+                    if (checked) {
+                      setValue("selectedRoles", []);
+                      setValue("selectedMemberships", []);
+                    }
+                  }}
                   className={`${
-                    isPublic ? "translate-x-6" : "translate-x-1"
-                  } inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200`}
-                />
-              </Switch>
-            </div>
-            <Controller
-              name="selectedRoles"
-              control={control}
-              defaultValue={[]}
-              render={({ field }) => (
-                <TagsInput
-                  value={field.value}
-                  onChange={(tags) => {
-                    field.onChange(tags);
-                    if (tags.length > 0) {
-                      setIsPublic(false);
-                    }
-                  }}
-                  suggestions={availableRoles.map((role) => role.name)}
-                  placeholder="Roles (Optional)"
-                  className="w-full rounded-lg border border-[#3d3d3d] bg-[#3b3b3b] p-2 text-white sm:p-3 lg:p-4"
-                />
-              )}
-            />
-            <Controller
-              name="selectedMemberships"
-              control={control}
-              defaultValue={[]}
-              render={({ field }) => (
-                <TagsInput
-                  value={field.value}
-                  onChange={(tags) => {
-                    field.onChange(tags);
-                    if (tags.length > 0) {
-                      setIsPublic(false);
-                    }
-                  }}
-                  suggestions={availableMemberships.map((membership) => membership.name)}
-                  placeholder="Memberships (Optional)"
-                  className="w-full rounded-lg border border-[#3d3d3d] bg-[#3b3b3b] p-2 text-white sm:p-3 lg:p-4"
-                />
-              )}
-            />
-          </div>
-          <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-            <label
-              htmlFor="file-input"
-              className="cursor-pointer rounded-lg bg-[#171717] p-2 text-white hover:bg-[#1f1f1f] sm:p-3 lg:p-4"
-            >
-              <PhotoIcon className="inline-block h-6 w-6" />
-              Add Photo
-              <input
-                type="file"
-                accept="image/*"
-                id="file-input"
-                multiple
-                onChange={handleFileChange}
-                className="hidden"
-              />
-            </label>
-            <button
-              type="submit"
-              className={`rounded-lg bg-primary p-2 text-white shadow-md hover:bg-[#37996b] sm:p-3 lg:p-4 ${
-                isLoading || !watch("content")?.trim() ? "cursor-not-allowed" : ""
-              }`}
-              disabled={isLoading || !watch("content")?.trim()}
-            >
-              {isLoading ? "Saving..." : editingPost ? "Update Post" : "Create Post"}
-            </button>
-            {editingPost && (
-              <button
-                type="button"
-                className="rounded-lg bg-gray-600 p-2 text-white shadow-md hover:bg-gray-700 sm:p-3 lg:p-4"
-                onClick={resetForm}
-              >
-                Cancel Edit
-              </button>
-            )}
-          </div>
-          {photos.length > 0 && (
-            <div className="mt-4 flex space-x-2 overflow-x-auto">
-              {photos.map((photo, index) => (
-                <div key={index} className="relative h-24 w-24">
-                  <img
-                    src={photo}
-                    alt={`Attachment ${index + 1}`}
-                    className="h-full w-full rounded-lg object-cover"
+                    isPublic ? "bg-green-600" : "bg-gray-700"
+                  } relative inline-flex h-6 w-11 items-center rounded-full`}
+                >
+                  <span
+                    className={`${
+                      isPublic ? "translate-x-6" : "translate-x-1"
+                    } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
                   />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleRemovePhoto(
-                        index,
-                        !!(editingPost && editingPost.postphotos?.includes(photo))
-                      )
-                    }
-                    className="absolute right-1 top-1 rounded-full bg-black bg-opacity-75 p-1 text-white"
-                  >
-                    <XCircleIcon className="h-5 w-5" />
-                  </button>
-                </div>
-              ))}
+                </Switch>
+              </div>
+              {!isPublic && (
+                <>
+                  <Controller
+                    name="selectedRoles"
+                    control={control}
+                    defaultValue={[]}
+                    render={({ field }) => (
+                      <TagsInput
+                        value={field.value}
+                        onChange={(tags) => field.onChange(tags)}
+                        suggestions={availableRoles.map((role) => role.name)}
+                        placeholder="Roles (Optional)"
+                        className="w-full rounded-lg border border-[#3d3d3d] bg-[#3b3b3b] p-2 text-white"
+                      />
+                    )}
+                  />
+                  <Controller
+                    name="selectedMemberships"
+                    control={control}
+                    defaultValue={[]}
+                    render={({ field }) => (
+                      <TagsInput
+                        value={field.value}
+                        onChange={(tags) => field.onChange(tags)}
+                        suggestions={availableMemberships.map(
+                          (membership) => membership.name
+                        )}
+                        placeholder="Memberships (Optional)"
+                        className="w-full rounded-lg border border-[#3d3d3d] bg-[#3b3b3b] p-2 text-white"
+                      />
+                    )}
+                  />
+                </>
+              )}
             </div>
-          )}
-          {creationMessage && (
-            <div
-              className={`mt-4 rounded-lg p-4 text-white ${
-                creationMessage.type === "success" ? "bg-green-500" : "bg-red-500"
-              }`}
-            >
-              {creationMessage.text}
+            <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between">
+              <label
+                htmlFor="file-input"
+                className="cursor-pointer rounded-lg bg-[#171717] p-2 text-white hover:bg-[#1f1f1f]"
+              >
+                <PhotoIcon className="inline-block h-6 w-6" />
+                Add Photo
+                <input
+                  type="file"
+                  accept="image/*"
+                  id="file-input"
+                  multiple
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </label>
+              <button
+                type="submit"
+                className={`rounded-lg bg-primary p-2 text-white shadow-md hover:bg-[#37996b] ${
+                  isLoading || !watch("content")?.trim() ? "cursor-not-allowed" : ""
+                }`}
+                disabled={isLoading || !watch("content")?.trim()}
+              >
+                {isLoading ? "Saving..." : editingPost ? "Update Post" : "Create Post"}
+              </button>
+              {editingPost && canEdit && (
+                <button
+                  type="button"
+                  className="rounded-lg bg-gray-600 p-2 text-white shadow-md hover:bg-gray-700"
+                  onClick={resetForm}
+                >
+                  Cancel Edit
+                </button>
+              )}
             </div>
-          )}
-        </form>
-      </div>
+            {photos.length > 0 && (
+              <div className="mt-4 flex space-x-2 overflow-x-auto">
+                {photos.map((photo, index) => (
+                  <div key={index} className="relative h-24 w-24">
+                    <img
+                      src={photo}
+                      alt={`Attachment ${index + 1}`}
+                      className="h-full w-full rounded-lg object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleRemovePhoto(
+                          index,
+                          !!(editingPost && editingPost.postphotos?.includes(photo))
+                        )
+                      }
+                      className="absolute right-1 top-1 rounded-full bg-black bg-opacity-75 p-1 text-white"
+                    >
+                      <XCircleIcon className="h-5 w-5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {creationMessage && (
+              <div
+                className={`mt-4 rounded-lg p-4 text-white ${
+                  creationMessage.type === "success" ? "bg-green-500" : "bg-red-500"
+                }`}
+              >
+                {creationMessage.text}
+              </div>
+            )}
+          </form>
+        </div>
+      )}
 
-      <div className="mb-4 mt-8 flex flex-wrap space-x-4 rounded-lg bg-[#1e1e1e] p-4 shadow-lg sm:p-6 lg:p-8">
-        <input
-          type="text"
-          placeholder="Search posts..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="flex-grow rounded-lg border border-[#3d3d3d] bg-[#2a2a2a] p-3 text-white placeholder-gray-400 focus:border-transparent focus:ring-2 focus:ring-primary sm:p-4 lg:p-5"
-          style={{ lineHeight: "1.5", marginBottom: "0.5rem" }}
-        />
-        <select
-          value={filterByRole || ""}
-          onChange={(e) => setFilterByRole(e.target.value || null)}
-          className="rounded-lg border border-[#3d3d3d] bg-[#2a2a2a] p-3 text-white focus:border-transparent focus:ring-2 focus:ring-primary sm:p-4 lg:p-5"
-          style={{ lineHeight: "1.5", marginBottom: "0.5rem" }}
-        >
-          <option value="">Filter by Role</option>
-          {availableRoles.map((role) => (
-            <option key={role.id} value={role.id}>
-              {role.name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={filterByMembership || ""}
-          onChange={(e) => setFilterByMembership(e.target.value || null)}
-          className="rounded-lg border border-[#3d3d3d] bg-[#2a2a2a] p-3 text-white focus:border-transparent focus:ring-2 focus:ring-primary sm:p-4 lg:p-5"
-          style={{ lineHeight: "1.5", marginBottom: "0.5rem" }}
-        >
-          <option value="">Filter by Membership</option>
-          {availableMemberships.map((membership) => (
-            <option key={membership.membershipid} value={membership.membershipid}>
-              {membership.name}
-            </option>
-          ))}
-        </select>
-        <label
-          className="flex items-center space-x-2 text-white"
-          style={{ lineHeight: "1.5", marginBottom: "0.5rem" }}
-        >
+      {/* Slimmer and Sleeker Filtering Bar */}
+      <div className="mb-4 mt-8 flex flex-wrap items-center space-x-2 space-y-2 rounded-lg bg-[#1e1e1e] p-4 shadow-lg">
+        <div className="relative flex-grow">
+          <input
+            type="text"
+            placeholder="Search posts..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full rounded-lg border border-[#3d3d3d] bg-[#2a2a2a] px-3 py-2 pl-10 text-white placeholder-gray-400 focus:border-transparent focus:ring-2 focus:ring-primary"
+          />
+          <span className="absolute left-3 top-2.5 text-gray-400">
+            <i className="fas fa-search"></i>
+          </span>
+        </div>
+        <div className="h-full w-px bg-gray-600"></div>
+        <div className="relative">
+          <select
+            value={filterByRole || ""}
+            onChange={(e) => setFilterByRole(e.target.value || null)}
+            disabled={filterByPublic}
+            className={`w-full rounded-lg border border-[#3d3d3d] bg-[#2a2a2a] px-3 py-2 pr-10 text-white focus:border-transparent focus:ring-2 focus:ring-primary ${
+              filterByPublic ? "cursor-not-allowed bg-gray-700 text-gray-500" : ""
+            }`}
+          >
+            <option value="">Filter by Role</option>
+            {availableRoles.map((role) => (
+              <option key={role.id} value={role.id}>
+                {role.name}
+              </option>
+            ))}
+          </select>
+          <span className="absolute right-3 top-2.5 text-gray-400">
+            <i className="fas fa-chevron-down"></i>
+          </span>
+        </div>
+        <div className="h-full w-px bg-gray-600"></div>
+        <div className="relative">
+          <select
+            value={filterByMembership || ""}
+            onChange={(e) => setFilterByMembership(e.target.value || null)}
+            disabled={filterByPublic}
+            className={`w-full rounded-lg border border-[#3d3d3d] bg-[#2a2a2a] px-3 py-2 pr-10 text-white focus:border-transparent focus:ring-2 focus:ring-primary ${
+              filterByPublic ? "cursor-not-allowed bg-gray-700 text-gray-500" : ""
+            }`}
+          >
+            <option value="">Filter by Membership</option>
+            {availableMemberships.map((membership) => (
+              <option key={membership.membershipid} value={membership.membershipid}>
+                {membership.name}
+              </option>
+            ))}
+          </select>
+          <span className="absolute right-3 top-2.5 text-gray-400">
+            <i className="fas fa-chevron-down"></i>
+          </span>
+        </div>
+        <div className="h-full w-px bg-gray-600"></div>
+        <label className="flex items-center space-x-1 text-white">
           <input
             type="checkbox"
             checked={filterByAuthor}
             onChange={(e) => setFilterByAuthor(e.target.checked)}
-            className="form-checkbox h-5 w-5 rounded border-[#3d3d3d] bg-[#2a2a2a] text-primary focus:border-transparent focus:ring-2 focus:ring-primary"
+            className="form-checkbox h-4 w-4 rounded border-[#3d3d3d] bg-[#2a2a2a] text-primary focus:border-transparent focus:ring-2 focus:ring-primary"
           />
-          <span>Authored by Me</span>
+          <span className="text-sm">Authored by Me</span>
         </label>
-        <label
-          className="flex items-center space-x-2 text-white"
-          style={{ lineHeight: "1.5", marginBottom: "0.5rem" }}
-        >
+        <div className="h-full w-px bg-gray-600"></div>
+        <label className="flex items-center space-x-1 text-white">
           <input
             type="checkbox"
             checked={filterByPublic}
-            onChange={(e) => setFilterByPublic(e.target.checked)}
-            className="form-checkbox h-5 w-5 rounded border-[#3d3d3d] bg-[#2a2a2a] text-primary focus:border-transparent focus:ring-2 focus:ring-primary"
+            onChange={(e) => {
+              handleFilterByPublicChange(e.target.checked);
+            }}
+            className="form-checkbox h-4 w-4 rounded border-[#3d3d3d] bg-[#2a2a2a] text-primary focus:border-transparent focus:ring-2 focus:ring-primary"
           />
-          <span>Public Posts</span>
+          <span className="text-sm">Public Posts</span>
         </label>
+        <div className="h-full w-px bg-gray-600"></div>
+        <div className="flex items-center space-x-1 text-white">
+          <label className="text-sm">Filter by Date:</label>
+          <ReactDatePicker
+            selected={filterByDate}
+            onChange={(date: Date | null) => setFilterByDate(date)}
+            isClearable
+            placeholderText="Select Date"
+            className="rounded-lg border border-[#3d3d3d] bg-[#2a2a2a] px-3 py-2 text-white focus:border-transparent focus:ring-2 focus:ring-primary"
+          />
+        </div>
       </div>
 
       <div className="mt-8 space-y-4">
@@ -582,26 +634,25 @@ const PostCard: React.FC<{
       firstName: string;
       lastName: string;
       profilePicture: string | null;
-    }>({
-      firstName: "",
-      lastName: "",
-      profilePicture: null,
-    });
+    }>({ firstName: "", lastName: "", profilePicture: null });
     const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
     const [selectedMemberships, setSelectedMemberships] = useState<string[]>([]);
     const [isDeleted, setIsDeleted] = useState(false);
     const [isLoadingPrivacy, setIsLoadingPrivacy] = useState(true);
 
     const { user } = useUser();
-    const [isCurrentUserAuthor, setIsCurrentUserAuthor] = useState(false);
+    const isLoggedIn = user && user.id && user.id.length > 0;
+    const isCurrentUserAuthor = user?.id === authorid;
 
     const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
 
     useEffect(() => {
       const fetchPostPrivacy = async () => {
         setIsLoadingPrivacy(true);
-        const roles = await fetchPostRoles(postid);
-        const memberships = await fetchPostMemberships(postid);
+        const [roles, memberships] = await Promise.all([
+          fetchPostRoles(postid),
+          fetchPostMemberships(postid),
+        ]);
         setSelectedRoles(roles);
         setSelectedMemberships(memberships);
         setIsLoadingPrivacy(false);
@@ -620,11 +671,7 @@ const PostCard: React.FC<{
           });
         }
       });
-
-      if (user && user.id === authorid) {
-        setIsCurrentUserAuthor(true);
-      }
-    }, [authorid, postid, user, post]);
+    }, [authorid, postid]);
 
     const handleDelete = () => {
       if (!canDelete) {
@@ -651,7 +698,6 @@ const PostCard: React.FC<{
             const { error } = await deletePost(postid, authorid);
             if (!error) {
               setIsDeleted(true);
-
               setTimeout(
                 () =>
                   setPosts((prevPosts) => prevPosts.filter((p) => p.postid !== postid)),
@@ -686,12 +732,12 @@ const PostCard: React.FC<{
               (membership) => membership.membershipid === membershipId
             )?.name || ""
         )
-        .filter((name) => name);
+        .filter(Boolean);
 
       setEditingPost({
         ...post,
         selectedRoles: roleNames,
-        selectedMemberships: membershipNames.length > 0 ? membershipNames : [],
+        selectedMemberships: membershipNames,
       });
     };
 
@@ -730,7 +776,7 @@ const PostCard: React.FC<{
         );
       });
 
-      if (roleLabels.length > 0 || membershipLabels.length > 0) {
+      if (roleLabels.length || membershipLabels.length) {
         return [...roleLabels, ...membershipLabels];
       }
 
@@ -749,21 +795,29 @@ const PostCard: React.FC<{
       );
     }
 
-    const galleryImages = (postphotos ?? []).map((photo) => ({
-      original: photo,
-      thumbnail: photo,
-    }));
+    const galleryImages =
+      postphotos?.map((photo) => ({
+        original: photo,
+        thumbnail: photo,
+      })) || [];
 
     return (
       <div className="relative rounded-lg bg-[#171717] p-4 shadow-lg">
-        {isCurrentUserAuthor && (
+        {isLoggedIn && isCurrentUserAuthor && (
           <div className="absolute right-2 top-2 flex items-center space-x-2">
-            <button className="text-gray-500 hover:text-gray-400" onClick={handleEdit}>
-              <PencilIcon className="h-4 w-4" />
-            </button>
-            <button className="text-gray-500 hover:text-gray-400" onClick={handleDelete}>
-              <TrashIcon className="h-4 w-4" />
-            </button>
+            {canEdit && (
+              <button className="text-gray-500 hover:text-gray-400" onClick={handleEdit}>
+                <PencilIcon className="h-4 w-4" />
+              </button>
+            )}
+            {canDelete && (
+              <button
+                className="text-gray-500 hover:text-gray-400"
+                onClick={handleDelete}
+              >
+                <TrashIcon className="h-4 w-4" />
+              </button>
+            )}
           </div>
         )}
         <div className="flex items-center space-x-4">
@@ -783,22 +837,21 @@ const PostCard: React.FC<{
               {authorDetails.firstName} {authorDetails.lastName}
             </p>
             <p className="text-sm text-gray-400">
-              {createdat ? format(new Date(createdat), "MMMM dd, yyyy") : "Unknown date"}
+              {createdat
+                ? format(new Date(createdat), "MMMM dd, yyyy hh:mm a")
+                : "Unknown date"}
             </p>
-            <div className="flex space-x-2">{generatePrivacyLabel()}</div>
+            <div className="flex flex-wrap space-x-2">{generatePrivacyLabel()}</div>
           </div>
         </div>
         <p className="mb-5 mt-5 break-words rounded-lg bg-[#2a2a2a] p-4 text-white">
           {content}
         </p>
-
-        {postphotos && postphotos.length > 0 && (
+        {galleryImages.length > 0 && (
           <div className="mt-5">
             <ImageGallery items={galleryImages} showPlayButton={false} />
           </div>
         )}
-        <div className="mt-4"></div>
-
         <CommentsSection postId={postid} organizationId={organizationId} />
       </div>
     );

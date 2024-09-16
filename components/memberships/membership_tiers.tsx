@@ -94,9 +94,23 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
     }
   };
 
-  const handleBuyPlan = useCallback(
+  const handleSubscribe = useCallback(
     async (membershipId: string, organizationid: string) => {
       try {
+        // Check if the user is a member of the organization
+        const { data: orgMember, error: orgMemberError } = await supabase
+          .from("organizationmembers")
+          .select("*")
+          .eq("userid", userid)
+          .eq("organizationid", organizationid)
+          .single();
+
+        if (orgMemberError || !orgMember) {
+          console.error("User is not a member of this organization");
+          toast.error("You must be a member of this organization to subscribe to a plan.");
+          return;
+        }
+
         const { data: membershipData, error: membershipError } = await supabase
           .from("memberships")
           .select("registrationfee, name, description")
@@ -212,7 +226,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
             toast.error("Error creating invoice. Please try again later.");
             return;
           } else {
-            toast.success("Invoice created successfully.");
+            // toast.success("Invoice created successfully.");
 
             const { data, error } = await supabase
               .from("payments")
@@ -259,6 +273,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
             </div>
           </div>
         )}
+
         <div className="mt-16 flex justify-center">
           <RadioGroup
             value={frequency}
@@ -272,7 +287,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
                 value={option}
                 className={({ checked }) =>
                   classNames(
-                    checked ? "bg-indigo-600 text-white" : "text-gray-500",
+                    checked ? "bg-primary text-white" : "text-gray-500",
                     "cursor-pointer rounded-full px-2.5 py-1"
                   )
                 }
@@ -282,7 +297,31 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
             ))}
           </RadioGroup>
         </div>
-        <div className="isolate mx-8 mt-16 flex max-w-md flex-wrap justify-center justify-items-center gap-x-8 gap-y-8 sm:mt-20 lg:max-w-none">
+
+        <div className="isolate mx-8 mt-16 flex flex-wrap justify-center gap-x-8 gap-y-8 sm:mt-20 lg:max-w-none">
+          {memberships.length > 0 ? (
+            memberships.map((membership, index) => (
+              <MembershipCard
+                key={membership.membershipid}
+                membership={membership}
+                index={index + 1}
+                totalMemberships={memberships.length}
+                userid={userid}
+                isAuthenticated={isAuthenticated}
+                userMemberships={userMemberships}
+                handleSubscribe={handleSubscribe}
+                handleEditMembership={onEdit}
+                handleDeleteMembership={onDelete}
+                frequency={frequency}
+                editable={editable}
+                isCurrentPlan={currentMembershipId === membership.membershipid}
+              />
+            ))
+          ) : (
+            <p className="w-full text-center text-white">
+              No memberships available. Create one to get started!
+            </p>
+          )}
           {editable && (
             <div className="mr-16 w-full sm:w-64">
               <PlusCircleIcon
@@ -293,26 +332,9 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
                 onClick={onCreateClick}
                 strokeWidth={2}
                 stroke="currentColor"
-              ></PlusCircleIcon>
+              />
             </div>
           )}
-          {memberships.map((membership, index) => (
-            <MembershipCard
-              key={membership.membershipid}
-              membership={membership}
-              index={index + 1}
-              totalMemberships={memberships.length + 1}
-              userid={userid}
-              isAuthenticated={isAuthenticated}
-              userMemberships={userMemberships}
-              handleBuyPlan={handleBuyPlan}
-              handleEditMembership={onEdit}
-              handleDeleteMembership={onDelete}
-              frequency={frequency}
-              editable={editable}
-              isCurrentPlan={currentMembershipId === membership.membershipid}
-            />
-          ))}
         </div>
       </div>
       <ToastContainer position="bottom-right" autoClose={3000} />

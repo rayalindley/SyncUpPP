@@ -79,11 +79,7 @@ export default async function OrganizationUserView({
 
   const currentPage = 1;
   const eventsPerPage = 6;
-  const { data: events, error: eventsError } = await fetchEvents(
-    org.organizationid,
-    currentPage,
-    eventsPerPage
-  );
+  const { data: events, error: eventsError } = await fetchEvents(org.organizationid);
   const memberships = await getMemberships(org.organizationid);
   const socials = org?.socials || {};
 

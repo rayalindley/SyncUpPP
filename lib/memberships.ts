@@ -181,7 +181,7 @@ export async function fetchOrgMemBySlug(slug: string | string[]) {
   }
 
   // console.log("memberships.ts: Fetched organization memberships by slug:", org_memberships);
-  return org_memberships || [];
+  return org_memberships ;
 }
 
 export async function fetchMembersBySlug(slug: string) {
@@ -240,4 +240,21 @@ export async function getUserMembership(orgId: string, userId: string) {
 
   // console.log("memberships.ts: Fetched user's membership:", data);
   return data?.membershipid || null;
+}
+
+export async function fetchOrganizationMembersBySlug(slug: string) {
+    const supabase = createClient();
+
+  
+  const { data, error } = await supabase
+    .from('organization_members_view')
+    .select('*')
+    .eq('organization_slug', slug);
+
+  if (error) {
+    console.error('Error fetching organization members:', error);
+    return null;
+  }
+
+  return data;
 }

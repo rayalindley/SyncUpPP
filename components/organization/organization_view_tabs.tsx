@@ -32,6 +32,11 @@ const OrganizationViewTabs = ({ organizationid, memberships, events, id }: { org
     }
   };
 
+  const availableTabs = ["posts", "events"];
+  if (memberships && memberships.length > 0) {
+    availableTabs.push("membership");
+  }
+
   const tabContent = {
     // posts: <OrganizationPostsTab organizationid={organizationid} />,
     posts: <PostsSection organizationId={organizationid}/>,
@@ -43,7 +48,7 @@ const OrganizationViewTabs = ({ organizationid, memberships, events, id }: { org
     <div>
       <div className="border-b border-gray-700">
         <nav className="-mb-px flex space-x-8 px-4 sm:px-6" aria-label="Tabs">
-          {["posts", "membership", "events"].map((tab) => (
+          {availableTabs.map((tab) => (
             <button
               key={tab}
               onClick={() => handleTabChange(tab)}

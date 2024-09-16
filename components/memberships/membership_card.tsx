@@ -15,7 +15,7 @@ interface MembershipCardProps {
   userid?: string;
   isAuthenticated?: boolean;
   userMemberships: string[];
-  handleBuyPlan: (membershipId: string, organizationid: string, amount: number) => void;
+  handleSubscribe: (membershipId: string, organizationid: string) => void;
   handleEditMembership: (membership: Membership, organizationid: string) => void;
   handleDeleteMembership: (membershipId: string) => void;
   frequency: Frequency;
@@ -34,7 +34,7 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
   userid,
   isAuthenticated = false, // Default to false
   userMemberships,
-  handleBuyPlan,
+  handleSubscribe,
   handleEditMembership,
   handleDeleteMembership,
   frequency,
@@ -59,7 +59,7 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
         membership.mostPopular
           ? "bg-white/5 ring-2 ring-primary"
           : "ring-1 ring-white/10",
-        "min-w-80 rounded-3xl p-8 xl:p-10"
+        "max-w-sm bg-white/5 sm:w-auto rounded-3xl p-8 xl:p-10"
       )}
     >
       <div className="flex items-center justify-between gap-x-4">
@@ -94,10 +94,9 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
       {userid ? (
         <button
           onClick={() =>
-            handleBuyPlan(
+            handleSubscribe(
               membership.membershipid,
-              membership.organizationid || "",
-              registrationFee
+              membership.organizationid || ""
             )
           }
           aria-describedby={membership.membershipid}
@@ -111,7 +110,7 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
           )}
           disabled={isCurrentPlan}
         >
-          {isCurrentPlan ? "Current Plan" : isFree ? "Join Plan" : "Buy Plan"}
+          {isCurrentPlan ? "Current Plan" : isFree ? "Join Plan" : "Subscribe"}
         </button>
       ) : null}
 

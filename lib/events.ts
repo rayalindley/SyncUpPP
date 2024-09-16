@@ -35,18 +35,13 @@ export async function insertEvent(formData: any, organizationid: string) {
   }
 }
 
-export async function fetchEvents(
-  organizationid: string,
-  currentPage: number,
-  eventsPerPage: number
-) {
+export async function fetchEvents(organizationid: string) {
   const supabase = createClient();
   try {
     const { data, error } = await supabase
       .from("events")
       .select("*")
       .eq("organizationid", organizationid)
-      .range(currentPage * eventsPerPage - eventsPerPage, currentPage * eventsPerPage)
       .order("createdat", { ascending: false });
 
     if (!error) {

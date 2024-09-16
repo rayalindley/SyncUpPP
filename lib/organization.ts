@@ -227,3 +227,47 @@ export async function fetchAllOrganizations() {
 
   return data;
 }
+
+export async function fetchOrganizationsJoinedByUser(userId: string) {
+  const supabase = createClient();
+
+  try {
+    const { data: memberships, error: membershipsError } = await supabase
+      .from("organizationmembers") // Changed to organizationmembers table
+      .select("organizationid") // Selecting organizationid from organizationmembers
+      .eq("userid", userId); // Filtering by userid
+
+    if (membershipsError) {
+      console.error("Error fetching organizations joined by user:", membershipsError);
+      return { data: null, error: { message: membershipsError.message } };
+    }
+
+    // Extract organization IDs from memberships
+    const organizationIds = memberships.map((membership: any) => membership.organizationid);
+
+    // If no organization IDs are found, return an empty array
+    if (organizationIds.length === 0) {
+      return { data: [], error: null };
+    }
+
+    // Fetch organization details from the organizations table for the joined organizations
+    const { data: organizations, error: organizationsError } = await supabase
+      .from("organization_summary") // Assuming the table name is organizations
+      .select("*, total_members, total_posts, total_events") // Include total_members, total_posts, total_events
+      .in("organizationid", organizationIds);
+
+    if (organizationsError) {
+      console.error("Error fetching organization details:", organizationsError);
+      return { data: null, error: { message: organizationsError.message } };
+    }
+
+    // Return the organizations directly without additional formatting
+    return { data: organizations, error: null };
+  } catch (e: any) {
+    console.error("Unexpected error:", e);
+    return {
+      data: null,
+      error: { message: e.message || "An unexpected error occurred" },
+    };
+  }
+}
