@@ -59,7 +59,7 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
         membership.mostPopular
           ? "bg-white/5 ring-2 ring-primary"
           : "ring-1 ring-white/10",
-        "min-w-80 rounded-3xl p-8 xl:p-10"
+        "max-w-sm bg-white/5 sm:w-auto rounded-3xl p-8 xl:p-10"
       )}
     >
       <div className="flex items-center justify-between gap-x-4">

@@ -99,32 +99,19 @@ const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
           .from("memberships")
           .update(data)
           .eq("membershipid", membership.membershipid);
-        if (error) {
-          throw error;
-        }
-        toast.success("Membership updated successfully", {
-          position: "bottom-right",
-          autoClose: 3000,
-        });
+        if (error) throw error;
+        toast.success("Membership updated successfully");
       } else {
         const { error } = await supabase.from("memberships").insert([data]);
-        if (error) {
-          throw error;
-        }
-        toast.success("Membership created successfully", {
-          position: "bottom-right",
-          autoClose: 3000,
-        });
+        if (error) throw error;
+        toast.success("Membership created successfully");
         reset(initialFormData);
       }
       onClose();
       if (onSubmit) onSubmit();
     } catch (error: any) {
       console.error("Error creating/updating membership:", error.message);
-      toast.error("Failed to create/update membership", {
-        position: "bottom-right",
-        autoClose: 3000,
-      });
+      toast.error("Failed to create/update membership");
     }
   };
 

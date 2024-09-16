@@ -14,13 +14,14 @@ import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { Fragment, useEffect, useState } from "react";
 
-import { IoIosAnalytics } from "react-icons/io";
+import { IoIosAnalytics, IoIosPeople } from "react-icons/io";
 import {
   IoCalendarOutline,
   IoMailUnreadOutline,
   IoShieldCheckmarkOutline,
 } from "react-icons/io5";
 import { TbUserStar } from "react-icons/tb";
+import { ChevronDownIcon } from "@heroicons/react/20/solid";
 
 function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
@@ -50,6 +51,7 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
   const [selected, setSelected] = useState<Organization | "default" | "create-org">(
     "default"
   );
+  const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
 
   const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
 
@@ -71,12 +73,24 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
       icon: IoShieldCheckmarkOutline,
     },
     {
-      name: "Memberships",
-      href:
-        selected === "default" || typeof selected === "string"
-          ? `/dashboard/memberships`
-          : `/${selected.slug}/dashboard/memberships`,
-      icon: TbUserStar,
+      name: "Members",
+      icon: IoIosPeople,
+      submenu: [
+        {
+          name: "Members List",
+          href:
+            selected === "default" || typeof selected === "string"
+              ? `/dashboard/members`
+              : `/${selected.slug}/dashboard/members`,
+        },
+        {
+          name: "Memberships",
+          href:
+            selected === "default" || typeof selected === "string"
+              ? `/dashboard/memberships`
+              : `/${selected.slug}/dashboard/memberships`,
+        },
+      ],
     },
     {
       name: "Newsletter",
@@ -95,6 +109,10 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
       icon: IoCalendarOutline,
     },
   ];
+
+  const toggleSubmenu = (name: string) => {
+    setOpenSubmenu(openSubmenu === name ? null : name);
+  };
 
   useEffect(() => {
     if (slug) {
@@ -341,26 +359,68 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
                         <ul role="list" className="-mx-2 space-y-1">
                           {navigation.map((item) => (
                             <li key={item.name}>
-                              <Link
-                                href={item.href}
-                                className={classNames(
-                                  currentItem === item.href
-                                    ? "bg-charleston text-light"
-                                    : "text-light hover:bg-charleston hover:text-light",
-                                  "group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6"
-                                )}
-                              >
-                                <item.icon
+                              {item.submenu ? (
+                                <div>
+                                  <button
+                                    onClick={() => toggleSubmenu(item.name)}
+                                    className={classNames(
+                                      "flex w-full items-center justify-between rounded-md p-2 text-sm font-semibold leading-6 text-light hover:bg-charleston",
+                                      openSubmenu === item.name ? "bg-charleston" : ""
+                                    )}
+                                  >
+                                    <div className="flex items-center gap-x-3">
+                                      <item.icon className="h-6 w-6 shrink-0 text-gray-400" aria-hidden="true" />
+                                      {item.name}
+                                    </div>
+                                    <ChevronDownIcon
+                                      className={classNames(
+                                        "h-5 w-5 text-gray-400 transition-transform",
+                                        openSubmenu === item.name ? "rotate-180" : ""
+                                      )}
+                                    />
+                                  </button>
+                                  {openSubmenu === item.name && (
+                                    <ul className="mt-1 space-y-1">
+                                      {item.submenu.map((subItem) => (
+                                        <li key={subItem.name}>
+                                          <Link
+                                            href={subItem.href}
+                                            className={classNames(
+                                              currentItem === subItem.href
+                                                ? "bg-charleston text-light"
+                                                : "text-light hover:bg-charleston hover:text-light",
+                                              "block rounded-md py-2 pl-11 pr-2 text-sm leading-6"
+                                            )}
+                                          >
+                                            {subItem.name}
+                                          </Link>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  )}
+                                </div>
+                              ) : (
+                                <Link
+                                  href={item.href}
                                   className={classNames(
                                     currentItem === item.href
-                                      ? "text-light"
-                                      : "text-gray-400 group-hover:text-light",
-                                    "h-6 w-6 shrink-0"
+                                      ? "bg-charleston text-light"
+                                      : "text-light hover:bg-charleston hover:text-light",
+                                    "group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6"
                                   )}
-                                  aria-hidden="true"
-                                />
-                                {item.name}
-                              </Link>
+                                >
+                                  <item.icon
+                                    className={classNames(
+                                      currentItem === item.href
+                                        ? "text-light"
+                                        : "text-gray-400 group-hover:text-light",
+                                      "h-6 w-6 shrink-0"
+                                    )}
+                                    aria-hidden="true"
+                                  />
+                                  {item.name}
+                                </Link>
+                              )}
                             </li>
                           ))}
                         </ul>
@@ -560,26 +620,68 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
                 <ul role="list" className="-mx-2 space-y-1">
                   {navigation.map((item) => (
                     <li key={item.name}>
-                      <Link
-                        href={item.href}
-                        className={classNames(
-                          currentItem === item.href
-                            ? "bg-charleston text-light"
-                            : "text-light hover:bg-charleston hover:text-light",
-                          "group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6"
-                        )}
-                      >
-                        <item.icon
+                      {item.submenu ? (
+                        <div>
+                          <button
+                            onClick={() => toggleSubmenu(item.name)}
+                            className={classNames(
+                              "flex w-full items-center justify-between rounded-md p-2 text-sm font-semibold leading-6 text-light hover:bg-charleston",
+                              openSubmenu === item.name ? "bg-charleston" : ""
+                            )}
+                          >
+                            <div className="flex items-center gap-x-3">
+                              <item.icon className="h-6 w-6 shrink-0 text-gray-400" aria-hidden="true" />
+                              {item.name}
+                            </div>
+                            <ChevronDownIcon
+                              className={classNames(
+                                "h-5 w-5 text-gray-400 transition-transform",
+                                openSubmenu === item.name ? "rotate-180" : ""
+                              )}
+                            />
+                          </button>
+                          {openSubmenu === item.name && (
+                            <ul className="mt-1 space-y-1">
+                              {item.submenu.map((subItem) => (
+                                <li key={subItem.name}>
+                                  <Link
+                                    href={subItem.href}
+                                    className={classNames(
+                                      currentItem === subItem.href
+                                        ? "bg-charleston text-light"
+                                        : "text-light hover:bg-charleston hover:text-light",
+                                      "block rounded-md py-2 pl-11 pr-2 text-sm leading-6"
+                                    )}
+                                  >
+                                    {subItem.name}
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      ) : (
+                        <Link
+                          href={item.href}
                           className={classNames(
                             currentItem === item.href
-                              ? "text-light"
-                              : "text-gray-400 group-hover:text-light",
-                            "h-6 w-6 shrink-0"
+                              ? "bg-charleston text-light"
+                              : "text-light hover:bg-charleston hover:text-light",
+                            "group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6"
                           )}
-                          aria-hidden="true"
-                        />
-                        {item.name}
-                      </Link>
+                        >
+                          <item.icon
+                            className={classNames(
+                              currentItem === item.href
+                                ? "text-light"
+                                : "text-gray-400 group-hover:text-light",
+                              "h-6 w-6 shrink-0"
+                            )}
+                            aria-hidden="true"
+                          />
+                          {item.name}
+                        </Link>
+                      )}
                     </li>
                   ))}
                 </ul>
