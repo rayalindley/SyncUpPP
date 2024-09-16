@@ -26,6 +26,7 @@ interface OrganizationMember {
   joindate: string;
   enddate: string | null;
   months: number;
+  expiration_date: string | null;
   organization_slug: string;
   organization: any;
   user: {
