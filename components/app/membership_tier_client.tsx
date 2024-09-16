@@ -94,6 +94,7 @@ export default function MembershipTiersClient({
       <MembershipTiers
         memberships={memberships}
         onCreateClick={handleCreateClick}
+        organizationid={organization.organizationid}
         onDelete={handleDeleteMembership}
         onEdit={handleEditMembership}
         editable={true}

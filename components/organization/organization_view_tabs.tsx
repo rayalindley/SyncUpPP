@@ -5,7 +5,17 @@ import OrganizationEventsComponent from "./organization_events";
 import OrganizationMembershipsComponent from "../memberships/organization_membership";
 import PostsSection from "./posts_section";
 
-const OrganizationViewTabs = ({ organizationid, memberships, events, id }: { organizationid: string; memberships: any; events: any; id: string }): JSX.Element => {
+const OrganizationViewTabs = ({
+  organizationid,
+  memberships,
+  events,
+  id,
+}: {
+  organizationid: string; // Ensure organizationid is typed
+  memberships: any;
+  events: any;
+  id: string;
+}): JSX.Element => {
   const { orgslug } = useParams() as { orgslug: string };
   const [activeTab, setActiveTab] = useState("posts");
 
@@ -40,7 +50,7 @@ const OrganizationViewTabs = ({ organizationid, memberships, events, id }: { org
   const tabContent = {
     // posts: <OrganizationPostsTab organizationid={organizationid} />,
     posts: <PostsSection organizationId={organizationid}/>,
-    membership: <OrganizationMembershipsComponent memberships={memberships} userid={id} />,
+    membership: <OrganizationMembershipsComponent memberships={memberships} userid={id} organizationid={organizationid}/>,
     events: <OrganizationEventsComponent events={events} userid={id} organizationId={organizationid} />,
   }[activeTab];
 
