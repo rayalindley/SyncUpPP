@@ -94,9 +94,23 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
     }
   };
 
-  const handleBuyPlan = useCallback(
+  const handleSubscribe = useCallback(
     async (membershipId: string, organizationid: string) => {
       try {
+        // Check if the user is a member of the organization
+        const { data: orgMember, error: orgMemberError } = await supabase
+          .from("organizationmembers")
+          .select("*")
+          .eq("userid", userid)
+          .eq("organizationid", organizationid)
+          .single();
+
+        if (orgMemberError || !orgMember) {
+          console.error("User is not a member of this organization");
+          toast.error("You must be a member of this organization to subscribe to a plan.");
+          return;
+        }
+
         const { data: membershipData, error: membershipError } = await supabase
           .from("memberships")
           .select("registrationfee, name, description")
@@ -212,7 +226,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
             toast.error("Error creating invoice. Please try again later.");
             return;
           } else {
-            toast.success("Invoice created successfully.");
+            // toast.success("Invoice created successfully.");
 
             const { data, error } = await supabase
               .from("payments")
@@ -295,7 +309,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
                 userid={userid}
                 isAuthenticated={isAuthenticated}
                 userMemberships={userMemberships}
-                handleBuyPlan={handleBuyPlan}
+                handleSubscribe={handleSubscribe}
                 handleEditMembership={onEdit}
                 handleDeleteMembership={onDelete}
                 frequency={frequency}
