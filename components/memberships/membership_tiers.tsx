@@ -82,14 +82,15 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
 
       console.log("fetchmemberships", userMembershipsData);
 
-      if (error) {
+      // Removed error handling for no rows found
+      if (error && error.code !== 'PGRST116') { // Check for specific error code for no rows
         console.error("Error fetching user memberships: ", error);
         toast.error("Error fetching user memberships. Please try again later.");
         return;
       }
 
       // Check if userMembershipsData is not null and extract the membership ID
-      const userMemberships = userMembershipsData ? [userMembershipsData.membershipid] : [];
+      const userMemberships = userMembershipsData ? [userMembershipsData.membershipid] : []; // Set to empty array if no data
       setUserMemberships(userMemberships);
       setCurrentMembershipId(userMemberships.length > 0 ? userMemberships[0] : null);
     } catch (error) {
