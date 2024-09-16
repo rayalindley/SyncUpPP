@@ -37,7 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (paymentData.type === "membership") {
-    // Update or insert organization member
+    // Update organization member
     const { data: memberData, error: memberError } = await supabase
       .from("organizationmembers")
       .select("*")
@@ -46,55 +46,41 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .single();
 
     if (memberError) {
-      // Insert new member
-      const { data: newMemberData, error: newMemberError } = await supabase
-        .from("organizationmembers")
-        .insert([
-          {
-            userid: paymentData.payerId,
-            organizationid: paymentData.organizationId,
-            membershipid: paymentData.target_id, // use the target_id for membership
-            months: 1, // replace with the appropriate duration in months
-          },
-        ])
-        .select()
-        .single();
+      console.error("Error fetching member:", memberError);
+      return res.status(500).json({ error: "Failed to fetch member", memberError });
+    }
 
-      if (newMemberError) {
-        return res
-          .status(500)
-          .json({ error: "Failed to insert new member", newMemberError });
-      }
+    // Calculate new expiration date
+    const currentDate = new Date();
+    const expirationDate = new Date(currentDate.setMonth(currentDate.getMonth() + 1)); // Add 1 month
 
-      return res
-        .status(200)
-        .json({ success: "CREATED & PAYMENT SUCCESSFUL!", memberData: newMemberData });
-    } else {
-      // Update existing member
-      const { data: updatedMemberData, error: updateMemberError } = await supabase
-        .from("organizationmembers")
-        .update({ membershipid: paymentData.target_id }) // use the target_id for membership
-        .eq("userid", paymentData.payerId)
-        .eq("organizationid", memberData.organizationid)
-        .select()
-        .single();
+    // Update existing member
+    const { data: updatedMemberData, error: updateMemberError } = await supabase
+      .from("organizationmembers")
+      .update({ 
+        membershipid: paymentData.target_id,
+        expiration_date: expirationDate.toISOString()
+      })
+      .eq("userid", paymentData.payerId)
+      .eq("organizationid", paymentData.organizationId)
+      .select()
+      .single();
 
-      if (updateMemberError) {
-        console.error("Error updating member:", updateMemberError);
-        return res.status(500).json({
-          error: "Failed to update member",
-          updateMemberError,
-          target_id: paymentData.target_id,
-          payerId: paymentData.payerId,
-          userid: memberData.userid,
-        });
-      }
-
-      return res.status(200).json({
-        success: "UPDATED & PAYMENT SUCCESSFUL!",
-        memberData: updatedMemberData,
+    if (updateMemberError) {
+      console.error("Error updating member:", updateMemberError);
+      return res.status(500).json({
+        error: "Failed to update member",
+        updateMemberError,
+        target_id: paymentData.target_id,
+        payerId: paymentData.payerId,
+        organizationId: paymentData.organizationId,
       });
     }
+
+    return res.status(200).json({
+      success: "MEMBERSHIP UPDATED & PAYMENT SUCCESSFUL!",
+      memberData: updatedMemberData,
+    });
   } else if (paymentData.type === "events") {
     const { data: registrationData, error: registrationError } = await registerForEvent(
       paymentData.target_id,

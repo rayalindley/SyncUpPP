@@ -15,7 +15,7 @@ interface MembershipCardProps {
   userid?: string;
   isAuthenticated?: boolean;
   userMemberships: string[];
-  handleBuyPlan: (membershipId: string, organizationid: string, amount: number) => void;
+  handleSubscribe: (membershipId: string, organizationid: string) => void;
   handleEditMembership: (membership: Membership, organizationid: string) => void;
   handleDeleteMembership: (membershipId: string) => void;
   frequency: Frequency;
@@ -34,7 +34,7 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
   userid,
   isAuthenticated = false, // Default to false
   userMemberships,
-  handleBuyPlan,
+  handleSubscribe,
   handleEditMembership,
   handleDeleteMembership,
   frequency,
@@ -94,10 +94,9 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
       {userid ? (
         <button
           onClick={() =>
-            handleBuyPlan(
+            handleSubscribe(
               membership.membershipid,
-              membership.organizationid || "",
-              registrationFee
+              membership.organizationid || ""
             )
           }
           aria-describedby={membership.membershipid}
@@ -111,7 +110,7 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
           )}
           disabled={isCurrentPlan}
         >
-          {isCurrentPlan ? "Current Plan" : isFree ? "Join Plan" : "Buy Plan"}
+          {isCurrentPlan ? "Current Plan" : isFree ? "Join Plan" : "Subscribe"}
         </button>
       ) : null}
 
