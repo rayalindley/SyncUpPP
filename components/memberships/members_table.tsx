@@ -310,7 +310,11 @@ const MembersTable: React.FC<MembersTableProps> = ({ members, organization }) =>
       </div>
 
       <Transition.Root show={!!selectedMember} as={Fragment}>
-        <Dialog as="div" className="relative z-50" onClose={() => setSelectedMember(null)}>
+        <Dialog
+          as="div"
+          className="relative z-50"
+          onClose={() => setSelectedMember(null)}
+        >
           <Transition.Child
             as={Fragment}
             enter="ease-in-out duration-500"
@@ -400,7 +404,17 @@ const MembersTable: React.FC<MembersTableProps> = ({ members, organization }) =>
                                 </p>
                                 <p>
                                   <span className="font-semibold">Join Date:</span>{" "}
-                                  {new Date(selectedMember.joindate).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true })}
+                                  {new Date(selectedMember.joindate).toLocaleString(
+                                    "en-US",
+                                    {
+                                      month: "short",
+                                      day: "numeric",
+                                      year: "numeric",
+                                      hour: "numeric",
+                                      minute: "numeric",
+                                      hour12: true,
+                                    }
+                                  )}
                                 </p>
                                 <p>
                                   <span className="font-semibold">Months:</span>{" "}
@@ -409,7 +423,17 @@ const MembersTable: React.FC<MembersTableProps> = ({ members, organization }) =>
                                 <p>
                                   <span className="font-semibold">End Date:</span>{" "}
                                   {selectedMember.enddate
-                                    ? new Date(selectedMember.enddate).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true })
+                                    ? new Date(selectedMember.enddate).toLocaleString(
+                                        "en-US",
+                                        {
+                                          month: "short",
+                                          day: "numeric",
+                                          year: "numeric",
+                                          hour: "numeric",
+                                          minute: "numeric",
+                                          hour12: true,
+                                        }
+                                      )
                                     : "N/A"}
                                 </p>
                               </div>
@@ -419,27 +443,51 @@ const MembersTable: React.FC<MembersTableProps> = ({ members, organization }) =>
                                 Membership Information
                               </h3>
                               {selectedMember.membership.name ? (
-                                <div className="space-y-2 text-gray-300">
-                                  <p>
-                                    <span className="font-semibold">Membership:</span>{" "}
+                                <div className="rounded-lg  p-3">
+                                  <h3 className="text-xl font-semibold text-light">
                                     {selectedMember.membership.name}
-                                  </p>
-                                  <p>
-                                    <span className="font-semibold">Description:</span>{" "}
+                                  </h3>
+                                  <p className="mt-2 text-gray-400">
                                     {selectedMember.membership.description}
                                   </p>
-                                  <p>
-                                    <span className="font-semibold">
-                                      Yearly Discount:
-                                    </span>{" "}
-                                    {selectedMember.membership.yearlydiscount}%
-                                  </p>
-                                  <p>
-                                    <span className="font-semibold">
-                                      Registration Fee:
-                                    </span>{" "}
-                                    ₱{selectedMember.membership.registrationfee}
-                                  </p>
+                                  <hr className="my-4 border-gray-600" />
+                                  <div className="mt-4 space-y-2">
+                                    <div className="flex justify-between">
+                                      <span className="font-semibold text-gray-300">
+                                        Yearly Discount:
+                                      </span>
+                                      <span className="text-light">
+                                        {selectedMember.membership.yearlydiscount}%
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="font-semibold text-gray-300">
+                                        Registration Fee:
+                                      </span>
+                                      <span className="text-light">
+                                        ₱{selectedMember.membership.registrationfee}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="font-semibold text-gray-300">
+                                        Expiration Date:
+                                      </span>
+                                      <span className="text-light">
+                                        {selectedMember.expiration_date
+                                          ? new Date(
+                                              selectedMember.expiration_date
+                                            ).toLocaleString("en-US", {
+                                              month: "short",
+                                              day: "numeric",
+                                              year: "numeric",
+                                              hour: "numeric",
+                                              minute: "numeric",
+                                              hour12: true,
+                                            })
+                                          : "No Expiration"}
+                                      </span>
+                                    </div>
+                                  </div>
                                 </div>
                               ) : (
                                 <p className="text-gray-300">No Membership</p>
@@ -458,22 +506,42 @@ const MembersTable: React.FC<MembersTableProps> = ({ members, organization }) =>
                                       href={payment.invoiceUrl}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="block bg-eerieblack rounded-lg p-4 hover:bg-opacity-80 transition-colors duration-200"
+                                      className="block rounded-lg bg-eerieblack p-4 transition-colors duration-200 hover:bg-opacity-80"
                                     >
-                                      <div className="flex justify-between items-center mb-2">
-                                        <span className="text-sm font-semibold text-gray-300">{payment.invoiceId}</span>
-                                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                                          payment.status === 'COMPLETED' ? 'bg-green-800 text-green-200' : 'bg-yellow-800 text-yellow-200'
-                                        }`}>
+                                      <div className="mb-2 flex items-center justify-between">
+                                        <span className="text-sm font-semibold text-gray-300">
+                                          {payment.invoiceId}
+                                        </span>
+                                        <span
+                                          className={`rounded-full px-2 py-1 text-xs font-medium ${
+                                            payment.status === "COMPLETED"
+                                              ? "bg-green-800 text-green-200"
+                                              : "bg-yellow-800 text-yellow-200"
+                                          }`}
+                                        >
                                           {payment.status}
                                         </span>
                                       </div>
-                                      <div className="flex justify-between items-center mb-1">
-                                        <span className="text-lg font-bold text-light">${payment.amount}</span>
-                                        <span className="text-sm text-gray-400 capitalize">{payment.type}</span>
+                                      <div className="mb-1 flex items-center justify-between">
+                                        <span className="text-lg font-bold text-light">
+                                          ${payment.amount}
+                                        </span>
+                                        <span className="text-sm capitalize text-gray-400">
+                                          {payment.type}
+                                        </span>
                                       </div>
                                       <div className="text-xs text-gray-400">
-                                        {new Date(payment.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true })}
+                                        {new Date(payment.created_at).toLocaleString(
+                                          "en-US",
+                                          {
+                                            month: "short",
+                                            day: "numeric",
+                                            year: "numeric",
+                                            hour: "numeric",
+                                            minute: "numeric",
+                                            hour12: true,
+                                          }
+                                        )}
                                       </div>
                                     </a>
                                   ))}
@@ -487,7 +555,11 @@ const MembersTable: React.FC<MembersTableProps> = ({ members, organization }) =>
                             <div className="mt-6">
                               <button
                                 onClick={() =>
-                                  handleRemoveMember(selectedMember.organizationmemberid, selectedMember.userid, selectedMember.role.role)
+                                  handleRemoveMember(
+                                    selectedMember.organizationmemberid,
+                                    selectedMember.userid,
+                                    selectedMember.role.role
+                                  )
                                 }
                                 className="w-full rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
                               >
