@@ -1,4 +1,6 @@
 "use client";
+import Link from 'next/link'; // Add this import
+
 export default function ContactUs() {
   return (
     <div
@@ -94,9 +96,9 @@ export default function ContactUs() {
             </div>
             <p className="mt-4 text-sm leading-6 text-gray-500">
               By submitting this form, I agree to the{" "}
-              <a href="#" className="text-primary font-semibold">
+              <Link href="/privacy_policy" className="text-primary font-semibold">
                 privacy&nbsp;policy
-              </a>
+              </Link>
               .
             </p>
           </form>
