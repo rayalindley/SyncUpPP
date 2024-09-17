@@ -20,7 +20,7 @@ import {
   HandRaisedIcon,
   UserIcon,
   ChatBubbleLeftEllipsisIcon,
-  PencilSquareIcon
+  PencilSquareIcon,
 } from "@heroicons/react/24/outline";
 import { type User } from "@supabase/supabase-js";
 import { formatDistanceToNow } from "date-fns";
@@ -32,7 +32,6 @@ function classNames(...classes: any[]) {
 }
 
 function Header({ user }: { user: User }) {
-  // console.log("Hello from Header.tsx");
   const notificationLinkRef = useRef(null);
 
   const { sidebarOpen, setSidebarOpen } = useSidebarStore((state) => ({
@@ -45,7 +44,6 @@ function Header({ user }: { user: User }) {
   const [unreadCount, setUnreadCount] = useState(0);
 
   const loadNotifications = async () => {
-    // console.log("Calling fetchNotifications");
     const response = await fetchNotifications(user.id);
 
     if (response && response.data) {
@@ -67,7 +65,6 @@ function Header({ user }: { user: User }) {
     const supabase = createClient();
 
     const initializeNotifications = async () => {
-      // console.log("Initializing notifications");
       await loadNotifications();
 
       const notificationChannel = supabase
@@ -80,8 +77,7 @@ function Header({ user }: { user: User }) {
             table: "notifications",
             filter: `userid=eq.${user.id}`,
           },
-          (payload) => {
-            // console.log("Received notification payload:", payload);
+          () => {
             loadNotifications();
           }
         )
@@ -113,11 +109,10 @@ function Header({ user }: { user: User }) {
     switch (notification.type) {
       case "event":
       case "membership":
-      case "membership_notif_for_admin":
       case "welcome":
       case "post":
       case "comment":
-        return "/" + `${notification.path}`;
+        return `/${notification.path}`;
       case "payment":
         return null;
       default:
@@ -145,7 +140,7 @@ function Header({ user }: { user: User }) {
     }
   }
 
-  const handleNotificationClick = async (notificationId: any) => {
+  const handleNotificationClick = async (notificationId: any, link: string | null) => {
     const updatedNotifications = notifications.map((notification) =>
       notification.notificationid === notificationId
         ? { ...notification, isread: true }
@@ -157,6 +152,10 @@ function Header({ user }: { user: User }) {
     const { success } = await markNotificationAsRead(notificationId);
     if (!success) {
       loadNotifications();
+    }
+
+    if (link) {
+      window.location.href = link;
     }
   };
 
@@ -183,8 +182,7 @@ function Header({ user }: { user: User }) {
       <div className="h-6 w-px bg-gray-200 lg:hidden" aria-hidden="true" />
 
       <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-        <div className="relative flex flex-1 items-center ">
-        </div>
+        <div className="relative flex flex-1 items-center "></div>
         <div className="flex items-center gap-x-4 lg:gap-x-6">
           <Menu as="div" className="relative">
             <Menu.Button className="p-3 text-gray-400 hover:text-gray-500">
@@ -215,36 +213,46 @@ function Header({ user }: { user: User }) {
               >
                 <div className="notification-container">
                   <div className="h-80 overflow-y-auto px-4 py-3">
-                    <p className="mb-2 text-sm font-medium text-light">Notifications</p>
+                    <p className="mb-2 text-sm font-medium text-light">
+                      Notifications
+                    </p>
                     {notifications.length > 0 ? (
-                      notifications.map((notification) => (
-                        <a
-                          key={notification.notificationid}
-                          className={`my-1 flex items-center gap-x-2 rounded-lg px-4 py-2 hover:bg-[#525252] ${
-                            notification.isread ? "bg-gray" : "bg-[#232323]"
-                          } cursor-pointer`}
-                          onClick={() => {
-                            handleNotificationClick(notification.notificationid);
-                            window.location.href =
-                              getNotificationLink(notification) ?? "";
-                          }}
-                        >
-                          <span className="text-sm leading-tight">
-                            {getNotificationIcon(notification)}
-                          </span>
-                          <span
-                            className="flex-1 text-xs leading-tight text-light"
-                            dangerouslySetInnerHTML={{ __html: notification.message }}
-                          />
-                          <span className="w-1/5 flex-none text-right text-xs text-light">
-                            {formatDistanceToNow(new Date(notification.created_on), {
-                              addSuffix: true,
-                            })}
-                          </span>
-                        </a>
-                      ))
+                      notifications.map((notification) => {
+                        const link = getNotificationLink(notification);
+                        return (
+                          <a
+                            key={notification.notificationid}
+                            className={`my-1 flex items-center gap-x-2 rounded-lg px-4 py-2 hover:bg-[#525252] ${
+                              notification.isread ? "bg-gray" : "bg-[#232323]"
+                            } cursor-pointer`}
+                            onClick={() => {
+                              handleNotificationClick(notification.notificationid, link);
+                            }}
+                          >
+                            <span className="text-sm leading-tight">
+                              {getNotificationIcon(notification)}
+                            </span>
+                            <span
+                              className="flex-1 text-xs leading-tight text-light"
+                              dangerouslySetInnerHTML={{
+                                __html: notification.message,
+                              }}
+                            />
+                            <span className="w-1/5 flex-none text-right text-xs text-light">
+                              {formatDistanceToNow(
+                                new Date(notification.created_on),
+                                {
+                                  addSuffix: true,
+                                }
+                              )}
+                            </span>
+                          </a>
+                        );
+                      })
                     ) : (
-                      <p className="text-xs text-light">No new notifications.</p>
+                      <p className="text-xs text-light">
+                        No new notifications.
+                      </p>
                     )}
                   </div>
                 </div>
@@ -303,7 +311,9 @@ function Header({ user }: { user: User }) {
               <Menu.Items className="absolute right-0 z-10 mt-2 w-56 origin-top-right divide-y divide-[#525252] rounded-md bg-charleston shadow-lg ring-1 ring-light ring-opacity-5 focus:outline-none">
                 <div className="px-4 py-3">
                   <p className="text-sm text-light">Signed in as</p>
-                  <p className="truncate text-sm font-medium text-light">{user.email}</p>
+                  <p className="truncate text-sm font-medium text-light">
+                    {user.email}
+                  </p>
                 </div>
                 <div className="py-1">
                   <Menu.Item>
