@@ -96,7 +96,7 @@ export default function ContactUs() {
             </div>
             <p className="mt-4 text-sm leading-6 text-gray-500">
               By submitting this form, I agree to the{" "}
-              <Link href="/privacy-policy" className="text-primary font-semibold">
+              <a href="#" className="text-primary font-semibold">
                 privacy&nbsp;policy
               </Link>
               .
