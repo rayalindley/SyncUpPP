@@ -4,9 +4,9 @@ import { getUser } from "@/lib/supabase/server";
 export default async function PrivacyPolicy() {
   const { user } = await getUser();
   return (
-    <div className="p-6 font-sans">
+    <div >
       <Header user={user} />
-      <main>
+      <main className="p-6 font-sans">
         <div className="max-w-6xl mx-auto">
           <h3 className="text-[#bababa] text-xl font-bold mb-3">SyncUp</h3>
           <h1 className="text-3xl font-bold mb-4 text-[#efefef] mb-6">Privacy Policy</h1>
