@@ -64,9 +64,15 @@ export default async function SettingsPage({ params }: { params: { slug: string 
   return (
     <div className="min-h-full flex-1 flex-col justify-center bg-eerieblack px-6 py-12 lg:px-8">
       <AnalyticsDashboard organizationid={organization.organizationid} />
-      <div className=" rounded-lg bg-charleston p-4 text-light max-w-lg">
-        <h2 className="text-lg font-bold text-light mb-4">Recent Activities</h2>
-        <ActivityFeed activities={activities} />
+      <div className="flex flex-col gap-4">
+        <div className=" max-w-lg rounded-lg bg-charleston p-4 text-light">
+          <h2 className="mb-4 text-lg font-bold text-light">Recent Activities</h2>
+          {activities && activities.length > 0 ? (
+            <ActivityFeed activities={activities} />
+          ) : (
+            <p>No activities yet</p>
+          )}
+        </div>
       </div>
       <div className="mt-4 flex gap-2">
         <a
