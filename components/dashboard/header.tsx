@@ -48,7 +48,6 @@ function Header({ user }: { user: User }) {
 
   const loadNotifications = async () => {
     const response = await fetchNotifications(user.id);
-    console.log(response);
 
     if (response && response.data) {
       const { data, unreadCount } = response;
