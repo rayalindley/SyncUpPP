@@ -1,3 +1,5 @@
+// Filename: D:\Github\SyncUp\components\dashboard\header.tsx
+
 "use client";
 import { signOut } from "@/lib/auth";
 import {
@@ -23,9 +25,10 @@ import {
   PencilSquareIcon,
 } from "@heroicons/react/24/outline";
 import { type User } from "@supabase/supabase-js";
-import { formatDistanceToNow } from "date-fns";
+import { addHours, formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { Fragment, useEffect, useRef, useState } from "react";
+import { Notifications } from "@/types/notifications"; // Ensure correct import
 
 function classNames(...classes: any[]) {
   return classes?.filter(Boolean).join(" ");
@@ -40,20 +43,21 @@ function Header({ user }: { user: User }) {
   }));
 
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<Notifications[]>([]); // Typed as Notifications[]
   const [unreadCount, setUnreadCount] = useState(0);
 
   const loadNotifications = async () => {
     const response = await fetchNotifications(user.id);
+    console.log(response);
 
     if (response && response.data) {
       const { data, unreadCount } = response;
 
-      const sortedData = data.sort((a, b) => {
-        if (a.isread === b.isread) {
+      const sortedData = data.sort((a: Notifications, b: Notifications) => {
+        if (a.read === b.read) {
           return a.message.localeCompare(b.message);
         }
-        return a.isread ? 1 : -1;
+        return a.read ? 1 : -1;
       });
 
       setNotifications(sortedData);
@@ -94,7 +98,7 @@ function Header({ user }: { user: User }) {
   const handleMarkAllAsRead = async () => {
     const updatedNotifications = notifications.map((notification) => ({
       ...notification,
-      isread: true,
+      read: true, // Changed from isread
     }));
     setNotifications(updatedNotifications);
     setUnreadCount(0);
@@ -105,7 +109,7 @@ function Header({ user }: { user: User }) {
     }
   };
 
-  function getNotificationLink(notification: { type: any; path: any }) {
+  function getNotificationLink(notification: Notifications) {
     switch (notification.type) {
       case "event":
       case "membership":
@@ -120,7 +124,7 @@ function Header({ user }: { user: User }) {
     }
   }
 
-  function getNotificationIcon(notification: { type: any }) {
+  function getNotificationIcon(notification: Notifications) {
     switch (notification.type) {
       case "event":
         return <CalendarIcon className="h-6 w-6 text-light" />;
@@ -140,10 +144,10 @@ function Header({ user }: { user: User }) {
     }
   }
 
-  const handleNotificationClick = async (notificationId: any, link: string | null) => {
+  const handleNotificationClick = async (notificationId: string, link: string | null) => {
     const updatedNotifications = notifications.map((notification) =>
       notification.notificationid === notificationId
-        ? { ...notification, isread: true }
+        ? { ...notification, read: true } // Changed from isread
         : notification
     );
     setNotifications(updatedNotifications);
@@ -213,9 +217,7 @@ function Header({ user }: { user: User }) {
               >
                 <div className="notification-container">
                   <div className="h-80 overflow-y-auto px-4 py-3">
-                    <p className="mb-2 text-sm font-medium text-light">
-                      Notifications
-                    </p>
+                    <p className="mb-2 text-sm font-medium text-light">Notifications</p>
                     {notifications.length > 0 ? (
                       notifications.map((notification) => {
                         const link = getNotificationLink(notification);
@@ -223,7 +225,7 @@ function Header({ user }: { user: User }) {
                           <a
                             key={notification.notificationid}
                             className={`my-1 flex items-center gap-x-2 rounded-lg px-4 py-2 hover:bg-[#525252] ${
-                              notification.isread ? "bg-gray" : "bg-[#232323]"
+                              notification.read ? "bg-gray" : "bg-[#232323]"
                             } cursor-pointer`}
                             onClick={() => {
                               handleNotificationClick(notification.notificationid, link);
@@ -240,7 +242,7 @@ function Header({ user }: { user: User }) {
                             />
                             <span className="w-1/5 flex-none text-right text-xs text-light">
                               {formatDistanceToNow(
-                                new Date(notification.created_on),
+                                addHours(new Date(notification.date_created), 8), // Add 8 hours to the date_created
                                 {
                                   addSuffix: true,
                                 }
@@ -250,9 +252,7 @@ function Header({ user }: { user: User }) {
                         );
                       })
                     ) : (
-                      <p className="text-xs text-light">
-                        No new notifications.
-                      </p>
+                      <p className="text-xs text-light">No new notifications.</p>
                     )}
                   </div>
                 </div>
@@ -311,15 +311,13 @@ function Header({ user }: { user: User }) {
               <Menu.Items className="absolute right-0 z-10 mt-2 w-56 origin-top-right divide-y divide-[#525252] rounded-md bg-charleston shadow-lg ring-1 ring-light ring-opacity-5 focus:outline-none">
                 <div className="px-4 py-3">
                   <p className="text-sm text-light">Signed in as</p>
-                  <p className="truncate text-sm font-medium text-light">
-                    {user.email}
-                  </p>
+                  <p className="truncate text-sm font-medium text-light">{user.email}</p>
                 </div>
                 <div className="py-1">
                   <Menu.Item>
                     {({ active }) => (
                       <Link
-                        href={`/user/profile/${user?.id}`}
+                        href={`/user/profile/${user.id}`}
                         className={classNames(
                           active ? "bg-[#383838] text-light" : "text-light",
                           "block px-4 py-2 text-sm"

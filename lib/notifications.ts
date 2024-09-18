@@ -1,3 +1,5 @@
+// Filename: D:\Github\SyncUp\lib\notifications.ts
+
 "use client";
 import { createClient } from "@/lib/supabase/client";
 import { Notifications } from "@/types/notifications";
@@ -9,12 +11,12 @@ export async function fetchNotifications(userId: string) {
       .from("notifications")
       .select("*")
       .eq("userid", userId)
-      .order("created_on", { ascending: false });
+      .order("date_created", { ascending: false }); // Changed from "created_on"
 
     if (!error) {
       if (data !== null) {
         const unreadCount = data.filter(
-          (notification: Notifications) => !notification.isread
+          (notification: Notifications) => !notification.read // Changed from !notification.isread
         ).length;
         return { data, unreadCount, error: null };
       } else {
@@ -40,9 +42,9 @@ export async function markAllAsRead(userId: string) {
   try {
     let { error } = await supabase
       .from("notifications")
-      .update({ isread: true })
+      .update({ read: true }) // Changed from isread
       .eq("userid", userId)
-      .eq("isread", false);
+      .eq("read", false); // Changed from isread
 
     if (!error) {
       return { success: true, error: null };
@@ -65,7 +67,7 @@ export async function markNotificationAsRead(notificationId: string) {
   try {
     let { error } = await supabase
       .from("notifications")
-      .update({ isread: true })
+      .update({ read: true }) // Changed from isread
       .eq("notificationid", notificationId);
 
     if (!error) {
