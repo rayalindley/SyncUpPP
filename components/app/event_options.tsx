@@ -43,15 +43,12 @@ const truncateText = (text: string, maxLength: number) => {
 
 export default function EventOptions({
   selectedEvent,
-  open,
-  setOpen,
   userId,
 }: {
   selectedEvent: Event;
-  open: boolean;
-  setOpen: (open: boolean) => void;
   userId: string;
 }) {
+  const [open, setOpen] = useState(false);
   const [currentTab, setCurrentTab] = useState("Info");
   const [attendees, setAttendees] = useState<UserProfile[] | null>(null);
   const [loadingAttendees, setLoadingAttendees] = useState(false);
