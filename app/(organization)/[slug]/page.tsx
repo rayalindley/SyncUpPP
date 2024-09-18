@@ -119,6 +119,7 @@ export default async function OrganizationUserView({
                 {membershipStatus !== "admin" && (
                   <JoinButton
                     organizationId={org.organizationid}
+                    organizationName={org.name}
                     organizationAccess={org.organization_access}
                     initialMembershipStatus={membershipStatus}
                   />

@@ -1,13 +1,13 @@
 // app/actions/insertActivity.ts
-import { createClient } from "./supabase/server";
+import { createClient } from "./supabase/client";
 
 
 type ActivityDetails = {
   user_id?: string;
-  organization_id?: string | null; // Can be null
+  organization_id?: string | null; 
   activity_type: string;
   description: string;
-  activity_details?: Record<string, unknown> | null; // Can be null
+  activity_details?: Record<string, unknown> | null; 
 };
 
 export async function recordActivity({
