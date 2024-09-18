@@ -1,3 +1,4 @@
+
 import TransactionsTable from "@/components/org_transactions_table";
 import { cookies } from "next/headers";
 import { fetchOrganizationBySlug } from "@/lib/organization";
@@ -42,3 +43,4 @@ export default async function TransactionsPage({ params }: { params: { slug: str
     </div>
   );
 }
+
