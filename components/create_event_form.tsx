@@ -339,6 +339,7 @@ const CreateEventForm = ({
       toast.success(
         event ? "Event was updated successfully." : "Event was created successfully."
       );
+
       router.push(`/e/${event ? event.eventslug : completeFormData.slug}`);
       reset();
     } else if (error) {
