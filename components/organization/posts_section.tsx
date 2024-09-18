@@ -497,96 +497,98 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId }) => {
         </div>
       )}
 
-      {/* Slimmer and Sleeker Filtering Bar */}
-      <div className="mb-4 mt-8 flex flex-wrap items-center space-x-2 space-y-2 rounded-lg bg-[#1e1e1e] p-4 shadow-lg">
-        <div className="relative flex-grow">
-          <input
-            type="text"
-            placeholder="Search posts..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full rounded-lg border border-[#3d3d3d] bg-[#2a2a2a] px-3 py-2 pl-10 text-white placeholder-gray-400 focus:border-transparent focus:ring-2 focus:ring-primary"
-          />
-          <span className="absolute left-3 top-2.5 text-gray-400">
-            <i className="fas fa-search"></i>
-          </span>
+      {/* Conditionally Render the Filtering UI */}
+      {isLoggedIn && canCreate && (
+        <div className="mb-4 mt-8 flex flex-wrap items-center space-x-2 space-y-2 rounded-lg bg-[#1e1e1e] p-4 shadow-lg">
+          <div className="relative flex-grow">
+            <input
+              type="text"
+              placeholder="Search posts..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full rounded-lg border border-[#3d3d3d] bg-[#2a2a2a] px-3 py-2 pl-10 text-white placeholder-gray-400 focus:border-transparent focus:ring-2 focus:ring-primary"
+            />
+            <span className="absolute left-3 top-2.5 text-gray-400">
+              <i className="fas fa-search"></i>
+            </span>
+          </div>
+          <div className="h-full w-px bg-gray-600"></div>
+          <div className="relative">
+            <select
+              value={filterByRole || ""}
+              onChange={(e) => setFilterByRole(e.target.value || null)}
+              disabled={filterByPublic}
+              className={`w-full rounded-lg border border-[#3d3d3d] bg-[#2a2a2a] px-3 py-2 pr-10 text-white focus:border-transparent focus:ring-2 focus:ring-primary ${
+                filterByPublic ? "cursor-not-allowed bg-gray-700 text-gray-500" : ""
+              }`}
+            >
+              <option value="">Filter by Role</option>
+              {availableRoles.map((role) => (
+                <option key={role.id} value={role.id}>
+                  {role.name}
+                </option>
+              ))}
+            </select>
+            <span className="absolute right-3 top-2.5 text-gray-400">
+              <i className="fas fa-chevron-down"></i>
+            </span>
+          </div>
+          <div className="h-full w-px bg-gray-600"></div>
+          <div className="relative">
+            <select
+              value={filterByMembership || ""}
+              onChange={(e) => setFilterByMembership(e.target.value || null)}
+              disabled={filterByPublic}
+              className={`w-full rounded-lg border border-[#3d3d3d] bg-[#2a2a2a] px-3 py-2 pr-10 text-white focus:border-transparent focus:ring-2 focus:ring-primary ${
+                filterByPublic ? "cursor-not-allowed bg-gray-700 text-gray-500" : ""
+              }`}
+            >
+              <option value="">Filter by Membership</option>
+              {availableMemberships.map((membership) => (
+                <option key={membership.membershipid} value={membership.membershipid}>
+                  {membership.name}
+                </option>
+              ))}
+            </select>
+            <span className="absolute right-3 top-2.5 text-gray-400">
+              <i className="fas fa-chevron-down"></i>
+            </span>
+          </div>
+          <div className="h-full w-px bg-gray-600"></div>
+          <label className="flex items-center space-x-1 text-white">
+            <input
+              type="checkbox"
+              checked={filterByAuthor}
+              onChange={(e) => setFilterByAuthor(e.target.checked)}
+              className="form-checkbox h-4 w-4 rounded border-[#3d3d3d] bg-[#2a2a2a] text-primary focus:border-transparent focus:ring-2 focus:ring-primary"
+            />
+            <span className="text-sm">Authored by Me</span>
+          </label>
+          <div className="h-full w-px bg-gray-600"></div>
+          <label className="flex items-center space-x-1 text-white">
+            <input
+              type="checkbox"
+              checked={filterByPublic}
+              onChange={(e) => {
+                handleFilterByPublicChange(e.target.checked);
+              }}
+              className="form-checkbox h-4 w-4 rounded border-[#3d3d3d] bg-[#2a2a2a] text-primary focus:border-transparent focus:ring-2 focus:ring-primary"
+            />
+            <span className="text-sm">Public Posts</span>
+          </label>
+          <div className="h-full w-px bg-gray-600"></div>
+          <div className="flex items-center space-x-1 text-white">
+            <label className="text-sm">Filter by Date:</label>
+            <ReactDatePicker
+              selected={filterByDate}
+              onChange={(date: Date | null) => setFilterByDate(date)}
+              isClearable
+              placeholderText="Select Date"
+              className="rounded-lg border border-[#3d3d3d] bg-[#2a2a2a] px-3 py-2 text-white focus:border-transparent focus:ring-2 focus:ring-primary"
+            />
+          </div>
         </div>
-        <div className="h-full w-px bg-gray-600"></div>
-        <div className="relative">
-          <select
-            value={filterByRole || ""}
-            onChange={(e) => setFilterByRole(e.target.value || null)}
-            disabled={filterByPublic}
-            className={`w-full rounded-lg border border-[#3d3d3d] bg-[#2a2a2a] px-3 py-2 pr-10 text-white focus:border-transparent focus:ring-2 focus:ring-primary ${
-              filterByPublic ? "cursor-not-allowed bg-gray-700 text-gray-500" : ""
-            }`}
-          >
-            <option value="">Filter by Role</option>
-            {availableRoles.map((role) => (
-              <option key={role.id} value={role.id}>
-                {role.name}
-              </option>
-            ))}
-          </select>
-          <span className="absolute right-3 top-2.5 text-gray-400">
-            <i className="fas fa-chevron-down"></i>
-          </span>
-        </div>
-        <div className="h-full w-px bg-gray-600"></div>
-        <div className="relative">
-          <select
-            value={filterByMembership || ""}
-            onChange={(e) => setFilterByMembership(e.target.value || null)}
-            disabled={filterByPublic}
-            className={`w-full rounded-lg border border-[#3d3d3d] bg-[#2a2a2a] px-3 py-2 pr-10 text-white focus:border-transparent focus:ring-2 focus:ring-primary ${
-              filterByPublic ? "cursor-not-allowed bg-gray-700 text-gray-500" : ""
-            }`}
-          >
-            <option value="">Filter by Membership</option>
-            {availableMemberships.map((membership) => (
-              <option key={membership.membershipid} value={membership.membershipid}>
-                {membership.name}
-              </option>
-            ))}
-          </select>
-          <span className="absolute right-3 top-2.5 text-gray-400">
-            <i className="fas fa-chevron-down"></i>
-          </span>
-        </div>
-        <div className="h-full w-px bg-gray-600"></div>
-        <label className="flex items-center space-x-1 text-white">
-          <input
-            type="checkbox"
-            checked={filterByAuthor}
-            onChange={(e) => setFilterByAuthor(e.target.checked)}
-            className="form-checkbox h-4 w-4 rounded border-[#3d3d3d] bg-[#2a2a2a] text-primary focus:border-transparent focus:ring-2 focus:ring-primary"
-          />
-          <span className="text-sm">Authored by Me</span>
-        </label>
-        <div className="h-full w-px bg-gray-600"></div>
-        <label className="flex items-center space-x-1 text-white">
-          <input
-            type="checkbox"
-            checked={filterByPublic}
-            onChange={(e) => {
-              handleFilterByPublicChange(e.target.checked);
-            }}
-            className="form-checkbox h-4 w-4 rounded border-[#3d3d3d] bg-[#2a2a2a] text-primary focus:border-transparent focus:ring-2 focus:ring-primary"
-          />
-          <span className="text-sm">Public Posts</span>
-        </label>
-        <div className="h-full w-px bg-gray-600"></div>
-        <div className="flex items-center space-x-1 text-white">
-          <label className="text-sm">Filter by Date:</label>
-          <ReactDatePicker
-            selected={filterByDate}
-            onChange={(date: Date | null) => setFilterByDate(date)}
-            isClearable
-            placeholderText="Select Date"
-            className="rounded-lg border border-[#3d3d3d] bg-[#2a2a2a] px-3 py-2 text-white focus:border-transparent focus:ring-2 focus:ring-primary"
-          />
-        </div>
-      </div>
+      )}
 
       <div className="mt-8 space-y-4">
         {filteredPosts.map((post) => (

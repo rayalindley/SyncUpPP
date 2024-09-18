@@ -285,19 +285,44 @@ export async function getUserProfileById(userId: string) {
     ? { data: data[0], error: null }
     : { data: null, error: error || { message: "No data found" } };
 }
+// Utility function to validate UUIDs
+const isValidUUID = (uuid: string): boolean => {
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
+};
 
 export async function check_permissions(
   userid: string,
   org_id: string,
   perm_key: string
-) {
+): Promise<boolean> {
+  // Validate the userid before proceeding
+  if (!userid || !isValidUUID(userid)) {
+    console.warn(`check_permissions called with invalid userid: "${userid}"`);
+    return false;
+  }
+
   const supabase = createClient();
-  const { data, error } = await supabase.rpc("check_org_permissions", {
-    p_user_id: userid,
-    p_org_id: org_id,
-    p_perm_key: perm_key,
-  });
-  return data;
+  
+  try {
+    const { data, error } = await supabase.rpc("check_org_permissions", {
+      p_user_id: userid,
+      p_org_id: org_id,
+      p_perm_key: perm_key,
+    });
+
+    if (error) {
+      console.error("Error checking permissions", error);
+      return false;
+    }
+
+    // Assuming 'data' is a boolean indicating permission
+    return data ?? false;
+  } catch (error) {
+    console.error("Unexpected error in check_permissions:", error);
+    return false;
+  }
 }
 
 export async function getUserOrganizationInfo(userId: string, organizationid: string) {
