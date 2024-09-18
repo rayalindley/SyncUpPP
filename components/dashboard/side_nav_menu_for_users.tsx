@@ -19,6 +19,7 @@ import {
   IoCalendarOutline,
   IoMailUnreadOutline,
   IoShieldCheckmarkOutline,
+  IoWalletOutline,
 } from "react-icons/io5";
 import { TbUserStar } from "react-icons/tb";
 import { ChevronDownIcon } from "@heroicons/react/20/solid";
@@ -64,14 +65,16 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
           : `/${selected.slug}/dashboard`,
       icon: IoIosAnalytics,
     },
-    {
-      name: "Roles",
-      href:
-        selected === "default" || typeof selected === "string"
-          ? `/dashboard/roles`
-          : `/${selected.slug}/dashboard/roles`,
-      icon: IoShieldCheckmarkOutline,
-    },
+    // Conditionally render the Roles tab
+    ...(selected !== "default" && typeof selected !== "string"
+      ? [
+          {
+            name: "Roles",
+            href: `/${selected.slug}/dashboard/roles`,
+            icon: IoShieldCheckmarkOutline,
+          },
+        ]
+      : []),
     {
       name: "Members",
       icon: IoIosPeople,
@@ -108,6 +111,15 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
           : `/${selected.slug}/dashboard/events`,
       icon: IoCalendarOutline,
     },
+    ...(selected !== "default" && typeof selected !== "string"
+      ? [
+          {
+            name: "Transactions",
+            href: `/${selected.slug}/dashboard/transactions`,
+            icon: IoWalletOutline,
+          },
+        ]
+      : []),
   ];
 
   const toggleSubmenu = (name: string) => {
@@ -699,10 +711,10 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
               <li className="mt-auto">
                 <Link
                   href="#"
-                  className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-700 hover:bg-gray-50 hover:text-indigo-600"
+                  className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-light hover:bg-charleston "
                 >
                   <Cog6ToothIcon
-                    className="h-6 w-6 shrink-0 text-gray-400 group-hover:text-indigo-600"
+                    className="h-6 w-6 shrink-0 text-gray-400 group-hover:text-light"
                     aria-hidden="true"
                   />
                   Settings
