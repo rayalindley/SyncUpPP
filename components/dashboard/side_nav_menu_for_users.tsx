@@ -19,6 +19,7 @@ import {
   IoCalendarOutline,
   IoMailUnreadOutline,
   IoShieldCheckmarkOutline,
+  IoWalletOutline,
 } from "react-icons/io5";
 import { TbUserStar } from "react-icons/tb";
 import { ChevronDownIcon } from "@heroicons/react/20/solid";
@@ -110,6 +111,15 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
           : `/${selected.slug}/dashboard/events`,
       icon: IoCalendarOutline,
     },
+    ...(selected !== "default" && typeof selected !== "string"
+      ? [
+          {
+            name: "Transactions",
+            href: `/${selected.slug}/dashboard/transactions`,
+            icon: IoWalletOutline,
+          },
+        ]
+      : []),
   ];
 
   const toggleSubmenu = (name: string) => {
