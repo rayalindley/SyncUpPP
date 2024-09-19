@@ -3,7 +3,7 @@ import { createClient } from "./supabase/client";
 
 
 type ActivityDetails = {
-  user_id?: string;
+  user_id?: string; // Add user_id to the type
   organization_id?: string | null; 
   activity_type: string;
   description: string;
@@ -19,7 +19,13 @@ export async function recordActivity({
 }: ActivityDetails) {
   const supabase = createClient();
 
-  const activityData = {
+  const activityData: {
+    organization_id?: string | null;
+    user_id?: string; // Add user_id to the activityData type
+    activity_type: string;
+    description: string;
+    activity_details?: Record<string, unknown> | null;
+  } = {
     organization_id, // Can be null
     activity_type,
     description,
