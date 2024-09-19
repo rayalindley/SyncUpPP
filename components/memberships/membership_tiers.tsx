@@ -12,6 +12,7 @@ import { getUser } from "@/lib/supabase/client";
 import type { CreateInvoiceRequest, Invoice } from "xendit-node/invoice/models";
 
 import { useRouter } from "next/navigation";
+import { recordActivity } from "@/lib/track";
 
 const xenditClient = new Xendit({
   secretKey: process.env.NEXT_PUBLIC_XENDIT_SECRET_KEY!,
@@ -195,6 +196,17 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
               toast.error("Error inserting membership. Please try again later.");
               return;
             }
+
+            await recordActivity({
+              organization_id: organizationid,
+              activity_type: "membership_subscribe",
+              description: `User has subscribed to the ${membershipName} membership.`,
+            });
+
+            await recordActivity({
+              activity_type: "membership_subscribe",
+              description: `User has subscribed to the ${membershipName} membership.`,
+            });
 
             toast.success(
               "Congratulations! You've successfully purchased the membership."

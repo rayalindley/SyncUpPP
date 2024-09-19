@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { recordActivity } from "@/lib/track";
 import { NextApiRequest, NextApiResponse } from "next";
 
 const supabase = createClient();
@@ -77,6 +78,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
+    const { data: membership, error: membershipError } = await supabase
+      .from("organization_memberships")
+      .select("*")
+      .eq("membershipid", paymentData.target_id)
+      .eq("organizationid", paymentData.organizationId)
+      .single();
+
+    await recordActivity({
+      organization_id: paymentData.organizationId,
+      activity_type: "membership_subscribe",
+      description: `User has subscribed to the ${membership?.name} membership.`,
+    });
+
+    await recordActivity({
+      activity_type: "membership_subscribe",
+      description: `User subscribed to the ${membership?.name} membership in ${membership?.orgname}.`,
+    });
+
     return res.status(200).json({
       success: "MEMBERSHIP UPDATED & PAYMENT SUCCESSFUL!",
       memberData: updatedMemberData,
@@ -96,6 +115,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         payerId: paymentData.payerId,
       });
     }
+
+    //fetch org name
+    const { data: orgData, error: orgError } = await supabase
+      .from("organizations")
+      .select("name")
+      .eq("organizationid", paymentData.organizationId)
+      .single();
+
+    // fetch event name with eventid
+    const { data: eventData, error: eventError } = await supabase
+      .from("events")
+      .select("title")
+      .eq("eventid", paymentData.target_id)
+      .single();
+
+    //record activity
+    await recordActivity({
+      organization_id: paymentData.organizationId,
+      activity_type: "event_register",
+      description: `User has registered for the ${eventData?.title}.`,
+    });
+
+    await recordActivity({
+      activity_type: "event_register",
+      description: `User has registered for the ${eventData?.title} event in ${orgData?.name}.`,
+    });
 
     return res.status(200).json({
       success: "EVENT REGISTRATION & PAYMENT SUCCESSFUL!",

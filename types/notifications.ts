@@ -1,18 +1,13 @@
-import { OrganizationMembers } from '@/types/organization_members';
-import { Events } from '@/types/events';
+// Filename: D:\Github\SyncUp\types\notifications.ts
+
 export interface Notifications {
   notificationid: string;
-  organizationmemberid?: string;
-  eventid?: string;
-  title?: string;
-  eventdatetime?: string;
-  orgname?: string;
-  isread?: boolean;
-  userid?: string;
-  message?: string;
-  created_on?: string;
-  type?: string;
+  userid: string;
+  title: string;
+  message: string;
+  type: string;
+  metadata?: Record<string, any>; // Stores additional info based on notification type
   path?: string;
-  organizationmembers?: OrganizationMembers;
-  events?: Events;
+  date_created: string; // Changed from 'created_on'
+  read: boolean; // Changed from 'isread'
 }

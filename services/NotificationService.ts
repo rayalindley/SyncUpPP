@@ -1,6 +1,5 @@
-// services/NotificationService.ts
 import { SupabaseClient } from "@supabase/supabase-js";
-import { Notification } from "../models/Notification";
+import { Notifications as Notification } from "../types/notifications";
 
 export class NotificationService {
   private supabase: SupabaseClient;
@@ -16,43 +15,19 @@ export class NotificationService {
       .select()
       .single();
     if (error) throw new Error(error.message);
-    return new Notification(
-      data.notificationId,
-      data.organizationMemberId,
-      data.eventId,
-      data.title,
-      new Date(data.eventDateTime),
-      data.orgName,
-      data.isRead,
-      data.userId,
-      data.message,
-      new Date(data.createdOn),
-      data.type,
-      data.path
-    );
+    return data as Notification;
   }
 
-  async getNotificationById(notificationId: string): Promise<Notification | null> {
+  async getNotificationById(
+    notificationId: string
+  ): Promise<Notification | null> {
     const { data, error } = await this.supabase
       .from("notifications")
       .select("*")
-      .eq("notificationId", notificationId)
+      .eq("notificationid", notificationId)
       .single();
     if (error) return null;
-    return new Notification(
-      data.notificationId,
-      data.organizationMemberId,
-      data.eventId,
-      data.title,
-      new Date(data.eventDateTime),
-      data.orgName,
-      data.isRead,
-      data.userId,
-      data.message,
-      new Date(data.createdOn),
-      data.type,
-      data.path
-    );
+    return data as Notification;
   }
 
   async updateNotification(
@@ -62,31 +37,18 @@ export class NotificationService {
     const { data, error } = await this.supabase
       .from("notifications")
       .update(updates)
-      .eq("notificationId", notificationId)
+      .eq("notificationid", notificationId)
       .select()
       .single();
     if (error) return null;
-    return new Notification(
-      data.notificationId,
-      data.organizationMemberId,
-      data.eventId,
-      data.title,
-      new Date(data.eventDateTime),
-      data.orgName,
-      data.isRead,
-      data.userId,
-      data.message,
-      new Date(data.createdOn),
-      data.type,
-      data.path
-    );
+    return data as Notification;
   }
 
   async deleteNotification(notificationId: string): Promise<void> {
     const { error } = await this.supabase
       .from("notifications")
       .delete()
-      .eq("notificationId", notificationId);
+      .eq("notificationid", notificationId);
     if (error) throw new Error(error.message);
   }
 }
