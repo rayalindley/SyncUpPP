@@ -86,12 +86,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .single();
 
     await recordActivity({
+      user_id: paymentData.payerId,
       organization_id: paymentData.organizationId,
       activity_type: "membership_subscribe",
       description: `User has subscribed to the ${membership?.name} membership.`,
     });
 
     await recordActivity({
+      user_id: paymentData.payerId,
       activity_type: "membership_subscribe",
       description: `User subscribed to the ${membership?.name} membership in ${membership?.orgname}.`,
     });
