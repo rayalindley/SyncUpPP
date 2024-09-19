@@ -134,12 +134,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     //record activity
     await recordActivity({
+      user_id: paymentData.payerId,
       organization_id: paymentData.organizationId,
       activity_type: "event_register",
       description: `User has registered for the ${eventData?.title}.`,
     });
 
     await recordActivity({
+      user_id: paymentData.payerId,
       activity_type: "event_register",
       description: `User has registered for the ${eventData?.title} event in ${orgData?.name}.`,
     });
