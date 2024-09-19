@@ -7,6 +7,7 @@ import { User } from "../models/User";
 import { z } from "zod";
 
 import { Provider } from "@supabase/supabase-js";
+import { recordActivity } from "@/lib/track";
 
 const signInSchema = z.object({
   email: z.string().email({ message: "Invalid email format" }),
@@ -28,6 +29,12 @@ export class AuthService {
   private supabase = createClient();
 
   async signOut() {
+
+    await recordActivity({
+      activity_type: "user_signout",
+      description: "User signed out",
+    });
+
     await this.supabase.auth.signOut();
     return redirect("/signin");
   }
@@ -53,6 +60,12 @@ export class AuthService {
       !referer.includes("/signup") &&
       !referer.includes("/")
     ) {
+
+      await recordActivity({
+        activity_type: "user_signin",
+        description: "User signed in",
+      });
+
       return redirect(referer);
     }
 
@@ -90,6 +103,10 @@ export class AuthService {
       !referer.includes("/signup") &&
       !referer.includes("/")
     ) {
+      await recordActivity({
+        activity_type: "user_signup",
+        description: "User signed up",
+      });
       return redirect(referer);
     }
 
@@ -131,6 +148,12 @@ export class AuthService {
       return redirect(
         `/reset-password?error=${error.message || "Could not reset password."}`
       );
+    } else {
+      //record activity
+      await recordActivity({
+        activity_type: "user_reset_password",
+        description: "User reset password",
+      });
     }
 
     return redirect("/dashboard?success=Password reset successfully.");
