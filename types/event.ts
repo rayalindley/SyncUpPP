@@ -1,6 +1,7 @@
 import { Privacy } from "./privacy";
 
 export interface Event {
+  users?: never[];
   id: string;
   eventid: string;
   eventphoto: string;
