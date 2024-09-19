@@ -12,6 +12,8 @@ import { createClient } from "@/lib/supabase/client";
 import { getUser } from "@/lib/supabase/client";
 import { useRouter } from 'next/navigation';
 import { TableColumn } from "react-data-table-component";
+import ActivityFeed from "@/components/acitivty_feed";
+import { Activity } from "@/types/activities";
 
 const supabase = createClient();
 
@@ -84,6 +86,7 @@ const MembersTable: React.FC<MembersTableProps> = ({ members, organization }) =>
   const [isMounted, setIsMounted] = useState(false);
   const [selectedMember, setSelectedMember] = useState<MemberTableData | null>(null);
   const router = useRouter();
+  const [userActivities, setUserActivities] = useState<Activity[]>([]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -104,6 +107,29 @@ const MembersTable: React.FC<MembersTableProps> = ({ members, organization }) =>
       setTableData(data);
     }
   }, [members]);
+
+  useEffect(() => {
+    if (selectedMember) {
+      fetchUserActivities(selectedMember.userid);
+    }
+  }, [selectedMember]);
+
+  const fetchUserActivities = async (userId: string) => {
+    const { data, error } = await supabase
+      .from("activities")
+      .select("*")
+      .eq("user_id", userId)
+      .is('organization_id', null)
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+
+    if (error) {
+      console.error("Error fetching user activities:", error);
+    } else {
+      setUserActivities(data || []);
+    }
+  };
 
   const columns = [
     {
@@ -206,8 +232,8 @@ const MembersTable: React.FC<MembersTableProps> = ({ members, organization }) =>
         const { error } = await supabase
           .from('organization_members_view')
           .delete()
-          .eq('organizationid', selectedMember?.organizationid)
-          .eq('userid', userId);
+          .eq('organizationid', null)
+          .eq('userid', userId)
 
         if (error) {
           throw new Error(error.message);
@@ -551,6 +577,16 @@ const MembersTable: React.FC<MembersTableProps> = ({ members, organization }) =>
                                 <p className="text-gray-300">
                                   No payment history available
                                 </p>
+                              )}
+                            </div>
+                            <div className="rounded-lg bg-charleston p-4">
+                              <h3 className="mb-4 text-lg font-medium text-light">
+                                User Activities
+                              </h3>
+                              {userActivities.length > 0 ? (
+                                <ActivityFeed activities={userActivities} />
+                              ) : (
+                                <p className="text-gray-300">No activities available</p>
                               )}
                             </div>
                             <div className="mt-6">
