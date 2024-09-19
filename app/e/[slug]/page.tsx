@@ -203,7 +203,6 @@ const EventPage = () => {
   }
 
   const handleEventRegistration = async () => {
-    if (isRegistered || !canJoin) return;
 
     const result = await Swal.fire({
       title: "Are you sure?",
