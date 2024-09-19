@@ -178,6 +178,24 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
               return;
             }
 
+            try {
+              await recordActivity({
+                organization_id: organizationid,
+                activity_type: "membership_subscribe",
+                description: `User has subscribed to the ${membershipName} membership.`,
+              });
+
+              await recordActivity({
+                activity_type: "membership_subscribe",
+                description: `User subscribed to the ${membershipName} membership.`,
+              });
+            } catch (error) {
+              console.error("Error recording activity: ", error);
+              toast.error(
+                "Error recording subscription activity. Please try again later."
+              );
+            }
+
             toast.success("Membership updated successfully.");
           } else {
             const { error: insertError } = await supabase
@@ -197,21 +215,32 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
               return;
             }
 
-            await recordActivity({
-              organization_id: organizationid,
-              activity_type: "membership_subscribe",
-              description: `User has subscribed to the ${membershipName} membership.`,
-            });
+            try {
+              await recordActivity({
+                organization_id: organizationid,
+                activity_type: "membership_subscribe",
+                description: `User has subscribed to the ${membershipName} membership.`,
+              });
 
-            await recordActivity({
-              activity_type: "membership_subscribe",
-              description: `User has subscribed to the ${membershipName} membership.`,
-            });
+              await recordActivity({
+                activity_type: "membership_subscribe",
+                description: `User subscribed to the ${membershipName} membership.`,
+              });
+            } catch (error) {
+              console.error("Error recording activity: ", error);
+              toast.error(
+                "Error recording subscription activity. Please try again later."
+              );
+            }
+
+            
 
             toast.success(
               "Congratulations! You've successfully purchased the membership."
             );
           }
+
+         
 
           setUserMemberships((prevUserMemberships) => [
             ...prevUserMemberships,
