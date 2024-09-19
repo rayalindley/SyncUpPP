@@ -3,8 +3,11 @@ import { check_permissions } from "@/lib/organization";
 import { Event } from "@/types/event";
 import { Organization } from "@/types/organization";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import EventOptions from "./event_options"; // Assuming you have EventOptions component
+import { useEffect, useState, useMemo } from "react";
+import EventOptions from "./event_options";
+import DataTable from "react-data-table-component";
+import { TableColumn } from "react-data-table-component";
+import { useDebounce } from "use-debounce";
 
 export default function EventsTableUser({
   organization,
@@ -17,6 +20,8 @@ export default function EventsTableUser({
 }) {
   const router = useRouter();
   const [canCreateEvents, setCanCreateEvents] = useState(false);
+  const [filterText, setFilterText] = useState<string>("");
+  const [debouncedFilterText] = useDebounce(filterText, 300);
 
   // Redirect to the create event page for the selected organization
   const handleCreateEvent = () => {
@@ -40,100 +45,7 @@ export default function EventsTableUser({
     checkPermissions();
   }, [userId, organization.organizationid]);
 
-  return (
-    <div className="py-4 sm:px-6 lg:px-8">
-      <div className="justify-between sm:flex sm:items-center">
-        <div className="sm:flex-auto">
-          <h1 className="text-base font-semibold leading-6 text-light">Events</h1>
-          <p className="mt-2 text-sm text-light">
-            A list of all the events including their title, date and time, location,
-            registration fee, capacity, and privacy.
-          </p>
-        </div>
-        <div className="mt-4 sm:flex sm:items-center sm:space-x-2">
-          {canCreateEvents && (
-            <button
-              onClick={handleCreateEvent}
-              className="rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-primarydark"
-            >
-              Create Event
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="mt-8 flow-root">
-        <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-          <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
-              <table className="min-w-full divide-y divide-[#525252]">
-                <thead className="bg-charleston">
-                  <tr>
-                    <th
-                      scope="col"
-                      className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-light sm:pl-6"
-                    >
-                      Title
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-3 py-3.5 text-left text-sm font-semibold text-light"
-                    >
-                      Start Date & Time
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-3 py-3.5 text-left text-sm font-semibold text-light"
-                    >
-                      End Date & Time
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-3 py-3.5 text-left text-sm font-semibold text-light"
-                    >
-                      Location
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-3 py-3.5 text-left text-sm font-semibold text-light"
-                    >
-                      Registration Fee
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-3 py-3.5 text-left text-sm font-semibold text-light"
-                    >
-                      Capacity
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-3 py-3.5 text-left text-sm font-semibold text-light"
-                    >
-                      Privacy
-                    </th>
-                    <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                      <span className="sr-only">Edit</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#525252] bg-raisinblack">
-                  {events.map((event, index) => (
-                    <EventRow key={index} event={event} userId={userId} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function EventRow({ event, userId }: { event: Event; userId: string }) {
-  const [open, setOpen] = useState(false);
-
-  // Convert eventdatetime to PST
+  // Convert event datetime to PST
   const formattedDateTime = (utcDateString: string) => {
     const date = new Date(utcDateString);
     return date.toLocaleString("en-US", {
@@ -146,50 +58,162 @@ function EventRow({ event, userId }: { event: Event; userId: string }) {
     });
   };
 
-  const startEventDateTimePST = formattedDateTime(event.starteventdatetime.toString());
-  const endEventDateTimePST = formattedDateTime(event.endeventdatetime.toString());
+  // Define columns for the data table
+  const columns = [
+    {
+      name: "Title",
+      selector: (row: Event) => row.title.toLowerCase(),
+      sortable: true,
+      cell: (row: Event) => row.title,
+    },
+    {
+      name: "Start Date & Time",
+      selector: (row: Event) => row.starteventdatetime,
+      sortable: true,
+      cell: (row: Event) => new Date(row.starteventdatetime).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true }),
+    },
+    {
+      name: "End Date & Time",
+      selector: (row: Event) => row.endeventdatetime,
+      sortable: true,
+      cell: (row: Event) => new Date(row.endeventdatetime).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true }),
 
-  // Safely access the privacy field.
-  // Ensure you're only rendering a string like "Public" or "Private"
-  const privacyInfo =
-    event.privacy && typeof event.privacy === "object" && event.privacy.type === "public"
-      ? "Public"
-      : "Private";
+    },
+    {
+      name: "Location",
+      selector: (row: Event) => row.location.toLowerCase(),
+      sortable: true,
+    },
+    {
+      name: "Registration Fee",
+      selector: (row: Event) => row.registrationfee || "N/A",
+      sortable: true,
+    },
+    {
+      name: "Capacity",
+      selector: (row: Event) => row.capacity || "N/A",
+      sortable: true,
+    },
+    {
+      name: "Privacy",
+      selector: (row: Event) => {
+        const privacyInfo =
+          row.privacy && typeof row.privacy === "object" && row.privacy.type === "public"
+            ? "Public"
+            : "Private";
+        return privacyInfo;
+      },
+      sortable: true,
+    },
+    {
+      name: "",
+      cell: (row: Event) => (
+        <EventOptions selectedEvent={row} userId={userId} />
+      ),
+      ignoreRowClick: true,
+      allowOverflow: true,
+      button: true,
+    },
+  ];
+
+  const filteredData = useMemo(
+    () =>
+      events.filter((event) => {
+        if (!debouncedFilterText) return true;
+        return (
+          event.title.toLowerCase().includes(debouncedFilterText.toLowerCase())
+        );
+      }),
+    [debouncedFilterText, events]
+  );
+
+  const subHeaderComponent = (
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full">
+          <input
+      type="text"
+      placeholder="Search..."
+      value={filterText}
+      onChange={(e) => setFilterText(e.target.value)}
+      className="block rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+    />
+
+    <div className="mt-4 sm:flex sm:items-center sm:space-x-2">
+          {canCreateEvents && (
+            <button
+              onClick={handleCreateEvent}
+              className="rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-primarydark"
+            >
+              Create Event
+            </button>
+          )}
+        </div>
+    </div>
+  );
 
   return (
-    <tr key={event.id}>
-      <td
-        className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-light sm:pl-6"
-        onClick={() => setOpen(!open)}
-      >
-        <a href="#" className="hover:text-primary" onClick={() => setOpen(!open)}>
-          {event.title}
-        </a>
-      </td>
-      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-        {startEventDateTimePST}
-      </td>
-      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-        {endEventDateTimePST}
-      </td>
-      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">{event.location}</td>
-      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-        {event.registrationfee || "N/A"}
-      </td>
-      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-        {event.capacity || "N/A"}
-      </td>
-      <td className="whitespace-nowrap px-3 py-4 text-sm text-light">
-        {privacyInfo} {/* Only display "Public" or "Private" */}
-      </td>
-      <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-        <EventOptions
-          selectedEvent={event}
-          open={open}
-          setOpen={setOpen}
-          userId={userId}
+    <div className="py-4 sm:px-6 lg:px-8">
+      <div className="justify-between sm:flex sm:items-center">
+        <div className="sm:flex-auto">
+          <h1 className="text-base font-semibold leading-6 text-light">Events</h1>
+          <p className="mt-2 text-sm text-light">
+            A list of all the events including their title, date and time, location,
+            registration fee, capacity, and privacy.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-8 flow-root">
+        <DataTable
+          columns={columns as TableColumn<unknown>[]}
+          data={filteredData}
+          defaultSortFieldId="title"
+          customStyles={{
+            header: {
+              style: {
+                backgroundColor: "rgb(36, 36, 36)",
+                color: "rgb(255, 255, 255)",
+              },
+            },
+            subHeader: {
+              style: {
+                backgroundColor: "none",
+                color: "rgb(255, 255, 255)",
+                padding: 0,
+                marginBottom: 10,
+              },
+            },
+            rows: {
+              style: {
+                minHeight: "6vh",
+                backgroundColor: "rgb(33, 33, 33)",
+                color: "rgb(255, 255, 255)",
+              },
+            },
+            headCells: {
+              style: {
+                backgroundColor: "rgb(36, 36, 36)",
+                color: "rgb(255, 255, 255)",
+              },
+            },
+            cells: {
+              style: {
+                backgroundColor: "rgb(33, 33, 33)",
+                color: "rgb(255, 255, 255)",
+              },
+            },
+            pagination: {
+              style: {
+                backgroundColor: "rgb(33, 33, 33)",
+                color: "rgb(255, 255, 255)",
+              },
+            },
+          }}
+          pagination
+          subHeader
+          highlightOnHover
+          subHeaderComponent={subHeaderComponent}
         />
-      </td>
-    </tr>
+      </div>
+    </div>
   );
 }
