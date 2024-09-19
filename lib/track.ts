@@ -29,6 +29,8 @@ export async function recordActivity({
       }
     ]);
 
+    console.log(data, error);
+
   if (error) {
     throw new Error(`Failed to insert activity: ${error.message}`);
   }

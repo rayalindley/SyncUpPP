@@ -15,7 +15,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: "No data received." });
   }
 
-  // console.log("Body: ", body);
+  console.log("Body: ", body);
 
   // Get user data
 

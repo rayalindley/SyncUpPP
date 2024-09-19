@@ -7,6 +7,7 @@ import ReactDOM from 'react-dom'; // Add this import for portal rendering
 import { createClient } from '@/lib/supabase/client';
 import { Router } from "next/router";
 import { useRouter } from "next/navigation";
+import { recordActivity } from "@/lib/track";
 
 const supabase = createClient();
 
@@ -74,6 +75,11 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
 
     if (error) {
       console.error('Error updating membershipid to null:', error);
+    } else {
+        await recordActivity({
+          activity_type: "membership_cancel",
+          description: `User has cancelled the ${membership.name} membership.`,
+        });
     }
 
     window.location.reload();
