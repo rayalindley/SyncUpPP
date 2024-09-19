@@ -11,6 +11,8 @@ import { createClient } from "@/lib/supabase/client";
 import { getUser } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Preloader from "@/components/preloader";
+import ActivityFeed from "@/components/acitivty_feed";
+import { Activity } from "@/types/activities";
 
 const supabase = createClient();
 
@@ -88,6 +90,7 @@ const MembersTableAll: React.FC<MembersTableAllProps> = ({
     null
   );
   const router = useRouter();
+  const [userActivities, setUserActivities] = useState<Activity[]>([]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -108,6 +111,27 @@ const MembersTableAll: React.FC<MembersTableAllProps> = ({
       setTableData(data);
     }
   }, [members]);
+
+  useEffect(() => {
+    if (selectedMember) {
+      fetchUserActivities(selectedMember.userid);
+    }
+  }, [selectedMember]);
+
+  const fetchUserActivities = async (userId: string) => {
+    const { data, error } = await supabase
+      .from('activities')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (error) {
+      console.error("Error fetching user activities:", error);
+    } else {
+      setUserActivities(data || []);
+    }
+  };
 
   // Define the columns including the new "Organization" column
   const columns: TableColumn<MemberTableData>[] = [
@@ -626,6 +650,18 @@ const MembersTableAll: React.FC<MembersTableAllProps> = ({
                                 <p className="text-gray-300">
                                   No payment history available
                                 </p>
+                              )}
+                            </div>
+
+                            {/* User Activities Section */}
+                            <div className="rounded-lg bg-charleston p-4">
+                              <h3 className="mb-4 text-lg font-medium text-light">
+                                Recent Activities
+                              </h3>
+                              {userActivities.length > 0 ? (
+                                <ActivityFeed activities={userActivities} />
+                              ) : (
+                                <p className="text-gray-300">No recent activities available</p>
                               )}
                             </div>
 

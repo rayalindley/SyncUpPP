@@ -35,7 +35,7 @@ export async function createOrganization(formData: any) {
     const { data, error } = await supabase
       .from("organizations")
       .insert([insertValues])
-      .select();
+      .select().single();
 
     if (!error) {
       return { data, error: null };
