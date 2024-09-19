@@ -11,6 +11,7 @@ import {
   unregisterFromEvent,
 } from "@/lib/events";
 import { createClient, getUser } from "@/lib/supabase/client";
+import { recordActivity } from "@/lib/track";
 import { User } from "@/node_modules/@supabase/auth-js/src/lib/types";
 import { Event } from "@/types/event";
 import { Organization } from "@/types/organization";
@@ -268,6 +269,20 @@ const EventPage = () => {
           console.error("Registration failed:", error);
           toast.error(`Registration failed: ${error.message}`);
         } else {
+
+          //user 
+          await recordActivity({
+            activity_type: "event_register",
+            description: `User registered for the event: ${event.title}`,
+          });
+
+          //organization
+          await recordActivity({
+            activity_type: "event_register",
+            organization_id: event.organizationid,
+            description: "A user registered for an event",
+          });
+
           toast.success("You have successfully joined the event!");
           setIsRegistered(true);
           setAttendeesCount((prevCount) => prevCount + 1);
@@ -294,6 +309,19 @@ const EventPage = () => {
     if (result.isConfirmed) {
       const { user } = await getUser();
       const userId = user?.id;
+
+          //user 
+          await recordActivity({
+            activity_type: "event_unregister",
+            description: `A User cancelled their registration for the event: ${event.title}`,
+          });
+
+          //organization
+          await recordActivity({
+            activity_type: "event_unregister",
+            organization_id: event.organizationid,
+            description: "A User cancelled their registration for an event",
+          });
 
       if (!userId) {
         console.error("User not found");
