@@ -204,6 +204,7 @@ const EventPage = () => {
   }
 
   const handleEventRegistration = async () => {
+
     if (isRegistered) return;
 
   if (!user) {
@@ -231,6 +232,7 @@ const EventPage = () => {
     toast.error("The event is full.");
     return;
   }
+
 
     const result = await Swal.fire({
       title: "Are you sure?",

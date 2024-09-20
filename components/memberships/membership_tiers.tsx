@@ -255,15 +255,13 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
             );
           }
 
-          
-
+         
           toast.success(
             "Congratulations! You've successfully purchased the membership."
           );
         }
 
-       
-
+      
         setUserMemberships((prevUserMemberships) => [
           ...prevUserMemberships,
           membershipId,
@@ -293,6 +291,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
         if (!invoice) {
           toast.error("Error creating invoice. Please try again later.");
           return;
+          
         } else {
           // toast.success("Invoice created successfully.");
 
