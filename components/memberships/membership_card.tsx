@@ -73,6 +73,8 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
       .eq('membershipid', membership.membershipid)
       .eq('userid', userid);
 
+    
+
     if (error) {
       console.error('Error updating membershipid to null:', error);
     } else {

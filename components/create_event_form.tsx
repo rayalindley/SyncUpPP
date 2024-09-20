@@ -1,5 +1,5 @@
 import { insertEvent, updateEvent } from "@/lib/events";
-import { createClient } from "@/lib/supabase/client";
+import { getUser, createClient } from "@/lib/supabase/client";
 import { PhotoIcon } from "@heroicons/react/20/solid";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Tagify from "@yaireo/tagify";
@@ -337,6 +337,22 @@ const CreateEventForm = ({
       : await insertEvent(completeFormData, organizationid);
 
     if (data) {
+
+      if (!event) {
+        const { user } = await getUser();
+        const userId = user?.id; // Get the current user's ID
+        if (userId) {
+            await supabase
+                .from("eventregistrations")
+                .insert([
+                    {
+                        eventid: data[0].eventid, // Use the newly created event ID
+                        userid: userId,
+                        status: "registered", // Set the registration status
+                    },
+                ]);
+        }
+    }
 
       await recordActivity({
         activity_type: event ? "event_update" : "event_create",
