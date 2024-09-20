@@ -20,6 +20,7 @@ interface Registration {
   adminid: string;
   organization_slug: string;
   eventid: string;
+  attendance: string;
 }
 
 export default function RegistrationsPageUser() {

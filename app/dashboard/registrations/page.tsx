@@ -15,6 +15,7 @@ interface Registration {
   adminid: string;
   organization_slug: string;
   eventid: string;
+  attendance: string;
 }
 
 export default async function RegistrationsPage() {

@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { createClient } from "@/lib/supabase/client";
 import dynamic from 'next/dynamic';
 import { TableColumn } from "react-data-table-component";
+import { saveAs } from 'file-saver';
 
 // Dynamically import DataTable
 const DataTable = dynamic(() => import('react-data-table-component'), {
@@ -23,6 +24,7 @@ interface Registration {
   eventid: string;
   registrationdate: string;
   status: string;
+  attendance: string | null; // Modified to allow null for empty values
 }
 
 interface RegistrationsTableProps {
@@ -39,6 +41,7 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
   const [debouncedFilterText] = useDebounce(filterText, 300);
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [eventFilter, setEventFilter] = useState<string>("");
+  const [attendanceFilter, setAttendanceFilter] = useState<string>("");
 
   // Unique events for filter options
   const uniqueEvents = Array.from(
@@ -70,6 +73,55 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
         )
       );
     }
+  };
+
+  const handleAttendanceChange = async (id: string, newAttendance: string) => {
+    const { error } = await supabase
+      .from("eventregistrations")
+      .update({ attendance: newAttendance })
+      .eq("eventregistrationid", id);
+
+    if (error) {
+      toast.error("Failed to update attendance. Please try again.");
+    } else {
+      toast.success("Attendance updated successfully!");
+      setTableData((prevData) =>
+        prevData.map((registration) =>
+          registration.eventregistrationid === id
+            ? { ...registration, attendance: newAttendance }
+            : registration
+        )
+      );
+    }
+  };
+
+  // Function to export filtered data to CSV
+  const exportToCSV = () => {
+    const exportData = filteredData.map((item) => ({
+      Name: `${item.first_name} ${item.last_name}`,
+      Email: item.email,
+      "Registration Date": `"${format(new Date(item.registrationdate), "MMM d, yyyy h:mma")}"`, // Wrap date in quotes
+      Status: item.status,
+      Attendance: item.attendance || "Set",
+    }));
+
+    const csvContent = [
+      ["Name", "Email", "Registration Date", "Status", "Attendance"],
+      ...exportData.map(item => [
+        item.Name,
+        item.Email,
+        item["Registration Date"],
+        item.Status,
+        item.Attendance
+      ]),
+    ]
+      .map(e => e.join(","))
+      .join("\n");
+
+    const event = uniqueEvents.find(e => e.id === eventFilter);
+    const fileName = `${event?.name || 'event'}_registrations_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    saveAs(blob, fileName);
   };
 
   const columns: TableColumn<Registration>[] = [
@@ -122,10 +174,39 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
         </div>
       ),
     },
+    {
+      name: "Attendance",
+      selector: (row: Registration) => row.attendance || "Set",
+      sortable: true,
+      cell: (row: Registration) => (
+        <div className="relative">
+          <select
+            value={row.attendance || "Set"} // Display "Set" for empty values
+            onChange={(e) =>
+              handleAttendanceChange(row.eventregistrationid, e.target.value)
+            }
+            className={`cursor-pointer rounded-2xl border px-2 py-1 pl-4 pr-6 text-xs ${
+              row.attendance === "present"
+                ? "border-green-400 bg-green-200 text-eerieblack"
+                : row.attendance === "absent"
+                ? "border-red-400 bg-red-200 text-eerieblack"
+                : row.attendance === "late"
+                ? "border-yellow-400 bg-yellow-200 text-eerieblack"
+                : "border-gray-400 bg-gray-200 text-eerieblack" // Default for "Set"
+            }`}
+          >
+            <option value="Set">Set</option>
+            <option value="present">Present</option>
+            <option value="absent">Absent</option>
+            <option value="late">Late</option>
+          </select>
+        </div>
+      ),
+    },
   ];
 
   const filteredData = tableData.filter((item) => {
-    if (!debouncedFilterText && !statusFilter && !eventFilter)
+    if (!debouncedFilterText && !statusFilter && !eventFilter && !attendanceFilter)
       return true;
 
     const name = `${item.first_name} ${item.last_name}`;
@@ -134,7 +215,8 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
         item.email.toLowerCase().includes(debouncedFilterText.toLowerCase()) ||
         item.event_name.toLowerCase().includes(debouncedFilterText.toLowerCase())) &&
       (!statusFilter || item.status === statusFilter) &&
-      (!eventFilter || item.eventid === eventFilter)
+      (!eventFilter || item.eventid === eventFilter) &&
+      (!attendanceFilter || item.attendance === attendanceFilter)
     );
   });
 
@@ -161,14 +243,22 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
             className="block rounded-md border border-[#525252] bg-charleston px-3 py-2 text-light shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
           />
         </div>
-        {/* Filters on the Right */}
+        {/* Filters and Export Button on the Right */}
         <div className="flex items-center">
+          {eventFilter && (
+            <button
+              onClick={exportToCSV}
+              className="mr-2 block rounded-md bg-primary text-white px-3 py-2 text-sm shadow-sm hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50"
+            >
+              Export
+            </button>
+          )}
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="ml-2 block rounded-md border border-[#525252] bg-charleston pl-3 pr-8 py-2 text-white shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
           >
-            <option value="">All</option>
+            <option value="">All Status</option>
             <option value="pending">Pending</option>
             <option value="registered">Registered</option>
           </select>
@@ -183,6 +273,16 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
                 {event.name}
               </option>
             ))}
+          </select>
+          <select
+            value={attendanceFilter}
+            onChange={(e) => setAttendanceFilter(e.target.value)}
+            className="ml-2 block rounded-md border border-[#525252] bg-charleston pl-3 pr-8 py-2 text-white shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+          >
+            <option value="">All Attendance</option>
+            <option value="present">Present</option>
+            <option value="absent">Absent</option>
+            <option value="late">Late</option>
           </select>
         </div>
       </div>
