@@ -52,20 +52,13 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId }) => {
   const [posts, setPosts] = useState<Posts[]>([]);
   const [editingPost, setEditingPost] = useState<Posts | null>(null);
   const [isPublic, setIsPublic] = useState(false);
-  const [availableRoles, setAvailableRoles] = useState<{ id: string; name: string }[]>(
-    []
-  );
-  const [availableMemberships, setAvailableMemberships] = useState<
-    { membershipid: string; name: string }[]
-  >([]);
+  const [availableRoles, setAvailableRoles] = useState<{ id: string; name: string }[]>([]);
+  const [availableMemberships, setAvailableMemberships] = useState<{ membershipid: string; name: string }[]>([]);
   const [photos, setPhotos] = useState<string[]>([]);
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [removedPhotos, setRemovedPhotos] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [creationMessage, setCreationMessage] = useState<{
-    text: string;
-    type: "success" | "error";
-  } | null>(null);
+  const [creationMessage, setCreationMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterByRole, setFilterByRole] = useState<string | null>(null);
   const [filterByMembership, setFilterByMembership] = useState<string | null>(null);
@@ -133,10 +126,11 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId }) => {
       setPosts(postsWithPrivacy);
     }
 
-    if (rolesAndMemberships.error) {
+    // Check if rolesAndMemberships is defined before accessing its properties
+    if (rolesAndMemberships && rolesAndMemberships.error) {
       console.error("Error fetching roles and memberships:", rolesAndMemberships.error);
       setCreationMessage({ text: rolesAndMemberships.error, type: "error" });
-    } else {
+    } else if (rolesAndMemberships) {
       setAvailableRoles(
         rolesAndMemberships.roles.map((role: any) => ({ id: role.id, name: role.name }))
       );
