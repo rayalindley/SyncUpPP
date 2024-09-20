@@ -12,6 +12,7 @@ import {
 } from "@/lib/events";
 import { createClient, getUser } from "@/lib/supabase/client";
 import { recordActivity } from "@/lib/track";
+import { getUserProfileById } from "@/lib/user_actions";
 import { User } from "@/node_modules/@supabase/auth-js/src/lib/types";
 import { Event } from "@/types/event";
 import { Organization } from "@/types/organization";
@@ -203,7 +204,7 @@ const EventPage = () => {
   }
 
   const handleEventRegistration = async () => {
-    if (isRegistered || !canJoin) return;
+    if (isRegistered || (event.privacy.type === "private" && !canJoin)) return;
 
     const result = await Swal.fire({
       title: "Are you sure?",
@@ -218,13 +219,22 @@ const EventPage = () => {
     if (result.isConfirmed) {
       const { user } = await getUser();
       const userId = user?.id;
-
+      
       if (!userId) {
         console.error("User not found");
         toast.error("User not found. Please log in.");
         return;
       }
 
+      if (userId) {
+        const { data: userProfile, error } = await getUserProfileById(userId); // Call the function to get user profile
+          
+          if (error) {
+              console.error("Error fetching user profile:", error);
+              return; // Handle the error as needed
+          }
+          const fullName = userProfile ? `${userProfile.first_name} ${userProfile.last_name}` : '';
+      
       if (event.registrationfee > 0) {
         try {
           const data: CreateInvoiceRequest = {
@@ -280,7 +290,7 @@ const EventPage = () => {
           await recordActivity({
             activity_type: "event_register",
             organization_id: event.organizationid,
-            description: "A user registered for an event",
+            description: `User ${fullName} registered for the event: ${event.title}`,
           });
 
           toast.success("You have successfully joined the event!");
@@ -292,6 +302,7 @@ const EventPage = () => {
           }
         }
       }
+    }
     }
   };
 
@@ -310,18 +321,28 @@ const EventPage = () => {
       const { user } = await getUser();
       const userId = user?.id;
 
+      if (userId) {
+        const { data: userProfile, error } = await getUserProfileById(userId); // Call the function to get user profile
+          
+          if (error) {
+              console.error("Error fetching user profile:", error);
+              return; // Handle the error as needed
+          }
+          const fullName = userProfile ? `${userProfile.first_name} ${userProfile.last_name}` : '';
+
           //user 
           await recordActivity({
             activity_type: "event_unregister",
-            description: `A User cancelled their registration for the event: ${event.title}`,
+            description: `User cancelled their registration for the event: ${event.title}`,
           });
 
           //organization
           await recordActivity({
             activity_type: "event_unregister",
             organization_id: event.organizationid,
-            description: "A User cancelled their registration for an event",
+            description: `User ${fullName} cancelled their registration for the event: ${event.title}`,
           });
+      }
 
       if (!userId) {
         console.error("User not found");
