@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation';
 import { TableColumn } from "react-data-table-component";
 import ActivityFeed from "@/components/acitivty_feed";
 import { Activity } from "@/types/activities";
+import { recordActivity } from "@/lib/track";
 
 const supabase = createClient();
 
@@ -238,6 +239,27 @@ const MembersTable: React.FC<MembersTableProps> = ({ members, organization }) =>
         if (error) {
           throw new Error(error.message);
         }
+
+        // user userId to get firname and last name in user profiles
+        const { data: userData, error: userError } = await supabase
+          .from('userprofiles')
+          .select('first_name, last_name')
+          .eq('userid', userId)
+          .single();
+
+        if (userError) {
+          throw new Error(userError.message);
+        }
+        
+        //record Activity
+        await recordActivity({
+          activity_type: "member_remove",
+          description: `${user?.user_metadata?.first_name} has removed the member: ${userData.first_name} ${userData.last_name}.`,
+          organization_id: organization.organizationid,
+          activity_details: {
+            member_id: userId,
+          },
+        });
 
         Swal.fire(
           'Removed!',
