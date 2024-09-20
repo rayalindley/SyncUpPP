@@ -34,7 +34,7 @@ export default async function Home() {
         <Community organizations={organizations} />
 
         {/* Pricing section */}
-        <PricingSection />
+        {/*<PricingSection />*/}
 
         {/* Contact Us */}
         <ContactUs />
