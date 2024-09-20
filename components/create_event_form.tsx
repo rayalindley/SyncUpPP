@@ -359,6 +359,7 @@ const CreateEventForm = ({
                         eventid: data[0].eventid, // Use the newly created event ID
                         userid: userId,
                         status: "registered", // Set the registration status
+                        attendance: "present", // Set the attendance status
                     },
                 ]);
         }
