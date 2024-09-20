@@ -15,6 +15,7 @@ export async function insertEvent(formData: any, organizationid: string) {
     eventphoto: formData.eventphoto,
     tags: formData.tags,
     eventslug: formData.slug,
+    onsite: formData.onsite,
   };
 
   const supabase = createClient();
@@ -70,6 +71,7 @@ export async function updateEvent(eventId: string, formData: any) {
     eventphoto: formData.eventphoto,
     tags: formData.tags,
     eventslug: formData.slug,
+    onsite: formData.onsite,
   };
 
   const supabase = createClient();
