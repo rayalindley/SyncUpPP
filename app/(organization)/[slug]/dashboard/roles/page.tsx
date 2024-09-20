@@ -56,6 +56,7 @@ export default function SettingsRolesPage() {
   const [inviteEmails, setInviteEmails] = useState<string[]>([]);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [selectedInviteRole, setSelectedInviteRole] = useState<string>("");
+  const [selectedTab, setSelectedTab] = useState(0);
 
   const slug = params.slug;
 
@@ -139,9 +140,7 @@ export default function SettingsRolesPage() {
   }, [slug]);
 
   const handleRoleClick = (role: Role) => {
-    // console.log(role);
     setSelectedRole(role);
-    setSelectedIndex(1);
   };
 
   const handleSidebarClose = () => {
@@ -663,7 +662,7 @@ export default function SettingsRolesPage() {
           </div>
           <div className="flex-grow overflow-y-auto bg-raisinblack py-6 pl-10 pr-10">
             <h2 className="mb-4 text-lg font-medium">EDIT ROLE - {selectedRole.role}</h2>
-            <Tab.Group selectedIndex={selectedIndex} onChange={setSelectedIndex}>
+            <Tab.Group selectedIndex={selectedTab} onChange={setSelectedTab}>
               <Tab.List className="border-b border-gray-700">
                 {["Display", "Permissions", "Members"].map((tab, index) => (
                   <Tab
