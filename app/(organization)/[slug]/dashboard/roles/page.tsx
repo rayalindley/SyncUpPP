@@ -21,6 +21,7 @@ import { z } from "zod";
 
 import { Role } from "@/types/role";
 import { Member } from "@/types/member";
+import { recordActivity } from "@/lib/track";
 
 interface Permission {
   perm_key: string;
@@ -165,6 +166,13 @@ export default function SettingsRolesPage() {
         throw error;
       }
 
+      await recordActivity({
+        activity_type: "role_update",
+        description: `User has updated the role: ${data.role}.`,
+        organization_id: orgID,
+        activity_details: data
+      });
+
       setRolesData((prevRolesData) =>
         prevRolesData
           ? prevRolesData.map((role) =>
@@ -172,6 +180,7 @@ export default function SettingsRolesPage() {
             )
           : null
       );
+
       setFilteredRoles((prevRolesData) =>
         prevRolesData
           ? prevRolesData.map((role) =>
@@ -211,6 +220,12 @@ export default function SettingsRolesPage() {
         .from("organization_roles")
         .delete()
         .eq("role_id", role.role_id);
+
+        await recordActivity({
+          activity_type: "role_delete",
+          description: `User has deleted the role: ${role.role}.`,
+          organization_id: orgID,
+        });
 
       if (error) {
         throw error;
@@ -310,8 +325,15 @@ export default function SettingsRolesPage() {
       .single();
 
     if (error) {
-      // console.log(error);
     } else {
+
+      await recordActivity({
+        activity_type: "role_create",
+        description: `User has created a new role: ${data.role}.`,
+        organization_id: orgID,
+        activity_details: data
+      });
+
       setRolesData((prevRoles) => (prevRoles ? [...prevRoles, data] : [data]));
       setFilteredRoles((prevRoles) => (prevRoles ? [...prevRoles, data] : [data]));
       setSelectedRole(data);
@@ -379,6 +401,25 @@ export default function SettingsRolesPage() {
     if (addError) {
       console.error("Error adding member to new role:", addError);
       return;
+    } else {
+      const { data: member, error: memberError } = await supabase
+        .from("userprofiles")
+        .select("first_name")
+        .eq("userid", memberId)
+        .single();
+
+      const { data: newRole, error: newRoleError } = await supabase
+        .from("organization_roles")
+        .select("role")
+        .eq("role_id", newRoleId)
+        .single();
+
+      // Record Activity
+      await recordActivity({
+        activity_type: "role_member_update",
+        description: `${member?.first_name} has been moved to the ${newRole?.role} role.`,
+        organization_id: orgID,
+      });
     }
 
     setRolesData((prevRolesData) => {
@@ -535,12 +576,12 @@ export default function SettingsRolesPage() {
         >
           Create Role
         </button>
-        <button
+        {/* <button
           className="rounded-md bg-primary p-2 px-4 text-sm hover:bg-primarydark"
           onClick={handleInvite}
         >
           Invite
-        </button>
+        </button> */}
       </div>
 
       <div className="rounded py-4">
