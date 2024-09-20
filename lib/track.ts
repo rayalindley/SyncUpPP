@@ -37,3 +37,22 @@ export async function recordActivity({
 
   return data;
 }
+
+
+
+export async function isActiveMember(user_id: string, organization_id: string) {
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from('activities')
+    .select('*')
+    .eq('user_id', user_id)
+    .eq('organization_id', organization_id)
+    .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+
+  if (error) {
+    throw new Error(`Failed to check if user is active member: ${error.message}`);    
+  }
+
+  return data && data.length > 0;
+}

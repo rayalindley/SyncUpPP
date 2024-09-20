@@ -14,7 +14,7 @@ import { useRouter } from 'next/navigation';
 import { TableColumn } from "react-data-table-component";
 import ActivityFeed from "@/components/acitivty_feed";
 import { Activity } from "@/types/activities";
-import { recordActivity } from "@/lib/track";
+import { recordActivity, isActiveMember } from "@/lib/track";
 
 const supabase = createClient();
 
@@ -73,6 +73,7 @@ interface OrganizationMember {
 interface MemberTableData extends OrganizationMember {
   open: boolean;
   setOpen: (open: boolean) => void;
+  status: 'Active' | 'Inactive';
 }
 
 interface MembersTableProps {
@@ -90,23 +91,31 @@ const MembersTable: React.FC<MembersTableProps> = ({ members, organization }) =>
   const [userActivities, setUserActivities] = useState<Activity[]>([]);
 
   useEffect(() => {
-    setIsMounted(true);
-    if (members.length) {
-      const data = members.map((member) => ({
-        ...member,
-        open: false,
-        setOpen: (open: boolean) => {
-          setTableData((prevData) =>
-            prevData.map((item) =>
-              item.organizationmemberid === member.organizationmemberid
-                ? { ...item, open }
-                : item
-            )
-          );
-        },
-      }));
-      setTableData(data);
-    }
+    const fetchMemberStatus = async () => {
+      setIsMounted(true);
+      if (members.length) {
+        const data = await Promise.all(members.map(async (member) => {
+          const isActive = await isActiveMember(member.userid, member.organizationid);
+          return {
+            ...member,
+            status: isActive ? 'Active' : 'Inactive',
+            open: false,
+            setOpen: (open: boolean) => {
+              setTableData((prevData) =>
+                prevData.map((item) =>
+                  item.organizationmemberid === member.organizationmemberid
+                    ? { ...item, open }
+                    : item
+                )
+              );
+            },
+          };
+        }));
+        setTableData(data as MemberTableData[]);
+      }
+    };
+
+    fetchMemberStatus();
   }, [members]);
 
   useEffect(() => {
@@ -160,9 +169,16 @@ const MembersTable: React.FC<MembersTableProps> = ({ members, organization }) =>
       sortable: true,
     },
     {
-      name: "Months",
-      selector: (row: MemberTableData) => row.months,
+      name: "Status",
+      selector: (row: MemberTableData) => row.status,
       sortable: true,
+      cell: (row: MemberTableData) => (
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+          row.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+        }`}>
+          {row.status}
+        </span>
+      ),
     },
   ];
 
