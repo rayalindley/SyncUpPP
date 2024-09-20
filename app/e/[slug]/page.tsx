@@ -204,7 +204,33 @@ const EventPage = () => {
   }
 
   const handleEventRegistration = async () => {
-    if (isRegistered || (event.privacy.type === "private" && !canJoin)) return;
+    if (isRegistered) return;
+
+  if (!user) {
+    console.error("User not found");
+    toast.error("User not found. Please log in.");
+    return;
+  }
+
+  if (eventFinished || registrationClosed || (eventFull && !isRegistered)) return;
+
+  // Check if user is not a member of the org
+  if (event.privacy.type === "private" && !isOrgMember) {
+    toast.error("You need to be a member of the organization to register for this event.");
+    return;
+  }
+
+  // Check if user does not have the required role or membership
+  if (event.privacy.type === "private" && isOrgMember && !canJoin) {
+    toast.error("You do not have the required role or membership tier to register for this event.");
+    return;
+  }
+
+  // Check if event is full
+  if (eventFull && !isRegistered) {
+    toast.error("The event is full.");
+    return;
+  }
 
     const result = await Swal.fire({
       title: "Are you sure?",
@@ -586,40 +612,35 @@ const EventPage = () => {
                   )}
                 </p>
                 <button
-                  className={`w-full rounded-md px-6 py-3 text-white ${
-                    eventFinished ||
-                    registrationClosed ||
-                    (event.privacy.type === "private" && (!isOrgMember || !canJoin)) ||
-                    (eventFull && !isRegistered)
-                      ? "cursor-not-allowed bg-fadedgrey"
-                      : isRegistered
-                        ? "bg-red-600 hover:bg-red-700"
-                        : "bg-primary hover:bg-primarydark"
-                  }`}
-                  onClick={
-                    isRegistered ? handleEventUnregistration : handleEventRegistration
-                  }
-                  disabled={
-                    eventFinished ||
-                    registrationClosed ||
-                    (event.privacy.type === "private" && (!isOrgMember || !canJoin)) ||
-                    (eventFull && !isRegistered)
-                  }
-                >
-                  {eventFinished
-                    ? "Event Finished"
-                    : registrationClosed
-                      ? "Registration Closed"
-                      : event.privacy.type === "private" && !isOrgMember
-                        ? "Event for Org Members Only"
-                        : event.privacy.type === "private" && isOrgMember && !canJoin
-                          ? "Event for Selected Roles and Membership Tiers Only"
-                          : eventFull && !isRegistered
-                            ? "Event Full"
-                            : isRegistered
-                              ? "Unregister"
-                              : "Register"}
-                </button>
+  className={`w-full rounded-md px-6 py-3 text-white ${
+    eventFinished ||
+    registrationClosed ||
+    (eventFull && !isRegistered)
+      ? "cursor-not-allowed bg-fadedgrey"
+      : isRegistered
+        ? "bg-red-600 hover:bg-red-700"
+        : "bg-primary hover:bg-primarydark"
+  }`}
+  onClick={
+    isRegistered ? handleEventUnregistration : handleEventRegistration
+  }
+  disabled={
+    eventFinished ||
+    registrationClosed ||
+    (eventFull && !isRegistered)
+  }
+>
+  {eventFinished
+    ? "Event Finished"
+    : registrationClosed
+      ? "Registration Closed"
+      : eventFull && !isRegistered
+        ? "Event Full"
+        : isRegistered
+          ? "Unregister"
+          : "Register"}
+</button>
+
               </div>
 
               <div className="space-y-2">
