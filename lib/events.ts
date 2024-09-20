@@ -406,9 +406,10 @@ export async function fetchRegisteredUsersForEvent(eventId: string) {
   try {
     // Fetch user IDs of registered users for the event
     const { data: registrations, error: registrationsError } = await supabase
-      .from("eventregistrations")
+      .from("eventregistrations_view")
       .select("userid")
-      .eq("eventid", eventId);
+      .eq("eventid", eventId)
+      .in("attendance", ["present", "late"]);
 
     if (registrationsError) {
       throw registrationsError;

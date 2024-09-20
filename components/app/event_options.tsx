@@ -40,6 +40,10 @@ const truncateText = (text: string, maxLength: number) => {
     return text.substring(0, maxLength) + "...";
   }
   return text;
+
+  interface UserProfileWithAttendance extends UserProfile {
+    attendance: string; // Add attendance field to the user profile
+  }
 };
 
 export default function EventOptions({
@@ -223,7 +227,7 @@ export default function EventOptions({
       .join("\n");
 
     const currentDate = format(new Date(), "yyyyMMdd"); // Format date as yyyyMMdd
-    const fileName = `${selectedEvent.title}_${selectedEvent.eventslug}_${currentDate}.csv`
+    const fileName = `${selectedEvent.title}_attendees_${currentDate}.csv`
       .replace(/ /g, "_")
       .toLowerCase(); // Format file name: remove spaces, lowercase
 
@@ -642,7 +646,7 @@ export default function EventOptions({
                                 </div>
                               ))
                             ) : (
-                              <div>No attendees registered for this event.</div>
+                              <div>No attendees present for this event.</div>
                             )}
                           </div>
                         )}
