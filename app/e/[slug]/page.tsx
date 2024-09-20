@@ -61,6 +61,7 @@ const EventPage = () => {
   const [eventFinished, setEventFinished] = useState(false);
   const [registrationClosed, setRegistrationClosed] = useState(false);
   const [canJoin, setCanJoin] = useState(false);
+  const [paymentPending, setPaymentPending] = useState(false);
 
   async function checkUserRoleAndMembership(
     userId: string,
@@ -204,79 +205,156 @@ const EventPage = () => {
   }
 
   const handleEventRegistration = async () => {
-
+    const userId = user?.id;
+  
     if (isRegistered) return;
-
-  if (!user) {
-    console.error("User not found");
-    toast.error("User not found. Please log in.");
-    return;
-  }
-
-  if (eventFinished || registrationClosed || (eventFull && !isRegistered)) return;
-
-  // Check if user is not a member of the org
-  if (event.privacy.type === "private" && !isOrgMember) {
-    toast.error("You need to be a member of the organization to register for this event.");
-    return;
-  }
-
-  // Check if user does not have the required role or membership
-  if (event.privacy.type === "private" && isOrgMember && !canJoin) {
-    toast.error("You do not have the required role or membership tier to register for this event.");
-    return;
-  }
-
-  // Check if event is full
-  if (eventFull && !isRegistered) {
-    toast.error("The event is full.");
-    return;
-  }
-
-
-    const result = await Swal.fire({
-      title: "Are you sure?",
-      text: "Do you want to join the event?",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Yes, join the event!",
-    });
-
-    if (result.isConfirmed) {
-      const { user } = await getUser();
-      const userId = user?.id;
-      
-      if (!userId) {
-        console.error("User not found");
-        toast.error("User not found. Please log in.");
+  
+    if (!user) {
+      console.error("User not found");
+      toast.error("User not found. Please log in.");
+      return;
+    }
+  
+    if (eventFinished || registrationClosed || (eventFull && !isRegistered)) return;
+  
+    if (event.privacy.type === "private" && !isOrgMember) {
+      toast.error("You need to be a member of the organization to register for this event.");
+      return;
+    }
+  
+    if (event.privacy.type === "private" && isOrgMember && !canJoin) {
+      toast.error("You do not have the required role or membership tier to register for this event.");
+      return;
+    }
+  
+    if (eventFull && !isRegistered) {
+      toast.error("The event is full.");
+      return;
+    }
+  
+    let fullName = `${user?.user_metadata?.first_name ?? ""} ${user?.user_metadata?.last_name ?? ""}`.trim();
+    if (!fullName) {
+      try {
+        const { data: userProfile, error } = await getUserProfileById(user.id);
+        if (error) {
+          console.error("Error fetching user profile:", error);
+          toast.error("Could not retrieve user profile information.");
+          return;
+        }
+        fullName = `${userProfile?.first_name} ${userProfile?.last_name}`.trim();
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+        toast.error("An error occurred while retrieving user profile information.");
         return;
       }
-
-      if (userId) {
-        const { data: userProfile, error } = await getUserProfileById(userId); // Call the function to get user profile
-          
-          if (error) {
-              console.error("Error fetching user profile:", error);
-              return; // Handle the error as needed
+    }
+  
+    if (event.onsite) {
+      // Prompt user to choose payment method
+      const result = await Swal.fire({
+        title: "Choose Payment Method",
+        input: "radio",
+        inputOptions: {
+          onsite: "Pay Onsite",
+          offsite: "Pay Online"
+        },
+        customClass: {
+          input: 'swal2-custom-radio'
+  
+        },
+        inputValidator: (value) => {
+          if (!value) {
+            return "You need to choose a payment method!";
           }
-          const fullName = userProfile ? `${userProfile.first_name} ${userProfile.last_name}` : '';
-      
-      if (event.registrationfee > 0) {
-        try {
-          const data: CreateInvoiceRequest = {
+        },
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Proceed"
+      });
+  
+      if (result.isConfirmed) {
+        const paymentMethod = result.value;
+  
+        if (paymentMethod === 'onsite') {
+          const { data, error } = await registerForEvent(event.eventid, user.id, paymentMethod);
+  
+          if (error) {
+            toast.error(`Registration failed: ${error.message}`);
+          } else {
+            await recordActivity({
+              activity_type: "event_register",
+              description: `User ${fullName} registered for the event: ${event.title}`,
+            });
+  
+            await recordActivity({
+              activity_type: "event_register",
+              organization_id: event.organizationid,
+              description: `User ${fullName} registered for the event: ${event.title}`,
+            });
+  
+            toast.success("You have successfully registered! Please proceed to the onsite payment area.");
+            setPaymentPending(true); // Set payment pending state
+            setIsRegistered(true);
+            setAttendeesCount((prevCount) => prevCount + 1);
+  
+            if (event.capacity && attendeesCount + 1 >= event.capacity) {
+              setEventFull(true);
+            }
+          }
+        } else if (paymentMethod === 'offsite') {
+          // Handle offsite payment (redirect to payment page)
+          try {
+            const data = {
+              amount: event.registrationfee,
+              payerEmail: user.email,
+              externalId: `${event.eventid}-${event.title}-${new Date().toISOString()}`,
+              description: `${organization?.name} Registration fee for ${event.title}: ${event.description}`,
+              successRedirectUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/e/${event.eventslug}`,
+            };
+  
+            const invoice = await xenditInvoiceClient.createInvoice({ data });
+  
+            const { error: paymentError } = await supabase.from("payments").insert([
+              {
+                amount: event.registrationfee,
+                invoiceId: invoice.id,
+                type: "events",
+                target_id: event.eventid,
+                organizationId: event.organizationid,
+                invoiceUrl: invoice.invoiceUrl,
+                invoiceData: invoice,
+              },
+            ]);
+  
+            if (paymentError) {
+              console.error("Error creating payment record:", paymentError);
+              toast.error(`Registration failed: ${paymentError.message}`);
+              return;
+            }
+  
+            // Redirect user to the online payment page
+            window.location.href = invoice.invoiceUrl;
+          } catch (error) {
+            console.error("Error during offsite registration:", error);
+            toast.error("An error occurred during registration. Please try again.");
+          }
+        }
+      }
+    } else {
+      // Handle offsite registration without onsite option
+      try {
+        if (event.registrationfee > 0) {
+          const data = {
             amount: event.registrationfee,
             payerEmail: user.email,
             externalId: `${event.eventid}-${event.title}-${new Date().toISOString()}`,
             description: `${organization?.name} Registration fee for ${event.title}: ${event.description}`,
             successRedirectUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/e/${event.eventslug}`,
           };
-
-          const invoice: Invoice = await xenditInvoiceClient.createInvoice({
-            data,
-          });
-
+  
+          const invoice = await xenditInvoiceClient.createInvoice({ data });
+  
           const { error: paymentError } = await supabase.from("payments").insert([
             {
               amount: event.registrationfee,
@@ -288,51 +366,49 @@ const EventPage = () => {
               invoiceData: invoice,
             },
           ]);
-
+  
           if (paymentError) {
             console.error("Error creating payment record:", paymentError);
             toast.error(`Registration failed: ${paymentError.message}`);
             return;
           }
-
+  
+          // Redirect user to the online payment page
           window.location.href = invoice.invoiceUrl;
-        } catch (error) {
-          console.error("Error creating invoice:", error);
-          toast.error("Failed to create invoice. Please try again.");
-        }
-      } else {
-        const { data, error } = await registerForEvent(event.eventid, userId);
-
-        if (error) {
-          console.error("Registration failed:", error);
-          toast.error(`Registration failed: ${error.message}`);
         } else {
-
-          //user 
-          await recordActivity({
-            activity_type: "event_register",
-            description: `User registered for the event: ${event.title}`,
-          });
-
-          //organization
-          await recordActivity({
-            activity_type: "event_register",
-            organization_id: event.organizationid,
-            description: `User ${fullName} registered for the event: ${event.title}`,
-          });
-
-          toast.success("You have successfully joined the event!");
-          setIsRegistered(true);
-          setAttendeesCount((prevCount) => prevCount + 1);
-
-          if (event.capacity && attendeesCount + 1 >= event.capacity) {
-            setEventFull(true);
+          const { data, error } = await registerForEvent(event.eventid, user.id, 'offsite');
+  
+          if (error) {
+            console.error("Registration failed:", error);
+            toast.error(`Registration failed: ${error.message}`);
+          } else {
+            await recordActivity({
+              activity_type: "event_register",
+              description: `User registered for the event: ${event.title}`,
+            });
+  
+            await recordActivity({
+              activity_type: "event_register",
+              organization_id: event.organizationid,
+              description: `User ${user.email} registered for the event: ${event.title}`,
+            });
+  
+            toast.success("You have successfully joined the event!");
+            setIsRegistered(true);
+            setAttendeesCount((prevCount) => prevCount + 1);
+  
+            if (event.capacity && attendeesCount + 1 >= event.capacity) {
+              setEventFull(true);
+            }
           }
         }
+      } catch (error) {
+        console.error("Error during offsite registration:", error);
+        toast.error("An error occurred during registration. Please try again.");
       }
     }
-    }
   };
+  
 
   const handleEventUnregistration = async () => {
     const result = await Swal.fire({
@@ -361,7 +437,7 @@ const EventPage = () => {
           //user 
           await recordActivity({
             activity_type: "event_unregister",
-            description: `User cancelled their registration for the event: ${event.title}`,
+            description: `A User cancelled their registration for the event: ${event.title}`,
           });
 
           //organization
