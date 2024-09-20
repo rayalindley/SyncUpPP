@@ -14,8 +14,6 @@ import type { CreateInvoiceRequest, Invoice } from "xendit-node/invoice/models";
 import { useRouter } from "next/navigation";
 import { recordActivity } from "@/lib/track";
 
-import { notify, NotificationType } from "@/lib/notify";
-
 const xenditClient = new Xendit({
   secretKey: process.env.NEXT_PUBLIC_XENDIT_SECRET_KEY!,
 });
@@ -83,18 +81,17 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
         .eq("organizationid", organizationid)
         .single(); // Use .single() to get a single record
 
+      console.log("fetchmemberships", userMembershipsData);
+
       // Removed error handling for no rows found
-      if (error && error.code !== "PGRST116") {
-        // Check for specific error code for no rows
+      if (error && error.code !== 'PGRST116') { // Check for specific error code for no rows
         console.error("Error fetching user memberships: ", error);
         toast.error("Error fetching user memberships. Please try again later.");
         return;
       }
 
       // Check if userMembershipsData is not null and extract the membership ID
-      const userMemberships = userMembershipsData
-        ? [userMembershipsData.membershipid]
-        : []; // Set to empty array if no data
+      const userMemberships = userMembershipsData ? [userMembershipsData.membershipid] : []; // Set to empty array if no data
       setUserMemberships(userMemberships);
       setCurrentMembershipId(userMemberships.length > 0 ? userMemberships[0] : null);
     } catch (error) {
@@ -102,26 +99,24 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
       toast.error("An error occurred. Please try again later.");
     }
   };
+
   const handleSubscribe = useCallback(
-    async (membershipId: string) => {
+    async (membershipId: string) => { // Remove organizationid from here
       try {
         // Check if the user is a member of the organization
         const { data: orgMember, error: orgMemberError } = await supabase
           .from("organizationmembers")
           .select("*")
           .eq("userid", userid)
-          .eq("organizationid", organizationid)
+          .eq("organizationid", organizationid) // Use the passed organizationid
           .single();
 
         if (orgMemberError || !orgMember) {
           console.error("User is not a member of this organization");
-          toast.error(
-            "You must be a member of this organization to subscribe to a plan."
-          );
+          toast.error("You must be a member of this organization to subscribe to a plan.");
           return;
         }
 
-        // Fetch membership details
         const { data: membershipData, error: membershipError } = await supabase
           .from("memberships")
           .select("registrationfee, name, description")
@@ -143,7 +138,6 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
         const { user } = await getUser();
 
         if (amount === 0) {
-          // Handle free membership
           const { data: userMembershipData, error: fetchError } = await supabase
             .from("organizationmembers")
             .select("*")
@@ -170,19 +164,6 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
           }
 
           const defaultRoleId = rolesData?.role_id;
-
-          // Fetch organization details
-          const { data: orgData, error: orgError } = await supabase
-            .from("organizations")
-            .select("name, slug")
-            .eq("organizationid", organizationid)
-            .single();
-
-          if (orgError) {
-            console.error("Error fetching organization details: ", orgError);
-            toast.error("Error fetching organization details. Please try again later.");
-            return;
-          }
 
           if (userMembershipData) {
             const { error: updateError } = await supabase
@@ -237,24 +218,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
             membershipId,
           ]);
           setCurrentMembershipId(membershipId);
-
-          // Notify user about the free membership
-          await notify({
-            userId: userid!,
-            title: "Membership Updated",
-            message: `Your membership in ${orgData.name} has been updated to ${membershipName}.`,
-            type: "membership" as NotificationType, // Use NotificationType
-            metadata: {
-              membershipId,
-              membershipName,
-              membershipDescription,
-            },
-            path: `/${orgData.slug}?tab=membership`,
-            date: new Date(),
-            read: false,
-          });
         } else {
-          // Handle paid membership
           let { data: orgData, error } = await supabase
             .from("organizations")
             .select("*")
@@ -279,6 +243,8 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
             toast.error("Error creating invoice. Please try again later.");
             return;
           } else {
+            // toast.success("Invoice created successfully.");
+
             const { data, error } = await supabase
               .from("payments")
               .insert([
@@ -294,9 +260,12 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
               ])
               .select();
 
+            // console.log(data, error);
+
             if (error) {
               toast.error("Error saving invoice. Please try again later.");
             } else {
+              // toast.error("Invoice saved successfully.");
               router.push(invoice.invoiceUrl);
             }
           }
@@ -306,33 +275,9 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
         toast.error("An error occurred. Please try again later.");
       }
     },
-    [userid, userMemberships, frequency, router, organizationid]
+    [userid, userMemberships, frequency, router, organizationid] // Add organizationid to dependencies
   );
 
-  // Function to handle payment success
-  const handlePaymentSuccess = async (invoiceId: string) => {
-    try {
-      // Fetch the payment details
-      const { data: paymentData, error: paymentError } = await supabase
-        .from("payments")
-        .select("*")
-        .eq("invoiceId", invoiceId)
-        .single();
-
-      if (paymentError || !paymentData) {
-        console.error("Error fetching payment details: ", paymentError);
-        toast.error("Error fetching payment details. Please try again later.");
-        return;
-      }
-
-      const { userid, membershipId, membershipName, membershipDescription } = paymentData;
-
-      toast.success("Payment successful. Membership updated.");
-    } catch (error) {
-      console.error("Error: ", error);
-      toast.error("An error occurred. Please try again later.");
-    }
-  };
 
   return (
     <div>
