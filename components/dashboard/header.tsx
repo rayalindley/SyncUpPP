@@ -52,9 +52,10 @@ function Header({ user }: { user: User }) {
     if (response && response.data) {
       const { data, unreadCount } = response;
 
+      // Sort notifications: unread first, then by date (latest first)
       const sortedData = data.sort((a: Notifications, b: Notifications) => {
         if (a.read === b.read) {
-          return a.message.localeCompare(b.message);
+          return new Date(b.date_created).getTime() - new Date(a.date_created).getTime();
         }
         return a.read ? 1 : -1;
       });

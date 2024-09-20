@@ -3,11 +3,21 @@
 "use client";
 import { createClient } from "@/lib/supabase/client";
 
+export type NotificationType =
+  | "event"
+  | "membership"
+  | "membership_notif_for_admin"
+  | "welcome"
+  | "payment"
+  | "post"
+  | "comment"
+  | "general"; // Default type
+
 interface NotifyPayload {
   userId: string;
   title: string;
   message: string;
-  type?: string; // Defaults to 'general' if not provided
+  type?: NotificationType; // Defaults to 'general' if not provided
   metadata?: Record<string, any>; // Stores additional info based on notification type
   path?: string | null; // URL or path related to the notification
   date?: Date; // Defaults to current date/time if not provided
@@ -86,7 +96,7 @@ export async function notify(payload: NotifyPayload): Promise<NotifyResponse> {
 //     userId,
 //     title: `You’ve joined the event: ${eventTitle}`,
 //     message: `Thanks for joining the event. Here are the details: "${eventTitle}" on ${eventDate} at ${eventLocation}.`,
-//     type: "event_registration",
+//     type: "event",
 //     metadata: {
 //       eventId,
 //       eventTitle,
