@@ -105,11 +105,23 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
     },
     {
       name: "Events",
-      href:
-        selected === "default" || typeof selected === "string"
-          ? `/dashboard/events`
-          : `/${selected.slug}/dashboard/events`,
       icon: IoCalendarOutline,
+      submenu: [
+        {
+          name: "Events List",
+          href:
+          selected === "default" || typeof selected === "string"
+            ? `/dashboard/events`
+            : `/${selected.slug}/dashboard/events`,
+        },
+        {
+          name: "Events Registrations",
+          href:
+            selected === "default" || typeof selected === "string"
+              ? `/dashboard/registrations`
+              : `/${selected.slug}/dashboard/registrations`,
+        },
+      ],
     },
     ...(selected !== "default" && typeof selected !== "string"
       ? [
