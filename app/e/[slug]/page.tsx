@@ -305,10 +305,12 @@ const EventPage = () => {
               setEventFull(true);
             }
 
-            // Generate QR code after successful registration
-            const qrCodeData = `${process.env.NEXT_PUBLIC_SITE_URL}/attendance?userid=${user.id}&eventid=${event.eventid}`;
-            setQRCodeUrl(qrCodeData);
-            setShowQRCode(true); // Show the QR code
+            // Generate QR code after successful registration if the event is not virtual
+            if (!isUrl(event.location)) {
+              const qrCodeData = `https://localhost:3000/attendance/${event.eventid}/${user.id}`;
+              setQRCodeUrl(qrCodeData);
+              setShowQRCode(true); // Show the QR code
+            }
           }
         } else if (paymentMethod === 'offsite') {
           // Handle offsite payment (redirect to payment page)
@@ -409,16 +411,12 @@ const EventPage = () => {
               setEventFull(true);
             }
 
-            // Generate QR code after successful registration
-            // const qrCodeData = `${process.env.NEXT_PUBLIC_SITE_URL}/attendance/${event.eventid}/${user.id}`;
-            if (user && event) {
-              // Ensure both user and event are defined before generating QR code
-              const qrCodeData = `localhost:3000/attendance/${event.eventid}/${user.id}`;
+            // Generate QR code after successful registration if the event is not virtual
+            if (!isUrl(event.location)) {
+              const qrCodeData = `https://localhost:3000/attendance/${event.eventid}/${user.id}`;
               console.log("Generated QR Code Data:", qrCodeData); // Debug log for verification
               setQRCodeUrl(qrCodeData);
               setShowQRCode(true); // Show the QR code
-            } else {
-              console.error("User or Event data not available to generate QR code.");
             }
             
           }
@@ -668,11 +666,17 @@ const EventPage = () => {
                 <div className="flex items-center space-x-2">
                   <MapPinIcon className="h-6 w-6 text-primary sm:h-8 sm:w-8" />
                   {isUrl(event.location) ? (
-                    <Link href={event.location}>
-                      <p className="text-sm text-primary hover:underline sm:text-base">
+                    isRegistered ? (
+                      <Link href={event.location}>
+                        <p className="text-sm text-primary hover:underline sm:text-base">
+                          Virtual Event
+                        </p>
+                      </Link>
+                    ) : (
+                      <span className="text-sm text-light sm:text-base">
                         Virtual Event
-                      </p>
-                    </Link>
+                      </span>
+                    )
                   ) : (
                     <span className="text-sm text-light sm:text-base">
                       {event.location}
@@ -757,10 +761,7 @@ const EventPage = () => {
                   <h3 className="text-lg font-medium text-light">Your QR Code</h3>
                   <QRCode
                     value={qrCodeUrl}
-                    size={150}
-                    logoImage={"/syncup.png"} // Optional logo in the center of the QR code
-                    logoWidth={30}
-                    logoHeight={30}
+                    size={200}
                     qrStyle="dots"
                   />
                   <p className="mt-2 text-sm text-light">
