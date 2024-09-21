@@ -1,12 +1,12 @@
 "use client";
 import { createClient, getUser } from "@/lib/supabase/client";
-import { useParams, redirect } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import RegistrationsTable from "@/components/app/event_registrations_user";
 import Preloader from "@/components/preloader";
 import { Organization } from "@/types/organization";
 import { User } from "@/node_modules/@supabase/auth-js/src/lib/types";
-import { use, useEffect, useState } from "react";
-import { fetchOrganizationBySlug } from "@/lib/organization";
+import { useEffect, useState } from "react";
+import { fetchOrganizationBySlug, check_permissions } from "@/lib/organization";
 
 interface Registration {
   eventregistrationid: string;
@@ -25,11 +25,12 @@ interface Registration {
 
 export default function RegistrationsPageUser() {
   const { slug } = useParams() as { slug: string };
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
-
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -56,7 +57,32 @@ export default function RegistrationsPageUser() {
   }, [slug]);
 
   useEffect(() => {
-    if (!organization) return; // Exit early if organization is not set
+    if (!user || !organization) return; // Exit early if user or organization is not set
+
+    async function checkUserPermissions() {
+      try {
+        if (user && organization) {
+          const permission = await check_permissions(
+            user.id,
+            organization.organizationid,
+            "manage_event_registrations" // The permission key for viewing registrations
+          );
+          setHasPermission(permission);
+        } else {
+          console.error("User or organization is not set");
+        }
+      } catch (error) {
+        console.error("Error checking permissions:", error);
+      } finally {
+        setLoading(false); // Set loading to false after permission check
+      }
+    }
+
+    checkUserPermissions();
+  }, [user, organization]);
+
+  useEffect(() => {
+    if (!organization || !hasPermission) return; // Exit early if organization is not set or no permission
 
     async function fetchRegistrations() {
       const supabase = createClient();
@@ -81,18 +107,32 @@ export default function RegistrationsPageUser() {
 
     fetchRegistrations();
 
-  }, [organization]);
+  }, [organization, hasPermission]);
 
-  if (!organization) {
+  if (loading) {
     return <Preloader />;
   }
 
-
-
-  if (!user) {
-    return <Preloader />;
+  if (!user || !hasPermission) {
+    return (
+      <div className="bg-raisin flex min-h-screen items-center justify-center p-10 font-sans text-white">
+        <div className="text-center">
+          <h1 className="mb-4 text-3xl">Event Registrations</h1>
+          <p className="text-lg">
+            {user ? "You do not have permission to view registrations for this organization." : "Please log in to view registrations."}
+          </p>
+          {!user && (
+            <button
+              onClick={() => router.push("/signin")}
+              className="mt-4 rounded-md bg-primary px-4 py-2 text-white hover:bg-primarydark"
+            >
+              Log In
+            </button>
+          )}
+        </div>
+      </div>
+    );
   }
-
 
   return (
     <RegistrationsTable registrations={registrations} />
