@@ -1,12 +1,9 @@
-// pages/api/send-newsletter-email.ts
-
 import type { NextApiRequest, NextApiResponse } from 'next';
 import formidable, { IncomingForm, Fields, Files } from 'formidable';
 import fs from 'fs/promises';
-import { OutgoingAttachment, EmailResult } from '@/types/email';
-import { sendNewsletterEmail } from '@/lib/send_newsletter_email';
+import nodemailer from 'nodemailer';
+import { OutgoingAttachment, EmailResult, OutgoingEmailData } from '@/types/email';
 
-// Disable Next.js default body parsing to handle multipart/form-data with formidable
 export const config = {
   api: {
     bodyParser: false,
@@ -48,6 +45,67 @@ const validateEmails = (emails: string[]): string[] => {
 };
 
 /**
+ * Sends a newsletter email using Nodemailer.
+ *
+ * @param data - Email data including recipients, subject, message, and attachments.
+ * @returns EmailResult indicating success or failure.
+ */
+async function sendNewsletterEmail({
+  fromName,
+  replyToExtension,
+  recipients,
+  subject,
+  message,
+  attachments = [],
+}: OutgoingEmailData): Promise<EmailResult> {
+  try {
+    console.log('Preparing to send email to recipients:', recipients);
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.NEXT_PUBLIC_GMAIL_USER!, // Gmail address from environment variable
+        pass: process.env.NEXT_PUBLIC_GMAIL_APP_PASSWORD!, // Gmail App Password from environment variable
+      },
+    });
+    console.log('Nodemailer transporter created.');
+    await transporter.verify();
+    console.log('Nodemailer transporter verified successfully.');
+
+    const mailAttachments =
+      attachments.length > 0
+        ? attachments.map((file) => ({
+            filename: file.filename,
+            content: file.content, // Buffer content for outgoing emails
+            contentType: file.contentType,
+          }))
+        : undefined;
+
+    if (mailAttachments) {
+      console.log('Prepared mail attachments:', mailAttachments);
+    } else {
+      console.log('No attachments to include in the email.');
+    }
+
+    const mailOptions: nodemailer.SendMailOptions = {
+      from: `"${fromName}" <${process.env.NEXT_PUBLIC_GMAIL_USER!}>`, // Custom name for the "From" field
+      replyTo: `${process.env.NEXT_PUBLIC_GMAIL_USER!.split('@')[0]}+${replyToExtension}@gmail.com`, // Custom Reply-To using +extension
+      to: recipients.join(', '), // The recipients' emails as a comma-separated string
+      subject: subject, // The email subject
+      html: message, // The email message in HTML format
+      attachments: mailAttachments, // Attachments if any
+    };
+
+    console.log('Mail options prepared:', mailOptions);
+    await transporter.sendMail(mailOptions);
+    console.log('Email sent successfully.');
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error sending email:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * API Route Handler
  *
  * Handles POST requests to send newsletter emails with optional attachments.
@@ -66,7 +124,6 @@ export default async function handler(
   });
 
   try {
-    // Only allow POST requests
     if (req.method !== 'POST') {
       console.warn(`Method ${req.method} not allowed.`);
       res.setHeader('Allow', ['POST']);
@@ -75,16 +132,13 @@ export default async function handler(
         .json({ error: `Method '${req.method}' Not Allowed` });
     }
 
-    // Initialize formidable with desired options
     const form = new IncomingForm({
       multiples: true,
       maxFileSize: 25 * 1024 * 1024, // 25MB per file
       allowEmptyFiles: false,
     });
-
     console.log('Initialized formidable with options:', form);
 
-    // Parse the incoming form data
     const { fields, files } = await new Promise<{
       fields: Fields;
       files: Files;
@@ -101,12 +155,10 @@ export default async function handler(
       });
     });
 
-    // Safely extract each field as a string
     const fromName = getString(fields.fromName, 'Default Name');
     const replyToExtension = getString(fields.replyToExtension);
     const recipientsString = getString(fields.recipients);
     let recipients: string[] = [];
-
     if (recipientsString) {
       try {
         recipients = JSON.parse(recipientsString);
@@ -123,10 +175,8 @@ export default async function handler(
       }
     }
 
-    // Validate email addresses
     const validRecipients = validateEmails(recipients);
     console.log('Valid recipients after validation:', validRecipients);
-
     if (validRecipients.length === 0) {
       console.warn('No valid recipients provided.');
       return res
@@ -136,11 +186,9 @@ export default async function handler(
 
     const subject = getString(fields.subject, 'Default Subject');
     const message = getString(fields.message, '');
-
     console.log('Email subject:', subject);
     console.log('Email message:', message);
 
-    // Handle attachments
     let attachments: OutgoingAttachment[] = [];
     if (files.attachments) {
       const attachmentsArray = Array.isArray(files.attachments)
@@ -148,13 +196,11 @@ export default async function handler(
         : [files.attachments];
       console.log('Processing attachments:', attachmentsArray);
 
-      // Calculate total size
       const totalSize = attachmentsArray.reduce(
         (acc, file) => acc + (file.size || 0),
         0
       );
       const maxTotalSize = 25 * 1024 * 1024; // 25MB
-
       if (totalSize > maxTotalSize) {
         console.warn(
           `Total attachment size ${totalSize} exceeds the limit of ${maxTotalSize} bytes.`
@@ -170,7 +216,6 @@ export default async function handler(
           const content = await fs.readFile(file.filepath);
           console.log(`File read successfully: ${file.filepath}`);
 
-          // Optionally delete the temporary file
           try {
             await fs.unlink(file.filepath);
             console.log(`Temporary file deleted: ${file.filepath}`);
@@ -188,13 +233,11 @@ export default async function handler(
           } as OutgoingAttachment;
         })
       );
-
       console.log('Processed attachments:', attachments);
     } else {
       console.log('No attachments provided.');
     }
 
-    // Send the newsletter email
     console.log('Sending newsletter email...');
     const result: EmailResult = await sendNewsletterEmail({
       fromName,
@@ -204,7 +247,6 @@ export default async function handler(
       message,
       attachments,
     });
-
     console.log('Email sending result:', result);
 
     if (result.success) {

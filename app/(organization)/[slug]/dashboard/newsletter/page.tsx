@@ -1,19 +1,17 @@
-// app/(organization)/[slug]/dashboard/newsletter/page.tsx
-
 "use client";
 
 import { useUser } from "@/context/user_context";
 import {
   fetchEventsByOrganization,
-  fetchMembersByOrganization,
   fetchMembersByEvent,
+  fetchMembersByOrganization,
   fetchOrganizationBySlug,
 } from "@/lib/newsletter_actions";
 import { Email, IncomingAttachment } from "@/types/email";
 import { Event } from "@/types/event";
 import { CombinedUserData } from "@/types/combined_user_data";
 import { useParams } from "next/navigation";
-import React, { useEffect, useState, Fragment, useMemo } from "react";
+import React, { useEffect, useState, Fragment, useMemo, useRef } from "react";
 import DataTable, { TableColumn } from "react-data-table-component";
 import dynamic from "next/dynamic";
 import { Disclosure, Dialog, Transition, Tab } from "@headlessui/react";
@@ -50,93 +48,90 @@ export default function NewsletterPage() {
   const [selectedEvents, setSelectedEvents] = useState<Event[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-
   const [attachments, setAttachments] = useState<File[]>([]);
-
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string | null>(null);
-
   const [outgoingSearch, setOutgoingSearch] = useState("");
   const [incomingSearch, setIncomingSearch] = useState("");
   const [eventsSearch, setEventsSearch] = useState("");
   const [usersSearch, setUsersSearch] = useState("");
+  const [eventsLoading, setEventsLoading] = useState(false);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [emailsLoading, setEmailsLoading] = useState(false);
+
+  const emailsFetched = useRef(false);
 
   useEffect(() => {
-    async function fetchData() {
+    async function fetchOrganization() {
       if (user && orgSlug) {
         const organization = await fetchOrganizationBySlug(orgSlug as string);
-
-        if (organization) {
-          const [eventsData, usersData, emailsResponse] = await Promise.all([
-            fetchEventsByOrganization(organization.organizationid),
-            fetchMembersByOrganization(organization.organizationid),
-            axios.get("/api/fetch-newsletter-emails"),
-          ]);
-
-          const allEmails: { emails: Email[] } = emailsResponse.data;
-          console.log("Fetched all emails:", allEmails.emails);
-
-          const sentEmailsData = allEmails.emails
-            .filter((email: Email) => email.from.includes(organization.name))
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          console.log("Filtered sent emails:", sentEmailsData);
-
-          const incomingEmailsData = allEmails.emails
-            .filter((email: Email) =>
-              email.to.some(
-                (addr) =>
-                  addr.includes(`${organization.slug}@`) ||
-                  addr.endsWith(`${organization.slug}@yourdomain.com`)
-              )
-            )
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          console.log("Filtered incoming emails:", incomingEmailsData);
-
-          setEvents(eventsData);
-          setUsers(usersData);
-          setSentEmails(sentEmailsData);
-          setIncomingEmails(incomingEmailsData);
-        }
+        return organization;
       }
     }
-    fetchData();
-  }, [user, orgSlug]);
 
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      if (user && orgSlug) {
-        const organization = await fetchOrganizationBySlug(orgSlug as string);
-        if (organization) {
-          const emailsResponse = await axios.get("/api/fetch-newsletter-emails");
-          const allEmails: { emails: Email[] } = emailsResponse.data;
-          console.log("Fetched emails on interval:", allEmails.emails);
+    async function fetchEvents(organizationId: string) {
+      const eventsData = await fetchEventsByOrganization(organizationId);
+      setEvents(eventsData);
+    }
 
-          const incomingEmailsData = allEmails.emails
-            .filter((email: Email) =>
-              email.to.some(
-                (addr) =>
-                  addr.includes(`${organization.slug}@`) ||
-                  addr.endsWith(`${organization.slug}@yourdomain.com`)
-              )
-            )
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          console.log("Updated incoming emails:", incomingEmailsData);
+    async function fetchUsers(organizationId: string) {
+      const usersData = await fetchMembersByOrganization(organizationId);
+      setUsers(usersData);
+    }
 
-          setIncomingEmails(incomingEmailsData);
-        }
+    async function fetchEmails(organizationName: string, organizationSlug: string) {
+      if (!emailsFetched.current) {
+        const emailsResponse = await axios.get("/api/fetch-newsletter-emails", {
+          params: {
+            organizationName,
+            organizationSlug,
+          },
+        });
+        const allEmails: { emails: Email[] } = emailsResponse.data;
+        const sentEmailsData = allEmails.emails.filter((email: Email) =>
+          email.from.includes(organizationName)
+        );
+        const incomingEmailsData = allEmails.emails.filter((email: Email) =>
+          email.to.some(
+            (addr) =>
+              addr.includes(`${organizationSlug}@`) ||
+              addr.endsWith(`${organizationSlug}@yourdomain.com`)
+          )
+        );
+
+        setSentEmails(sentEmailsData);
+        setIncomingEmails(incomingEmailsData);
+        emailsFetched.current = true;
       }
-    }, 10000);
-    return () => clearInterval(interval);
+    }
+
+    async function fetchData() {
+      setEventsLoading(true);
+      setUsersLoading(true);
+      setEmailsLoading(true);
+      const organization = await fetchOrganization();
+      if (organization) {
+        await Promise.all([
+          fetchEvents(organization.organizationid).finally(() => setEventsLoading(false)),
+          fetchUsers(organization.organizationid).finally(() => setUsersLoading(false)),
+          fetchEmails(organization.name, organization.slug).finally(() =>
+            setEmailsLoading(false)
+          ),
+        ]);
+      } else {
+        setEventsLoading(false);
+        setUsersLoading(false);
+        setEmailsLoading(false);
+      }
+    }
+
+    fetchData();
   }, [user, orgSlug]);
 
   const validateForm = () => {
     try {
-      const formData = {
-        subject,
-        content: editorState,
-      };
-
+      const formData = { subject, content: editorState };
       newsletterSchema.parse(formData);
 
       if (selectedUsers.length === 0 && selectedEvents.length === 0) {
@@ -163,14 +158,12 @@ export default function NewsletterPage() {
     try {
       if (user && orgSlug) {
         const organization = await fetchOrganizationBySlug(orgSlug as string);
-
         if (organization) {
           const selectedEventUsers = await Promise.all(
             selectedEvents.map((event) => fetchMembersByEvent(event.eventid))
           ).then((results) => results.flat());
 
           const combinedUsers = [...selectedUsers, ...selectedEventUsers];
-
           const uniqueUsers = combinedUsers.filter(
             (user, index, self) => index === self.findIndex((t) => t.email === user.email)
           );
@@ -180,40 +173,28 @@ export default function NewsletterPage() {
             return;
           }
 
-          const organizationName = organization.name;
-          const organizationSlug = organization.slug;
-
           const formData = new FormData();
-          formData.append("fromName", organizationName);
-          formData.append("replyToExtension", organizationSlug);
+          formData.append("fromName", organization.name);
+          formData.append("replyToExtension", organization.slug);
           formData.append("recipients", JSON.stringify(uniqueUsers.map((u) => u.email)));
           formData.append("subject", subject);
           formData.append("message", editorState);
-          attachments.forEach((file) => {
-            formData.append("attachments", file);
-          });
+          attachments.forEach((file) => formData.append("attachments", file));
 
           const response = await axios.post("/api/send-newsletter-email", formData, {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
+            headers: { "Content-Type": "multipart/form-data" },
           });
-
-          console.log("Send newsletter response:", response);
 
           if (response.status === 200) {
             setSuccessMessage("Newsletter sent successfully!");
             setAttachments([]);
-            const sentEmail: Email = response.data.email;
-            console.log("Sent email:", sentEmail);
-            setSentEmails((prev) => [sentEmail, ...prev]);
+            setSentEmails((prev) => [response.data.email, ...prev]);
           } else {
             setErrorMessage("Failed to send newsletter.");
           }
         }
       }
     } catch (error: any) {
-      console.error("Failed to send newsletter:", error);
       setErrorMessage(error.response?.data?.message || "Failed to send newsletter.");
     } finally {
       setSending(false);
@@ -221,14 +202,18 @@ export default function NewsletterPage() {
   };
 
   const openEmailPreview = (email: Email) => {
-    console.log("Opening email preview for:", email);
     setSelectedEmail(email);
     setIsPreviewOpen(true);
   };
 
   const eventColumns: TableColumn<Event>[] = [
     { name: "Title", selector: (row: Event) => row.title, sortable: true, id: "title" },
-    { name: "Location", selector: (row: Event) => row.location, sortable: true, id: "location" },
+    {
+      name: "Location",
+      selector: (row: Event) => row.location,
+      sortable: true,
+      id: "location",
+    },
     {
       name: "Start Date",
       selector: (row: Event) => new Date(row.starteventdatetime).toLocaleString(),
@@ -271,12 +256,7 @@ export default function NewsletterPage() {
       sortable: true,
       id: "subject",
     },
-    {
-      name: "To",
-      selector: (row: Email) => row.to.join(", "),
-      sortable: true,
-      id: "to",
-    },
+    { name: "To", selector: (row: Email) => row.to.join(", "), sortable: true, id: "to" },
     {
       name: "Date",
       selector: (row: Email) => new Date(row.date).toLocaleString(),
@@ -298,50 +278,22 @@ export default function NewsletterPage() {
   ];
 
   const customStyles = {
-    header: {
-      style: {
-        backgroundColor: "#1f1f1f",
-        color: "#ffffff",
-      },
-    },
-    headRow: {
-      style: {
-        backgroundColor: "#333333",
-        color: "#ffffff",
-      },
-    },
-    headCells: {
-      style: {
-        color: "#ffffff",
-      },
-    },
+    header: { style: { backgroundColor: "#1f1f1f", color: "#ffffff" } },
+    headRow: { style: { backgroundColor: "#333333", color: "#ffffff" } },
+    headCells: { style: { color: "#ffffff" } },
     rows: {
       style: {
         backgroundColor: "#2a2a2a",
         color: "#ffffff",
-        "&:hover": {
-          backgroundColor: "#3e3e3e",
-        },
+        "&:hover": { backgroundColor: "#3e3e3e" },
       },
     },
-    pagination: {
-      style: {
-        backgroundColor: "#1f1f1f",
-        color: "#ffffff",
-      },
-    },
-    noData: {
-      style: {
-        backgroundColor: "#1f1f1f",
-        color: "#ffffff",
-      },
-    },
+    pagination: { style: { backgroundColor: "#1f1f1f", color: "#ffffff" } },
+    noData: { style: { backgroundColor: "#1f1f1f", color: "#ffffff" } },
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop: (acceptedFiles) => {
-      setAttachments((prev) => [...prev, ...acceptedFiles]);
-    },
+    onDrop: (acceptedFiles) => setAttachments((prev) => [...prev, ...acceptedFiles]),
   });
 
   const removeAttachment = (index: number) => {
@@ -351,45 +303,30 @@ export default function NewsletterPage() {
   const filteredSentEmails = useMemo(() => {
     if (!outgoingSearch) return sentEmails;
     return sentEmails.filter((email) =>
-      Object.values(email)
-        .join(" ")
-        .toLowerCase()
-        .includes(outgoingSearch.toLowerCase())
+      Object.values(email).join(" ").toLowerCase().includes(outgoingSearch.toLowerCase())
     );
   }, [sentEmails, outgoingSearch]);
 
   const filteredIncomingEmails = useMemo(() => {
     if (!incomingSearch) return incomingEmails;
     return incomingEmails.filter((email) =>
-      Object.values(email)
-        .join(" ")
-        .toLowerCase()
-        .includes(incomingSearch.toLowerCase())
+      Object.values(email).join(" ").toLowerCase().includes(incomingSearch.toLowerCase())
     );
   }, [incomingEmails, incomingSearch]);
 
   const filteredEvents = useMemo(() => {
     if (!eventsSearch) return events;
     return events.filter((event) =>
-      Object.values(event)
-        .join(" ")
-        .toLowerCase()
-        .includes(eventsSearch.toLowerCase())
+      Object.values(event).join(" ").toLowerCase().includes(eventsSearch.toLowerCase())
     );
   }, [events, eventsSearch]);
 
   const filteredUsers = useMemo(() => {
     if (!usersSearch) return users;
     return users.filter((user) =>
-      Object.values(user)
-        .join(" ")
-        .toLowerCase()
-        .includes(usersSearch.toLowerCase())
+      Object.values(user).join(" ").toLowerCase().includes(usersSearch.toLowerCase())
     );
   }, [users, usersSearch]);
-
-  console.log("Sent Emails:", sentEmails);
-  console.log("Incoming Emails:", incomingEmails);
 
   return (
     <>
@@ -409,18 +346,11 @@ export default function NewsletterPage() {
           onChange={setEditorState}
           className="rounded border border-primary p-2 text-white"
           styles={{
-            root: {
-              backgroundColor: "#2a2a2a",
-              color: "#ffffff",
-            },
-            toolbar: {
-              backgroundColor: "#333333",
-              borderColor: "#444444",
-            },
+            root: { backgroundColor: "#2a2a2a", color: "#ffffff" },
+            toolbar: { backgroundColor: "#333333", borderColor: "#444444" },
           }}
         />
 
-        {/* Attachments Section */}
         <div className="mt-6">
           <h2 className="mb-2 text-xl font-semibold">Attachments</h2>
           <div
@@ -437,7 +367,6 @@ export default function NewsletterPage() {
             )}
           </div>
 
-          {/* Display Selected Attachments */}
           {attachments.length > 0 && (
             <div className="mt-4">
               <h3 className="text-lg font-medium">Selected Attachments:</h3>
@@ -463,7 +392,6 @@ export default function NewsletterPage() {
 
         <h2 className="border-b-2 border-primary pb-4 text-2xl">Select Recipients</h2>
 
-        {/* Event Registrants Section */}
         <Disclosure>
           {({ open }) => (
             <>
@@ -488,12 +416,12 @@ export default function NewsletterPage() {
                   columns={eventColumns}
                   data={filteredEvents}
                   selectableRows
-                  onSelectedRowsChange={(state) => {
-                    setSelectedEvents(state.selectedRows);
-                  }}
+                  onSelectedRowsChange={(state) => setSelectedEvents(state.selectedRows)}
                   pagination
                   customStyles={customStyles}
                   noDataComponent={<div>There are no records to display</div>}
+                  progressPending={eventsLoading}
+                  progressComponent={<div className="text-white bg-charleston p-2 rounded w-full text-center">Loading...</div>}
                   defaultSortFieldId="startDate"
                   defaultSortAsc={false}
                 />
@@ -502,7 +430,6 @@ export default function NewsletterPage() {
           )}
         </Disclosure>
 
-        {/* Individual Users Section */}
         <Disclosure>
           {({ open }) => (
             <>
@@ -527,12 +454,12 @@ export default function NewsletterPage() {
                   columns={userColumns}
                   data={filteredUsers}
                   selectableRows
-                  onSelectedRowsChange={(state) => {
-                    setSelectedUsers(state.selectedRows);
-                  }}
+                  onSelectedRowsChange={(state) => setSelectedUsers(state.selectedRows)}
                   pagination
                   customStyles={customStyles}
                   noDataComponent={<div>There are no records to display</div>}
+                  progressPending={usersLoading}
+                  progressComponent={<div className="text-white bg-charleston p-2 rounded w-full text-center">Loading...</div>}
                   defaultSortFieldId="email"
                   defaultSortAsc={false}
                 />
@@ -549,7 +476,6 @@ export default function NewsletterPage() {
           {sending ? "Sending..." : "Send Newsletter"}
         </button>
 
-        {/* Success/Error Messages */}
         {validationErrors && (
           <div className="mt-4 rounded bg-red-100 p-4 text-red-500">
             {validationErrors}
@@ -608,6 +534,8 @@ export default function NewsletterPage() {
                 pagination
                 customStyles={customStyles}
                 noDataComponent={<div>There are no records to display</div>}
+                progressPending={emailsLoading}
+                progressComponent={<div className="text-white bg-charleston p-2 rounded w-full text-center">Emails take longer to load. Please wait.</div>}
                 defaultSortFieldId="date"
                 defaultSortAsc={false}
               />
@@ -627,6 +555,8 @@ export default function NewsletterPage() {
                 pagination
                 customStyles={customStyles}
                 noDataComponent={<div>There are no records to display</div>}
+                progressPending={emailsLoading}
+                progressComponent={<div className="text-white bg-charleston p-2 rounded w-full text-center">Emails take longer to load. Please wait.</div>}
                 defaultSortFieldId="date"
                 defaultSortAsc={false}
               />
@@ -635,7 +565,6 @@ export default function NewsletterPage() {
         </Tab.Group>
       </div>
 
-      {/* Preview Modal */}
       {selectedEmail && (
         <Transition appear show={isPreviewOpen} as={Fragment}>
           <Dialog
