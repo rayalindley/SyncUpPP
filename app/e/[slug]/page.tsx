@@ -779,12 +779,15 @@ const EventPage = () => {
         overlayClassName="fixed inset-0 bg-eerieblack bg-opacity-70 flex items-center justify-center"
       >
         <h2 className="text-2xl text-white mb-4">Your QR Code</h2>
-        {qrCodeUrl && (
+        {qrCodeUrl ? (
           <QRCode
-            value={qrCodeUrl}
+            value={qrCodeUrl.trim()}
             size={200}
             qrStyle="dots"
+            ecLevel="H"
           />
+        ) : (
+          <p className="text-light">Loading QR Code...</p> // Loading message when qrCodeUrl is not available
         )}
         <p className="mt-2 text-light text-center">Please save this QR Code and present it at the event for your attendance.</p>
         <button
@@ -794,6 +797,7 @@ const EventPage = () => {
           Close
         </button>
       </Modal>
+
     </div>
   );
 };
