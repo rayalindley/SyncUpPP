@@ -33,6 +33,7 @@ import remarkGfm from "remark-gfm";
 import Swal from "sweetalert2";
 import { Invoice as InvoiceClient, Xendit } from "xendit-node";
 import type { CreateInvoiceRequest, Invoice } from "xendit-node/invoice/models";
+import { QRCode } from "react-qrcode-logo"; // Import QR code generator
 
 const xenditClient = new Xendit({
   secretKey: process.env.NEXT_PUBLIC_XENDIT_SECRET_KEY!,
@@ -62,6 +63,8 @@ const EventPage = () => {
   const [registrationClosed, setRegistrationClosed] = useState(false);
   const [canJoin, setCanJoin] = useState(false);
   const [paymentPending, setPaymentPending] = useState(false);
+  const [showQRCode, setShowQRCode] = useState(false); // New state to show/hide QR code
+  const [qrCodeUrl, setQRCodeUrl] = useState(""); // New state for QR code URL
 
   async function checkUserRoleAndMembership(
     userId: string,
@@ -206,32 +209,32 @@ const EventPage = () => {
 
   const handleEventRegistration = async () => {
     const userId = user?.id;
-  
+
     if (isRegistered) return;
-  
+
     if (!user) {
       console.error("User not found");
       toast.error("User not found. Please log in.");
       return;
     }
-  
+
     if (eventFinished || registrationClosed || (eventFull && !isRegistered)) return;
-  
+
     if (event.privacy.type === "private" && !isOrgMember) {
       toast.error("You need to be a member of the organization to register for this event.");
       return;
     }
-  
+
     if (event.privacy.type === "private" && isOrgMember && !canJoin) {
       toast.error("You do not have the required role or membership tier to register for this event.");
       return;
     }
-  
+
     if (eventFull && !isRegistered) {
       toast.error("The event is full.");
       return;
     }
-  
+
     let fullName = `${user?.user_metadata?.first_name ?? ""} ${user?.user_metadata?.last_name ?? ""}`.trim();
     if (!fullName) {
       try {
@@ -248,7 +251,7 @@ const EventPage = () => {
         return;
       }
     }
-  
+
     if (event.onsite) {
       // Prompt user to choose payment method
       const result = await Swal.fire({
@@ -260,7 +263,7 @@ const EventPage = () => {
         },
         customClass: {
           input: 'swal2-custom-radio'
-  
+
         },
         inputValidator: (value) => {
           if (!value) {
@@ -272,13 +275,13 @@ const EventPage = () => {
         cancelButtonColor: "#d33",
         confirmButtonText: "Proceed"
       });
-  
+
       if (result.isConfirmed) {
         const paymentMethod = result.value;
-  
+
         if (paymentMethod === 'onsite') {
           const { data, error } = await registerForEvent(event.eventid, user.id, paymentMethod);
-  
+
           if (error) {
             toast.error(`Registration failed: ${error.message}`);
           } else {
@@ -286,21 +289,26 @@ const EventPage = () => {
               activity_type: "event_register",
               description: `User ${fullName} registered for the event: ${event.title}`,
             });
-  
+
             await recordActivity({
               activity_type: "event_register",
               organization_id: event.organizationid,
               description: `User ${fullName} registered for the event: ${event.title}`,
             });
-  
+
             toast.success("You have successfully registered! Please proceed to the onsite payment area.");
             setPaymentPending(true); // Set payment pending state
             setIsRegistered(true);
             setAttendeesCount((prevCount) => prevCount + 1);
-  
+
             if (event.capacity && attendeesCount + 1 >= event.capacity) {
               setEventFull(true);
             }
+
+            // Generate QR code after successful registration
+            const qrCodeData = `${process.env.NEXT_PUBLIC_SITE_URL}/attendance?userid=${user.id}&eventid=${event.eventid}`;
+            setQRCodeUrl(qrCodeData);
+            setShowQRCode(true); // Show the QR code
           }
         } else if (paymentMethod === 'offsite') {
           // Handle offsite payment (redirect to payment page)
@@ -312,9 +320,9 @@ const EventPage = () => {
               description: `${organization?.name} Registration fee for ${event.title}: ${event.description}`,
               successRedirectUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/e/${event.eventslug}`,
             };
-  
+
             const invoice = await xenditInvoiceClient.createInvoice({ data });
-  
+
             const { error: paymentError } = await supabase.from("payments").insert([
               {
                 amount: event.registrationfee,
@@ -326,13 +334,13 @@ const EventPage = () => {
                 invoiceData: invoice,
               },
             ]);
-  
+
             if (paymentError) {
               console.error("Error creating payment record:", paymentError);
               toast.error(`Registration failed: ${paymentError.message}`);
               return;
             }
-  
+
             // Redirect user to the online payment page
             window.location.href = invoice.invoiceUrl;
           } catch (error) {
@@ -352,9 +360,9 @@ const EventPage = () => {
             description: `${organization?.name} Registration fee for ${event.title}: ${event.description}`,
             successRedirectUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/e/${event.eventslug}`,
           };
-  
+
           const invoice = await xenditInvoiceClient.createInvoice({ data });
-  
+
           const { error: paymentError } = await supabase.from("payments").insert([
             {
               amount: event.registrationfee,
@@ -366,18 +374,18 @@ const EventPage = () => {
               invoiceData: invoice,
             },
           ]);
-  
+
           if (paymentError) {
             console.error("Error creating payment record:", paymentError);
             toast.error(`Registration failed: ${paymentError.message}`);
             return;
           }
-  
+
           // Redirect user to the online payment page
           window.location.href = invoice.invoiceUrl;
         } else {
           const { data, error } = await registerForEvent(event.eventid, user.id, 'offsite');
-  
+
           if (error) {
             console.error("Registration failed:", error);
             toast.error(`Registration failed: ${error.message}`);
@@ -386,20 +394,33 @@ const EventPage = () => {
               activity_type: "event_register",
               description: `User registered for the event: ${event.title}`,
             });
-  
+
             await recordActivity({
               activity_type: "event_register",
               organization_id: event.organizationid,
               description: `User ${user.email} registered for the event: ${event.title}`,
             });
-  
+
             toast.success("You have successfully joined the event!");
             setIsRegistered(true);
             setAttendeesCount((prevCount) => prevCount + 1);
-  
+
             if (event.capacity && attendeesCount + 1 >= event.capacity) {
               setEventFull(true);
             }
+
+            // Generate QR code after successful registration
+            // const qrCodeData = `${process.env.NEXT_PUBLIC_SITE_URL}/attendance/${event.eventid}/${user.id}`;
+            if (user && event) {
+              // Ensure both user and event are defined before generating QR code
+              const qrCodeData = `localhost:3000/attendance/${event.eventid}/${user.id}`;
+              console.log("Generated QR Code Data:", qrCodeData); // Debug log for verification
+              setQRCodeUrl(qrCodeData);
+              setShowQRCode(true); // Show the QR code
+            } else {
+              console.error("User or Event data not available to generate QR code.");
+            }
+            
           }
         }
       } catch (error) {
@@ -408,7 +429,6 @@ const EventPage = () => {
       }
     }
   };
-  
 
   const handleEventUnregistration = async () => {
     const result = await Swal.fire({
@@ -730,6 +750,24 @@ const EventPage = () => {
                   </ReactMarkdown>
                 </div>
               </div>
+
+              {/* Show QR code after successful registration */}
+              {showQRCode && qrCodeUrl && (
+                <div className="mt-6 flex flex-col items-center">
+                  <h3 className="text-lg font-medium text-light">Your QR Code</h3>
+                  <QRCode
+                    value={qrCodeUrl}
+                    size={150}
+                    logoImage={"/syncup.png"} // Optional logo in the center of the QR code
+                    logoWidth={30}
+                    logoHeight={30}
+                    qrStyle="dots"
+                  />
+                  <p className="mt-2 text-sm text-light">
+                    Scan this QR code at the event for attendance.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>

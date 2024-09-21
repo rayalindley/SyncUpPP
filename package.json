@@ -43,6 +43,7 @@
     "react-json-pretty": "^2.2.0",
     "react-markdown": "^9.0.1",
     "react-popper": "^2.3.0",
+    "react-qrcode-logo": "^3.0.0",
     "react-quill": "^0.0.2",
     "react-step-builder": "^3.0.6",
     "react-sweetalert2": "^0.6.0",
