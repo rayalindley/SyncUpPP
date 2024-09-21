@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { recordActivity } from "@/lib/track";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -11,6 +12,10 @@ export async function GET(request: Request) {
   if (code) {
     const supabase = createClient();
     await supabase.auth.exchangeCodeForSession(code);
+    await recordActivity({
+      activity_type: "user_signin",
+      description: "User signed in",
+    });
   }
 
   // URL to redirect to after sign up process completes

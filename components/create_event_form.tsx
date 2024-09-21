@@ -1,5 +1,5 @@
 import { insertEvent, updateEvent } from "@/lib/events";
-import { createClient } from "@/lib/supabase/client";
+import { getUser, createClient } from "@/lib/supabase/client";
 import { PhotoIcon } from "@heroicons/react/20/solid";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Tagify from "@yaireo/tagify";
@@ -13,6 +13,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { z } from "zod";
 import "../app/tags.css";
+import { recordActivity } from "@/lib/track";
 
 const isFutureDate = (value: Date) => {
   if (value instanceof Date) {
@@ -336,6 +337,38 @@ const CreateEventForm = ({
       : await insertEvent(completeFormData, organizationid);
 
     if (data) {
+
+      if (!event) {
+        const { user } = await getUser();
+        const userId = user?.id; // Get the current user's ID
+        if (userId) {
+            await supabase
+                .from("eventregistrations")
+                .insert([
+                    {
+                        eventid: data[0].eventid, // Use the newly created event ID
+                        userid: userId,
+                        status: "registered", // Set the registration status
+                    },
+                ]);
+        }
+    }
+
+      await recordActivity({
+        activity_type: event ? "event_update" : "event_create",
+        organization_id: organizationid, 
+        description: `${completeFormData.title} was ${event ? "updated" : "created"}`,
+        activity_details: {
+          event_title: completeFormData.title,
+          event_slug: completeFormData.slug,
+          event_description: completeFormData.description,
+          event_capacity: completeFormData.capacity,
+          event_registration_fee: completeFormData.registrationfee,
+          event_starteventdatetime: completeFormData.starteventdatetime,
+          event_endeventdatetime: completeFormData.endeventdatetime,
+        },
+      });
+
       toast.success(
         event ? "Event was updated successfully." : "Event was created successfully."
       );

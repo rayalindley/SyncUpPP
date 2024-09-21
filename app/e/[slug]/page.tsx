@@ -11,6 +11,8 @@ import {
   unregisterFromEvent,
 } from "@/lib/events";
 import { createClient, getUser } from "@/lib/supabase/client";
+import { recordActivity } from "@/lib/track";
+import { getUserProfileById } from "@/lib/user_actions";
 import { User } from "@/node_modules/@supabase/auth-js/src/lib/types";
 import { Event } from "@/types/event";
 import { Organization } from "@/types/organization";
@@ -202,7 +204,35 @@ const EventPage = () => {
   }
 
   const handleEventRegistration = async () => {
-    if (isRegistered || !canJoin) return;
+
+    if (isRegistered) return;
+
+  if (!user) {
+    console.error("User not found");
+    toast.error("User not found. Please log in.");
+    return;
+  }
+
+  if (eventFinished || registrationClosed || (eventFull && !isRegistered)) return;
+
+  // Check if user is not a member of the org
+  if (event.privacy.type === "private" && !isOrgMember) {
+    toast.error("You need to be a member of the organization to register for this event.");
+    return;
+  }
+
+  // Check if user does not have the required role or membership
+  if (event.privacy.type === "private" && isOrgMember && !canJoin) {
+    toast.error("You do not have the required role or membership tier to register for this event.");
+    return;
+  }
+
+  // Check if event is full
+  if (eventFull && !isRegistered) {
+    toast.error("The event is full.");
+    return;
+  }
+
 
     const result = await Swal.fire({
       title: "Are you sure?",
@@ -217,13 +247,22 @@ const EventPage = () => {
     if (result.isConfirmed) {
       const { user } = await getUser();
       const userId = user?.id;
-
+      
       if (!userId) {
         console.error("User not found");
         toast.error("User not found. Please log in.");
         return;
       }
 
+      if (userId) {
+        const { data: userProfile, error } = await getUserProfileById(userId); // Call the function to get user profile
+          
+          if (error) {
+              console.error("Error fetching user profile:", error);
+              return; // Handle the error as needed
+          }
+          const fullName = userProfile ? `${userProfile.first_name} ${userProfile.last_name}` : '';
+      
       if (event.registrationfee > 0) {
         try {
           const data: CreateInvoiceRequest = {
@@ -268,6 +307,20 @@ const EventPage = () => {
           console.error("Registration failed:", error);
           toast.error(`Registration failed: ${error.message}`);
         } else {
+
+          //user 
+          await recordActivity({
+            activity_type: "event_register",
+            description: `User registered for the event: ${event.title}`,
+          });
+
+          //organization
+          await recordActivity({
+            activity_type: "event_register",
+            organization_id: event.organizationid,
+            description: `User ${fullName} registered for the event: ${event.title}`,
+          });
+
           toast.success("You have successfully joined the event!");
           setIsRegistered(true);
           setAttendeesCount((prevCount) => prevCount + 1);
@@ -277,6 +330,7 @@ const EventPage = () => {
           }
         }
       }
+    }
     }
   };
 
@@ -294,6 +348,29 @@ const EventPage = () => {
     if (result.isConfirmed) {
       const { user } = await getUser();
       const userId = user?.id;
+
+      if (userId) {
+        const { data: userProfile, error } = await getUserProfileById(userId); // Call the function to get user profile
+          
+          if (error) {
+              console.error("Error fetching user profile:", error);
+              return; // Handle the error as needed
+          }
+          const fullName = userProfile ? `${userProfile.first_name} ${userProfile.last_name}` : '';
+
+          //user 
+          await recordActivity({
+            activity_type: "event_unregister",
+            description: `User cancelled their registration for the event: ${event.title}`,
+          });
+
+          //organization
+          await recordActivity({
+            activity_type: "event_unregister",
+            organization_id: event.organizationid,
+            description: `User ${fullName} cancelled their registration for the event: ${event.title}`,
+          });
+      }
 
       if (!userId) {
         console.error("User not found");
@@ -537,40 +614,35 @@ const EventPage = () => {
                   )}
                 </p>
                 <button
-                  className={`w-full rounded-md px-6 py-3 text-white ${
-                    eventFinished ||
-                    registrationClosed ||
-                    (event.privacy.type === "private" && (!isOrgMember || !canJoin)) ||
-                    (eventFull && !isRegistered)
-                      ? "cursor-not-allowed bg-fadedgrey"
-                      : isRegistered
-                        ? "bg-red-600 hover:bg-red-700"
-                        : "bg-primary hover:bg-primarydark"
-                  }`}
-                  onClick={
-                    isRegistered ? handleEventUnregistration : handleEventRegistration
-                  }
-                  disabled={
-                    eventFinished ||
-                    registrationClosed ||
-                    (event.privacy.type === "private" && (!isOrgMember || !canJoin)) ||
-                    (eventFull && !isRegistered)
-                  }
-                >
-                  {eventFinished
-                    ? "Event Finished"
-                    : registrationClosed
-                      ? "Registration Closed"
-                      : event.privacy.type === "private" && !isOrgMember
-                        ? "Event for Org Members Only"
-                        : event.privacy.type === "private" && isOrgMember && !canJoin
-                          ? "Event for Selected Roles and Membership Tiers Only"
-                          : eventFull && !isRegistered
-                            ? "Event Full"
-                            : isRegistered
-                              ? "Unregister"
-                              : "Register"}
-                </button>
+  className={`w-full rounded-md px-6 py-3 text-white ${
+    eventFinished ||
+    registrationClosed ||
+    (eventFull && !isRegistered)
+      ? "cursor-not-allowed bg-fadedgrey"
+      : isRegistered
+        ? "bg-red-600 hover:bg-red-700"
+        : "bg-primary hover:bg-primarydark"
+  }`}
+  onClick={
+    isRegistered ? handleEventUnregistration : handleEventRegistration
+  }
+  disabled={
+    eventFinished ||
+    registrationClosed ||
+    (eventFull && !isRegistered)
+  }
+>
+  {eventFinished
+    ? "Event Finished"
+    : registrationClosed
+      ? "Registration Closed"
+      : eventFull && !isRegistered
+        ? "Event Full"
+        : isRegistered
+          ? "Unregister"
+          : "Register"}
+</button>
+
               </div>
 
               <div className="space-y-2">
