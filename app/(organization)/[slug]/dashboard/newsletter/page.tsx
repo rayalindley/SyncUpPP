@@ -1,3 +1,5 @@
+// app/(organization)/[slug]/dashboard/newsletter/page.tsx
+
 "use client";
 
 import { useUser } from "@/context/user_context";
@@ -6,30 +8,31 @@ import {
   fetchMembersByOrganization,
   fetchMembersByEvent,
   fetchOrganizationBySlug,
-  fetchSentEmailsByAdmin,
-  sendNewsletter,
 } from "@/lib/newsletter_actions";
-import { CombinedUserData } from "@/types/combined_user_data";
-import { Email } from "@/types/email";
+import { Email, IncomingAttachment } from "@/types/email";
 import { Event } from "@/types/event";
+import { CombinedUserData } from "@/types/combined_user_data";
 import { useParams } from "next/navigation";
-import React, { useEffect, useState, Fragment } from "react";
-import DataTable from "react-data-table-component";
-import dynamic from "next/dynamic"; // Dynamic import for client-side only
-import { Disclosure, Dialog, Transition } from "@headlessui/react";
+import React, { useEffect, useState, Fragment, useMemo } from "react";
+import DataTable, { TableColumn } from "react-data-table-component";
+import dynamic from "next/dynamic";
+import { Disclosure, Dialog, Transition, Tab } from "@headlessui/react";
 import { ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/20/solid";
 import parse from "html-react-parser";
-import { z } from "zod"; // Importing Zod for validation
+import { z } from "zod";
+import axios from "axios";
+import { useDropzone } from "react-dropzone";
 
-// Dynamically import RichTextEditor from "@mantine/rte"
 const RichTextEditor = dynamic(() => import("@mantine/rte"), { ssr: false });
 
-// Define Zod schema for validation
 const newsletterSchema = z.object({
   subject: z.string().min(1, "Subject is required"),
   content: z.string().min(1, "Content is required"),
-  recipients: z.array(z.object({ email: z.string().email() })).min(1, "At least one recipient is required"),
 });
+
+function classNames(...classes: string[]) {
+  return classes.filter(Boolean).join(" ");
+}
 
 export default function NewsletterPage() {
   const { user } = useUser();
@@ -42,182 +45,243 @@ export default function NewsletterPage() {
   const [users, setUsers] = useState<CombinedUserData[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<CombinedUserData[]>([]);
   const [sentEmails, setSentEmails] = useState<Email[]>([]);
+  const [incomingEmails, setIncomingEmails] = useState<Email[]>([]);
   const [sending, setSending] = useState(false);
   const [selectedEvents, setSelectedEvents] = useState<Event[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false); // State to control the preview modal
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  const [attachments, setAttachments] = useState<File[]>([]);
 
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string | null>(null);
 
+  const [outgoingSearch, setOutgoingSearch] = useState("");
+  const [incomingSearch, setIncomingSearch] = useState("");
+  const [eventsSearch, setEventsSearch] = useState("");
+  const [usersSearch, setUsersSearch] = useState("");
+
   useEffect(() => {
     async function fetchData() {
       if (user && orgSlug) {
-        console.log("Fetching organization with slug:", orgSlug);
         const organization = await fetchOrganizationBySlug(orgSlug as string);
-        console.log("Organization data:", organization);
 
         if (organization) {
-          console.log("Fetching events for organization:", organization.organizationid);
-          const eventsData = await fetchEventsByOrganization(organization.organizationid);
-          console.log("Fetched events:", eventsData);
+          const [eventsData, usersData, emailsResponse] = await Promise.all([
+            fetchEventsByOrganization(organization.organizationid),
+            fetchMembersByOrganization(organization.organizationid),
+            axios.get("/api/fetch-newsletter-emails"),
+          ]);
 
-          console.log("Fetching users for organization:", organization.organizationid);
-          const usersData = await fetchMembersByOrganization(organization.organizationid);
-          console.log("Fetched users:", usersData);
+          const allEmails: { emails: Email[] } = emailsResponse.data;
+          console.log("Fetched all emails:", allEmails.emails);
 
-          console.log("Fetching sent emails by admin:", user.id);
-          const emailsData = await fetchSentEmailsByAdmin(user.id || "");
-          console.log("Fetched sent emails:", emailsData);
+          const sentEmailsData = allEmails.emails
+            .filter((email: Email) => email.from.includes(organization.name))
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          console.log("Filtered sent emails:", sentEmailsData);
+
+          const incomingEmailsData = allEmails.emails
+            .filter((email: Email) =>
+              email.to.some(
+                (addr) =>
+                  addr.includes(`${organization.slug}@`) ||
+                  addr.endsWith(`${organization.slug}@yourdomain.com`)
+              )
+            )
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          console.log("Filtered incoming emails:", incomingEmailsData);
 
           setEvents(eventsData);
           setUsers(usersData);
-          setSentEmails(emailsData);
+          setSentEmails(sentEmailsData);
+          setIncomingEmails(incomingEmailsData);
         }
       }
     }
     fetchData();
   }, [user, orgSlug]);
 
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      if (user && orgSlug) {
+        const organization = await fetchOrganizationBySlug(orgSlug as string);
+        if (organization) {
+          const emailsResponse = await axios.get("/api/fetch-newsletter-emails");
+          const allEmails: { emails: Email[] } = emailsResponse.data;
+          console.log("Fetched emails on interval:", allEmails.emails);
+
+          const incomingEmailsData = allEmails.emails
+            .filter((email: Email) =>
+              email.to.some(
+                (addr) =>
+                  addr.includes(`${organization.slug}@`) ||
+                  addr.endsWith(`${organization.slug}@yourdomain.com`)
+              )
+            )
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          console.log("Updated incoming emails:", incomingEmailsData);
+
+          setIncomingEmails(incomingEmailsData);
+        }
+      }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [user, orgSlug]);
+
   const validateForm = () => {
     try {
-      const combinedUsers = [...selectedUsers, ...selectedEvents.flatMap(event => event.users || [])]; // Combine users and event users
-      const uniqueUsers = combinedUsers.filter(
-        (user, index, self) => index === self.findIndex((t) => t.email === user.email)
-      );
       const formData = {
         subject,
         content: editorState,
-        recipients: uniqueUsers,
       };
 
-      // Validate using Zod schema
       newsletterSchema.parse(formData);
 
-      setValidationErrors(null); // Clear any validation errors
+      if (selectedUsers.length === 0 && selectedEvents.length === 0) {
+        setValidationErrors("At least one recipient is required");
+        return false;
+      }
+
+      setValidationErrors(null);
       return true;
     } catch (err) {
       if (err instanceof z.ZodError) {
-        setValidationErrors(err.errors.map(e => e.message).join(", "));
+        setValidationErrors(err.errors.map((e) => e.message).join(", "));
       }
       return false;
     }
   };
 
   const handleSendNewsletter = async () => {
-    if (!validateForm()) return; // Stop submission if validation fails
+    if (!validateForm()) return;
 
     setSending(true);
     setSuccessMessage(null);
     setErrorMessage(null);
     try {
       if (user && orgSlug) {
-        console.log("Fetching organization details for sending newsletter...");
         const organization = await fetchOrganizationBySlug(orgSlug as string);
-        console.log("Organization data fetched:", organization);
 
         if (organization) {
-          // Fetch members from selected events
-          let selectedEventUsers: CombinedUserData[] = [];
-          for (const event of selectedEvents) {
-            console.log("Fetching users for event:", event.eventid);
-            const eventUsers = await fetchMembersByEvent(event.eventid);
-            selectedEventUsers = [...selectedEventUsers, ...eventUsers];
-          }
+          const selectedEventUsers = await Promise.all(
+            selectedEvents.map((event) => fetchMembersByEvent(event.eventid))
+          ).then((results) => results.flat());
 
-          // Combine selected users and event users
           const combinedUsers = [...selectedUsers, ...selectedEventUsers];
 
-          // Remove duplicate users by email
           const uniqueUsers = combinedUsers.filter(
             (user, index, self) => index === self.findIndex((t) => t.email === user.email)
           );
 
-          console.log("Unique users to send to:", uniqueUsers);
+          if (uniqueUsers.length === 0) {
+            setErrorMessage("At least one recipient is required.");
+            return;
+          }
+
           const organizationName = organization.name;
-          const organizationUuid = organization.organizationid;
+          const organizationSlug = organization.slug;
 
-          console.log("Sending newsletter with the following details:");
-          console.log("Subject:", subject);
-          console.log("Content:", editorState);
-          console.log("All Users:", uniqueUsers);
-          console.log("Organization Name:", organizationName);
-          console.log("Organization UUID:", organizationUuid);
+          const formData = new FormData();
+          formData.append("fromName", organizationName);
+          formData.append("replyToExtension", organizationSlug);
+          formData.append("recipients", JSON.stringify(uniqueUsers.map((u) => u.email)));
+          formData.append("subject", subject);
+          formData.append("message", editorState);
+          attachments.forEach((file) => {
+            formData.append("attachments", file);
+          });
 
-          // Send the newsletter and get results
-          const result = await sendNewsletter(
-            subject,
-            editorState,
-            uniqueUsers,
-            [], // Assuming no attachments for now
-            organizationName,
-            organizationUuid
-          );
+          const response = await axios.post("/api/send-newsletter-email", formData, {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          });
 
-          // Display success/failure messages
-          if (result.failures.length > 0) {
-            setErrorMessage(`Failed to send some emails. Details: ${result.failures.map(f => f.email + ": " + f.reason).join(", ")}`);
-          } else {
+          console.log("Send newsletter response:", response);
+
+          if (response.status === 200) {
             setSuccessMessage("Newsletter sent successfully!");
+            setAttachments([]);
+            const sentEmail: Email = response.data.email;
+            console.log("Sent email:", sentEmail);
+            setSentEmails((prev) => [sentEmail, ...prev]);
+          } else {
+            setErrorMessage("Failed to send newsletter.");
           }
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to send newsletter:", error);
-      setErrorMessage("Failed to send newsletter.");
+      setErrorMessage(error.response?.data?.message || "Failed to send newsletter.");
     } finally {
       setSending(false);
     }
   };
 
-  // Open the email preview modal
   const openEmailPreview = (email: Email) => {
+    console.log("Opening email preview for:", email);
     setSelectedEmail(email);
     setIsPreviewOpen(true);
   };
 
-  const eventColumns = [
-    { name: "Title", selector: (row: Event) => row.title, sortable: true },
-    { name: "Location", selector: (row: Event) => row.location, sortable: true },
+  const eventColumns: TableColumn<Event>[] = [
+    { name: "Title", selector: (row: Event) => row.title, sortable: true, id: "title" },
+    { name: "Location", selector: (row: Event) => row.location, sortable: true, id: "location" },
     {
       name: "Start Date",
       selector: (row: Event) => new Date(row.starteventdatetime).toLocaleString(),
       sortable: true,
+      id: "startDate",
     },
     {
       name: "End Date",
       selector: (row: Event) => new Date(row.endeventdatetime).toLocaleString(),
       sortable: true,
+      id: "endDate",
     },
   ];
 
-  const userColumns = [
+  const userColumns: TableColumn<CombinedUserData>[] = [
     {
       name: "Email",
       selector: (row: CombinedUserData) => row.email || "",
       sortable: true,
+      id: "email",
     },
     {
       name: "First Name",
       selector: (row: CombinedUserData) => row.first_name || "",
       sortable: true,
+      id: "firstName",
     },
     {
       name: "Last Name",
       selector: (row: CombinedUserData) => row.last_name || "",
       sortable: true,
+      id: "lastName",
     },
   ];
 
-  const emailColumns = [
-    { name: "Subject", selector: (row: Email) => row.subject, sortable: true },
-    { name: "Receiver", selector: (row: Email) => row.receiver, sortable: true },
-    { name: "Status", selector: (row: Email) => row.status, sortable: true },
+  const emailColumns: TableColumn<Email>[] = [
     {
-      name: "Date Sent",
-      selector: (row: Email) => new Date(row.date_created).toLocaleString(),
+      name: "Subject",
+      selector: (row: Email) => row.subject,
       sortable: true,
+      id: "subject",
+    },
+    {
+      name: "To",
+      selector: (row: Email) => row.to.join(", "),
+      sortable: true,
+      id: "to",
+    },
+    {
+      name: "Date",
+      selector: (row: Email) => new Date(row.date).toLocaleString(),
+      sortable: true,
+      id: "date",
     },
     {
       name: "Actions",
@@ -226,6 +290,10 @@ export default function NewsletterPage() {
           Preview
         </button>
       ),
+      ignoreRowClick: true,
+      allowOverflow: true,
+      button: true,
+      id: "actions",
     },
   ];
 
@@ -270,6 +338,59 @@ export default function NewsletterPage() {
     },
   };
 
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop: (acceptedFiles) => {
+      setAttachments((prev) => [...prev, ...acceptedFiles]);
+    },
+  });
+
+  const removeAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const filteredSentEmails = useMemo(() => {
+    if (!outgoingSearch) return sentEmails;
+    return sentEmails.filter((email) =>
+      Object.values(email)
+        .join(" ")
+        .toLowerCase()
+        .includes(outgoingSearch.toLowerCase())
+    );
+  }, [sentEmails, outgoingSearch]);
+
+  const filteredIncomingEmails = useMemo(() => {
+    if (!incomingSearch) return incomingEmails;
+    return incomingEmails.filter((email) =>
+      Object.values(email)
+        .join(" ")
+        .toLowerCase()
+        .includes(incomingSearch.toLowerCase())
+    );
+  }, [incomingEmails, incomingSearch]);
+
+  const filteredEvents = useMemo(() => {
+    if (!eventsSearch) return events;
+    return events.filter((event) =>
+      Object.values(event)
+        .join(" ")
+        .toLowerCase()
+        .includes(eventsSearch.toLowerCase())
+    );
+  }, [events, eventsSearch]);
+
+  const filteredUsers = useMemo(() => {
+    if (!usersSearch) return users;
+    return users.filter((user) =>
+      Object.values(user)
+        .join(" ")
+        .toLowerCase()
+        .includes(usersSearch.toLowerCase())
+    );
+  }, [users, usersSearch]);
+
+  console.log("Sent Emails:", sentEmails);
+  console.log("Incoming Emails:", incomingEmails);
+
   return (
     <>
       <div className="bg-raisin mb-40 max-w-full space-y-6 rounded-lg p-10 font-sans text-white">
@@ -299,10 +420,46 @@ export default function NewsletterPage() {
           }}
         />
 
-        {/* Validation Error Messages */}
-        {validationErrors && (
-          <div className="mt-4 rounded bg-red-100 p-4 text-red-500">{validationErrors}</div>
-        )}
+        {/* Attachments Section */}
+        <div className="mt-6">
+          <h2 className="mb-2 text-xl font-semibold">Attachments</h2>
+          <div
+            {...getRootProps()}
+            className={`cursor-pointer rounded-lg border-2 border-dashed p-6 text-center ${
+              isDragActive ? "border-primary" : "border-gray-400"
+            }`}
+          >
+            <input {...getInputProps()} />
+            {isDragActive ? (
+              <p className="text-primary">Drop the files here ...</p>
+            ) : (
+              <p>Drag & drop some files here, or click to select files</p>
+            )}
+          </div>
+
+          {/* Display Selected Attachments */}
+          {attachments.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-lg font-medium">Selected Attachments:</h3>
+              <ul className="mt-2">
+                {attachments.map((file, index) => (
+                  <li
+                    key={index}
+                    className="mt-2 flex items-center justify-between rounded bg-gray-700 p-2"
+                  >
+                    <span>{file.name}</span>
+                    <button
+                      onClick={() => removeAttachment(index)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
 
         <h2 className="border-b-2 border-primary pb-4 text-2xl">Select Recipients</h2>
 
@@ -319,16 +476,26 @@ export default function NewsletterPage() {
                 )}
               </Disclosure.Button>
               <Disclosure.Panel className="px-4 pb-2 pt-4 text-sm text-gray-200">
+                <input
+                  type="text"
+                  placeholder="Search Events..."
+                  value={eventsSearch}
+                  onChange={(e) => setEventsSearch(e.target.value)}
+                  className="mb-4 w-full rounded border bg-charleston p-2 text-base focus:border-primary"
+                />
                 <DataTable
+                  keyField="eventid"
                   columns={eventColumns}
-                  data={events}
+                  data={filteredEvents}
                   selectableRows
-                  onSelectedRowsChange={(selectedRows) => {
-                    setSelectedEvents(selectedRows.selectedRows);
+                  onSelectedRowsChange={(state) => {
+                    setSelectedEvents(state.selectedRows);
                   }}
                   pagination
                   customStyles={customStyles}
                   noDataComponent={<div>There are no records to display</div>}
+                  defaultSortFieldId="startDate"
+                  defaultSortAsc={false}
                 />
               </Disclosure.Panel>
             </>
@@ -348,16 +515,26 @@ export default function NewsletterPage() {
                 )}
               </Disclosure.Button>
               <Disclosure.Panel className="px-4 pb-2 pt-4 text-sm text-gray-200">
+                <input
+                  type="text"
+                  placeholder="Search Users..."
+                  value={usersSearch}
+                  onChange={(e) => setUsersSearch(e.target.value)}
+                  className="mb-4 w-full rounded border bg-charleston p-2 text-base focus:border-primary"
+                />
                 <DataTable
+                  keyField="email"
                   columns={userColumns}
-                  data={users}
+                  data={filteredUsers}
                   selectableRows
-                  onSelectedRowsChange={(selectedRows) => {
-                    setSelectedUsers(selectedRows.selectedRows);
+                  onSelectedRowsChange={(state) => {
+                    setSelectedUsers(state.selectedRows);
                   }}
                   pagination
                   customStyles={customStyles}
                   noDataComponent={<div>There are no records to display</div>}
+                  defaultSortFieldId="email"
+                  defaultSortAsc={false}
                 />
               </Disclosure.Panel>
             </>
@@ -366,13 +543,18 @@ export default function NewsletterPage() {
 
         <button
           onClick={handleSendNewsletter}
-          className="mt-6 cursor-pointer rounded bg-primary px-6 py-3 text-lg text-white"
+          className="hover:bg-primary-dark mt-6 cursor-pointer rounded bg-primary px-6 py-3 text-lg text-white disabled:cursor-not-allowed disabled:opacity-50"
           disabled={sending}
         >
           {sending ? "Sending..." : "Send Newsletter"}
         </button>
 
         {/* Success/Error Messages */}
+        {validationErrors && (
+          <div className="mt-4 rounded bg-red-100 p-4 text-red-500">
+            {validationErrors}
+          </div>
+        )}
         {successMessage && (
           <div className="mt-4 rounded bg-green-100 p-4 text-green-500">
             {successMessage}
@@ -382,14 +564,75 @@ export default function NewsletterPage() {
           <div className="mt-4 rounded bg-red-100 p-4 text-red-500">{errorMessage}</div>
         )}
 
-        <h2 className="border-b-2 border-primary pb-4 text-2xl">Sent Emails</h2>
-        <DataTable
-          columns={emailColumns}
-          data={sentEmails}
-          pagination
-          customStyles={customStyles}
-          noDataComponent={<div>There are no records to display</div>}
-        />
+        <h2 className="border-b-2 border-primary pb-4 text-2xl">Emails</h2>
+        <Tab.Group>
+          <Tab.List className="flex space-x-1 rounded-xl bg-[#333333] p-1">
+            <Tab
+              className={({ selected }) =>
+                classNames(
+                  "w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-white",
+                  selected
+                    ? "bg-primary shadow"
+                    : "hover:bg-white/[0.12] hover:text-white"
+                )
+              }
+            >
+              Outgoing Emails
+            </Tab>
+            <Tab
+              className={({ selected }) =>
+                classNames(
+                  "w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-white",
+                  selected
+                    ? "bg-primary shadow"
+                    : "hover:bg-white/[0.12] hover:text-white"
+                )
+              }
+            >
+              Incoming Emails
+            </Tab>
+          </Tab.List>
+          <Tab.Panels>
+            <Tab.Panel>
+              <input
+                type="text"
+                placeholder="Search Outgoing Emails..."
+                value={outgoingSearch}
+                onChange={(e) => setOutgoingSearch(e.target.value)}
+                className="mb-4 mt-2 w-full rounded border bg-charleston p-2 text-base focus:border-primary"
+              />
+              <DataTable
+                keyField="id"
+                columns={emailColumns}
+                data={filteredSentEmails}
+                pagination
+                customStyles={customStyles}
+                noDataComponent={<div>There are no records to display</div>}
+                defaultSortFieldId="date"
+                defaultSortAsc={false}
+              />
+            </Tab.Panel>
+            <Tab.Panel>
+              <input
+                type="text"
+                placeholder="Search Incoming Emails..."
+                value={incomingSearch}
+                onChange={(e) => setIncomingSearch(e.target.value)}
+                className="mb-4 mt-2 w-full rounded border bg-charleston p-2 text-base focus:border-primary"
+              />
+              <DataTable
+                keyField="id"
+                columns={emailColumns}
+                data={filteredIncomingEmails}
+                pagination
+                customStyles={customStyles}
+                noDataComponent={<div>There are no records to display</div>}
+                defaultSortFieldId="date"
+                defaultSortAsc={false}
+              />
+            </Tab.Panel>
+          </Tab.Panels>
+        </Tab.Group>
       </div>
 
       {/* Preview Modal */}
@@ -397,7 +640,7 @@ export default function NewsletterPage() {
         <Transition appear show={isPreviewOpen} as={Fragment}>
           <Dialog
             as="div"
-            className="relative z-10"
+            className="fixed inset-0 z-50 overflow-y-auto"
             onClose={() => setIsPreviewOpen(false)}
           >
             <Transition.Child
@@ -409,53 +652,71 @@ export default function NewsletterPage() {
               leaveFrom="opacity-100"
               leaveTo="opacity-0"
             >
-              <div className="fixed inset-0 bg-black bg-opacity-75" />
+              <Dialog.Overlay className="fixed inset-0 z-50 bg-black bg-opacity-75" />
             </Transition.Child>
 
-            <div className="fixed inset-0 overflow-y-auto">
-              <div className="flex min-h-full items-center justify-center p-4 text-center">
-                <Transition.Child
-                  as={Fragment}
-                  enter="ease-out duration-300"
-                  enterFrom="opacity-0 scale-95"
-                  enterTo="opacity-100 scale-100"
-                  leave="ease-in duration-200"
-                  leaveFrom="opacity-100 scale-100"
-                  leaveTo="opacity-0 scale-95"
+            <div className="flex min-h-screen items-center justify-center">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel
+                  className="z-50 my-8 inline-block w-full max-w-3xl transform overflow-hidden rounded-2xl bg-gray-800 p-6 text-left align-middle shadow-xl transition-all"
+                  style={{ backgroundColor: "#333333" }}
                 >
-                  {/* Dark mode styling with custom background color */}
-                  <Dialog.Panel
-                    className="w-full max-w-3xl transform overflow-hidden rounded-lg p-6 text-left align-middle shadow-xl transition-all"
-                    style={{ backgroundColor: "#333333" }}
+                  <Dialog.Title
+                    as="h3"
+                    className="text-lg font-medium leading-6 text-white"
                   >
-                    <Dialog.Title
-                      as="h3"
-                      className="text-lg font-medium leading-6 text-white"
-                    >
-                      Preview Email: {selectedEmail.subject}
-                    </Dialog.Title>
-                    <div className="mt-2">
-                      <p className="text-sm text-gray-400">
-                        Sent to: {selectedEmail.receiver}
-                      </p>
-                      {/* Dark mode content area */}
-                      <div className="prose prose-invert mt-4 max-w-full text-white">
-                        {parse(selectedEmail.body)}
-                      </div>
+                    Preview Email: {selectedEmail.subject}
+                  </Dialog.Title>
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-400">From: {selectedEmail.from}</p>
+                    <p className="text-sm text-gray-400">
+                      To: {selectedEmail.to.join(", ")}
+                    </p>
+                    <div className="prose prose-invert mt-4 max-w-full text-white">
+                      {selectedEmail.htmlContent
+                        ? parse(selectedEmail.htmlContent)
+                        : parse(selectedEmail.body)}
                     </div>
 
-                    <div className="mt-4">
-                      <button
-                        type="button"
-                        className="hover:bg-primary-dark focus-visible:ring-primary-light inline-flex justify-center rounded-md border border-transparent bg-primary px-4 py-2 text-sm font-medium text-white focus:outline-none focus-visible:ring focus-visible:ring-opacity-75"
-                        onClick={() => setIsPreviewOpen(false)}
-                      >
-                        Close
-                      </button>
-                    </div>
-                  </Dialog.Panel>
-                </Transition.Child>
-              </div>
+                    {selectedEmail.attachments.length > 0 && (
+                      <div className="mt-4">
+                        <h4 className="text-md font-semibold text-white">Attachments:</h4>
+                        <ul className="mt-2">
+                          {selectedEmail.attachments.map((attachment, index) => (
+                            <li key={index} className="text-blue-400 hover:underline">
+                              <a
+                                href={attachment.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                {attachment.filename}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-4">
+                    <button
+                      type="button"
+                      className="hover:bg-primary-dark focus-visible:ring-primary-light inline-flex justify-center rounded-md border border-transparent bg-primary px-4 py-2 text-sm font-medium text-white focus:outline-none focus-visible:ring focus-visible:ring-opacity-75"
+                      onClick={() => setIsPreviewOpen(false)}
+                    >
+                      Close
+                    </button>
+                  </div>
+                </Dialog.Panel>
+              </Transition.Child>
             </div>
           </Dialog>
         </Transition>
