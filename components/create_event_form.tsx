@@ -673,6 +673,7 @@ const CreateEventForm = ({
             <label htmlFor="location" className="text-sm font-medium text-white">
               Location
             </label>
+            <span className="text-xs"> (for virtual events, enter the virtual link)</span>
             <input
               type="text"
               id="location"

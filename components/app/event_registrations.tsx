@@ -175,17 +175,33 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
             onChange={(e) =>
               handleStatusChange(row.eventregistrationid, e.target.value)
             }
-            className={`cursor-pointer rounded-2xl border px-2 py-1 pl-4 pr-6 text-xs ${
-              row.status === "pending"
-                ? "border-yellow-400 bg-yellow-200 text-eerieblack"
+            className={`bg-charleston cursor-pointer rounded-2xl border border-2 px-2 py-1 pl-4 pr-6 text-xs focus:border-primary focus:outline-none focus:ring-primary
+              ${row.status === "pending"
+                ? "border-yellow-400 text-light focus:border-yellow-400 focus:outline-none focus:ring-yellow-400"
                 : row.status === "registered"
-                ? "border-green-400 bg-green-200 text-eerieblack"
+                ? "border-primary text-light focus:border-primary focus:outline-none focus:ring-primary"
                 : ""
             }`}
           >
-            <option value="pending">Pending</option>
             <option value="registered">Registered</option>
+            <option value="pending">Pending</option>
           </select>
+          <style jsx>{`
+            select {
+              appearance: none; /* Removes default styling */
+              outline: none; /* Removes the blue outline */
+            }
+
+            select option {
+              background-color: eerieblack; /* Option background color */
+              color: #f1f5f9; /* Option text color */
+            }
+
+            select option:hover {
+              background-color: #379a7b; /* Option hover background color */
+              color: #e2e8f0; /* Option hover text color */
+            }
+        `}</style>
         </div>
       ),
     },
@@ -200,22 +216,40 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
             onChange={(e) =>
               handleAttendanceChange(row.eventregistrationid, e.target.value)
             }
-            className={`cursor-pointer rounded-2xl border px-2 py-1 pl-4 pr-6 text-xs ${
-              row.attendance === "present"
-                ? "border-green-400 bg-green-200 text-eerieblack"
-                : row.attendance === "absent"
-                ? "border-red-400 bg-red-200 text-eerieblack"
-                : row.attendance === "late"
-                ? "border-yellow-400 bg-yellow-200 text-eerieblack"
-                : "border-gray-400 bg-gray-200 text-eerieblack" // Default for "Set"
-            }`}
+            className={`bg-charleston cursor-pointer rounded-2xl border border-2 px-2 py-1 pl-4 pr-6 text-xs focus:border-primary focus:outline-none focus:ring-primary
+              ${
+                row.attendance === "present"
+                  ? "border-primary text-light focus:border-primary focus:outline-none focus:ring-primary"
+                  : row.attendance === "absent"
+                  ? "border-red-400 text-light focus:border-red-400 focus:outline-none focus:ring-red-400"
+                  : row.attendance === "late"
+                  ? "border-yellow-400 text-light focus:border-yellow-400 focus:outline-none focus:ring-yellow-400"
+                  : "border-[#525252] text-light border-2 focus:border-[#525252] focus:outline-none focus:ring-[#525252]" // Default for "Set"
+              }`}
           >
             <option value="Set">Set</option>
             <option value="present">Present</option>
             <option value="absent">Absent</option>
             <option value="late">Late</option>
           </select>
+            <style jsx>{`
+                select {
+                  appearance: none; /* Removes default styling */
+                  outline: none; /* Removes the blue outline */
+                }
+
+                select option {
+                  background-color: eerieblack; /* Option background color */
+                  color: #f1f5f9; /* Option text color */
+                }
+
+                select option:hover {
+                  background-color: #379a7b; /* Option hover background color */
+                  color: #e2e8f0; /* Option hover text color */
+                }
+            `}</style>
         </div>
+
       ),
     },
   ];
@@ -284,7 +318,8 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
           <select
             value={eventFilter}
             onChange={(e) => setEventFilter(e.target.value)}
-            className="ml-2 block rounded-md border border-[#525252] bg-charleston px-3 py-2 text-white shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+            className="truncate ml-2 block rounded-md border border-[#525252] bg-charleston px-3 py-2 text-white shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+            style={{ maxWidth: '200px' }}
           >
             <option value="">All Events</option>
             {uniqueEvents.map((event) => (

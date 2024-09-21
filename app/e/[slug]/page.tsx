@@ -225,31 +225,31 @@ const EventPage = () => {
 
   const handleEventRegistration = async () => {
     const userId = user?.id;
-
+  
     if (isRegistered) return;
-
+  
     if (!user) {
       toast.error("User not found. Please log in.");
       return;
     }
-
+  
     if (eventFinished || registrationClosed || (eventFull && !isRegistered)) return;
-
+  
     if (event.privacy.type === "private" && !isOrgMember) {
       toast.error("You need to be a member of the organization to register for this event.");
       return;
     }
-
+  
     if (event.privacy.type === "private" && isOrgMember && !canJoin) {
       toast.error("You do not have the required role or membership tier to register for this event.");
       return;
     }
-
+  
     if (eventFull && !isRegistered) {
       toast.error("The event is full.");
       return;
     }
-
+  
     let fullName = `${user?.user_metadata?.first_name ?? ""} ${user?.user_metadata?.last_name ?? ""}`.trim();
     if (!fullName) {
       try {
@@ -264,17 +264,16 @@ const EventPage = () => {
         return;
       }
     }
-
+  
     if (event.onsite) {
+      // Onsite payment flow
       const result = await Swal.fire({
         title: "Choose Payment Method",
+        icon: "question",
         input: "radio",
         inputOptions: {
           onsite: "Pay Onsite",
           offsite: "Pay Online",
-        },
-        customClass: {
-          input: "swal2-custom-radio",
         },
         inputValidator: (value) => {
           if (!value) {
@@ -286,13 +285,13 @@ const EventPage = () => {
         cancelButtonColor: "#d33",
         confirmButtonText: "Proceed",
       });
-
+  
       if (result.isConfirmed) {
         const paymentMethod = result.value;
-
+  
         if (paymentMethod === "onsite") {
           const { data, error } = await registerForEvent(event.eventid, user.id, paymentMethod);
-
+  
           if (error) {
             toast.error(`Registration failed: ${error.message}`);
           } else {
@@ -300,36 +299,29 @@ const EventPage = () => {
               activity_type: "event_register",
               description: `User ${fullName} registered for the event: ${event.title}`,
             });
-
+  
             await recordActivity({
               activity_type: "event_register",
               organization_id: event.organizationid,
               description: `User ${fullName} registered for the event: ${event.title}`,
             });
-
+  
             toast.success("You have successfully registered! Please proceed to the onsite payment area.");
             setPaymentPending(true); // Set payment pending state
             setIsRegistered(true);
             setAttendeesCount((prevCount) => prevCount + 1);
-
+  
             if (event.capacity && attendeesCount + 1 >= event.capacity) {
               setEventFull(true);
             }
-
+  
             // Generate QR code after successful registration if the event is not virtual
             if (!isUrl(event.location)) {
-              // const qrCodeData = `${process.env.NEXT_PUBLIC_SITE_URL}/attendance/${event.eventid}/${user.id}`;
-              const qrCodeData = `localhost:3000/attendance/${event.eventid}/${user.id}`;
-              await supabase
-                .from("eventregistrations")
-                .update({ qr_code_data: qrCodeData })
-                .eq("userid", user.id)
-                .eq("eventid", event.eventid);
-              setQRCodeUrl(qrCodeData);
-              setShowQRCode(true);
+              await generateAndSaveQRCode(user.id, event.eventid); // Call QR code generation
             }
           }
         } else if (paymentMethod === "offsite") {
+          // Online payment flow
           try {
             const data = {
               amount: event.registrationfee,
@@ -338,9 +330,9 @@ const EventPage = () => {
               description: `${organization?.name} Registration fee for ${event.title}: ${event.description}`,
               successRedirectUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/e/${event.eventslug}`,
             };
-
+  
             const invoice = await xenditInvoiceClient.createInvoice({ data });
-
+  
             const { error: paymentError } = await supabase.from("payments").insert([
               {
                 amount: event.registrationfee,
@@ -352,12 +344,14 @@ const EventPage = () => {
                 invoiceData: invoice,
               },
             ]);
-
+  
             if (paymentError) {
               toast.error(`Registration failed: ${paymentError.message}`);
               return;
             }
-
+  
+            // Navigate to the payment URL after QR code data is stored successfully
+            await generateAndSaveQRCode(user.id, event.eventid); // Ensure QR Code is generated after registration
             window.location.href = invoice.invoiceUrl;
           } catch (error) {
             toast.error("An error occurred during registration. Please try again.");
@@ -366,6 +360,7 @@ const EventPage = () => {
       }
     } else {
       try {
+        // Direct registration without onsite payment
         if (event.registrationfee > 0) {
           const data = {
             amount: event.registrationfee,
@@ -374,9 +369,9 @@ const EventPage = () => {
             description: `${organization?.name} Registration fee for ${event.title}: ${event.description}`,
             successRedirectUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/e/${event.eventslug}`,
           };
-
+  
           const invoice = await xenditInvoiceClient.createInvoice({ data });
-
+  
           const { error: paymentError } = await supabase.from("payments").insert([
             {
               amount: event.registrationfee,
@@ -388,16 +383,18 @@ const EventPage = () => {
               invoiceData: invoice,
             },
           ]);
-
+  
           if (paymentError) {
             toast.error(`Registration failed: ${paymentError.message}`);
             return;
           }
-
+  
+          // Generate QR code after successful registration if the event is not virtual
+          await generateAndSaveQRCode(user.id, event.eventid); // Ensure QR Code is generated after registration
           window.location.href = invoice.invoiceUrl;
         } else {
           const { data, error } = await registerForEvent(event.eventid, user.id, "offsite");
-
+  
           if (error) {
             toast.error(`Registration failed: ${error.message}`);
           } else {
@@ -405,32 +402,23 @@ const EventPage = () => {
               activity_type: "event_register",
               description: `User registered for the event: ${event.title}`,
             });
-
+  
             await recordActivity({
               activity_type: "event_register",
               organization_id: event.organizationid,
               description: `User ${user.email} registered for the event: ${event.title}`,
             });
-
+  
             toast.success("You have successfully joined the event!");
             setIsRegistered(true);
             setAttendeesCount((prevCount) => prevCount + 1);
-
+  
             if (event.capacity && attendeesCount + 1 >= event.capacity) {
               setEventFull(true);
             }
-
-            if (!isUrl(event.location)) {
-              // const qrCodeData = `${process.env.NEXT_PUBLIC_SITE_URL}/attendance/${event.eventid}/${user.id}`;
-              const qrCodeData = `localhost:3000/attendance/${event.eventid}/${user.id}`;
-              await supabase
-                .from("eventregistrations")
-                .update({ qr_code_data: qrCodeData })
-                .eq("userid", user.id)
-                .eq("eventid", event.eventid);
-              setQRCodeUrl(qrCodeData);
-              setShowQRCode(true);
-            }
+  
+            // Generate QR code after successful registration if the event is not virtual
+            await generateAndSaveQRCode(user.id, event.eventid);
           }
         }
       } catch (error) {
@@ -438,6 +426,43 @@ const EventPage = () => {
       }
     }
   };
+  
+  
+  // Helper function to generate and save QR code data
+  const generateAndSaveQRCode = async (userId: string, eventId: string) => {
+    // Fetch the event data to check if the location is a URL
+    const { data: eventData, error } = await supabase
+      .from("events")
+      .select("location")
+      .eq("eventid", eventId)
+      .single();
+  
+    if (error) {
+      console.error("Error fetching event data:", error);
+      return;
+    }
+  
+    // Check if the event location is a URL (indicating an online event)
+    if (isUrl(eventData.location)) {
+      console.log("Event is online. No QR code generation needed.");
+      return; // Exit the function, no QR code generation needed
+    }
+  
+    // Generate QR code data for in-person events
+    //const qrCodeData = `${process.env.NEXT_PUBLIC_SITE_URL}/attendance/${eventId}/${userId}`;
+    const qrCodeData = `localhost:3000/attendance/${eventId}/${userId}`;
+
+    await supabase
+      .from("eventregistrations")
+      .update({ qr_code_data: qrCodeData })
+      .eq("userid", userId)
+      .eq("eventid", eventId);
+    setQRCodeUrl(qrCodeData);
+    setShowQRCode(true);
+  };
+  
+  
+  
 
   const handleEventUnregistration = async () => {
     const result = await Swal.fire({
@@ -678,7 +703,7 @@ const EventPage = () => {
                       </Link>
                     ) : (
                       <span className="text-sm text-light sm:text-base">
-                        Virtual Event (register to access event)
+                        Virtual Event (register to access event link)
                       </span>
                     )
                   ) : (

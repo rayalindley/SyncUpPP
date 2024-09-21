@@ -152,7 +152,7 @@ const MembersTable: React.FC<MembersTableProps> = ({ members, organization }) =>
       selector: (row: MemberTableData) => row.role.role,
       sortable: true,
       cell: (row: MemberTableData) => (
-        <span className={`border-1 rounded-2xl border px-2 text-xs`} style={{ borderColor: row.role.color, backgroundColor: `${row.role.color}33`, color: row.role.color }}>
+        <span className={`border-2 rounded-2xl border px-4 py-1 text-xs`} style={{ borderColor: row.role.color, backgroundColor: `${row.role.color}33`, color: row.role.color }}>
           {row.role.role}
         </span>
       ),
@@ -173,8 +173,8 @@ const MembersTable: React.FC<MembersTableProps> = ({ members, organization }) =>
       selector: (row: MemberTableData) => row.status,
       sortable: true,
       cell: (row: MemberTableData) => (
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-          row.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+        <span className={`w-20 text-center bg-charleston cursor-pointer rounded-2xl border border-2 px-2 py-1 text-xs focus:border-primary focus:outline-none focus:ring-primar ${
+          row.status === 'Active' ? 'border-primary text-light focus:border-primary focus:outline-none focus:ring-primary' : 'border-red-400 text-light focus:border-red-400 focus:outline-none focus:ring-red-400'
         }`}>
           {row.status}
         </span>
