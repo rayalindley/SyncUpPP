@@ -49,3 +49,6 @@ next-env.d.ts
 *.txt
 *.sh
 db.backup
+
+# Ignore all files in the attachments directory
+attachments/
