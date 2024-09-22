@@ -326,32 +326,6 @@ function Header({ user }: { user: User }) {
                       </Link>
                     )}
                   </Menu.Item>
-                  <Menu.Item>
-                    {({ active }) => (
-                      <Link
-                        href="#"
-                        className={classNames(
-                          active ? "bg-[#383838] text-light" : "text-light",
-                          "block px-4 py-2 text-sm"
-                        )}
-                      >
-                        Support
-                      </Link>
-                    )}
-                  </Menu.Item>
-                  <Menu.Item>
-                    {({ active }) => (
-                      <Link
-                        href="#"
-                        className={classNames(
-                          active ? "bg-[#383838] text-light" : "text-light",
-                          "block px-4 py-2 text-sm"
-                        )}
-                      >
-                        License
-                      </Link>
-                    )}
-                  </Menu.Item>
                 </div>
                 <div className="py-1">
                   <Menu.Item>

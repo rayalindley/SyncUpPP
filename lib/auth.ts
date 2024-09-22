@@ -168,3 +168,11 @@ export async function resetPassword(formData: FormData) {
 
   return redirect("/dashboard?success=Password reset successfully.");
 }
+
+export async function signInWithGoogle() {
+  await signInWith("google");
+}
+
+export async function signInWithGoogleAction() {
+  await signInWithGoogle();
+}
