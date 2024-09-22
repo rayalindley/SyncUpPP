@@ -1,6 +1,6 @@
-import { sendEmail } from '../../lib/contact_us';
-
-export default async function handler(req, res) {
+import { sendEmail } from '@/lib/contact_us';
+import { NextApiRequest, NextApiResponse } from 'next';
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'POST') {
     try {
       const { name, email, message } = req.body;

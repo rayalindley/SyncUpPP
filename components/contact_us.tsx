@@ -5,14 +5,14 @@ import { ToastContainer, toast } from "react-toastify"; // Import toast
 import "react-toastify/dist/ReactToastify.css"; // Import toast styles
 
 export default function ContactUs() {
-  const [formData, setFormData] = useState({ name: '', email: '', message: '' });
+  const [formData, setFormData] = useState<{ name: string; email: string; message: string }>({ name: '', email: '', message: '' });
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => { // Specify the type for 'e'
     e.preventDefault();
     try {
       const response = await fetch('/api/sendEmail', {
@@ -85,12 +85,12 @@ export default function ContactUs() {
                       name="message"
                       rows={4}
                       value={formData.message}
-                      onChange={handleChange}
+                      onChange={handleChange} // Use handleChange directly
                       required
                       className="focus:ring-primary text-light placeholder:text-light block w-full rounded-md border-0 bg-charleston px-3.5 py-2 shadow-sm ring-1 ring-inset ring-raisinblack focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6"
                     />
-                  </div>
                 </div>
+                </div> 
               </div>
               <div className="mt-10">
                 <button
