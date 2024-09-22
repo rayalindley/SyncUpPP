@@ -215,6 +215,58 @@ const EventPage = () => {
     }
   }, [slug]);
 
+    
+  const isUrl = (string: string) => {
+    try {
+      new URL(string);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  };
+    // Helper function to generate and save QR code data
+    const generateAndSaveQRCode = async (userId: string, eventId: string) => {
+      // Fetch the event data to check if the location is a URL
+      const { data: eventData, error } = await supabase
+        .from("events")
+        .select("location")
+        .eq("eventid", eventId)
+        .single();
+    
+      if (error) {
+        console.error("Error fetching event data:", error);
+        return;
+      }
+    
+      // Check if the event location is a URL (indicating an online event)
+      if (isUrl(eventData.location)) {
+        console.log("Event is online. No QR code generation needed.");
+        return; // Exit the function, no QR code generation needed
+      }
+    
+      // Generate QR code data for in-person events
+      const qrCodeData = `${process.env.NEXT_PUBLIC_SITE_URL}/attendance/${eventId}/${userId}`;
+  
+      await supabase
+        .from("eventregistrations")
+        .update({ qr_code_data: qrCodeData })
+        .eq("userid", userId)
+        .eq("eventid", eventId);
+      setQRCodeUrl(qrCodeData);
+      setShowQRCode(true);
+    };
+  // Add a new useEffect to check if QR code needs to be generated
+  useEffect(() => {
+    async function checkAndGenerateQRCode() {
+      if (user && isRegistered && event && !isUrl(event.location) && !qrCodeUrl) {
+        // User is registered, event is not virtual, and no QR code has been generated
+        await generateAndSaveQRCode(user.id, event.eventid);
+      }
+    }
+
+    checkAndGenerateQRCode();
+  }, [user, isRegistered, event, qrCodeUrl]);
+
   if (loading) {
     return <Preloader />;
   }
@@ -426,43 +478,9 @@ const EventPage = () => {
       }
     }
   };
-  
-  
-  // Helper function to generate and save QR code data
-  const generateAndSaveQRCode = async (userId: string, eventId: string) => {
-    // Fetch the event data to check if the location is a URL
-    const { data: eventData, error } = await supabase
-      .from("events")
-      .select("location")
-      .eq("eventid", eventId)
-      .single();
-  
-    if (error) {
-      console.error("Error fetching event data:", error);
-      return;
-    }
-  
-    // Check if the event location is a URL (indicating an online event)
-    if (isUrl(eventData.location)) {
-      console.log("Event is online. No QR code generation needed.");
-      return; // Exit the function, no QR code generation needed
-    }
-  
-    // Generate QR code data for in-person events
-    //const qrCodeData = `${process.env.NEXT_PUBLIC_SITE_URL}/attendance/${eventId}/${userId}`;
-    const qrCodeData = `localhost:3000/attendance/${eventId}/${userId}`;
 
-    await supabase
-      .from("eventregistrations")
-      .update({ qr_code_data: qrCodeData })
-      .eq("userid", userId)
-      .eq("eventid", eventId);
-    setQRCodeUrl(qrCodeData);
-    setShowQRCode(true);
-  };
   
-  
-  
+
 
   const handleEventUnregistration = async () => {
     const result = await Swal.fire({
@@ -517,14 +535,7 @@ const EventPage = () => {
     }
   };
 
-  const isUrl = (string: string) => {
-    try {
-      new URL(string);
-      return true;
-    } catch (_) {
-      return false;
-    }
-  };
+
 
   const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
 
