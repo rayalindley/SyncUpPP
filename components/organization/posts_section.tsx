@@ -23,7 +23,7 @@ import {
   fetchPostRoles,
   fetchPostMemberships,
   check_permissions,
-} from "@/lib/groups/posts_tab";
+} from "@/lib/posts_tab";
 import { Posts } from "@/types/posts";
 import TagsInput from "../custom/tags-input";
 import CommentsSection from "./comments_section";

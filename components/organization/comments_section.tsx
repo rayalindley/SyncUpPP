@@ -9,7 +9,7 @@ import {
   updateComment,
   check_permissions,
   getAuthorDetails,
-} from "@/lib/groups/posts_tab";
+} from "@/lib/posts_tab";
 import { useUser } from "@/context/user_context";
 import { PostComments } from "@/types/post_comments";
 import { UserCircleIcon } from "@heroicons/react/24/solid";
