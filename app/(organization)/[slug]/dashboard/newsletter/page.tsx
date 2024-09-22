@@ -36,7 +36,7 @@ function classNames(...classes: string[]) {
 export default function NewsletterPage() {
   const { user } = useUser();
   const params = useParams();
-  const orgSlug = params?.slug;
+  const orgSlug = Array.isArray(params?.slug) ? params.slug[0] : params?.slug;
 
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
 
@@ -62,6 +62,7 @@ export default function NewsletterPage() {
   const [eventsLoading, setEventsLoading] = useState(false);
   const [usersLoading, setUsersLoading] = useState(false);
   const [emailsLoading, setEmailsLoading] = useState(false);
+  const [organizationName, setOrganizationName] = useState<string | null>(null);
 
   const emailsFetched = useRef(false);
 
@@ -70,6 +71,7 @@ export default function NewsletterPage() {
       if (user && orgSlug) {
         const organization = await fetchOrganizationBySlug(orgSlug as string);
         if (organization) {
+          setOrganizationName(organization.name);
           const hasPerm = await check_permissions(
             user?.id || "",
             organization.organizationid,
@@ -97,7 +99,6 @@ export default function NewsletterPage() {
     async function fetchEvents(organizationId: string) {
       const eventsData = await fetchEventsByOrganization(organizationId);
       setEvents(eventsData);
-      console.log(eventsData);
     }
 
     async function fetchUsers(organizationId: string) {
@@ -270,14 +271,52 @@ export default function NewsletterPage() {
     },
   ];
 
-  const emailColumns: TableColumn<Email>[] = [
+  const outgoingEmailColumns: TableColumn<Email>[] = [
     {
       name: "Subject",
       selector: (row: Email) => row.subject,
       sortable: true,
       id: "subject",
     },
-    { name: "To", selector: (row: Email) => row.to.join(", "), sortable: true, id: "to" },
+    {
+      name: "To",
+      selector: (row: Email) => row.to.join(", "),
+      sortable: true,
+      id: "to",
+    },
+    {
+      name: "Date",
+      selector: (row: Email) => new Date(row.date).toLocaleString(),
+      sortable: true,
+      id: "date",
+    },
+    {
+      name: "Actions",
+      cell: (row: Email) => (
+        <button className="text-primary underline" onClick={() => openEmailPreview(row)}>
+          Preview
+        </button>
+      ),
+      ignoreRowClick: true,
+      allowOverflow: true,
+      button: true,
+      id: "actions",
+    },
+  ];
+
+  const incomingEmailColumns: TableColumn<Email>[] = [
+    {
+      name: "Subject",
+      selector: (row: Email) => row.subject,
+      sortable: true,
+      id: "subject",
+    },
+    {
+      name: "From",
+      selector: (row: Email) => row.from,
+      sortable: true,
+      id: "from",
+    },
     {
       name: "Date",
       selector: (row: Email) => new Date(row.date).toLocaleString(),
@@ -596,7 +635,7 @@ export default function NewsletterPage() {
                   />
                   <DataTable
                     keyField="id"
-                    columns={emailColumns}
+                    columns={outgoingEmailColumns}
                     data={filteredSentEmails}
                     pagination
                     customStyles={customStyles}
@@ -621,7 +660,7 @@ export default function NewsletterPage() {
                   />
                   <DataTable
                     keyField="id"
-                    columns={emailColumns}
+                    columns={incomingEmailColumns}
                     data={filteredIncomingEmails}
                     pagination
                     customStyles={customStyles}
@@ -680,12 +719,17 @@ export default function NewsletterPage() {
                         Preview Email: {selectedEmail.subject}
                       </Dialog.Title>
                       <div className="mt-2">
-                        <p className="text-sm text-gray-400">
-                          From: {selectedEmail.from}
-                        </p>
-                        <p className="text-sm text-gray-400">
-                          To: {selectedEmail.to.join(", ")}
-                        </p>
+                        {selectedEmail.from &&
+                        organizationName &&
+                        selectedEmail.from.includes(organizationName) ? (
+                          <p className="text-sm text-gray-400">
+                            To: {selectedEmail.to.join(", ")}
+                          </p>
+                        ) : (
+                          <p className="text-sm text-gray-400">
+                            From: {selectedEmail.from}
+                          </p>
+                        )}
                         <div className="prose prose-invert mt-4 max-w-full text-white">
                           {selectedEmail.htmlContent
                             ? parse(selectedEmail.htmlContent)

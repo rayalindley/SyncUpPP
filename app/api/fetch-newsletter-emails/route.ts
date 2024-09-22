@@ -40,11 +40,14 @@ async function cleanupOldAttachments(
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const organizationName = searchParams.get('organizationName'); // For sent emails
-    const organizationSlug = searchParams.get('organizationSlug'); // For incoming emails
+    const organizationName = searchParams.get("organizationName"); // For sent emails
+    const organizationSlug = searchParams.get("organizationSlug"); // For incoming emails
 
     if (!organizationName || !organizationSlug) {
-      return NextResponse.json({ message: 'Organization name and slug are required' }, { status: 400 });
+      return NextResponse.json(
+        { message: "Organization name and slug are required" },
+        { status: 400 }
+      );
     }
 
     const connection = await imaps.connect(imapConfig);
@@ -84,16 +87,20 @@ export async function GET(req: Request) {
           if (mailbox === "[Gmail]/Sent Mail") {
             // For sent emails, check if 'from' name includes the organization name
             if (parsedEmail.from && parsedEmail.from.value) {
-              isRelevant = parsedEmail.from.value.some((address) =>
-                address.name && address.name.includes(organizationName)
+              isRelevant = parsedEmail.from.value.some(
+                (address) => address.name && address.name.includes(organizationName)
               );
             }
           } else if (mailbox === "INBOX") {
             // For incoming emails, check if any 'to' address includes the organization's email alias
             if (parsedEmail.to) {
-              const toAddresses = Array.isArray(parsedEmail.to) ? parsedEmail.to : [parsedEmail.to];
-              isRelevant = toAddresses.some((address) =>
-                (address as any).address && (address as any).address.includes(`+${organizationSlug}@gmail.com`)
+              const toAddresses = Array.isArray(parsedEmail.to)
+                ? parsedEmail.to
+                : [parsedEmail.to];
+
+              isRelevant = toAddresses.some(
+                (address) =>
+                  address.text && address.text.includes(`+${organizationSlug}@gmail.com`)
               );
             }
           }
@@ -131,8 +138,6 @@ export async function GET(req: Request) {
 
                 // Optionally, continue without failing the entire email processing
               }
-            } else {
-              console.log(`Attachment already exists: ${sanitizedFilename}`);
             }
           }
 
@@ -141,9 +146,11 @@ export async function GET(req: Request) {
             id: res.attributes.uid.toString(),
             from: formatAddress(parsedEmail.from),
             to: parsedEmail.to
-              ? (Array.isArray(parsedEmail.to) 
-                  ? parsedEmail.to.map((addr: any) => `${addr.name} <${addr.address}>`)
-                  : parsedEmail.to.value.map((addr: any) => `${addr.name} <${addr.address}>`))
+              ? Array.isArray(parsedEmail.to)
+                ? parsedEmail.to.map((addr: any) => `${addr.name} <${addr.address}>`)
+                : parsedEmail.to.value.map(
+                    (addr: any) => `${addr.name} <${addr.address}>`
+                  )
               : [],
             subject: parsedEmail.subject || "No Subject",
             date: parsedEmail.date ? parsedEmail.date.toISOString() : "No Date",
