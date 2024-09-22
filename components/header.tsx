@@ -1,12 +1,19 @@
 "use client";
 import { signOut } from "@/lib/auth";
+import {
+  fetchNotifications,
+  markAllAsRead,
+  markNotificationAsRead,
+} from "@/lib/notifications";
+import { createClient } from "@/lib/supabase/client";
 import { UserProfile } from "@/types/user_profile";
 import { getUserProfileById } from "@/lib/user_actions";
 import { Dialog, Menu, Transition } from "@headlessui/react";
-import { Bars3Icon, ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { User } from "@supabase/supabase-js";
+import { Bars3Icon, ChevronDownIcon, XMarkIcon, BellIcon } from "@heroicons/react/24/outline";
+import { type User } from "@supabase/supabase-js";
 import Link from "next/link";
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
+import { Notifications } from "@/types/notifications"; // Ensure correct import
 
 const navigation = [
   { name: "Home", href: "/" },
@@ -23,6 +30,8 @@ function classNames(...classes: any[]) {
 export default function Header({ user = null }: { user: User | null }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [notifications, setNotifications] = useState<Notifications[]>([]); // Added notifications state
+  const [unreadCount, setUnreadCount] = useState(0); // Added unread count state
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -32,6 +41,56 @@ export default function Header({ user = null }: { user: User | null }) {
 
     fetchUserProfile();
   }, [user]);
+
+  const loadNotifications = async () => {
+    if (!user) return; // Check if user is null before proceeding
+    const response = await fetchNotifications(user.id);
+    if (response && response.data) {
+      const { data, unreadCount } = response;
+      setNotifications(data);
+      setUnreadCount(unreadCount);
+    }
+  };
+
+  useEffect(() => {
+    const supabase = createClient();
+    const initializeNotifications = async () => {
+      await loadNotifications(); // Load initial notifications
+      if (user) {
+        const notificationChannel = supabase
+          .channel("notifications")
+          .on("postgres_changes", {
+            event: "*", // Listen to all changes
+            schema: "public",
+            table: "notifications",
+            filter: `userid=eq.${user.id}`,
+          }, () => {
+            loadNotifications(); // Reload notifications on change
+          })
+          .subscribe();
+        return () => {
+          notificationChannel.unsubscribe(); // Clean up subscription
+        };
+      }
+    };
+    initializeNotifications();
+  }, [user]);
+
+  const handleMarkAllAsRead = async () => {
+    if (user) {
+      setUnreadCount(0);
+      await markAllAsRead(user.id);
+      loadNotifications();
+    } else {
+      alert("User is not logged in. Please log in to mark notifications as read.");
+      // or you can use console.log("User is null");
+    }
+  };
+
+  const handleNotificationClick = async (notificationId: string) => {
+    await markNotificationAsRead(notificationId);
+    loadNotifications();
+  };
 
   const handleNavClick = (href: string) => {
     if (href.startsWith("#")) {
@@ -97,7 +156,57 @@ export default function Header({ user = null }: { user: User | null }) {
 
         <div className="flex flex-1 items-center justify-end gap-x-6">
           {user ? (
-            <div>
+            <div className="flex items-center">
+              <Menu as="div" className="relative">
+                <Menu.Button className="p-3 mr-6 text-gray-400 hover:text-gray-500">
+                  <span className="sr-only">View notifications</span>
+                  <BellIcon className="h-6 w-6" aria-hidden="true" />
+                  {unreadCount > 0 && (
+                    <span className="absolute bottom-0 left-0 inline-flex h-4 w-4 -translate-y-7 translate-x-7 transform items-center justify-center rounded-full bg-[#32805c] text-xs font-semibold text-white">
+                      {unreadCount}
+                    </span>
+                  )}
+                </Menu.Button>
+                <Transition
+                  as={Fragment}
+                  enter="transition ease-out duration-200"
+                  enterFrom="transform opacity-0 scale-95"
+                  enterTo="transform opacity-100 scale-100"
+                  leave="transition ease-in duration-150"
+                  leaveFrom="transform opacity-100 scale-100"
+                  leaveTo="transform opacity-0 scale-95"
+                >
+                  <Menu.Items className="absolute right-0 z-10 w-96 origin-top-right overflow-hidden rounded-md bg-charleston shadow-lg ring-1 ring-light ring-opacity-5 focus:outline-none">
+                    <div className="notification-container">
+                      <div className="h-80 overflow-y-auto px-4 py-3">
+                        <p className="mb-2 text-sm font-medium text-light">Notifications</p>
+                        {notifications.length > 0 ? (
+                          notifications.map((notification) => (
+                            <a
+                              key={notification.notificationid}
+                              className={`my-1 flex items-center gap-x-2 rounded-lg px-4 py-2 hover:bg-[#525252] ${notification.read ? "bg-gray" : "bg-[#232323]"}`}
+                              onClick={() => handleNotificationClick(notification.notificationid)}
+                            >
+                              <span className="text-sm leading-tight">{/* Notification icon */}</span>
+                              <span className="flex-1 text-xs leading-tight text-light">{notification.message}</span>
+                            </a>
+                          ))
+                        ) : (
+                          <p className="text-xs text-light">No new notifications.</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="border-t border-[#525252]">
+                      <button
+                        className="my-3 block w-full text-center text-sm text-[#32805c] hover:text-[#285a47]"
+                        onClick={handleMarkAllAsRead}
+                      >
+                        Mark all as read
+                      </button>
+                    </div>
+                  </Menu.Items>
+                </Transition>
+              </Menu>
               <Menu as="div" className="relative">
                 <Menu.Button className="-m-1.5 flex items-center p-1.5">
                   <span className="sr-only">Open user menu</span>
