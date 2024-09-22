@@ -33,9 +33,10 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ postId, organizationI
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [canComment, setCanComment] = useState(false);
+  const [canDeleteComments, setCanDeleteComments] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState<string | null>(null);
-  const [showComments, setShowComments] = useState(true);
+  const [showComments, setShowComments] = useState(false);
   const { register, handleSubmit, reset } = useForm<{ commentText: string }>({
     resolver: zodResolver(commentSchema),
   });
@@ -48,18 +49,20 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ postId, organizationI
     const fetchPermissions = async () => {
       if (!isLoggedIn) {
         setCanComment(false);
+        setCanDeleteComments(false);
         return;
       }
       try {
-        const permission = await check_permissions(
-          user.id!,
-          organizationId,
-          "comment_on_posts"
-        );
-        setCanComment(!!permission);
+        const [commentPermission, deletePermission] = await Promise.all([
+          check_permissions(user.id!, organizationId, "comment_on_posts"),
+          check_permissions(user.id!, organizationId, "delete_comments"),
+        ]);
+        setCanComment(!!commentPermission);
+        setCanDeleteComments(!!deletePermission);
       } catch (error) {
         console.error("Error checking permissions", error);
         setCanComment(false);
+        setCanDeleteComments(false);
       }
     };
     fetchPermissions();
@@ -141,7 +144,8 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ postId, organizationI
     }
   };
 
-  const handleDelete = async (commentId: string) => {
+  const handleDelete = async (commentId: string, authorId: string) => {
+    if (!canDeleteComments && user?.id !== authorId) return;
     try {
       await deleteComment(commentId, user?.id!);
       setComments((prev) => prev.filter((comment) => comment.commentid !== commentId));
@@ -205,7 +209,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ postId, organizationI
   };
 
   return (
-    <div className="mx-auto max-w-xl">
+    <div className="mt-12 mx-auto max-w-3xl">
       {isLoggedIn && canComment ? (
         <form onSubmit={handleSubmit(onSubmit)} className="mb-4">
           <textarea
@@ -294,17 +298,19 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ postId, organizationI
                 )}
 
                 {isLoggedIn &&
-                  user.id === comment.authorid &&
+                  (user.id === comment.authorid || canDeleteComments) &&
                   editingCommentId !== comment.commentid && (
                     <div className="flex space-x-4">
+                      {user.id === comment.authorid && (
+                        <button
+                          onClick={() => handleEdit(comment.commentid, comment.comment)}
+                          className="text-sm text-blue-500"
+                        >
+                          Edit
+                        </button>
+                      )}
                       <button
-                        onClick={() => handleEdit(comment.commentid, comment.comment)}
-                        className="text-sm text-blue-500"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(comment.commentid)}
+                        onClick={() => handleDelete(comment.commentid, comment.authorid!)}
                         className="text-sm text-red-500"
                       >
                         Delete

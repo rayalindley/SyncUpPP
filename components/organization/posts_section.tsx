@@ -73,7 +73,6 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId }) => {
   const [filterByPublic, setFilterByPublic] = useState<boolean>(false);
   const [filterByDate, setFilterByDate] = useState<Date | null>(null);
   const [canCreate, setCanCreate] = useState(false);
-  const [canEdit, setCanEdit] = useState(false);
   const [canDelete, setCanDelete] = useState(false);
   const { register, handleSubmit, control, setValue, reset, watch } = useForm({
     resolver: zodResolver(postSchema),
@@ -86,25 +85,21 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId }) => {
   const fetchPermissions = useCallback(async () => {
     if (!isLoggedIn) {
       setCanCreate(false);
-      setCanEdit(false);
       setCanDelete(false);
       return;
     }
 
     try {
-      const [createPermission, editPermission, deletePermission] = await Promise.all([
+      const [createPermission, deletePermission] = await Promise.all([
         check_permissions(user?.id ?? "", organizationId, "create_posts"),
-        check_permissions(user?.id ?? "", organizationId, "edit_posts"),
         check_permissions(user?.id ?? "", organizationId, "delete_posts"),
       ]);
 
       setCanCreate(!!createPermission);
-      setCanEdit(!!editPermission);
       setCanDelete(!!deletePermission);
     } catch (error) {
       console.error("Error checking permissions", error);
       setCanCreate(false);
-      setCanEdit(false);
       setCanDelete(false);
     }
   }, [isLoggedIn, user?.id, organizationId]);
@@ -216,14 +211,6 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId }) => {
         icon: "error",
         title: "Oops...",
         text: "You do not have permission to create posts.",
-      });
-      return;
-    }
-    if (!canEdit && editingPost) {
-      Swal.fire({
-        icon: "error",
-        title: "Oops...",
-        text: "You do not have permission to edit posts.",
       });
       return;
     }
@@ -355,7 +342,12 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId }) => {
   };
 
   return (
-    <div className="mx-auto max-w-4xl p-4 sm:p-6 lg:p-8">
+    <div className="mx-auto max-w-7xl px-6 lg:px-8">
+      <div className="mb-5 w-full text-center">
+        <p className="mt-2 w-full text-2xl font-bold tracking-tight text-light sm:text-2xl">
+          Posts Section
+        </p>
+      </div>
       {isLoggedIn && canCreate && (
         <div className="space-y-4 rounded-lg bg-[#3b3b3b] p-4 shadow-lg sm:p-6 lg:p-8">
           <form id="post-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -449,7 +441,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId }) => {
               >
                 {isLoading ? "Saving..." : editingPost ? "Update Post" : "Create Post"}
               </button>
-              {editingPost && canEdit && (
+              {editingPost && (
                 <button
                   type="button"
                   className="rounded-lg bg-gray-600 p-2 text-white shadow-md hover:bg-gray-700"
@@ -497,7 +489,6 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId }) => {
         </div>
       )}
 
-      {/* Conditionally Render the Filtering UI */}
       {isLoggedIn && canCreate && (
         <div className="mb-4 mt-8 flex flex-wrap items-center space-x-2 space-y-2 rounded-lg bg-[#1e1e1e] p-4 shadow-lg">
           <div className="relative flex-grow">
@@ -591,6 +582,16 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId }) => {
       )}
 
       <div className="mt-8 space-y-4">
+        {(filteredPosts.length <= 0 || isLoading) && (
+          <div
+            className="mb-4 rounded-lg bg-gray-800 p-4 text-center text-sm text-blue-400"
+            role="alert"
+          >
+            {isLoading
+              ? "Checking permissions..."
+              : "The organization has no posts available for you at the moment."}
+          </div>
+        )}
         {filteredPosts.map((post) => (
           <PostCard
             key={post.postid}
@@ -599,7 +600,6 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId }) => {
             setEditingPost={setEditingPost}
             availableRoles={availableRoles}
             availableMemberships={availableMemberships}
-            canEdit={canEdit}
             canDelete={canDelete}
             organizationId={organizationId}
           />
@@ -617,7 +617,6 @@ const PostCard: React.FC<{
   setEditingPost: React.Dispatch<React.SetStateAction<Posts | null>>;
   availableRoles: { id: string; name: string }[];
   availableMemberships: { membershipid: string; name: string }[];
-  canEdit: boolean;
   canDelete: boolean;
   organizationId: string;
 }> = memo(
@@ -627,7 +626,6 @@ const PostCard: React.FC<{
     setEditingPost,
     availableRoles,
     availableMemberships,
-    canEdit,
     canDelete,
     organizationId,
   }) => {
@@ -714,15 +712,6 @@ const PostCard: React.FC<{
     };
 
     const handleEdit = () => {
-      if (!canEdit) {
-        Swal.fire({
-          icon: "error",
-          title: "Oops...",
-          text: "You do not have permission to edit posts.",
-        });
-        return;
-      }
-
       const roleNames = selectedRoles.map(
         (roleId) => availableRoles.find((role) => role.id === roleId)?.name || ""
       );
@@ -805,14 +794,14 @@ const PostCard: React.FC<{
 
     return (
       <div className="relative rounded-lg bg-[#171717] p-4 shadow-lg">
-        {isLoggedIn && isCurrentUserAuthor && (
+        {isLoggedIn && (
           <div className="absolute right-2 top-2 flex items-center space-x-2">
-            {canEdit && (
+            {isCurrentUserAuthor && (
               <button className="text-gray-500 hover:text-gray-400" onClick={handleEdit}>
                 <PencilIcon className="h-4 w-4" />
               </button>
             )}
-            {canDelete && (
+            {(isCurrentUserAuthor || canDelete) && (
               <button
                 className="text-gray-500 hover:text-gray-400"
                 onClick={handleDelete}
@@ -822,6 +811,7 @@ const PostCard: React.FC<{
             )}
           </div>
         )}
+
         <div className="flex items-center space-x-4">
           <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-[#424242]">
             {authorDetails.profilePicture ? (
