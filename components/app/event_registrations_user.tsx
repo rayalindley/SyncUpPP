@@ -1,16 +1,17 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useDebounce } from "use-debounce";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { format } from "date-fns";
 import { createClient } from "@/lib/supabase/client";
-import dynamic from 'next/dynamic';
+import dynamic from "next/dynamic";
 import { TableColumn } from "react-data-table-component";
-import { saveAs } from 'file-saver';
+import { saveAs } from "file-saver";
+import { check_permissions } from "@/lib/organization";
 
 // Dynamically import DataTable
-const DataTable = dynamic(() => import('react-data-table-component'), {
+const DataTable = dynamic(() => import("react-data-table-component"), {
   ssr: false,
 });
 
@@ -29,26 +30,44 @@ interface Registration {
 
 interface RegistrationsTableProps {
   registrations: Registration[];
+  userId: string; // Pass userId for permission check
+  organizationId: string; // Pass organizationId for permission check
 }
 
 const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
   registrations,
+  userId,
+  organizationId,
 }) => {
   const supabase = createClient();
-
   const [tableData, setTableData] = useState<Registration[]>(registrations);
   const [filterText, setFilterText] = useState<string>("");
   const [debouncedFilterText] = useDebounce(filterText, 300);
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [eventFilter, setEventFilter] = useState<string>("");
   const [attendanceFilter, setAttendanceFilter] = useState<string>("");
+  const [canManageRegistrations, setCanManageRegistrations] = useState(false); // State for permissions
+
+  // Check permissions on component mount
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const hasPermission = await check_permissions(
+        userId,
+        organizationId,
+        "manage_event_registrations"
+      );
+      setCanManageRegistrations(hasPermission);
+    };
+
+    checkPermissions();
+  }, [userId, organizationId]);
 
   // Unique events for filter options
   const uniqueEvents = Array.from(
     new Set(registrations.map((item) => item.eventid))
   ).map((id) => ({
     id,
-    name: registrations.find((item) => item.eventid === id)?.event_name || '',
+    name: registrations.find((item) => item.eventid === id)?.event_name || "",
   }));
 
   useEffect(() => {
@@ -56,6 +75,11 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
   }, [registrations]);
 
   const handleStatusChange = async (id: string, newStatus: string) => {
+    if (!canManageRegistrations) {
+      toast.error("You do not have permission to update the status.");
+      return; // Prevent update if no permission
+    }
+
     const { error } = await supabase
       .from("eventregistrations")
       .update({ status: newStatus })
@@ -76,6 +100,11 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
   };
 
   const handleAttendanceChange = async (id: string, newAttendance: string) => {
+    if (!canManageRegistrations) {
+      toast.error("You do not have permission to update the attendance.");
+      return; // Prevent update if no permission
+    }
+
     const { error } = await supabase
       .from("eventregistrations")
       .update({ attendance: newAttendance })
@@ -100,35 +129,39 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
     const exportData = filteredData.map((item) => ({
       Name: `${item.first_name} ${item.last_name}`,
       Email: item.email,
-      "Registration Date": `"${format(new Date(item.registrationdate), "MMM d, yyyy h:mma")}"`, // Wrap date in quotes
+      "Registration Date": `"${format(
+        new Date(item.registrationdate),
+        "MMM d, yyyy h:mma"
+      )}"`, // Wrap date in quotes
       Status: item.status,
       Attendance: item.attendance || "Set",
     }));
 
     const csvContent = [
       ["Name", "Email", "Registration Date", "Status", "Attendance"],
-      ...exportData.map(item => [
+      ...exportData.map((item) => [
         item.Name,
         item.Email,
         item["Registration Date"],
         item.Status,
-        item.Attendance
+        item.Attendance,
       ]),
     ]
-      .map(e => e.join(","))
+      .map((e) => e.join(","))
       .join("\n");
 
-    const event = uniqueEvents.find(e => e.id === eventFilter);
-    const fileName = `${event?.name || 'event'}_registrations_${format(new Date(), "yyyy-MM-dd")}.csv`;
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const event = uniqueEvents.find((e) => e.id === eventFilter);
+    const fileName = `${
+      event?.name || "event"
+    }_registrations_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     saveAs(blob, fileName);
   };
 
   const columns: TableColumn<Registration>[] = [
     {
       name: "Name",
-      selector: (row: Registration) =>
-        `${row.first_name} ${row.last_name}`,
+      selector: (row: Registration) => `${row.first_name} ${row.last_name}`,
       sortable: true,
     },
     {
@@ -172,19 +205,19 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
             <option value="pending">Pending</option>
           </select>
           <style jsx>{`
-                select {
-                  appearance: none; /* Removes default styling including arrow */
-                  background-image: none; /* Ensures no background images like arrow */
-                  outline: none; /* Removes the blue outline */
-                }
+            select {
+              appearance: none; /* Removes default styling including arrow */
+              background-image: none; /* Ensures no background images like arrow */
+              outline: none; /* Removes the blue outline */
+            }
 
-                select option {
-                  background-color: #2a2a2a; /* Option background color */
-                  color: #ffffff; /* Option text color */
-                  text-align: center; /* Ensures text alignment inside the option */
-                  margin: 0; /* Removes any default margin */
-                }
-        `}</style>
+            select option {
+              background-color: #2a2a2a; /* Option background color */
+              color: #ffffff; /* Option text color */
+              text-align: center; /* Ensures text alignment inside the option */
+              margin: 0; /* Removes any default margin */
+            }
+          `}</style>
         </div>
       ),
     },
@@ -215,20 +248,20 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
             <option value="absent">Absent</option>
             <option value="late">Late</option>
           </select>
-            <style jsx>{`
-                select {
-                  appearance: none; /* Removes default styling including arrow */
-                  background-image: none; /* Ensures no background images like arrow */
-                  outline: none; /* Removes the blue outline */
-                }
+          <style jsx>{`
+            select {
+              appearance: none; /* Removes default styling including arrow */
+              background-image: none; /* Ensures no background images like arrow */
+              outline: none; /* Removes the blue outline */
+            }
 
-                select option {
-                  background-color: #2a2a2a; /* Option background color */
-                  color: #ffffff; /* Option text color */
-                  text-align: center; /* Ensures text alignment inside the option */
-                  margin: 0; /* Removes any default margin */
-                }
-            `}</style>
+            select option {
+              background-color: #2a2a2a; /* Option background color */
+              color: #ffffff; /* Option text color */
+              text-align: center; /* Ensures text alignment inside the option */
+              margin: 0; /* Removes any default margin */
+            }
+          `}</style>
         </div>
       ),
     },
@@ -250,101 +283,107 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
   });
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8">
-      <div className="sm:flex sm:items-center">
-        <div className="sm:flex-auto">
-          <h1 className="mt-6 text-base font-semibold leading-6 text-light">
-            Event Registrations
-          </h1>
-          <p className="mt-2 text-sm text-light">
-            A list of all event registrations.
-          </p>
+    <>
+      <ToastContainer />
+      <div className="px-4 sm:px-6 lg:px-8">
+        <div className="sm:flex sm:items-center">
+          <div className="sm:flex-auto">
+            <h1 className="mt-6 text-base font-semibold leading-6 text-light">
+              Event Registrations
+            </h1>
+            <p className="mt-2 text-sm text-light">
+              A list of all event registrations.
+            </p>
+          </div>
         </div>
-      </div>
-      <div className="mt-10 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        {/* Search Bar on the Left */}
-        <div className="flex items-center mb-4 sm:mb-0">
-          <input
-            type="text"
-            placeholder="Search..."
-            value={filterText}
-            onChange={(e) => setFilterText(e.target.value)}
-            className="block rounded-md border border-[#525252] bg-charleston px-3 py-2 text-light shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+        <div className="mt-10 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          {/* Search Bar on the Left */}
+          <div className="flex items-center mb-4 sm:mb-0">
+            <input
+              type="text"
+              placeholder="Search..."
+              value={filterText}
+              onChange={(e) => setFilterText(e.target.value)}
+              className="block rounded-md border border-[#525252] bg-charleston px-3 py-2 text-light shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+            />
+          </div>
+          {/* Filters and Export Button on the Right */}
+          <div className="flex items-center">
+            {eventFilter && (
+              <button
+                onClick={exportToCSV}
+                className="mr-2 block rounded-md bg-primary text-white px-3 py-2 text-sm shadow-sm hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50"
+              >
+                Export
+              </button>
+            )}
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="ml-2 block rounded-md border border-[#525252] bg-charleston pl-3 pr-8 py-2 text-white shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+            >
+              <option value="">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="registered">Registered</option>
+            </select>
+            <select
+              value={eventFilter}
+              onChange={(e) => setEventFilter(e.target.value)}
+              className="truncate ml-2 block rounded-md border border-[#525252] bg-charleston px-3 py-2 text-white shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+              style={{ maxWidth: "200px" }}
+            >
+              <option value="">All Events</option>
+              {uniqueEvents.map((event) => (
+                <option key={event.id} value={event.id}>
+                  {event.name}
+                </option>
+              ))}
+            </select>
+            <select
+              value={attendanceFilter}
+              onChange={(e) => setAttendanceFilter(e.target.value)}
+              className="ml-2 block rounded-md border border-[#525252] bg-charleston pl-3 pr-8 py-2 text-white shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+            >
+              <option value="">All Attendance</option>
+              <option value="present">Present</option>
+              <option value="absent">Absent</option>
+              <option value="late">Late</option>
+            </select>
+          </div>
+        </div>
+        <div className="mt-4">
+          <DataTable
+            columns={columns as TableColumn<unknown>[]}
+            data={filteredData}
+            pagination
+            highlightOnHover
+            customStyles={{
+              table: { style: { backgroundColor: "rgb(33, 33, 33)" } },
+              headRow: { style: { backgroundColor: "rgb(36, 36, 36)" } },
+              headCells: { style: { color: "rgb(255, 255, 255)" } },
+              rows: {
+                style: {
+                  backgroundColor: "rgb(33, 33, 33)",
+                  color: "rgb(255, 255, 255)",
+                },
+                highlightOnHoverStyle: {
+                  backgroundColor: "rgb(44, 44, 44)",
+                  color: "rgb(255, 255, 255)",
+                  transitionDuration: "0.15s",
+                  transitionProperty: "background-color",
+                  zIndex: 1,
+                  position: "relative",
+                  overflow: "visible",
+                },
+              },
+              pagination: {
+                style: { backgroundColor: "rgb(33, 33, 33)", color: "rgb(255, 255, 255)" },
+              },
+            }}
           />
         </div>
-        {/* Filters and Export Button on the Right */}
-        <div className="flex items-center">
-          {eventFilter && (
-            <button
-              onClick={exportToCSV}
-              className="mr-2 block rounded-md bg-primary text-white px-3 py-2 text-sm shadow-sm hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50"
-            >
-              Export
-            </button>
-          )}
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="ml-2 block rounded-md border border-[#525252] bg-charleston pl-3 pr-8 py-2 text-white shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
-          >
-            <option value="">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="registered">Registered</option>
-          </select>
-          <select
-            value={eventFilter}
-            onChange={(e) => setEventFilter(e.target.value)}
-            className="truncate ml-2 block rounded-md border border-[#525252] bg-charleston px-3 py-2 text-white shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
-            style={{ maxWidth: '200px' }}
-          >
-            <option value="">All Events</option>
-            {uniqueEvents.map((event) => (
-              <option key={event.id} value={event.id}>
-                {event.name}
-              </option>
-            ))}
-          </select>
-          <select
-            value={attendanceFilter}
-            onChange={(e) => setAttendanceFilter(e.target.value)}
-            className="ml-2 block rounded-md border border-[#525252] bg-charleston pl-3 pr-8 py-2 text-white shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
-          >
-            <option value="">All Attendance</option>
-            <option value="present">Present</option>
-            <option value="absent">Absent</option>
-            <option value="late">Late</option>
-          </select>
-        </div>
       </div>
-      <div className="mt-4">
-        <DataTable
-          columns={columns as TableColumn<unknown>[]}
-          data={filteredData}
-          pagination
-          highlightOnHover
-          customStyles={{
-            table: { style: { backgroundColor: "rgb(33, 33, 33)" } },
-            headRow: { style: { backgroundColor: "rgb(36, 36, 36)" } },
-            headCells: { style: { color: "rgb(255, 255, 255)" } },
-            rows: {
-              style: { backgroundColor: "rgb(33, 33, 33)", color: "rgb(255, 255, 255)" },
-              highlightOnHoverStyle: {
-                backgroundColor: "rgb(44, 44, 44)",
-                color: "rgb(255, 255, 255)",
-                transitionDuration: "0.15s",
-                transitionProperty: "background-color",
-                zIndex: 1,
-                position: "relative",
-                overflow: "visible",
-              },
-            },
-            pagination: {
-              style: { backgroundColor: "rgb(33, 33, 33)", color: "rgb(255, 255, 255)" },
-            },
-          }}
-        />
-      </div>
-    </div>
+    </>
   );
 };
 
