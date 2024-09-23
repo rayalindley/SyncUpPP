@@ -61,7 +61,7 @@ export default function Footer() {
             </a>
           ))}
           <div className="border-l border-gray-500 h-6 mx-2" /> {/* Divider */}
-          <Link href="/terms-and-conditions" className="text-light text-sm mt-1 hover:text-gray-500">
+          <Link href="/terms-and-conditions" className="text-light text-sm mt-1 hover:text-primary">
             Terms & Conditions
           </Link>
         </div>

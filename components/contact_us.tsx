@@ -44,7 +44,7 @@ export default function ContactUs() {
           <h2 className="text-light flex text-4xl font-bold tracking-tight">Contact Us</h2>
           <p className="text-light mt-2 text-lg leading-8">
             Have questions or need assistance? Reach out to our friendly team for support,
-            inquiries, or partnership opportunities. You can also send a message to <a href="mailto:syncup.supp@gmail.com" className="text-primary font-semibold">syncup.supp@gmail.com</a>.
+            inquiries, or partnership opportunities. You can also send a message to <a href="https://mail.google.com/mail/?view=cm&fs=1&to=syncup.supp@gmail.com" className="hover:text-primarydark text-primary font-semibold" target="_blank" rel="noopener noreferrer">syncup.supp@gmail.com</a>.
           </p>
           <div className="mt-16 flex flex-col gap-16 sm:gap-y-20 lg:flex-row">
             <form onSubmit={handleSubmit} className="lg:flex-auto">
@@ -102,7 +102,7 @@ export default function ContactUs() {
               </div>
               <p className="mt-4 text-sm leading-6 text-gray-500">
                 By submitting this form, I agree to the{" "}
-                <a href="/privacy-policy" className="text-primary font-semibold">privacy&nbsp;policy</a>.
+                <a href="/privacy-policy" className="hover:text-primarydark text-primary font-semibold">privacy&nbsp;policy</a>.
               </p>
             </form>
           </div>
