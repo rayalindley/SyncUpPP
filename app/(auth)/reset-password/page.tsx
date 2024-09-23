@@ -70,7 +70,7 @@ export default async function SignIn({ searchParams }: { searchParams: any }) {
           <p className="mt-6 text-center text-sm text-gray-500">
             <a
               href="/signin"
-              className="text-primarydark  hover:text-primary font-semibold"
+              className="text-primary hover:text-primarydark font-semibold"
             >
               Return to login
             </a>
