@@ -154,9 +154,7 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
   }, [pathname]);
 
   useEffect(() => {
-    if (selected === "default" && slug) {
-      router.push("/dashboard");
-    } else if (
+    if (
       selected !== "default" &&
       selected !== "create-org" &&
       typeof selected !== "string"
