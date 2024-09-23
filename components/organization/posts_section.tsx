@@ -33,6 +33,9 @@ import { createClient } from "@/lib/supabase/client";
 import { format } from "date-fns";
 import ReactDatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { Menu, Transition, Fragment } from '@headlessui/react';
+import { EllipsisVerticalIcon } from '@heroicons/react/24/solid';
+
 
 const supabase = createClient();
 
@@ -261,34 +264,38 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, posts: init
     setTimeout(() => setCreationMessage(null), 3000);
   };
 
-  const filteredPosts = Array.isArray(posts)
-    ? posts.filter((post) => {
-        const matchesSearch = post.content
-          ?.toLowerCase()
-          .includes(searchTerm.toLowerCase());
-        const matchesRole = filterByRole ? post.roles?.includes(filterByRole) : true;
-        const matchesMembership = filterByMembership
-          ? post.memberships?.includes(filterByMembership)
-          : true;
-        const matchesAuthor = filterByAuthor ? post.authorid === user?.id : true;
-        const matchesPublic = filterByPublic
-          ? !post.roles?.length && !post.memberships?.length
-          : true;
-        const matchesDate = filterByDate
-          ? post.createdat &&
-            new Date(post.createdat).toDateString() === filterByDate.toDateString()
-          : true;
+  const filteredPosts = posts
+    .filter((post) => {
+      const matchesSearch = post.content
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const matchesRole = filterByRole ? post.roles?.includes(filterByRole) : true;
+      const matchesMembership = filterByMembership
+        ? post.memberships?.includes(filterByMembership)
+        : true;
+      const matchesAuthor = filterByAuthor ? post.authorid === user?.id : true;
+      const matchesPublic = filterByPublic
+        ? !post.roles?.length && !post.memberships?.length
+        : true;
 
-        return (
-          matchesSearch &&
-          matchesRole &&
-          matchesMembership &&
-          matchesAuthor &&
-          matchesPublic &&
-          matchesDate
-        );
-      })
-    : [];
+      const matchesDate = filterByDate
+        ? post.createdat &&
+          new Date(post.createdat).toDateString() === filterByDate.toDateString()
+        : true;
+
+      return (
+        matchesSearch &&
+        matchesRole &&
+        matchesMembership &&
+        matchesAuthor &&
+        matchesPublic &&
+        matchesDate
+      );
+    })
+    .sort(
+      (a, b) =>
+        new Date(b.createdat ?? 0).getTime() - new Date(a.createdat ?? 0).getTime()
+    );
 
   useEffect(() => {
     if (editingPost) {
@@ -458,7 +465,97 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, posts: init
         </div>
       )}
 
-      
+      {isLoggedIn && canCreate && (
+        <div className="mb-4 mt-8 flex flex-wrap items-center space-x-2 space-y-2 rounded-lg bg-[#1e1e1e] p-4 shadow-lg">
+          <div className="relative flex-grow">
+            <input
+              type="text"
+              placeholder="Search posts..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full rounded-lg border border-[#3d3d3d] bg-[#2a2a2a] px-3 py-2 pl-10 text-white placeholder-gray-400 focus:border-transparent focus:ring-2 focus:ring-primary"
+            />
+            <span className="absolute left-3 top-2.5 text-gray-400">
+              <i className="fas fa-search"></i>
+            </span>
+          </div>
+          <div className="h-full w-px bg-gray-600"></div>
+          <div className="relative">
+            <select
+              value={filterByRole || ""}
+              onChange={(e) => setFilterByRole(e.target.value || null)}
+              disabled={filterByPublic}
+              className={`w-full rounded-lg border border-[#3d3d3d] bg-[#2a2a2a] px-3 py-2 pr-10 text-white focus:border-transparent focus:ring-2 focus:ring-primary ${
+                filterByPublic ? "cursor-not-allowed bg-gray-700 text-gray-500" : ""
+              }`}
+            >
+              <option value="">Filter by Role</option>
+              {availableRoles.map((role) => (
+                <option key={role.id} value={role.id}>
+                  {role.name}
+                </option>
+              ))}
+            </select>
+            <span className="absolute right-3 top-2.5 text-gray-400">
+              <i className="fas fa-chevron-down"></i>
+            </span>
+          </div>
+          <div className="h-full w-px bg-gray-600"></div>
+          <div className="relative">
+            <select
+              value={filterByMembership || ""}
+              onChange={(e) => setFilterByMembership(e.target.value || null)}
+              disabled={filterByPublic}
+              className={`w-full rounded-lg border border-[#3d3d3d] bg-[#2a2a2a] px-3 py-2 pr-10 text-white focus:border-transparent focus:ring-2 focus:ring-primary ${
+                filterByPublic ? "cursor-not-allowed bg-gray-700 text-gray-500" : ""
+              }`}
+            >
+              <option value="">Filter by Membership</option>
+              {availableMemberships.map((membership) => (
+                <option key={membership.membershipid} value={membership.membershipid}>
+                  {membership.name}
+                </option>
+              ))}
+            </select>
+            <span className="absolute right-3 top-2.5 text-gray-400">
+              <i className="fas fa-chevron-down"></i>
+            </span>
+          </div>
+          <div className="h-full w-px bg-gray-600"></div>
+          <label className="flex items-center space-x-1 text-white">
+            <input
+              type="checkbox"
+              checked={filterByAuthor}
+              onChange={(e) => setFilterByAuthor(e.target.checked)}
+              className="form-checkbox h-4 w-4 rounded border-[#3d3d3d] bg-[#2a2a2a] text-primary focus:border-transparent focus:ring-2 focus:ring-primary"
+            />
+            <span className="text-sm">Authored by Me</span>
+          </label>
+          <div className="h-full w-px bg-gray-600"></div>
+          <label className="flex items-center space-x-1 text-white">
+            <input
+              type="checkbox"
+              checked={filterByPublic}
+              onChange={(e) => {
+                handleFilterByPublicChange(e.target.checked);
+              }}
+              className="form-checkbox h-4 w-4 rounded border-[#3d3d3d] bg-[#2a2a2a] text-primary focus:border-transparent focus:ring-2 focus:ring-primary"
+            />
+            <span className="text-sm">Public Posts</span>
+          </label>
+          <div className="h-full w-px bg-gray-600"></div>
+          <div className="flex items-center space-x-1 text-white">
+            <label className="text-sm">Filter by Date:</label>
+            <ReactDatePicker
+              selected={filterByDate}
+              onChange={(date: Date | null) => setFilterByDate(date)}
+              isClearable
+              placeholderText="Select Date"
+              className="rounded-lg border border-[#3d3d3d] bg-[#2a2a2a] px-3 py-2 text-white focus:border-transparent focus:ring-2 focus:ring-primary"
+            />
+          </div>
+        </div>
+      )}
 
       <div className="mt-8 space-y-4">
         {(filteredPosts.length <= 0 || isLoading) && (
@@ -674,20 +771,58 @@ const PostCard: React.FC<{
     return (
       <div className="relative rounded-lg bg-[#171717] p-4 shadow-lg">
         {isLoggedIn && (
-          <div className="absolute right-2 top-2 flex items-center space-x-2">
-            {isCurrentUserAuthor && (
-              <button className="text-gray-500 hover:text-gray-400" onClick={handleEdit}>
-                <PencilIcon className="h-4 w-4" />
-              </button>
-            )}
-            {(isCurrentUserAuthor || canDelete) && (
-              <button
-                className="text-gray-500 hover:text-gray-400"
-                onClick={handleDelete}
+          <div className="absolute right-2 top-2">
+            <Menu as="div" className="relative">
+              <Menu.Button className="flex items-center text-gray-500 hover:text-gray-400">
+                <EllipsisVerticalIcon className="h-5 w-5" />
+              </Menu.Button>
+              <Transition
+                as={Fragment}
+                enter="transition ease-out duration-100"
+                enterFrom="transform opacity-0 scale-95"
+                enterTo="transform opacity-100 scale-100"
+                leave="transition ease-in duration-75"
+                leaveFrom="transform opacity-100 scale-100"
+                leaveTo="transform opacity-0 scale-95"
               >
-                <TrashIcon className="h-4 w-4" />
-              </button>
-            )}
+                <Menu.Items className="absolute right-0 z-10 mt-2 w-48 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                  {isCurrentUserAuthor && (
+                    <div className="p-1">
+                      <Menu.Item>
+                        {({ active }) => (
+                          <button
+                            onClick={handleEdit}
+                            className={`${
+                              active ? 'bg-gray-100' : ''
+                            } group flex w-full items-center rounded-md p-2 text-sm text-gray-900`}
+                          >
+                            <PencilIcon className="mr-2 h-5 w-5 text-gray-400" />
+                            Edit
+                          </button>
+                        )}
+                      </Menu.Item>
+                    </div>
+                  )}
+                  {(isCurrentUserAuthor || canDelete) && (
+                    <div className="p-1">
+                      <Menu.Item>
+                        {({ active }) => (
+                          <button
+                            onClick={handleDelete}
+                            className={`${
+                              active ? 'bg-gray-100' : ''
+                            } group flex w-full items-center rounded-md p-2 text-sm text-gray-900`}
+                          >
+                            <TrashIcon className="mr-2 h-5 w-5 text-gray-400" />
+                            Delete
+                          </button>
+                        )}
+                      </Menu.Item>
+                    </div>
+                  )}
+                </Menu.Items>
+              </Transition>
+            </Menu>
           </div>
         )}
 
@@ -720,7 +855,7 @@ const PostCard: React.FC<{
         </p>
         {galleryImages.length > 0 && (
           <div className="mt-5">
-            <ImageGallery items={galleryImages} showPlayButton={false} />
+            <ImageGallery items={galleryImages} showNav={false} showThumbnails={false} showBullets={true} showIndex={true} showFullscreenButton={false} showPlayButton={false} />
           </div>
         )}
         <CommentsSection postId={postid} organizationId={organizationId} />
