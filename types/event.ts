@@ -19,4 +19,5 @@ export interface Event {
   privacy: Privacy;
   createdat: Date;
   selected?: boolean;
+  onsite?: boolean;
 }
