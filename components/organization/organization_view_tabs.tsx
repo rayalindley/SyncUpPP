@@ -10,11 +10,13 @@ const OrganizationViewTabs = ({
   memberships,
   events,
   id,
+  posts, // Add posts prop
 }: {
-  organizationid: string; // Ensure organizationid is typed
+  organizationid: string;
   memberships: any;
   events: any;
   id: string;
+  posts: any; // Ensure posts is typed
 }): JSX.Element => {
   const { orgslug } = useParams() as { orgslug: string };
   const [activeTab, setActiveTab] = useState("posts");
@@ -48,8 +50,7 @@ const OrganizationViewTabs = ({
   }
 
   const tabContent = {
-    // posts: <OrganizationPostsTab organizationid={organizationid} />,
-    posts: <PostsSection organizationId={organizationid}/>,
+    posts: <PostsSection organizationId={organizationid} posts={posts} />, // Pass posts to PostsSection
     membership: <OrganizationMembershipsComponent memberships={memberships} userid={id} organizationid={organizationid}/>,
     events: <OrganizationEventsComponent events={events} userid={id} organizationId={organizationid} />,
   }[activeTab];
