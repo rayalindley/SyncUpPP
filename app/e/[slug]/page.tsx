@@ -349,7 +349,7 @@ const EventPage = () => {
           } else {
             await recordActivity({
               activity_type: "event_register",
-              description: `User ${fullName} registered for the event: ${event.title}`,
+              description: `User registered for the event: ${event.title}`,
             });
   
             await recordActivity({
@@ -458,7 +458,7 @@ const EventPage = () => {
             await recordActivity({
               activity_type: "event_register",
               organization_id: event.organizationid,
-              description: `User ${user.email} registered for the event: ${event.title}`,
+              description: `User ${fullName} registered for the event: ${event.title}`,
             });
   
             toast.success("You have successfully joined the event!");
