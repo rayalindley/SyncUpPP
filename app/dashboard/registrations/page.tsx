@@ -1,4 +1,5 @@
 import { createClient, getUser } from "@/lib/supabase/server";
+import { fetchOrganizationsForUser } from "@/lib/organization"; // Import the function
 import { redirect } from "next/navigation";
 import RegistrationsTable from "@/components/app/event_registrations";
 import Preloader from "@/components/preloader";
@@ -28,20 +29,38 @@ export default async function RegistrationsPage() {
 
   let registrations: Registration[] = [];
 
-  if(!registrations) {
-    <Preloader />
+  if (!registrations) {
+    <Preloader />;
   }
 
-  if(user.role === "superadmin") {
-  const registrationsData = await supabase.from("eventregistrations_view").select("*");
-  registrations = registrationsData.data || [];
-  } else {
-    const registrationsData = await supabase.from("eventregistrations_view").select("*").eq("event_adminid", user.id);
+  if (user.role === "superadmin") {
+    const registrationsData = await supabase
+      .from("eventregistrations_view")
+      .select("*");
     registrations = registrationsData.data || [];
+  } else {
+    // Use the provided function to fetch organizations of the user
+    const organizationsData = await fetchOrganizationsForUser(user.id);
+
+    if (organizationsData.error) {
+      console.error("Error fetching organizations:", organizationsData.error);
+    } else {
+      const organizations = organizationsData.data || [];
+      const organizationIds = organizations.map(
+        (org: { organizationid: string }) => org.organizationid
+      );
+
+      // Fetch registrations for events in these organizations
+      if (organizationIds.length > 0) {
+        const registrationsData = await supabase
+          .from("eventregistrations_view")
+          .select("*")
+          .in("organizationid", organizationIds); // Use 'in' to match any of the organization IDs
+
+        registrations = registrationsData.data || [];
+      }
+    }
   }
 
-
-  return (
-    <RegistrationsTable registrations={registrations} />
-  );
+  return <RegistrationsTable registrations={registrations} />;
 }
