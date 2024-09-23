@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, memo } from "react";
+import { useState, useEffect, useCallback, memo, Fragment } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -33,7 +33,7 @@ import { createClient } from "@/lib/supabase/client";
 import { format } from "date-fns";
 import ReactDatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { Menu, Transition, Fragment } from '@headlessui/react';
+import { Menu, Transition } from '@headlessui/react';
 import { EllipsisVerticalIcon } from '@heroicons/react/24/solid';
 
 
@@ -465,7 +465,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, posts: init
         </div>
       )}
 
-      {isLoggedIn && canCreate && (
+      {/* {isLoggedIn && canCreate && (
         <div className="mb-4 mt-8 flex flex-wrap items-center space-x-2 space-y-2 rounded-lg bg-[#1e1e1e] p-4 shadow-lg">
           <div className="relative flex-grow">
             <input
@@ -555,7 +555,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, posts: init
             />
           </div>
         </div>
-      )}
+      )} */}
 
       <div className="mt-8 space-y-4">
         {(filteredPosts.length <= 0 || isLoading) && (
