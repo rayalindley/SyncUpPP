@@ -54,6 +54,7 @@
     "react-popper": "^2.3.0",
     "react-qrcode-logo": "^3.0.0",
     "react-quill": "^0.0.2",
+    "react-responsive-carousel": "^3.2.23",
     "react-step-builder": "^3.0.6",
     "react-sweetalert2": "^0.6.0",
     "react-toastify": "^10.0.5",
