@@ -73,7 +73,7 @@ export default async function TermsAndConditions() {
             </div>
 
             <h2 className="text-2xl font-bold mb-5 text-[#efefef] mt-6">Contact Information</h2>
-            <p className="mb-12 ml-4 text-lg text-[#bababa]">For any questions regarding these Terms & Conditions, please contact SyncUp support via [Contact Information].</p>
+            <p className="mb-12 ml-4 text-lg text-[#bababa]">For any questions regarding these Terms & Conditions, please contact SyncUp support via <a href="https://mail.google.com/mail/?view=cm&fs=1&to=syncup.supp@gmail.com" className="hover:text-primarydark text-primary font-semibold" target="_blank" rel="noopener noreferrer">syncup.supp@gmail.com</a></p>
           </div>
         </div>
       </main>

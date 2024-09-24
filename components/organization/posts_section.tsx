@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, memo } from "react";
+import { useState, useEffect, useCallback, memo, Fragment } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,7 +16,6 @@ import { useUser } from "@/context/user_context";
 import {
   insertPost,
   updatePost,
-  fetchPosts,
   fetchRolesAndMemberships,
   getAuthorDetails,
   deletePost,
@@ -34,6 +33,9 @@ import { createClient } from "@/lib/supabase/client";
 import { format } from "date-fns";
 import ReactDatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { Menu, Transition } from '@headlessui/react';
+import { EllipsisVerticalIcon } from '@heroicons/react/24/solid';
+
 
 const supabase = createClient();
 
@@ -45,11 +47,12 @@ const postSchema = z.object({
 
 interface PostsSectionProps {
   organizationId: string;
+  posts: Posts[]; // Add posts prop
 }
 
-const PostsSection: React.FC<PostsSectionProps> = ({ organizationId }) => {
+const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, posts: initialPosts }) => {
   const { user } = useUser();
-  const [posts, setPosts] = useState<Posts[]>([]);
+  const [posts, setPosts] = useState<Posts[]>(initialPosts); // Initialize posts with initialPosts
   const [editingPost, setEditingPost] = useState<Posts | null>(null);
   const [isPublic, setIsPublic] = useState(false);
   const [availableRoles, setAvailableRoles] = useState<{ id: string; name: string }[]>([]);
@@ -98,28 +101,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId }) => {
   }, [isLoggedIn, user?.id, organizationId]);
 
   const fetchData = useCallback(async () => {
-    const [{ data: postData, error: postError }, rolesAndMemberships] = await Promise.all(
-      [
-        fetchPosts(organizationId, user?.id ?? null),
-        fetchRolesAndMemberships(organizationId),
-      ]
-    );
-
-    if (postError) {
-      console.error("Error fetching posts:", postError.message);
-      setCreationMessage({ text: postError.message, type: "error" });
-    } else {
-      const postsWithPrivacy = await Promise.all(
-        (postData || []).map(async (post: Posts) => {
-          const [roles, memberships] = await Promise.all([
-            fetchPostRoles(post.postid),
-            fetchPostMemberships(post.postid),
-          ]);
-          return { ...post, roles, memberships, created_at: post.createdat };
-        })
-      );
-      setPosts(postsWithPrivacy);
-    }
+    const rolesAndMemberships = await fetchRolesAndMemberships(organizationId);
 
     // Check if rolesAndMemberships is defined before accessing its properties
     if (rolesAndMemberships && rolesAndMemberships.error) {
@@ -136,7 +118,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId }) => {
         }))
       );
     }
-  }, [organizationId, user?.id]);
+  }, [organizationId]);
 
   useEffect(() => {
     fetchData();
@@ -483,7 +465,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId }) => {
         </div>
       )}
 
-      {isLoggedIn && canCreate && (
+      {/* {isLoggedIn && canCreate && (
         <div className="mb-4 mt-8 flex flex-wrap items-center space-x-2 space-y-2 rounded-lg bg-[#1e1e1e] p-4 shadow-lg">
           <div className="relative flex-grow">
             <input
@@ -573,7 +555,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId }) => {
             />
           </div>
         </div>
-      )}
+      )} */}
 
       <div className="mt-8 space-y-4">
         {(filteredPosts.length <= 0 || isLoading) && (
@@ -789,20 +771,58 @@ const PostCard: React.FC<{
     return (
       <div className="relative rounded-lg bg-[#171717] p-4 shadow-lg">
         {isLoggedIn && (
-          <div className="absolute right-2 top-2 flex items-center space-x-2">
-            {isCurrentUserAuthor && (
-              <button className="text-gray-500 hover:text-gray-400" onClick={handleEdit}>
-                <PencilIcon className="h-4 w-4" />
-              </button>
-            )}
-            {(isCurrentUserAuthor || canDelete) && (
-              <button
-                className="text-gray-500 hover:text-gray-400"
-                onClick={handleDelete}
+          <div className="absolute right-2 top-2">
+            <Menu as="div" className="relative">
+              <Menu.Button className="flex items-center text-gray-500 hover:text-gray-400">
+                <EllipsisVerticalIcon className="h-5 w-5" />
+              </Menu.Button>
+              <Transition
+                as={Fragment}
+                enter="transition ease-out duration-100"
+                enterFrom="transform opacity-0 scale-95"
+                enterTo="transform opacity-100 scale-100"
+                leave="transition ease-in duration-75"
+                leaveFrom="transform opacity-100 scale-100"
+                leaveTo="transform opacity-0 scale-95"
               >
-                <TrashIcon className="h-4 w-4" />
-              </button>
-            )}
+                <Menu.Items className="absolute right-0 z-10 mt-2 w-48 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                  {isCurrentUserAuthor && (
+                    <div className="p-1">
+                      <Menu.Item>
+                        {({ active }) => (
+                          <button
+                            onClick={handleEdit}
+                            className={`${
+                              active ? 'bg-gray-100' : ''
+                            } group flex w-full items-center rounded-md p-2 text-sm text-gray-900`}
+                          >
+                            <PencilIcon className="mr-2 h-5 w-5 text-gray-400" />
+                            Edit
+                          </button>
+                        )}
+                      </Menu.Item>
+                    </div>
+                  )}
+                  {(isCurrentUserAuthor || canDelete) && (
+                    <div className="p-1">
+                      <Menu.Item>
+                        {({ active }) => (
+                          <button
+                            onClick={handleDelete}
+                            className={`${
+                              active ? 'bg-gray-100' : ''
+                            } group flex w-full items-center rounded-md p-2 text-sm text-gray-900`}
+                          >
+                            <TrashIcon className="mr-2 h-5 w-5 text-gray-400" />
+                            Delete
+                          </button>
+                        )}
+                      </Menu.Item>
+                    </div>
+                  )}
+                </Menu.Items>
+              </Transition>
+            </Menu>
           </div>
         )}
 
@@ -835,7 +855,7 @@ const PostCard: React.FC<{
         </p>
         {galleryImages.length > 0 && (
           <div className="mt-5">
-            <ImageGallery items={galleryImages} showPlayButton={false} />
+            <ImageGallery items={galleryImages} showNav={false} showThumbnails={false} showBullets={true} showIndex={true} showFullscreenButton={false} showPlayButton={false} />
           </div>
         )}
         <CommentsSection postId={postid} organizationId={organizationId} />

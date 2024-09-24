@@ -33,6 +33,8 @@ import remarkGfm from "remark-gfm";
 import Swal from "sweetalert2";
 import { Invoice as InvoiceClient, Xendit } from "xendit-node";
 import type { CreateInvoiceRequest, Invoice } from "xendit-node/invoice/models";
+import { QRCode } from "react-qrcode-logo";
+import Modal from "react-modal"; // Import modal library
 
 const xenditClient = new Xendit({
   secretKey: process.env.NEXT_PUBLIC_XENDIT_SECRET_KEY!,
@@ -61,6 +63,13 @@ const EventPage = () => {
   const [eventFinished, setEventFinished] = useState(false);
   const [registrationClosed, setRegistrationClosed] = useState(false);
   const [canJoin, setCanJoin] = useState(false);
+  const [paymentPending, setPaymentPending] = useState(false);
+  const [showQRCode, setShowQRCode] = useState(false); // State to show/hide QR code
+  const [qrCodeUrl, setQRCodeUrl] = useState(""); // State for QR code URL
+  const [modalIsOpen, setModalIsOpen] = useState(false); // State for modal visibility
+
+  const openModal = () => setModalIsOpen(true);
+  const closeModal = () => setModalIsOpen(false);
 
   async function checkUserRoleAndMembership(
     userId: string,
@@ -78,10 +87,7 @@ const EventPage = () => {
       .eq("userid", userId)
       .eq("organizationid", organizationId);
 
-    console.log("memberData", memberData);
-
     if (memberError || !memberData || memberData.length === 0) {
-      console.error("Error fetching membership data or user not a member:", memberError);
       return false;
     }
 
@@ -170,6 +176,20 @@ const EventPage = () => {
           } else {
             setIsMember(true);
           }
+
+          // Check if a QR code exists for the user
+          const { data: registrationData, error: registrationError } = await supabase
+            .from("eventregistrations")
+            .select("qr_code_data")
+            .eq("userid", user.id)
+            .eq("eventid", eventData.eventid)
+            .single();
+
+          if (registrationError) {
+            console.error("Error fetching registration data:", registrationError);
+          } else if (registrationData.qr_code_data) {
+            setQRCodeUrl(registrationData.qr_code_data);
+          }
         }
 
         if (user && eventData) {
@@ -195,6 +215,58 @@ const EventPage = () => {
     }
   }, [slug]);
 
+    
+  const isUrl = (string: string) => {
+    try {
+      new URL(string);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  };
+    // Helper function to generate and save QR code data
+    const generateAndSaveQRCode = async (userId: string, eventId: string) => {
+      // Fetch the event data to check if the location is a URL
+      const { data: eventData, error } = await supabase
+        .from("events")
+        .select("location")
+        .eq("eventid", eventId)
+        .single();
+    
+      if (error) {
+        console.error("Error fetching event data:", error);
+        return;
+      }
+    
+      // Check if the event location is a URL (indicating an online event)
+      if (isUrl(eventData.location)) {
+        console.log("Event is online. No QR code generation needed.");
+        return; // Exit the function, no QR code generation needed
+      }
+    
+      // Generate QR code data for in-person events
+      const qrCodeData = `${process.env.NEXT_PUBLIC_SITE_URL}/attendance/${eventId}/${userId}`;
+  
+      await supabase
+        .from("eventregistrations")
+        .update({ qr_code_data: qrCodeData })
+        .eq("userid", userId)
+        .eq("eventid", eventId);
+      setQRCodeUrl(qrCodeData);
+      setShowQRCode(true);
+    };
+  // Add a new useEffect to check if QR code needs to be generated
+  useEffect(() => {
+    async function checkAndGenerateQRCode() {
+      if (user && isRegistered && event && !isUrl(event.location) && !qrCodeUrl) {
+        // User is registered, event is not virtual, and no QR code has been generated
+        await generateAndSaveQRCode(user.id, event.eventid);
+      }
+    }
+
+    checkAndGenerateQRCode();
+  }, [user, isRegistered, event, qrCodeUrl]);
+
   if (loading) {
     return <Preloader />;
   }
@@ -204,79 +276,154 @@ const EventPage = () => {
   }
 
   const handleEventRegistration = async () => {
-
+    const userId = user?.id;
+  
     if (isRegistered) return;
-
-  if (!user) {
-    console.error("User not found");
-    toast.error("User not found. Please log in.");
-    return;
-  }
-
-  if (eventFinished || registrationClosed || (eventFull && !isRegistered)) return;
-
-  // Check if user is not a member of the org
-  if (event.privacy.type === "private" && !isOrgMember) {
-    toast.error("You need to be a member of the organization to register for this event.");
-    return;
-  }
-
-  // Check if user does not have the required role or membership
-  if (event.privacy.type === "private" && isOrgMember && !canJoin) {
-    toast.error("You do not have the required role or membership tier to register for this event.");
-    return;
-  }
-
-  // Check if event is full
-  if (eventFull && !isRegistered) {
-    toast.error("The event is full.");
-    return;
-  }
-
-
-    const result = await Swal.fire({
-      title: "Are you sure?",
-      text: "Do you want to join the event?",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Yes, join the event!",
-    });
-
-    if (result.isConfirmed) {
-      const { user } = await getUser();
-      const userId = user?.id;
-      
-      if (!userId) {
-        console.error("User not found");
-        toast.error("User not found. Please log in.");
+  
+    if (!user) {
+      toast.error("User not found. Please log in.");
+      return;
+    }
+  
+    if (eventFinished || registrationClosed || (eventFull && !isRegistered)) return;
+  
+    if (event.privacy.type === "private" && !isOrgMember) {
+      toast.error("You need to be a member of the organization to register for this event.");
+      return;
+    }
+  
+    if (event.privacy.type === "private" && isOrgMember && !canJoin) {
+      toast.error("You do not have the required role or membership tier to register for this event.");
+      return;
+    }
+  
+    if (eventFull && !isRegistered) {
+      toast.error("The event is full.");
+      return;
+    }
+  
+    let fullName = `${user?.user_metadata?.first_name ?? ""} ${user?.user_metadata?.last_name ?? ""}`.trim();
+    if (!fullName) {
+      try {
+        const { data: userProfile, error } = await getUserProfileById(user.id);
+        if (error) {
+          toast.error("Could not retrieve user profile information.");
+          return;
+        }
+        fullName = `${userProfile?.first_name} ${userProfile?.last_name}`.trim();
+      } catch (error) {
+        toast.error("An error occurred while retrieving user profile information.");
         return;
       }
-
-      if (userId) {
-        const { data: userProfile, error } = await getUserProfileById(userId); // Call the function to get user profile
-          
-          if (error) {
-              console.error("Error fetching user profile:", error);
-              return; // Handle the error as needed
+    }
+  
+    if (event.onsite) {
+      // Onsite payment flow
+      const result = await Swal.fire({
+        title: "Choose Payment Method",
+        icon: "question",
+        input: "radio",
+        inputOptions: {
+          onsite: "Pay Onsite",
+          offsite: "Pay Online",
+        },
+        inputValidator: (value) => {
+          if (!value) {
+            return "You need to choose a payment method!";
           }
-          const fullName = userProfile ? `${userProfile.first_name} ${userProfile.last_name}` : '';
-      
-      if (event.registrationfee > 0) {
-        try {
-          const data: CreateInvoiceRequest = {
+        },
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Proceed",
+      });
+  
+      if (result.isConfirmed) {
+        const paymentMethod = result.value;
+  
+        if (paymentMethod === "onsite") {
+          const { data, error } = await registerForEvent(event.eventid, user.id, paymentMethod);
+  
+          if (error) {
+            toast.error(`Registration failed: ${error.message}`);
+          } else {
+            await recordActivity({
+              activity_type: "event_register",
+              description: `User registered for the event: ${event.title}`,
+            });
+  
+            await recordActivity({
+              activity_type: "event_register",
+              organization_id: event.organizationid,
+              description: `User ${fullName} registered for the event: ${event.title}`,
+            });
+  
+            toast.success("You have successfully registered! Please proceed to the onsite payment area.");
+            setPaymentPending(true); // Set payment pending state
+            setIsRegistered(true);
+            setAttendeesCount((prevCount) => prevCount + 1);
+  
+            if (event.capacity && attendeesCount + 1 >= event.capacity) {
+              setEventFull(true);
+            }
+  
+            // Generate QR code after successful registration if the event is not virtual
+            if (!isUrl(event.location)) {
+              await generateAndSaveQRCode(user.id, event.eventid); // Call QR code generation
+            }
+          }
+        } else if (paymentMethod === "offsite") {
+          // Online payment flow
+          try {
+            const data = {
+              amount: event.registrationfee,
+              payerEmail: user.email,
+              externalId: `${event.eventid}-${event.title}-${new Date().toISOString()}`,
+              description: `${organization?.name} Registration fee for ${event.title}: ${event.description}`,
+              successRedirectUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/e/${event.eventslug}`,
+            };
+  
+            const invoice = await xenditInvoiceClient.createInvoice({ data });
+  
+            const { error: paymentError } = await supabase.from("payments").insert([
+              {
+                amount: event.registrationfee,
+                invoiceId: invoice.id,
+                type: "events",
+                target_id: event.eventid,
+                organizationId: event.organizationid,
+                invoiceUrl: invoice.invoiceUrl,
+                invoiceData: invoice,
+              },
+            ]);
+  
+            if (paymentError) {
+              toast.error(`Registration failed: ${paymentError.message}`);
+              return;
+            }
+  
+            // Navigate to the payment URL after QR code data is stored successfully
+            await generateAndSaveQRCode(user.id, event.eventid); // Ensure QR Code is generated after registration
+            window.location.href = invoice.invoiceUrl;
+          } catch (error) {
+            toast.error("An error occurred during registration. Please try again.");
+          }
+        }
+      }
+    } else {
+      try {
+        // Direct registration without onsite payment
+        if (event.registrationfee > 0) {
+          const data = {
             amount: event.registrationfee,
             payerEmail: user.email,
             externalId: `${event.eventid}-${event.title}-${new Date().toISOString()}`,
             description: `${organization?.name} Registration fee for ${event.title}: ${event.description}`,
             successRedirectUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/e/${event.eventslug}`,
           };
-
-          const invoice: Invoice = await xenditInvoiceClient.createInvoice({
-            data,
-          });
-
+  
+          const invoice = await xenditInvoiceClient.createInvoice({ data });
+  
           const { error: paymentError } = await supabase.from("payments").insert([
             {
               amount: event.registrationfee,
@@ -288,51 +435,52 @@ const EventPage = () => {
               invoiceData: invoice,
             },
           ]);
-
+  
           if (paymentError) {
-            console.error("Error creating payment record:", paymentError);
             toast.error(`Registration failed: ${paymentError.message}`);
             return;
           }
-
+  
+          // Generate QR code after successful registration if the event is not virtual
+          await generateAndSaveQRCode(user.id, event.eventid); // Ensure QR Code is generated after registration
           window.location.href = invoice.invoiceUrl;
-        } catch (error) {
-          console.error("Error creating invoice:", error);
-          toast.error("Failed to create invoice. Please try again.");
-        }
-      } else {
-        const { data, error } = await registerForEvent(event.eventid, userId);
-
-        if (error) {
-          console.error("Registration failed:", error);
-          toast.error(`Registration failed: ${error.message}`);
         } else {
-
-          //user 
-          await recordActivity({
-            activity_type: "event_register",
-            description: `User registered for the event: ${event.title}`,
-          });
-
-          //organization
-          await recordActivity({
-            activity_type: "event_register",
-            organization_id: event.organizationid,
-            description: `User ${fullName} registered for the event: ${event.title}`,
-          });
-
-          toast.success("You have successfully joined the event!");
-          setIsRegistered(true);
-          setAttendeesCount((prevCount) => prevCount + 1);
-
-          if (event.capacity && attendeesCount + 1 >= event.capacity) {
-            setEventFull(true);
+          const { data, error } = await registerForEvent(event.eventid, user.id, "offsite");
+  
+          if (error) {
+            toast.error(`Registration failed: ${error.message}`);
+          } else {
+            await recordActivity({
+              activity_type: "event_register",
+              description: `User registered for the event: ${event.title}`,
+            });
+  
+            await recordActivity({
+              activity_type: "event_register",
+              organization_id: event.organizationid,
+              description: `User ${fullName} registered for the event: ${event.title}`,
+            });
+  
+            toast.success("You have successfully joined the event!");
+            setIsRegistered(true);
+            setAttendeesCount((prevCount) => prevCount + 1);
+  
+            if (event.capacity && attendeesCount + 1 >= event.capacity) {
+              setEventFull(true);
+            }
+  
+            // Generate QR code after successful registration if the event is not virtual
+            await generateAndSaveQRCode(user.id, event.eventid);
           }
         }
+      } catch (error) {
+        toast.error("An error occurred during registration. Please try again.");
       }
     }
-    }
   };
+
+  
+
 
   const handleEventUnregistration = async () => {
     const result = await Swal.fire({
@@ -349,57 +497,45 @@ const EventPage = () => {
       const { user } = await getUser();
       const userId = user?.id;
 
-      if (userId) {
-        const { data: userProfile, error } = await getUserProfileById(userId); // Call the function to get user profile
-          
-          if (error) {
-              console.error("Error fetching user profile:", error);
-              return; // Handle the error as needed
-          }
-          const fullName = userProfile ? `${userProfile.first_name} ${userProfile.last_name}` : '';
-
-          //user 
-          await recordActivity({
-            activity_type: "event_unregister",
-            description: `User cancelled their registration for the event: ${event.title}`,
-          });
-
-          //organization
-          await recordActivity({
-            activity_type: "event_unregister",
-            organization_id: event.organizationid,
-            description: `User ${fullName} cancelled their registration for the event: ${event.title}`,
-          });
-      }
-
       if (!userId) {
-        console.error("User not found");
         toast.error("User not found. Please log in.");
         return;
       }
 
-      const { data, error } = await unregisterFromEvent(event.eventid, userId);
+      const { data: userProfile, error } = await getUserProfileById(userId);
 
       if (error) {
-        console.error("Unregistration failed:", error);
-        toast.error(`Unregistration failed: ${error.message}`);
+        return;
+      }
+      const fullName = userProfile ? `${userProfile.first_name} ${userProfile.last_name}` : "";
+
+      await recordActivity({
+        activity_type: "event_unregister",
+        description: `A User cancelled their registration for the event: ${event.title}`,
+      });
+
+      await recordActivity({
+        activity_type: "event_unregister",
+        organization_id: event.organizationid,
+        description: `User ${fullName} cancelled their registration for the event: ${event.title}`,
+      });
+
+      const { data, error: unregisterError } = await unregisterFromEvent(event.eventid, userId);
+
+      if (unregisterError) {
+        toast.error(`Unregistration failed: ${unregisterError.message}`);
       } else {
         toast.success("You have successfully cancelled your registration!");
         setIsRegistered(false);
         setAttendeesCount((prevCount) => prevCount - 1);
         setEventFull(false);
+        setQRCodeUrl(""); // Clear QR code on unregistration
+        setShowQRCode(false); // Hide QR code on unregistration
       }
     }
   };
 
-  const isUrl = (string: string) => {
-    try {
-      new URL(string);
-      return true;
-    } catch (_) {
-      return false;
-    }
-  };
+
 
   const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
 
@@ -503,8 +639,6 @@ const EventPage = () => {
                 </div>
               )}
 
-              {/* Roles and Memberships Section */}
-              {/* Roles and Memberships Section */}
               {event.privacy?.type === "private" &&
                 !event.privacy.allow_all_roles &&
                 !event.privacy.allow_all_memberships && (
@@ -572,11 +706,17 @@ const EventPage = () => {
                 <div className="flex items-center space-x-2">
                   <MapPinIcon className="h-6 w-6 text-primary sm:h-8 sm:w-8" />
                   {isUrl(event.location) ? (
-                    <Link href={event.location}>
-                      <p className="text-sm text-primary hover:underline sm:text-base">
-                        Virtual Event
-                      </p>
-                    </Link>
+                    isRegistered ? (
+                      <Link href={event.location}>
+                        <p className="text-sm text-primary hover:underline sm:text-base">
+                          Virtual Event
+                        </p>
+                      </Link>
+                    ) : (
+                      <span className="text-sm text-light sm:text-base">
+                        Virtual Event (register to access event link)
+                      </span>
+                    )
                   ) : (
                     <span className="text-sm text-light sm:text-base">
                       {event.location}
@@ -614,35 +754,42 @@ const EventPage = () => {
                   )}
                 </p>
                 <button
-  className={`w-full rounded-md px-6 py-3 text-white ${
-    eventFinished ||
-    registrationClosed ||
-    (eventFull && !isRegistered)
-      ? "cursor-not-allowed bg-fadedgrey"
-      : isRegistered
-        ? "bg-red-600 hover:bg-red-700"
-        : "bg-primary hover:bg-primarydark"
-  }`}
-  onClick={
-    isRegistered ? handleEventUnregistration : handleEventRegistration
-  }
-  disabled={
-    eventFinished ||
-    registrationClosed ||
-    (eventFull && !isRegistered)
-  }
->
-  {eventFinished
-    ? "Event Finished"
-    : registrationClosed
-      ? "Registration Closed"
-      : eventFull && !isRegistered
-        ? "Event Full"
-        : isRegistered
-          ? "Unregister"
-          : "Register"}
-</button>
-
+                  className={`w-full rounded-md px-6 py-3 text-white ${
+                    eventFinished ||
+                    registrationClosed ||
+                    (eventFull && !isRegistered)
+                      ? "cursor-not-allowed bg-fadedgrey"
+                      : isRegistered
+                      ? "bg-red-600 hover:bg-red-700"
+                      : "bg-primary hover:bg-primarydark"
+                  }`}
+                  onClick={
+                    isRegistered ? handleEventUnregistration : handleEventRegistration
+                  }
+                  disabled={
+                    eventFinished ||
+                    registrationClosed ||
+                    (eventFull && !isRegistered)
+                  }
+                >
+                  {eventFinished
+                    ? "Event Finished"
+                    : registrationClosed
+                    ? "Registration Closed"
+                    : eventFull && !isRegistered
+                    ? "Event Full"
+                    : isRegistered
+                    ? "Unregister"
+                    : "Register"}
+                </button>
+                {isRegistered && qrCodeUrl && !eventFinished && (
+                  <button
+                    className="w-full mt-4 rounded-md bg-primary px-6 py-3 text-white hover:bg-primarydark"
+                    onClick={openModal}
+                  >
+                    View QR
+                  </button>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -659,6 +806,34 @@ const EventPage = () => {
         </div>
       </main>
       <Footer />
+      {/* Modal for QR Code */}
+      <Modal
+        isOpen={modalIsOpen}
+        onRequestClose={closeModal}
+        contentLabel="View QR Code"
+        className="bg-eerieblack p-6 rounded-lg shadow-lg flex flex-col items-center justify-center"
+        overlayClassName="fixed inset-0 bg-eerieblack bg-opacity-70 flex items-center justify-center"
+      >
+        <h2 className="text-2xl text-white mb-4">Your QR Code</h2>
+        {qrCodeUrl ? (
+          <QRCode
+            value={qrCodeUrl.trim()}
+            size={200}
+            qrStyle="dots"
+            ecLevel="H"
+          />
+        ) : (
+          <p className="text-light">Loading QR Code...</p> // Loading message when qrCodeUrl is not available
+        )}
+        <p className="mt-2 text-light text-center">Please save this QR Code and present it at the event for your attendance.</p>
+        <button
+          className="mt-4 rounded-md bg-primary px-6 py-2 text-white hover:bg-primarydark"
+          onClick={closeModal}
+        >
+          Close
+        </button>
+      </Modal>
+
     </div>
   );
 };

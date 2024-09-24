@@ -48,6 +48,7 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
   const [isAdmin, setIsAdmin] = useState(false);
   const [organizationSlug, setOrganizationSlug] = useState<string | null>(null);
   const [canCreateEvents, setCanCreateEvents] = useState(false);
+  const [canManageEvents, setCanManageEvents] = useState(false); // State for managing events
   const [searchQuery, setSearchQuery] = useState(""); // Search query state
   const [eventStatusFilter, setEventStatusFilter] = useState(""); // Event status filter state
   const [eventPrivacyFilter, setEventPrivacyFilter] = useState(""); // Privacy filter state
@@ -55,7 +56,6 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
   const eventsPerPage = 8;
   const supabase = createClient();
   const router = useRouter();
-
 
   useEffect(() => {
     const fetchOrganizationData = async () => {
@@ -87,12 +87,19 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
   useEffect(() => {
     const checkPermissions = async () => {
       try {
-        const permission = await check_permissions(
+        const createPermission = await check_permissions(
           userid || "",
           organizationId,
           "create_events"
         );
-        setCanCreateEvents(permission);
+        setCanCreateEvents(createPermission);
+
+        const managePermission = await check_permissions(
+          userid || "",
+          organizationId,
+          "view_dashboard"
+        );
+        setCanManageEvents(managePermission); // Check permission for managing events
       } catch (error) {
         console.error("Failed to check permissions", error);
       }
@@ -105,64 +112,63 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
 
   // Filter and sort events based on search query and filters
   const filteredEvents = events
-  .filter((event: any) => {
-    const matchesSearchQuery = event.title
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
+    .filter((event: any) => {
+      const matchesSearchQuery = event.title
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
 
-    const isUpcoming =
-      eventStatusFilter === "Open" && new Date(event.starteventdatetime) > now;
-    const isOngoing =
-      eventStatusFilter === "Ongoing" &&
-      new Date(event.starteventdatetime) <= now &&
-      new Date(event.endeventdatetime) > now;
-    const isCompleted =
-      eventStatusFilter === "Closed" && new Date(event.endeventdatetime) < now;
+      const isUpcoming =
+        eventStatusFilter === "Open" && new Date(event.starteventdatetime) > now;
+      const isOngoing =
+        eventStatusFilter === "Ongoing" &&
+        new Date(event.starteventdatetime) <= now &&
+        new Date(event.endeventdatetime) > now;
+      const isCompleted =
+        eventStatusFilter === "Closed" && new Date(event.endeventdatetime) < now;
 
-    const matchesStatus =
-      eventStatusFilter === "" || isUpcoming || isOngoing || isCompleted;
+      const matchesStatus =
+        eventStatusFilter === "" || isUpcoming || isOngoing || isCompleted;
 
-    // Adjusted privacy logic based on the new structure of the privacy object
-    const eventPrivacy = event.privacy || {};
-    const isPublic = eventPrivacy.type === "public";
-    const isPrivate = eventPrivacy.type === "private";
+      // Adjusted privacy logic based on the new structure of the privacy object
+      const eventPrivacy = event.privacy || {};
+      const isPublic = eventPrivacy.type === "public";
+      const isPrivate = eventPrivacy.type === "private";
 
-    let matchesPrivacy = false;
+      let matchesPrivacy = false;
 
-    if (eventPrivacyFilter === "") {
-      // No privacy filter applied, so show all events
-      matchesPrivacy = true;
-    } else if (eventPrivacyFilter === "public") {
-      // Match public events
-      matchesPrivacy = isPublic;
-    } else if (eventPrivacyFilter === "private") {
-      // Match private events (check if it's private and if roles or memberships match)
-      matchesPrivacy = isPrivate;
-    }
+      if (eventPrivacyFilter === "") {
+        // No privacy filter applied, so show all events
+        matchesPrivacy = true;
+      } else if (eventPrivacyFilter === "public") {
+        // Match public events
+        matchesPrivacy = isPublic;
+      } else if (eventPrivacyFilter === "private") {
+        // Match private events (check if it's private and if roles or memberships match)
+        matchesPrivacy = isPrivate;
+      }
 
-    return matchesSearchQuery && matchesStatus && matchesPrivacy;
-  })
-  .sort((a: any, b: any) => {
-    switch (sortOption) {
-      case "title-asc":
-        return a.title.localeCompare(b.title);
-      case "title-desc":
-        return b.title.localeCompare(a.title);
-      case "date-asc":
-        return (
-          new Date(a.starteventdatetime).getTime() -
-          new Date(b.starteventdatetime).getTime()
-        );
-      case "date-desc":
-        return (
-          new Date(b.starteventdatetime).getTime() -
-          new Date(a.starteventdatetime).getTime()
-        );
-      default:
-        return 0;
-    }
-  });
-
+      return matchesSearchQuery && matchesStatus && matchesPrivacy;
+    })
+    .sort((a: any, b: any) => {
+      switch (sortOption) {
+        case "title-asc":
+          return a.title.localeCompare(b.title);
+        case "title-desc":
+          return b.title.localeCompare(a.title);
+        case "date-asc":
+          return (
+            new Date(a.starteventdatetime).getTime() -
+            new Date(b.starteventdatetime).getTime()
+          );
+        case "date-desc":
+          return (
+            new Date(b.starteventdatetime).getTime() -
+            new Date(a.starteventdatetime).getTime()
+          );
+        default:
+          return 0;
+      }
+    });
 
   // Pagination
   const indexOfLastEvent = currentPage * eventsPerPage;
@@ -175,15 +181,15 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
   const isLastPage = indexOfLastEvent >= filteredEvents.length;
 
   return (
-    <div className="mx-auto max-w-7xl px-6 lg:px-8">
+    <div className="mx-auto max-w-screen-xl px-6 lg:px-12">
       <div className="mx-auto max-w-7xl text-center">
-        <p className="mt-2 text-2xl font-bold tracking-tight text-light sm:text-2xl lg:mx-32 lg:px-96">
+        <p className="mt-2 text-2xl font-bold tracking-tight text-light sm:text-2xl lg:mx-32 lg:px-96 whitespace-nowrap">
           Our Events
         </p>
       </div>
 
       {/* Search, Sort, Filter, and Create Event Button */}
-      <div className="mx-auto mt-6 flex max-w-3xl justify-between">
+      <div className="mx-auto mt-6 flex max-w-4xl justify-between space-x-4">
         <div className="relative flex-grow">
           <input
             type="text"
@@ -197,7 +203,7 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
           </div>
         </div>
 
-        <div className="flex items-center space-x-4 pl-8">
+        <div className="flex items-center space-x-4">
           {/* Sort Menu */}
           <Menu as="div" className="relative">
             <Menu.Button className="flex items-center text-sm font-medium text-light">
@@ -214,8 +220,8 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
                         sortOption === option.value
                           ? "bg-primary text-white"
                           : active
-                            ? "bg-[#383838] text-light"
-                            : "text-light"
+                          ? "bg-[#383838] text-light"
+                          : "text-light"
                       }`}
                     >
                       {option.name}
@@ -283,11 +289,19 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
               Create Event
             </Link>
           )}
+          {canManageEvents && (
+            <Link
+              href={`/${organizationSlug}/dashboard/events`}
+              className="hover:bg-primary-dark ml-2 rounded-lg bg-primary px-4 py-2 text-white"
+            >
+              Manage Events
+            </Link>
+          )}
         </div>
       </div>
 
       {/* Event Cards */}
-      <div className="isolate mx-auto mt-8 grid max-w-lg grid-cols-1 justify-items-center gap-x-1 gap-y-8 sm:mt-12 md:mx-auto md:max-w-lg md:grid-cols-2 md:gap-x-4 lg:mx-0 lg:max-w-none lg:grid-cols-4">
+      <div className="isolate mx-auto mt-8 grid max-w-lg grid-cols-1 justify-items-center gap-x-16 gap-y-12 sm:mt-12 md:mx-auto md:max-w-lg md:grid-cols-2 md:gap-x-12 lg:mx-0 lg:max-w-none lg:grid-cols-4">
         {currentEvents.map((event: any, index: number) => (
           <EventsCard
             key={index}
@@ -324,54 +338,54 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
 
       {/* Pagination */}
       {filteredEvents.length > eventsPerPage && (
-      <nav className="flex items-center justify-between border-t border-gray-200 px-4 sm:px-0">
-      <div className="-mt-px flex w-0 flex-1">
-        <button
-          disabled={isFirstPage}
-          onClick={() => paginate(currentPage - 1)}
-          className={`inline-flex items-center border-t-2 border-transparent pr-1 pt-4 text-sm font-medium ${
-            isFirstPage
-              ? "cursor-not-allowed text-gray-500"
-              : "text-light hover:border-primary hover:text-primary"
-          }`}
-        >
-          <ArrowLongLeftIcon className="mr-3 h-5 w-5 text-light" aria-hidden="true" />
-          Previous
-        </button>
-      </div>
-      <div className="hidden md:-mt-px md:flex">
-        {Array.from(
-          { length: Math.ceil(filteredEvents.length / eventsPerPage) },
-          (_, index) => (
+        <nav className="flex items-center justify-between border-t border-gray-200 px-4 sm:px-0">
+          <div className="-mt-px flex w-0 flex-1">
             <button
-              key={index}
-              onClick={() => paginate(index + 1)}
-              className={`inline-flex items-center border-t-2 border-transparent px-4 pt-4 text-sm font-medium ${
-                currentPage === index + 1
-                  ? "border-primary-dark text-primary"
+              disabled={isFirstPage}
+              onClick={() => paginate(currentPage - 1)}
+              className={`inline-flex items-center border-t-2 border-transparent pr-1 pt-4 text-sm font-medium ${
+                isFirstPage
+                  ? "cursor-not-allowed text-gray-500"
                   : "text-light hover:border-primary hover:text-primary"
               }`}
             >
-              {index + 1}
+              <ArrowLongLeftIcon className="mr-3 h-5 w-5 text-light" aria-hidden="true" />
+              Previous
             </button>
-          )
-        )}
-      </div>
-      <div className="-mt-px flex w-0 flex-1 justify-end">
-        <button
-          disabled={isLastPage}
-          onClick={() => paginate(currentPage + 1)}
-          className={`inline-flex items-center border-t-2 border-transparent pl-1 pt-4 text-sm font-medium ${
-            isLastPage
-              ? "cursor-not-allowed text-gray-500"
-              : "text-light hover:border-primary hover:text-primary"
-          }`}
-        >
-          Next
-          <ArrowLongRightIcon className="ml-3 h-5 w-5 text-light" aria-hidden="true" />
-        </button>
-      </div>
-    </nav>
+          </div>
+          <div className="hidden md:-mt-px md:flex">
+            {Array.from(
+              { length: Math.ceil(filteredEvents.length / eventsPerPage) },
+              (_, index) => (
+                <button
+                  key={index}
+                  onClick={() => paginate(index + 1)}
+                  className={`inline-flex items-center border-t-2 border-transparent px-4 pt-4 text-sm font-medium ${
+                    currentPage === index + 1
+                      ? "border-primary-dark text-primary"
+                      : "text-light hover:border-primary hover:text-primary"
+                  }`}
+                >
+                  {index + 1}
+                </button>
+              )
+            )}
+          </div>
+          <div className="-mt-px flex w-0 flex-1 justify-end">
+            <button
+              disabled={isLastPage}
+              onClick={() => paginate(currentPage + 1)}
+              className={`inline-flex items-center border-t-2 border-transparent pl-1 pt-4 text-sm font-medium ${
+                isLastPage
+                  ? "cursor-not-allowed text-gray-500"
+                  : "text-light hover:border-primary hover:text-primary"
+              }`}
+            >
+              Next
+              <ArrowLongRightIcon className="ml-3 h-5 w-5 text-light" aria-hidden="true" />
+            </button>
+          </div>
+        </nav>
       )}
     </div>
   );

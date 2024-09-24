@@ -1,21 +1,35 @@
 "use client";
-import EventsTableUser from "@/components/app/events_table_user";
-import Preloader from "@/components/preloader";
-import { fetchOrganizationBySlug, check_permissions } from "@/lib/organization";
 import { createClient, getUser } from "@/lib/supabase/client";
-import { Event } from "@/types/event";
+import { useParams, useRouter } from "next/navigation";
+import RegistrationsTable from "@/components/app/event_registrations_user";
+import Preloader from "@/components/preloader";
 import { Organization } from "@/types/organization";
 import { User } from "@/node_modules/@supabase/auth-js/src/lib/types";
-import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { fetchOrganizationBySlug, check_permissions } from "@/lib/organization";
 
-export default function DashboardPage() {
+interface Registration {
+  eventregistrationid: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  event_name: string;
+  organization_name: string;
+  registrationdate: string;
+  status: string;
+  adminid: string;
+  organization_slug: string;
+  eventid: string;
+  attendance: string;
+}
+
+export default function RegistrationsPageUser() {
   const { slug } = useParams() as { slug: string };
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [organization, setOrganization] = useState<Organization | null>(null);
-  const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -51,7 +65,7 @@ export default function DashboardPage() {
           const permission = await check_permissions(
             user.id,
             organization.organizationid,
-            "view_dashboard" // The permission key for editing events
+            "view_dashboard" // The permission key for viewing registrations
           );
           setHasPermission(permission);
         } else {
@@ -70,27 +84,29 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!organization || !hasPermission) return; // Exit early if organization is not set or no permission
 
-    async function fetchEvents() {
+    async function fetchRegistrations() {
       const supabase = createClient();
-      try {
-        const { data: userEvents, error: eventsError } = await supabase
-          .from("events")
-          .select("*")
-          .eq("organizationid", organization?.organizationid);
 
-        if (eventsError) {
-          console.error("Error fetching events:", eventsError);
+      try {
+        const { data: userRegistrations, error: registrationsError } = await supabase
+          .from("eventregistrations_view")
+          .select("*")
+          .eq("organization_slug", organization?.slug);
+
+        if (registrationsError) {
+          console.error("Error fetching registrations:", registrationsError);
         } else {
-          setEvents(userEvents);
+          setRegistrations(userRegistrations);
         }
       } catch (error) {
-        console.error("Error fetching events:", error);
-      } finally {
+        console.error("Error fetching registrations:", error);
         setLoading(false);
+        return;
       }
     }
 
-    fetchEvents();
+    fetchRegistrations();
+
   }, [organization, hasPermission]);
 
   if (loading) {
@@ -101,11 +117,9 @@ export default function DashboardPage() {
     return (
       <div className="bg-raisin flex min-h-screen items-center justify-center p-10 font-sans text-white">
         <div className="text-center">
-          <h1 className="mb-4 text-3xl">Events Dashboard</h1>
+          <h1 className="mb-4 text-3xl">Event Registrations</h1>
           <p className="text-lg">
-            {user
-              ? "You do not have permission to view or manage events for this organization."
-              : "Please log in to view this page."}
+            {user ? "You do not have permission to view registrations for this organization." : "Please log in to view registrations."}
           </p>
           {!user && (
             <button
@@ -119,10 +133,7 @@ export default function DashboardPage() {
       </div>
     );
   }
-
   return (
-    <>
-      <EventsTableUser organization={organization!} events={events} userId={user?.id} />
-    </>
+    <RegistrationsTable registrations={registrations} userId={user.id} organizationId={organization?.organizationid ?? ''} />
   );
 }

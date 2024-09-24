@@ -48,6 +48,7 @@ const EventSchema = z
       .nonnegative("Registration Fee cannot be negative")
       .optional()
       .nullable(),
+    onsite: z.boolean().optional().nullable(),
   })
   .refine((data) => isValidEventPeriod(data.starteventdatetime, data.endeventdatetime), {
     message: "End Event Date & Time should be after Start Event Date & Time",
@@ -68,6 +69,7 @@ interface EventFormValues {
   eventphoto: string | null;
   tags: string[];
   eventslug?: string;
+  onsite?: boolean | null;
 }
 
 type TagData = {
@@ -110,6 +112,10 @@ const CreateEventForm = ({
   );
   const [allowAllMemberships, setAllowAllMemberships] = useState<boolean>(
     event?.privacy.allow_all_memberships || false
+  );
+
+  const [onsitePayment, setOnsitePayment] = useState<boolean | null>(
+    event?.onsite || false
   );
 
   const router = useRouter();
@@ -220,7 +226,10 @@ const CreateEventForm = ({
           setValue(key as keyof EventFormValues, event[key] as any);
         }
       });
+      setOnsitePayment(event.onsite || false); // Set the state for onsite payment
+      setValue("onsite", event.onsite || false); // Set form field value
       setPreviousPhotoUrl(event.eventphoto || null);
+      
     }
   }, [event, setValue]);
 
@@ -330,6 +339,7 @@ const CreateEventForm = ({
       tags: formattedTags,
       slug: event ? event.eventslug : slug,
       privacy: privacySettings,
+      onsite: onsitePayment,
     };
 
     const { data, error } = event
@@ -349,6 +359,7 @@ const CreateEventForm = ({
                         eventid: data[0].eventid, // Use the newly created event ID
                         userid: userId,
                         status: "registered", // Set the registration status
+                        attendance: "present", // Set the attendance status
                     },
                 ]);
         }
@@ -662,6 +673,7 @@ const CreateEventForm = ({
             <label htmlFor="location" className="text-sm font-medium text-white">
               Location
             </label>
+            <span className="text-xs"> (for virtual events, enter the virtual link)</span>
             <input
               type="text"
               id="location"
@@ -770,6 +782,23 @@ const CreateEventForm = ({
               {errors.registrationfee && (
                 <p className="text-sm text-red-500">{errors.registrationfee.message}</p>
               )}
+          <div className="pt-2 flex items-center">
+            <input
+              type="checkbox"
+              id="onsitePayment"
+              {...register("onsite")}
+              checked={onsitePayment || false}
+              onChange={(e) => {
+                setOnsitePayment(e.target.checked);
+                setValue("onsite", e.target.checked);
+              }}
+              className="mr-2 border-gray-300 text-primary focus:ring-primarydark"
+            />
+            <label htmlFor="onsitePayment" className="text-sm font-medium text-white">
+              Allow Onsite Payment
+            </label>
+          </div>
+              
             </div>
           )}
         {/* Privacy Section */}

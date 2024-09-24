@@ -95,21 +95,35 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
         },
       ],
     },
-    {
-      name: "Newsletter",
-      href:
-        selected === "default" || typeof selected === "string"
-          ? `/dashboard/newsletter`
-          : `/${selected.slug}/dashboard/newsletter`,
-      icon: EnvelopeIcon,
-    },
+      // Conditionally render the Roles tab
+      ...(selected !== "default" && typeof selected !== "string"
+        ? [
+            {
+              name: "Newsletter",
+              href: `/${selected.slug}/dashboard/newsletter`,
+              icon: EnvelopeIcon,
+            },
+          ]
+        : []),
     {
       name: "Events",
-      href:
-        selected === "default" || typeof selected === "string"
-          ? `/dashboard/events`
-          : `/${selected.slug}/dashboard/events`,
       icon: IoCalendarOutline,
+      submenu: [
+        {
+          name: "Events List",
+          href:
+          selected === "default" || typeof selected === "string"
+            ? `/dashboard/events`
+            : `/${selected.slug}/dashboard/events`,
+        },
+        {
+          name: "Events Registrations",
+          href:
+            selected === "default" || typeof selected === "string"
+              ? `/dashboard/registrations`
+              : `/${selected.slug}/dashboard/registrations`,
+        },
+      ],
     },
     ...(selected !== "default" && typeof selected !== "string"
       ? [
@@ -142,9 +156,7 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
   }, [pathname]);
 
   useEffect(() => {
-    if (selected === "default" && slug) {
-      router.push("/dashboard");
-    } else if (
+    if (
       selected !== "default" &&
       selected !== "create-org" &&
       typeof selected !== "string"

@@ -214,3 +214,13 @@
     @apply bg-background text-foreground;
   }
 }
+
+.swal2-radio {
+  background-color: theme("colors.raisinblack") !important;
+  color: #fff;
+}
+
+.swal2-radio > input {
+  background-color: #32805c !important;
+  color: #32805c !important;
+}

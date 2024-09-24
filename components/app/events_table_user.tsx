@@ -20,6 +20,7 @@ export default function EventsTableUser({
 }) {
   const router = useRouter();
   const [canCreateEvents, setCanCreateEvents] = useState(false);
+  const [canViewRegistrations, setCanViewRegistrations] = useState(false);
   const [filterText, setFilterText] = useState<string>("");
   const [debouncedFilterText] = useDebounce(filterText, 300);
 
@@ -37,6 +38,13 @@ export default function EventsTableUser({
           "create_events"
         );
         setCanCreateEvents(permission);
+
+        const managePermission = await check_permissions(
+          userId || "",
+          organization.organizationid,
+          "view_dashboard"
+        );
+        setCanViewRegistrations(managePermission); // Check permission for managing events
       } catch (error) {
         console.error("Failed to check permissions", error);
       }
@@ -129,24 +137,32 @@ export default function EventsTableUser({
 
   const subHeaderComponent = (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full">
-          <input
-      type="text"
-      placeholder="Search..."
-      value={filterText}
-      onChange={(e) => setFilterText(e.target.value)}
-      className="block rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
-    />
+      <input
+        type="text"
+        placeholder="Search..."
+        value={filterText}
+        onChange={(e) => setFilterText(e.target.value)}
+        className="block rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+      />
 
-    <div className="mt-4 sm:flex sm:items-center sm:space-x-2">
-          {canCreateEvents && (
-            <button
-              onClick={handleCreateEvent}
-              className="rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-primarydark"
-            >
-              Create Event
-            </button>
-          )}
-        </div>
+      <div className="mt-4 sm:mt-0 flex space-x-2"> {/* Adjusted container to align buttons */}
+        {canCreateEvents && (
+          <button
+            onClick={handleCreateEvent}
+            className="rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-primarydark"
+          >
+            Create Event
+          </button>
+        )}
+        {canViewRegistrations && (
+          <button
+            onClick={() => router.push(`/${organization.slug}/dashboard/registrations`)}
+            className="rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-primarydark"
+          >
+            View Registrations
+          </button>
+        )}
+      </div>
     </div>
   );
 

@@ -12,8 +12,12 @@ import {
 } from "@/lib/posts_tab";
 import { useUser } from "@/context/user_context";
 import { PostComments } from "@/types/post_comments";
-import { UserCircleIcon } from "@heroicons/react/24/solid";
+import { UserCircleIcon, EllipsisVerticalIcon } from "@heroicons/react/24/solid";
 import { CombinedUserData } from "@/types/combined_user_data";
+import { Menu, Transition } from '@headlessui/react';
+import { Fragment } from 'react';
+
+import { timeAgo } from "@/lib/utils";
 
 const commentSchema = z.object({
   commentText: z
@@ -119,17 +123,17 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ postId, organizationI
       });
 
       if (newCommentResult && newCommentResult.data) {
-        const authorDetails = {
-          firstName: user.first_name || "",
-          lastName: user.last_name || "",
-          profilePicture: user.profilepicture
-            ? `${supabaseStorageBaseUrl}/${user.profilepicture}`
-            : null,
-        };
-
+        const authorDetails = await getAuthorDetails(user.id!); // Ensure this is correct
         const newComment = {
           ...newCommentResult.data,
-          combined_user_data: authorDetails,
+          created_at: new Date().toISOString(), // Set the current timestamp
+          combined_user_data: {
+            first_name: authorDetails.first_name || "",
+            last_name: authorDetails.last_name || "",
+            profilepicture: authorDetails.profilepicture
+              ? `${supabaseStorageBaseUrl}/${authorDetails.profilepicture}`
+              : undefined,
+          },
         };
 
         setComments((prev) => [newComment, ...prev]);
@@ -208,8 +212,10 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ postId, organizationI
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
+  
+
   return (
-    <div className="mt-12 mx-auto max-w-3xl">
+    <div className="bg-eerieblack p-4 rounded-lg shadow space-y-4 max-w-4xl mx-auto font-poppins">
       {isLoggedIn && canComment ? (
         <form onSubmit={handleSubmit(onSubmit)} className="mb-4">
           <textarea
@@ -217,15 +223,13 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ postId, organizationI
             placeholder="Enter your comment..."
             rows={2}
             maxLength={100}
-            className="w-full resize-none rounded-lg border border-[#424242] bg-[#1c1c1c] p-2 text-sm text-white"
+            className="w-full p-2 bg-charleston text-light rounded-md border border-fadedgrey focus:outline-none focus:border-primary"
             disabled={isLoading}
           />
           <button
             type="submit"
             disabled={isLoading}
-            className={`mt-2 rounded-lg px-4 py-2 text-sm ${
-              isLoading ? "bg-gray-500" : "bg-primary text-white"
-            }`}
+            className={`mt-2 bg-primary hover:bg-primarydark text-white font-semibold py-2 px-4 rounded`}
           >
             {isLoading ? "Submitting..." : "Submit"}
           </button>
@@ -240,14 +244,14 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ postId, organizationI
         onClick={() => setShowComments(!showComments)}
         className="mb-4 text-sm text-blue-500"
       >
-        {showComments ? "Hide Comments" : "Show Comments"}
+        {showComments ? "Hide Comments" : `Show Comments (${comments.length})`}
       </button>
 
       {showComments &&
         (comments.length > 0 ? (
           comments.map((comment) => (
-            <div key={comment.commentid} className="flex border-t border-[#424242] py-2">
-              <div className="mr-2 flex items-center">
+            <div key={comment.commentid} className="bg-raisinblack p-3 rounded-md">
+              <div className="flex items-center space-x-3">
                 {comment.combined_user_data?.profilepicture ? (
                   <img
                     src={comment.combined_user_data.profilepicture}
@@ -257,67 +261,84 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ postId, organizationI
                 ) : (
                   <UserCircleIcon className="h-10 w-10 text-white" />
                 )}
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <p className="text-white">
+                <div className="flex-1">
+                  <p className="text-sm text-light">
                     {comment.combined_user_data?.first_name}{" "}
                     {comment.combined_user_data?.last_name}
                   </p>
-                  <p className="text-sm text-gray-400">
-                    {formatDateTime(comment.created_at)}
-                  </p>
+                  <p className="text-xs text-fadedgrey">{timeAgo(comment.created_at)} ago</p>
                 </div>
-
-                {editingCommentId === comment.commentid ? (
-                  <div>
-                    <textarea
-                      value={editingText || ""}
-                      onChange={(e) => setEditingText(e.target.value)}
-                      rows={2}
-                      className="w-full resize-none rounded-lg border border-[#424242] bg-[#1c1c1c] p-2 text-sm text-white"
-                    />
-                    <div className="mt-2 flex space-x-4">
-                      <button
-                        onClick={handleUpdateComment}
-                        className="text-sm text-blue-500"
-                        disabled={isUpdating === comment.commentid}
-                      >
-                        {isUpdating === comment.commentid ? "Updating..." : "Update"}
-                      </button>
-                      <button
-                        onClick={handleCancelEdit}
-                        className="text-sm text-gray-500"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-white">{comment.comment}</p>
-                )}
-
-                {isLoggedIn &&
-                  (user.id === comment.authorid || canDeleteComments) &&
-                  editingCommentId !== comment.commentid && (
-                    <div className="flex space-x-4">
-                      {user.id === comment.authorid && (
-                        <button
-                          onClick={() => handleEdit(comment.commentid, comment.comment)}
-                          className="text-sm text-blue-500"
-                        >
-                          Edit
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleDelete(comment.commentid, comment.authorid!)}
-                        className="text-sm text-red-500"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  )}
+                <Menu as="div" className="relative">
+                  <Menu.Button>
+                    <EllipsisVerticalIcon className="h-5 w-5 text-gray-400" />
+                  </Menu.Button>
+                  <Transition
+                    as={Fragment}
+                    enter="transition ease-out duration-100"
+                    enterFrom="transform opacity-0 scale-95"
+                    enterTo="transform opacity-100 scale-100"
+                    leave="transition ease-in duration-75"
+                    leaveFrom="transform opacity-100 scale-100"
+                    leaveTo="transform opacity-0 scale-95"
+                  >
+                    <Menu.Items className="absolute right-0 w-48 mt-2 origin-top-right bg-white divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                      <div className="p-1">
+                        <Menu.Item>
+                          {({ active }) => (
+                            <button
+                              onClick={() => handleEdit(comment.commentid, comment.comment)}
+                              className={`${
+                                active ? 'bg-gray-100' : ''
+                              } group flex w-full items-center rounded-md px-2 py-2 text-sm text-gray-900`}
+                            >
+                              Edit
+                            </button>
+                          )}
+                        </Menu.Item>
+                        <Menu.Item>
+                          {({ active }) => (
+                            <button
+                              onClick={() => handleDelete(comment.commentid, comment.authorid!)}
+                              className={`${
+                                active ? 'bg-gray-100' : ''
+                              } group flex w-full items-center rounded-md px-2 py-2 text-sm text-red-600`}
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </Menu.Item>
+                      </div>
+                    </Menu.Items>
+                  </Transition>
+                </Menu>
               </div>
+              {editingCommentId === comment.commentid ? (
+                <div>
+                  <textarea
+                    value={editingText || ""}
+                    onChange={(e) => setEditingText(e.target.value)}
+                    rows={2}
+                    className="w-full resize-none rounded-lg border border-[#424242] bg-[#1c1c1c] p-2 text-sm text-white"
+                  />
+                  <div className="mt-2 flex space-x-4">
+                    <button
+                      onClick={handleUpdateComment}
+                      className="text-sm text-blue-500"
+                      disabled={isUpdating === comment.commentid}
+                    >
+                      {isUpdating === comment.commentid ? "Updating..." : "Update"}
+                    </button>
+                    <button
+                      onClick={handleCancelEdit}
+                      className="text-sm text-gray-500"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-2 text-light">{comment.comment}</p>
+              )}
             </div>
           ))
         ) : (
