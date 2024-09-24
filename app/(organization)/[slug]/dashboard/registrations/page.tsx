@@ -65,7 +65,7 @@ export default function RegistrationsPageUser() {
           const permission = await check_permissions(
             user.id,
             organization.organizationid,
-            "manage_event_registrations" // The permission key for viewing registrations
+            "view_dashboard" // The permission key for viewing registrations
           );
           setHasPermission(permission);
         } else {
@@ -133,8 +133,7 @@ export default function RegistrationsPageUser() {
       </div>
     );
   }
-
   return (
-    <RegistrationsTable registrations={registrations} />
+    <RegistrationsTable registrations={registrations} userId={user.id} organizationId={organization?.organizationid ?? ''} />
   );
 }

@@ -134,7 +134,7 @@ const Attendance = () => {
         </div>
         <div className="sm:mx-auto sm:w-full sm:max-w-sm text-center flex-grow">
           {/* Logo */}
-          <img className="mx-auto mt-20 h-10 w-auto" src="/Symbian.png" alt="SyncUp" />
+          <img className="mx-auto mt-20 h-10 w-auto" src="/syncup.png" alt="SyncUp" />
           <h2 className="mt-6 text-2xl font-bold leading-9 tracking-tight text-white">
             Attendance Check
           </h2>

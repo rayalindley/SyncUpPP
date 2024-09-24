@@ -1,4 +1,3 @@
-
 import EventsTable from "@/components/app/events_table";
 import { fetchAllOrganizations, fetchOrganizationsForUser } from "@/lib/organization";
 import { createClient, getUser } from "@/lib/supabase/server";
@@ -22,12 +21,27 @@ export default async function DashboardPage() {
     organizations = organizationsData || [];
     const { data: eventsData } = await supabase.from("events").select("*");
     events = eventsData || [];
-    // console.log("events", events);
   } else {
+    // Fetch organizations that the user is part of
     const organizationsData = await fetchOrganizationsForUser(user.id);
     organizations = organizationsData.data || [];
-    const eventsData = await supabase.from("events").select("*").eq("adminid", user.id);
-    events = eventsData.data || [];
+
+    // Extract organization IDs
+    const organizationIds = organizations.map(org => org.organizationid);
+
+    // Fetch events associated with any of these organizations
+    if (organizationIds.length > 0) {
+      const { data: eventsData, error } = await supabase
+        .from("events")
+        .select("*")
+        .in("organizationid", organizationIds); // Use 'in' to match any of the organization IDs
+
+      if (error) {
+        console.error("Error fetching events:", error);
+      }
+      
+      events = eventsData || [];
+    }
   }
 
   return (

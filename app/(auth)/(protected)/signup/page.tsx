@@ -11,7 +11,7 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
     <>
       <div className="flex min-h-full flex-1 flex-col justify-center bg-eerieblack py-12 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
-          <img className="mx-auto h-10 w-auto" src="Symbian.png" alt="SyncUp" />
+          <img className="mx-auto h-10 w-auto" src="syncup.png" alt="SyncUp" />
           <h2 className="mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-light">
             Sign up to create your account.
           </h2>
