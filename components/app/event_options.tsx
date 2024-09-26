@@ -18,6 +18,7 @@ import { FaRegEdit } from "react-icons/fa";
 import Swal from "sweetalert2";
 import { saveAs } from "file-saver"; // Install file-saver package if not already installed
 import { format } from "date-fns"; // For formatting the current date
+import { recordActivity } from "@/lib/track";
 
 const jsonTheme = {
   main: "line-height:1.3;color:#383a42;background:#ffffff;overflow:hidden;word-wrap:break-word;white-space: pre-wrap;word-wrap: break-word;",
@@ -39,19 +40,20 @@ const truncateText = (text: string, maxLength: number) => {
     return text.substring(0, maxLength) + "...";
   }
   return text;
+
+  interface UserProfileWithAttendance extends UserProfile {
+    attendance: string; // Add attendance field to the user profile
+  }
 };
 
 export default function EventOptions({
   selectedEvent,
-  open,
-  setOpen,
   userId,
 }: {
   selectedEvent: Event;
-  open: boolean;
-  setOpen: (open: boolean) => void;
   userId: string;
 }) {
+  const [open, setOpen] = useState(false);
   const [currentTab, setCurrentTab] = useState("Info");
   const [attendees, setAttendees] = useState<UserProfile[] | null>(null);
   const [loadingAttendees, setLoadingAttendees] = useState(false);
@@ -73,6 +75,12 @@ export default function EventOptions({
       if (result.isConfirmed) {
         const response = await deleteEvent(selectedEvent.eventid); // Assuming id is used for events
 
+        await recordActivity({
+          activity_type: "event_delete",
+          organization_id: selectedEvent.organizationid,
+          description: `${selectedEvent.title} was deleted`,
+        })
+        
         if (!response.error) {
           Swal.fire({
             title: "Deleted!",
@@ -219,7 +227,7 @@ export default function EventOptions({
       .join("\n");
 
     const currentDate = format(new Date(), "yyyyMMdd"); // Format date as yyyyMMdd
-    const fileName = `${selectedEvent.title}_${selectedEvent.eventslug}_${currentDate}.csv`
+    const fileName = `${selectedEvent.title}_attendees_${currentDate}.csv`
       .replace(/ /g, "_")
       .toLowerCase(); // Format file name: remove spaces, lowercase
 
@@ -638,7 +646,7 @@ export default function EventOptions({
                                 </div>
                               ))
                             ) : (
-                              <div>No attendees registered for this event.</div>
+                              <div>No attendees present for this event.</div>
                             )}
                           </div>
                         )}

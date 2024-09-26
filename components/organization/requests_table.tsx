@@ -90,18 +90,32 @@ const RequestsTable: React.FC<RequestsTableProps> = ({ requests }) => {
           <select
             value={row.status}
             onChange={(e) => handleStatusChange(row.id, e.target.value)}
-            className={`cursor-pointer rounded-2xl border px-2 py-1 pl-4 pr-6 text-xs   ${
-              row.status === "pending"
-                ? "border-yellow-400 bg-yellow-200 text-yellow-800"
+            className={`text-center bg-charleston cursor-pointer rounded-2xl border-2 px-4 py-1  text-xs 
+            ${row.status === "pending"
+                ? "bg-yellow-600/25 text-yellow-300 border-yellow-500 focus:border-yellow-500 focus:outline-none focus:ring-yellow-500"
                 : row.status === "approved"
-                  ? "border-green-400 bg-green-200 text-green-800"
-                  : "border-red-400 bg-red-200 text-red-800"
+                  ? "bg-green-600/25 text-green-300 border-green-700 focus:border-green-700 focus:outline-none focus:ring-green-700"
+                  : "bg-red-600/25 text-red-300 border-red-700  focus:border-red-700 focus:outline-none focus:ring-red-700"
             }`}
           >
-            <option value="pending">Pending</option>
             <option value="approved">Approved</option>
+            <option value="pending">Pending</option>
             <option value="rejected">Rejected</option>
           </select>
+          <style jsx>{`
+                select {
+                  appearance: none; /* Removes default styling including arrow */
+                  background-image: none; /* Ensures no background images like arrow */
+                  outline: none; /* Removes the blue outline */
+                }
+
+                select option {
+                  background-color: #2a2a2a; /* Option background color */
+                  color: #ffffff; /* Option text color */
+                  text-align: center; /* Ensures text alignment inside the option */
+                  margin: 0; /* Removes any default margin */
+                }
+            `}</style>
         </div>
       ),
     },
@@ -155,7 +169,7 @@ const RequestsTable: React.FC<RequestsTableProps> = ({ requests }) => {
           </select>
           <button
             onClick={handleAcceptAll}
-            className="ml-2 rounded-md bg-green-500 px-3 py-2 text-sm text-white hover:bg-green-600"
+            className="ml-2 rounded-md bg-primary px-3 py-2 text-sm text-white hover:bg-primarydark"
           >
             Accept All
           </button>

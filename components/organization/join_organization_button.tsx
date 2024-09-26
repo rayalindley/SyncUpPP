@@ -7,15 +7,18 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useRouter } from "next/navigation";
 import { SupabaseClient } from "@supabase/supabase-js";
+import { recordActivity } from "@/lib/track";
 
 interface JoinButtonProps {
   organizationId: string;
+  organizationName: string;
   organizationAccess: "open" | "approval";
   initialMembershipStatus: "none" | "member" | "pending";
 }
 
 export default function JoinButton({
   organizationId,
+  organizationName,
   organizationAccess,
   initialMembershipStatus,
 }: JoinButtonProps) {
@@ -72,6 +75,20 @@ export default function JoinButton({
       toast.error("Failed to leave the organization. Please try again.");
     } else {
       toast.success("Successfully left the organization!");
+      
+      // Record activity for organization
+      await recordActivity({
+        organization_id: organizationId,
+        activity_type: "LEAVE_ORGANIZATION",
+        description: `A member left the organization`,
+      });
+
+      // Record activity for user
+      await recordActivity({
+        activity_type: "LEAVE_ORGANIZATION",
+        description: `User left the organization: ${organizationName}`,
+      });
+
       setMembershipStatus("none");
     }
   };
@@ -89,6 +106,20 @@ export default function JoinButton({
       toast.error("Failed to cancel the request. Please try again.");
     } else {
       toast.success("Request cancelled successfully!");
+      
+      // Record activity for organization
+      await recordActivity({
+        organization_id: organizationId,
+        activity_type: "CANCEL_JOIN_REQUEST",
+        description: `A member cancelled their join request`,
+      });
+
+      // Record activity for user
+      await recordActivity({
+        activity_type: "CANCEL_JOIN_REQUEST",
+        description: `User cancelled join request for: ${organizationName}`,
+      });
+
       setMembershipStatus("none");
     }
   };
@@ -107,6 +138,20 @@ export default function JoinButton({
       toast.error("Failed to join the organization. Please try again.");
     } else {
       toast.success("Successfully joined the organization!");
+      
+      // Record activity for organization
+      await recordActivity({
+        organization_id: organizationId,
+        activity_type: "JOIN_ORGANIZATION",
+        description: `A new member joined the organization`,
+      });
+
+      // Record activity for user
+      await recordActivity({
+        activity_type: "JOIN_ORGANIZATION",
+        description: `User joined the organization: ${organizationName}`,
+      });
+
       setMembershipStatus("member");
     }
   };
@@ -125,6 +170,20 @@ export default function JoinButton({
       toast.error("Failed to submit join request. Please try again.");
     } else {
       toast.success("Join request submitted successfully!");
+      
+      // Record activity for organization
+      await recordActivity({
+        organization_id: organizationId,
+        activity_type: "SUBMIT_JOIN_REQUEST",
+        description: `A new join request was submitted`,
+      });
+
+      // Record activity for user
+      await recordActivity({
+        activity_type: "SUBMIT_JOIN_REQUEST",
+        description: `User submitted a join request for: ${organizationName}`,
+      });
+
       setMembershipStatus("pending");
     }
   };

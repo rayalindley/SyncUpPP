@@ -15,6 +15,7 @@ import { createClient } from "@/lib/supabase/client";
 
 import countries from "@/lib/countries";
 import { IOptions } from "tailwind-datepicker-react/types/Options";
+import { recordActivity } from "@/lib/track";
 
 // Define constants for types of organizations, industries, and sizes
 const ORGANIZATION_TYPES = [
@@ -361,6 +362,21 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
         );
 
         if (data) {
+        
+          await recordActivity({
+            activity_type: "organization_update",
+            organization_id: data.organizationid,
+            description: `${formData.name} details was updated`,
+            activity_details: {
+              organization_name: formData.name,
+              organization_slug: formData.slug,
+              organization_description: formData.description,
+              organization_type: formData.organizationType,
+              organization_industry: formData.industry,
+              organization_size: formData.organizationSize,
+            },
+          });
+
           toast.success("Organization was updated successfully.", {
             position: "bottom-right",
             autoClose: 5000,
@@ -380,6 +396,22 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
         const { data, error } = await createOrganization(formData);
 
         if (data) {
+
+          // record activity
+          await recordActivity({
+            activity_type: "organization_create",
+            organization_id: data.organizationid,
+            description: `${formData.name} was created`,
+            activity_details: {
+              organization_name: formData.name,
+              organization_slug: formData.slug,
+              organization_description: formData.description,
+              organization_type: formData.organizationType,
+              organization_industry: formData.industry,
+              organization_size: formData.organizationSize,
+            },
+          });
+
           toast.success("Organization was created successfully.", {
             position: "bottom-right",
             autoClose: 5000,

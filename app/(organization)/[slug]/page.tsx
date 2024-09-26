@@ -10,6 +10,7 @@ import { check_permissions, getUserOrganizationInfo } from "@/lib/organization";
 import JoinButton from "@/components/organization/join_organization_button";
 import { User } from "@supabase/supabase-js";
 import { CalendarIcon, InboxIcon, UserGroupIcon } from "@heroicons/react/24/outline";
+import { fetchPosts } from "@/lib/posts_tab"; // Import fetchPosts
 
 const getInitials = (name: string) =>
   name
@@ -82,6 +83,9 @@ export default async function OrganizationUserView({
   const { data: events, error: eventsError } = await fetchEvents(org.organizationid);
   const memberships = await getMemberships(org.organizationid);
   const socials = org?.socials || {};
+  const {data:posts, error:postsError } = await fetchPosts(org.organizationid, user?.id ?? null); // Fetch posts
+
+  console.log(posts);
 
   return (
     <div>
@@ -119,6 +123,7 @@ export default async function OrganizationUserView({
                 {membershipStatus !== "admin" && (
                   <JoinButton
                     organizationId={org.organizationid}
+                    organizationName={org.name}
                     organizationAccess={org.organization_access}
                     initialMembershipStatus={membershipStatus}
                   />
@@ -167,6 +172,7 @@ export default async function OrganizationUserView({
               memberships={memberships}
               events={events}
               id={user?.id ?? ""}
+              posts={posts} // Pass posts as a prop
             />
           </div>
         </div>

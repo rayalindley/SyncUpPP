@@ -15,6 +15,7 @@ export async function insertEvent(formData: any, organizationid: string) {
     eventphoto: formData.eventphoto,
     tags: formData.tags,
     eventslug: formData.slug,
+    onsite: formData.onsite,
   };
 
   const supabase = createClient();
@@ -70,6 +71,7 @@ export async function updateEvent(eventId: string, formData: any) {
     eventphoto: formData.eventphoto,
     tags: formData.tags,
     eventslug: formData.slug,
+    onsite: formData.onsite,
   };
 
   const supabase = createClient();
@@ -178,7 +180,7 @@ export async function countRegisteredUsers(eventId: string) {
       .from("eventregistrations")
       .select("*", { count: "exact" }) // Request the count of rows
       .eq("eventid", eventId)
-      .eq("status", "registered");
+      .in("status", ["registered", "pending"]);
 
     if (!error) {
       // The count is returned in the count property
@@ -218,20 +220,23 @@ export async function getEventBySlug(slug: string) {
   }
 }
 
-export async function registerForEvent(eventId: string, userId: string) {
+export async function registerForEvent(eventId: string, userId: string, paymentMethod: 'onsite' | 'offsite') {
   const supabase = createClient();
 
   try {
     // Fetch event to check privacy setting
     const { data: event, error: eventError } = await supabase
       .from("events")
-      .select("privacy, organizationid")
+      .select("privacy, organizationid, onsite")
       .eq("eventid", eventId)
       .single();
 
     if (eventError || !event) {
       return { data: null, error: { message: eventError?.message || "Event not found" } };
     }
+
+    // Determine the registration status based on payment method
+    const registrationStatus = paymentMethod === 'onsite' ? 'pending' : 'registered';
 
     // Check if the event is private
     if (event.privacy === "private") {
@@ -252,7 +257,7 @@ export async function registerForEvent(eventId: string, userId: string) {
 
       const organizationMemberId = membership.organizationmemberid;
 
-      // Register the user for the event
+      // Register the user for the event with the appropriate status
       const { data: registrationData, error: registrationError } = await supabase
         .from("eventregistrations")
         .insert([
@@ -260,7 +265,8 @@ export async function registerForEvent(eventId: string, userId: string) {
             eventid: eventId,
             organizationmemberid: organizationMemberId,
             registrationdate: new Date().toISOString(),
-            status: "registered",
+            status: registrationStatus, // Use the determined status
+            userid: userId // Include the userId for reference
           },
         ]);
 
@@ -277,7 +283,8 @@ export async function registerForEvent(eventId: string, userId: string) {
           {
             eventid: eventId,
             registrationdate: new Date().toISOString(),
-            status: "registered",
+            status: registrationStatus, // Use the determined status
+            userid: userId // Include the userId for reference
           },
         ]);
 
@@ -296,6 +303,7 @@ export async function registerForEvent(eventId: string, userId: string) {
   }
 }
 
+
 export async function checkUserRegistration(eventId: string, userId: string) {
   const supabase = createClient();
 
@@ -313,7 +321,7 @@ export async function checkUserRegistration(eventId: string, userId: string) {
       throw error;
     }
 
-    const isRegistered = registration?.status === "registered";
+    const isRegistered = registration?.status === "registered" || registration?.status === "pending";
     return { isRegistered, error: null };
   } catch (e: any) {
     console.error("Unexpected error:", e);
@@ -398,9 +406,10 @@ export async function fetchRegisteredUsersForEvent(eventId: string) {
   try {
     // Fetch user IDs of registered users for the event
     const { data: registrations, error: registrationsError } = await supabase
-      .from("eventregistrations")
+      .from("eventregistrations_view")
       .select("userid")
-      .eq("eventid", eventId);
+      .eq("eventid", eventId)
+      .in("attendance", ["present", "late"]);
 
     if (registrationsError) {
       throw registrationsError;

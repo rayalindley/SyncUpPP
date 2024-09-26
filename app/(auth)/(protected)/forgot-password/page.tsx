@@ -7,7 +7,7 @@ export default function ForgotPassword({ searchParams }: { searchParams: any }) 
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-[480px]">
           <div className="m-3 rounded-lg bg-charleston px-6 py-12 shadow sm:px-12">
             <div className="mb-6 sm:mx-auto sm:w-full sm:max-w-md">
-              <img className="mx-auto h-10 w-auto" src="Symbian.png" alt="SyncUp" />
+              <img className="mx-auto h-10 w-auto" src="syncup.png" alt="SyncUp" />
               <h2 className="text-light mt-3 text-center text-2xl font-bold leading-9 tracking-tight">
                 Reset your password
               </h2>

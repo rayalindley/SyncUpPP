@@ -11,6 +11,9 @@ import { createClient } from "@/lib/supabase/client";
 import { getUser } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Preloader from "@/components/preloader";
+import ActivityFeed from "@/components/acitivty_feed";
+import { Activity } from "@/types/activities";
+import { isActiveMember } from "@/lib/track";
 
 const supabase = createClient();
 
@@ -22,7 +25,6 @@ interface OrganizationMember {
   roleid: string;
   joindate: string;
   enddate: string | null;
-  months: number;
   expiration_date: string | null;
   organization_slug: string;
   organization: any;
@@ -67,6 +69,7 @@ interface OrganizationMember {
 interface MemberTableData extends OrganizationMember {
   open: boolean;
   setOpen: (open: boolean) => void;
+  status: 'Active' | 'Inactive';
 }
 
 interface MembersTableAllProps {
@@ -88,26 +91,56 @@ const MembersTableAll: React.FC<MembersTableAllProps> = ({
     null
   );
   const router = useRouter();
+  const [userActivities, setUserActivities] = useState<Activity[]>([]);
 
   useEffect(() => {
-    setIsMounted(true);
-    if (members.length) {
-      const data = members.map((member) => ({
-        ...member,
-        open: false,
-        setOpen: (open: boolean) => {
-          setTableData((prevData) =>
-            prevData.map((item) =>
-              item.organizationmemberid === member.organizationmemberid
-                ? { ...item, open }
-                : item
-            )
-          );
-        },
-      }));
-      setTableData(data);
-    }
+    const fetchMemberStatus = async () => {
+      setIsMounted(true);
+      if (members.length) {
+        const data = await Promise.all(members.map(async (member) => {
+          const isActive = await isActiveMember(member.userid, member.organizationid);
+          return {
+            ...member,
+            status: isActive ? 'Active' : 'Inactive',
+            open: false,
+            setOpen: (open: boolean) => {
+              setTableData((prevData) =>
+                prevData.map((item) =>
+                  item.organizationmemberid === member.organizationmemberid
+                    ? { ...item, open }
+                    : item
+                )
+              );
+            },
+          };
+        }));
+        setTableData(data as MemberTableData[]);
+      }
+    };
+
+    fetchMemberStatus();
   }, [members]);
+
+  useEffect(() => {
+    if (selectedMember) {
+      fetchUserActivities(selectedMember.userid);
+    }
+  }, [selectedMember]);
+
+  const fetchUserActivities = async (userId: string) => {
+    const { data, error } = await supabase
+      .from('activities')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (error) {
+      console.error("Error fetching user activities:", error);
+    } else {
+      setUserActivities(data || []);
+    }
+  };
 
   // Define the columns including the new "Organization" column
   const columns: TableColumn<MemberTableData>[] = [
@@ -123,7 +156,7 @@ const MembersTableAll: React.FC<MembersTableAllProps> = ({
       sortable: true,
       cell: (row: MemberTableData) => (
         <span
-          className={`border-1 rounded-2xl border px-2 text-xs`}
+          className={`border-2 rounded-2xl px-4 py-1 text-xs`}
           style={{
             borderColor: row.role.color,
             backgroundColor: `${row.role.color}33`,
@@ -161,11 +194,19 @@ const MembersTableAll: React.FC<MembersTableAllProps> = ({
       sortable: true,
     },
     {
-      name: "Months",
-      selector: (row: MemberTableData) => row.months,
+      name: "Status",
+      selector: (row: MemberTableData) => row.status,
       sortable: true,
+      cell: (row: MemberTableData) => (
+        <span
+          className={`w-20 text-center bg-charleston cursor-pointer rounded-2xl border-2 px-2 py-1 text-xs focus:border-primary focus:outline-none focus:ring-primar ${
+            row.status === 'Active' ? 'bg-green-600/25 text-green-300 border-green-700 focus:border-green-700 focus:outline-none focus:ring-green-700' : 'bg-red-600/25 text-red-300 border-red-700  focus:border-red-700 focus:outline-none focus:ring-red-700'
+          }`}
+        >
+          {row.status}
+        </span>
+      ),
     },
-
   ];
 
   const handleRowClick = (row: MemberTableData) => {
@@ -303,8 +344,8 @@ const MembersTableAll: React.FC<MembersTableAllProps> = ({
             Organization Members
           </h1>
           <p className="mt-2 text-sm text-light">
-            A list of all the members across organizations including their name,
-            role, join date, and membership details.
+            A list of all the members across organizations including their name, role,
+            join date, and membership details.
           </p>
         </div>
       </div>
@@ -411,10 +452,7 @@ const MembersTableAll: React.FC<MembersTableAllProps> = ({
                               onClick={() => setSelectedMember(null)}
                             >
                               <span className="sr-only">Close panel</span>
-                              <XMarkIcon
-                                className="h-6 w-6"
-                                aria-hidden="true"
-                              />
+                              <XMarkIcon className="h-6 w-6" aria-hidden="true" />
                             </button>
                           </div>
                         </div>
@@ -438,9 +476,7 @@ const MembersTableAll: React.FC<MembersTableAllProps> = ({
                                   {selectedMember.user.gender}
                                 </p>
                                 <p>
-                                  <span className="font-semibold">
-                                    Date of Birth:
-                                  </span>{" "}
+                                  <span className="font-semibold">Date of Birth:</span>{" "}
                                   {selectedMember.user.dateofbirth || "N/A"}
                                 </p>
                                 <p>
@@ -452,9 +488,7 @@ const MembersTableAll: React.FC<MembersTableAllProps> = ({
                                   {selectedMember.user.website}
                                 </p>
                                 <p>
-                                  <span className="font-semibold">
-                                    Description:
-                                  </span>{" "}
+                                  <span className="font-semibold">Description:</span>{" "}
                                   {selectedMember.user.description}
                                 </p>
                               </div>
@@ -471,9 +505,7 @@ const MembersTableAll: React.FC<MembersTableAllProps> = ({
                                   {selectedMember.role.role}
                                 </p>
                                 <p>
-                                  <span className="font-semibold">
-                                    Join Date:
-                                  </span>{" "}
+                                  <span className="font-semibold">Join Date:</span>{" "}
                                   {new Date(selectedMember.joindate).toLocaleString(
                                     "en-US",
                                     {
@@ -487,13 +519,7 @@ const MembersTableAll: React.FC<MembersTableAllProps> = ({
                                   )}
                                 </p>
                                 <p>
-                                  <span className="font-semibold">Months:</span>{" "}
-                                  {selectedMember.months}
-                                </p>
-                                <p>
-                                  <span className="font-semibold">
-                                    End Date:
-                                  </span>{" "}
+                                  <span className="font-semibold">End Date:</span>{" "}
                                   {selectedMember.enddate
                                     ? new Date(selectedMember.enddate).toLocaleString(
                                         "en-US",
@@ -625,6 +651,20 @@ const MembersTableAll: React.FC<MembersTableAllProps> = ({
                               ) : (
                                 <p className="text-gray-300">
                                   No payment history available
+                                </p>
+                              )}
+                            </div>
+
+                            {/* User Activities Section */}
+                            <div className="rounded-lg bg-charleston p-4">
+                              <h3 className="mb-4 text-lg font-medium text-light">
+                                Recent Activities
+                              </h3>
+                              {userActivities.length > 0 ? (
+                                <ActivityFeed activities={userActivities} />
+                              ) : (
+                                <p className="text-gray-300">
+                                  No recent activities available
                                 </p>
                               )}
                             </div>

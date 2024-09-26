@@ -45,7 +45,7 @@ export default function Footer() {
           </Link>
         </div>
         <div className="mt-4 max-sm:order-3 md:mt-0">
-          <p className="text-center text-xs  text-gray-500">
+          <p className="text-center text-xs text-gray-500">
             &copy; Copyright 2024 SyncUp. All rights reserved.
           </p>
         </div>
@@ -60,6 +60,10 @@ export default function Footer() {
               <item.icon className="h-6 w-6" aria-hidden="true" />
             </a>
           ))}
+          <div className="border-l border-gray-500 h-6 mx-2" /> {/* Divider */}
+          <Link href="/terms-and-conditions" className="text-light text-sm mt-1 hover:text-primary">
+            Terms & Conditions
+          </Link>
         </div>
       </div>
     </footer>

@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { Member } from "@/types/member";
 import { Role } from "@/types/role";
+import { recordActivity } from "@/lib/track";
 
 const MySwal = withReactContent(Swal);
 
@@ -128,6 +129,24 @@ export const Members = ({
         MySwal.fire("Error", "Failed to remove member", "error");
         console.error("Error removing member:", error);
       } else {
+        // user memberId to get user profile
+        const { data: member, error: profileError } = await supabase
+          .from("userprofiles")
+          .select("first_name")
+          .eq("userid", memberId)
+          .single();
+
+        // record activity
+        await recordActivity({
+          activity_type: "role_member_remove",
+          description: `${member?.first_name} was removed to the role: ${selectedRole.role}.`,
+          organization_id: organizationid,
+          activity_details: {
+            role_id: selectedRole.role_id,
+            member_id: memberId,
+          },
+        });
+
         MySwal.fire("Removed!", "Member has been removed.", "success");
         const updatedMembers = filteredMembers.filter(
           (member) => member.userid !== memberId
