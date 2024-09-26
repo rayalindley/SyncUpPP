@@ -64,17 +64,12 @@ function Header({ user }: { user: User }) {
     if (response && response.data) {
       const { data, unreadCount } = response;
 
-      const sortedData = data.sort(
-        (a: Notifications, b: Notifications) => {
-          if (a.read === b.read) {
-            return (
-              new Date(b.date_created).getTime() -
-              new Date(a.date_created).getTime()
-            );
-          }
-          return a.read ? 1 : -1;
+      const sortedData = data.sort((a: Notifications, b: Notifications) => {
+        if (a.read === b.read) {
+          return new Date(b.date_created).getTime() - new Date(a.date_created).getTime();
         }
-      );
+        return a.read ? 1 : -1;
+      });
 
       setNotifications(sortedData);
       setUnreadCount(unreadCount);
@@ -126,34 +121,29 @@ function Header({ user }: { user: User }) {
   };
 
   function getNotificationLink(notification: Notifications) {
+    if (!notification.path) return null;
+
     switch (notification.type) {
       case "event":
       case "event_update":
       case "event_registration":
       case "event_cancellation":
-        return `/e/${notification.metadata?.eventslug}`;
       case "membership":
       case "membership_expiring":
       case "membership_expiring_today":
-        return `/${notification.path}`;
       case "welcome":
       case "new_member":
-        return `/${notification.path}`;
       case "post":
       case "post_deletion":
-        return `/${notification.path}/posts/${notification.metadata?.postid}`;
       case "comment":
       case "comment_deletion":
-        return `/${notification.path}/posts/${notification.metadata?.postid}`;
       case "payment":
       case "payment_failure":
-        return `/${notification.path}`;
       case "organization_request":
       case "organization_request_update":
-        return `/${notification.path}`;
       case "role_change":
       case "member_removal":
-        return `/${notification.path}`;
+        return notification.path;
       default:
         return null;
     }
@@ -177,9 +167,7 @@ function Header({ user }: { user: User }) {
       case "post":
         return <PencilSquareIcon className="h-6 w-6 text-indigo-500" />;
       case "comment":
-        return (
-          <ChatBubbleLeftEllipsisIcon className="h-6 w-6 text-pink-500" />
-        );
+        return <ChatBubbleLeftEllipsisIcon className="h-6 w-6 text-pink-500" />;
       case "payment_failure":
         return <ExclamationCircleIcon className="h-6 w-6 text-red-500" />;
       case "organization_request":
@@ -200,19 +188,14 @@ function Header({ user }: { user: User }) {
     }
   }
 
-  const handleNotificationClick = async (
-    notificationId: string,
-    link: string | null
-  ) => {
+  const handleNotificationClick = async (notificationId: string, link: string | null) => {
     const updatedNotifications = notifications.map((notification) =>
       notification.notificationid === notificationId
         ? { ...notification, read: true }
         : notification
     );
     setNotifications(updatedNotifications);
-    setUnreadCount((prevUnreadCount) =>
-      prevUnreadCount > 0 ? prevUnreadCount - 1 : 0
-    );
+    setUnreadCount((prevUnreadCount) => (prevUnreadCount > 0 ? prevUnreadCount - 1 : 0));
 
     const { success } = await markNotificationAsRead(notificationId);
     if (!success) {
@@ -277,7 +260,7 @@ function Header({ user }: { user: User }) {
               <span className="sr-only">View notifications</span>
               <BellIcon className="h-6 w-6" aria-hidden="true" />
               {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-xs font-semibold text-white">
+                <span className="absolute right-1 top-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-xs font-semibold text-white">
                   {unreadCount}
                 </span>
               )}
@@ -298,10 +281,8 @@ function Header({ user }: { user: User }) {
                   overflowY: "auto",
                 }}
               >
-                <div className="py-2 px-4 border-b border-gray-700 flex justify-between items-center">
-                  <span className="text-sm font-semibold text-white">
-                    Notifications
-                  </span>
+                <div className="flex items-center justify-between border-b border-gray-700 px-4 py-2">
+                  <span className="text-sm font-semibold text-white">Notifications</span>
                   {unreadCount > 0 && (
                     <button
                       className="text-xs text-gray-400 hover:text-gray-200"
@@ -317,14 +298,11 @@ function Header({ user }: { user: User }) {
                     return (
                       <div
                         key={notification.notificationid}
-                        className={`flex items-start gap-3 p-2 rounded-lg mb-2 hover:bg-[#151718] cursor-pointer ${
+                        className={`mb-2 flex cursor-pointer items-start gap-3 rounded-lg p-2 hover:bg-[#151718] ${
                           notification.read ? "opacity-50" : ""
                         }`}
                         onClick={() =>
-                          handleNotificationClick(
-                            notification.notificationid,
-                            link
-                          )
+                          handleNotificationClick(notification.notificationid!, link)
                         }
                       >
                         <div className="flex-shrink-0">
@@ -339,10 +317,7 @@ function Header({ user }: { user: User }) {
                           </p>
                           <p className="mt-1 text-xs text-gray-400">
                             {formatDistanceToNow(
-                              addHours(
-                                new Date(notification.date_created),
-                                8
-                              ),
+                              addHours(new Date(notification.date_created), 8),
                               { addSuffix: true }
                             )}
                           </p>
@@ -351,14 +326,12 @@ function Header({ user }: { user: User }) {
                     );
                   })}
                   {notifications.length === 0 && (
-                    <p className="text-xs text-gray-400">
-                      No new notifications.
-                    </p>
+                    <p className="text-xs text-gray-400">No new notifications.</p>
                   )}
                 </div>
-                <div className="px-4 py-2 border-t border-gray-700">
+                <div className="border-t border-gray-700 px-4 py-2">
                   <button
-                    className="text-sm text-[#23af90] hover:underline cursor-pointer"
+                    className="cursor-pointer text-sm text-[#23af90] hover:underline"
                     onClick={() => setIsNotificationDialogOpen(true)}
                   >
                     View all notifications
@@ -398,24 +371,24 @@ function Header({ user }: { user: User }) {
                     leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                   >
                     <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-[#151718] text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
-                      <div className="py-2 px-4 border-b border-gray-700 flex justify-between items-center">
+                      <div className="flex items-center justify-between border-b border-gray-700 px-4 py-2">
                         <span className="text-lg font-semibold text-white">
                           All Notifications
                         </span>
                         <button
-                          className="absolute top-2 right-2 text-gray-400 hover:text-gray-200"
+                          className="absolute right-2 top-2 text-gray-400 hover:text-gray-200"
                           onClick={() => setIsNotificationDialogOpen(false)}
                         >
                           <XMarkIcon className="h-5 w-5" aria-hidden="true" />
                         </button>
                       </div>
 
-                      <div className="px-4 py-2 border-b border-gray-700">
+                      <div className="border-b border-gray-700 px-4 py-2">
                         <div className="flex items-center gap-2">
                           <div className="relative flex-1">
                             <input
                               type="text"
-                              className="w-full rounded-md bg-gray-800 text-white px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#23af90]"
+                              className="w-full rounded-md bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#23af90]"
                               placeholder="Search notifications..."
                               value={searchQuery}
                               onChange={(e) => setSearchQuery(e.target.value)}
@@ -428,7 +401,7 @@ function Header({ user }: { user: User }) {
                             </div>
                           </div>
                           <Menu as="div" className="relative">
-                            <Menu.Button className="flex items-center px-3 py-2 bg-gray-800 text-white text-sm rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-[#23af90]">
+                            <Menu.Button className="flex items-center rounded-md bg-gray-800 px-3 py-2 text-sm text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-[#23af90]">
                               Filter
                               <ChevronDownIcon
                                 className="ml-1 h-4 w-4 text-gray-400"
@@ -451,8 +424,10 @@ function Header({ user }: { user: User }) {
                                       <button
                                         onClick={() => setFilterType(null)}
                                         className={classNames(
-                                          active ? "bg-[#23af90] text-white" : "text-gray-300",
-                                          "block w-full text-left px-4 py-2 text-sm"
+                                          active
+                                            ? "bg-[#23af90] text-white"
+                                            : "text-gray-300",
+                                          "block w-full px-4 py-2 text-left text-sm"
                                         )}
                                       >
                                         All Types
@@ -477,7 +452,7 @@ function Header({ user }: { user: User }) {
                                             active
                                               ? "bg-[#23af90] text-white"
                                               : "text-gray-300",
-                                            "block w-full text-left px-4 py-2 text-sm"
+                                            "block w-full px-4 py-2 text-left text-sm"
                                           )}
                                         >
                                           {type.charAt(0).toUpperCase() + type.slice(1)}
@@ -490,7 +465,7 @@ function Header({ user }: { user: User }) {
                             </Transition>
                           </Menu>
                           <Menu as="div" className="relative">
-                            <Menu.Button className="flex items-center px-3 py-2 bg-gray-800 text-white text-sm rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-[#23af90]">
+                            <Menu.Button className="flex items-center rounded-md bg-gray-800 px-3 py-2 text-sm text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-[#23af90]">
                               Sort
                               <ChevronDownIcon
                                 className="ml-1 h-4 w-4 text-gray-400"
@@ -516,7 +491,7 @@ function Header({ user }: { user: User }) {
                                           active
                                             ? "bg-[#23af90] text-white"
                                             : "text-gray-300",
-                                          "block w-full text-left px-4 py-2 text-sm"
+                                          "block w-full px-4 py-2 text-left text-sm"
                                         )}
                                       >
                                         Newest
@@ -531,7 +506,7 @@ function Header({ user }: { user: User }) {
                                           active
                                             ? "bg-[#23af90] text-white"
                                             : "text-gray-300",
-                                          "block w-full text-left px-4 py-2 text-sm"
+                                          "block w-full px-4 py-2 text-left text-sm"
                                         )}
                                       >
                                         Oldest
@@ -545,14 +520,14 @@ function Header({ user }: { user: User }) {
                         </div>
                       </div>
 
-                      <div className="px-4 py-2 max-h-96 overflow-y-auto">
+                      <div className="max-h-96 overflow-y-auto px-4 py-2">
                         {filteredNotifications.length > 0 ? (
                           filteredNotifications.map((notification) => {
                             const link = getNotificationLink(notification);
                             return (
                               <div
                                 key={notification.notificationid}
-                                className={`flex items-start gap-3 p-2 rounded-lg mb-2 hover:bg-[#151718] cursor-pointer ${
+                                className={`mb-2 flex cursor-pointer items-start gap-3 rounded-lg p-2 hover:bg-[#151718] ${
                                   notification.read ? "opacity-50" : ""
                                 }`}
                                 onClick={() =>
@@ -574,10 +549,7 @@ function Header({ user }: { user: User }) {
                                   </p>
                                   <p className="mt-1 text-xs text-gray-400">
                                     {formatDistanceToNow(
-                                      addHours(
-                                        new Date(notification.date_created),
-                                        8
-                                      ),
+                                      addHours(new Date(notification.date_created), 8),
                                       { addSuffix: true }
                                     )}
                                   </p>
@@ -586,9 +558,7 @@ function Header({ user }: { user: User }) {
                             );
                           })
                         ) : (
-                          <p className="text-xs text-gray-400">
-                            No notifications found.
-                          </p>
+                          <p className="text-xs text-gray-400">No notifications found.</p>
                         )}
                       </div>
                     </Dialog.Panel>
@@ -689,7 +659,7 @@ function Header({ user }: { user: User }) {
                         }}
                         className={classNames(
                           active ? "bg-[#23af90] text-white" : "text-gray-300",
-                          "block w-full text-left px-4 py-2 text-sm"
+                          "block w-full px-4 py-2 text-left text-sm"
                         )}
                       >
                         Sign out
