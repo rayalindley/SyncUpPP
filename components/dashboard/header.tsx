@@ -1,5 +1,3 @@
-// Filename: D:\Github\SyncUp\components\dashboard\header.tsx
-
 "use client";
 import { signOut } from "@/lib/auth";
 import {
@@ -357,7 +355,7 @@ function Header({ user }: { user: User }) {
                 leaveFrom="opacity-100"
                 leaveTo="opacity-0"
               >
-                <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" />
+                <div className="fixed inset-0 bg-black bg-opacity-75 transition-opacity" />
               </Transition.Child>
 
               <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -371,41 +369,42 @@ function Header({ user }: { user: User }) {
                     leaveFrom="opacity-100 translate-y-0 sm:scale-100"
                     leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                   >
-                    <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-[#151718] text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
-                      <div className="flex items-center justify-between border-b border-gray-700 px-4 py-2">
-                        <span className="text-lg font-semibold text-white">
+                    <Dialog.Panel className="relative transform rounded-lg bg-[#151718] text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl">
+                      <div className="flex items-center justify-between border-b border-gray-700 px-6 py-4">
+                        <span className="text-xl font-semibold text-white">
                           All Notifications
                         </span>
                         <button
-                          className="absolute right-2 top-2 text-gray-400 hover:text-gray-200"
+                          className="absolute right-4 top-4 text-gray-400 hover:text-gray-200"
                           onClick={() => setIsNotificationDialogOpen(false)}
                         >
-                          <XMarkIcon className="h-5 w-5" aria-hidden="true" />
+                          <XMarkIcon className="h-6 w-6" aria-hidden="true" />
                         </button>
                       </div>
 
-                      <div className="border-b border-gray-700 px-4 py-2">
-                        <div className="flex items-center gap-2">
+                      <div className="border-b border-gray-700 px-6 py-4">
+                        <div className="flex flex-col items-center gap-3 sm:flex-row">
                           <div className="relative flex-1">
                             <input
                               type="text"
-                              className="w-full rounded-md bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#23af90]"
+                              className="w-full rounded-md bg-gray-800 px-4 py-3 text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#23af90]"
                               placeholder="Search notifications..."
                               value={searchQuery}
                               onChange={(e) => setSearchQuery(e.target.value)}
                             />
-                            <div className="absolute right-3 top-2">
+                            <div className="absolute right-4 top-3">
                               <MagnifyingGlassIcon
                                 className="h-5 w-5 text-gray-400"
                                 aria-hidden="true"
                               />
                             </div>
                           </div>
+
                           <Menu as="div" className="relative">
-                            <Menu.Button className="flex items-center rounded-md bg-gray-800 px-3 py-2 text-sm text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-[#23af90]">
+                            <Menu.Button className="flex items-center rounded-md bg-gray-800 px-4 py-3 text-sm text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-[#23af90]">
                               Filter
                               <ChevronDownIcon
-                                className="ml-1 h-4 w-4 text-gray-400"
+                                className="ml-2 h-5 w-5 text-gray-400"
                                 aria-hidden="true"
                               />
                             </Menu.Button>
@@ -418,7 +417,7 @@ function Header({ user }: { user: User }) {
                               leaveFrom="opacity-100 translate-y-0"
                               leaveTo="opacity-0 translate-y-1"
                             >
-                              <Menu.Items className="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-[#151718] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                              <Menu.Items className="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-[#151718] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                                 <div className="py-1">
                                   <Menu.Item>
                                     {({ active }) => (
@@ -465,11 +464,12 @@ function Header({ user }: { user: User }) {
                               </Menu.Items>
                             </Transition>
                           </Menu>
+
                           <Menu as="div" className="relative">
-                            <Menu.Button className="flex items-center rounded-md bg-gray-800 px-3 py-2 text-sm text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-[#23af90]">
+                            <Menu.Button className="flex items-center rounded-md bg-gray-800 px-4 py-3 text-sm text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-[#23af90]">
                               Sort
                               <ChevronDownIcon
-                                className="ml-1 h-4 w-4 text-gray-400"
+                                className="ml-2 h-5 w-5 text-gray-400"
                                 aria-hidden="true"
                               />
                             </Menu.Button>
@@ -482,7 +482,7 @@ function Header({ user }: { user: User }) {
                               leaveFrom="opacity-100 translate-y-0"
                               leaveTo="opacity-0 translate-y-1"
                             >
-                              <Menu.Items className="absolute right-0 mt-2 w-32 origin-top-right rounded-md bg-[#151718] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                              <Menu.Items className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-[#151718] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                                 <div className="py-1">
                                   <Menu.Item>
                                     {({ active }) => (
@@ -521,15 +521,15 @@ function Header({ user }: { user: User }) {
                         </div>
                       </div>
 
-                      <div className="max-h-96 overflow-y-auto px-4 py-2">
+                      <div className="max-h-[500px] overflow-y-auto px-6 py-4">
                         {filteredNotifications.length > 0 ? (
                           filteredNotifications.map((notification) => {
                             const link = getNotificationLink(notification);
                             return (
                               <div
                                 key={notification.notificationid}
-                                className={`mb-2 flex cursor-pointer items-start gap-3 rounded-lg p-2 hover:bg-[#151718] ${
-                                  notification.read ? "opacity-50" : ""
+                                className={`mb-3 flex cursor-pointer items-start gap-4 rounded-lg p-3 hover:bg-[#1a1d1f] ${
+                                  notification.read ? "opacity-60" : ""
                                 }`}
                                 onClick={() =>
                                   handleNotificationClick(
@@ -559,7 +559,9 @@ function Header({ user }: { user: User }) {
                             );
                           })
                         ) : (
-                          <p className="text-xs text-gray-400">No notifications found.</p>
+                          <p className="text-center text-sm text-gray-400">
+                            No notifications found.
+                          </p>
                         )}
                       </div>
                     </Dialog.Panel>
