@@ -127,6 +127,7 @@ function Header({ user }: { user: User }) {
       case "event":
       case "event_update":
       case "event_registration":
+        return `e/${notification.path}`;
       case "event_cancellation":
       case "membership":
       case "membership_expiring":
