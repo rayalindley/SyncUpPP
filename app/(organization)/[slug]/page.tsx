@@ -6,11 +6,11 @@ import { fetchEvents } from "@/lib/events";
 import { getMemberships } from "@/lib/memberships";
 import { createClient, getUser } from "@/lib/supabase/server";
 import Link from "next/link";
-import { check_permissions, getUserOrganizationInfo } from "@/lib/organization";
+import { check_permissions } from "@/lib/organization";
 import JoinButton from "@/components/organization/join_organization_button";
 import { User } from "@supabase/supabase-js";
 import { CalendarIcon, InboxIcon, UserGroupIcon } from "@heroicons/react/24/outline";
-import { fetchPosts } from "@/lib/posts_tab"; // Import fetchPosts
+import { getVisiblePostsAndComments } from "@/lib/posts_tab"; // Import getVisiblePostsAndComments
 
 const getInitials = (name: string) =>
   name
@@ -31,8 +31,6 @@ export default async function OrganizationUserView({
   if (!slug) throw new Error("Slug is missing");
 
   const supabase = createClient();
-
-  // Fetch organization data
   let { data: org, error } = await supabase
     .from("organization_summary")
     .select("*")
@@ -40,29 +38,23 @@ export default async function OrganizationUserView({
     .single();
 
   if (error || !org) {
-    // Handle error or not found case
     return <div>Organization not found</div>;
   }
 
-  // Check if the user is a member, admin, or has a pending request
   let membershipStatus: "none" | "member" | "pending" | "admin" = "none";
-
   if (user) {
     if (user.id === org.adminid) {
       membershipStatus = "admin";
     } else {
-      // Check if user is a member
       const { data: memberData } = await supabase
         .from("organizationmembers")
         .select("*")
         .eq("organizationid", org.organizationid)
         .eq("userid", user.id)
         .single();
-
       if (memberData) {
         membershipStatus = "member";
       } else {
-        // Check if user has a pending request
         const { data: requestData } = await supabase
           .from("organization_requests")
           .select("*")
@@ -70,7 +62,6 @@ export default async function OrganizationUserView({
           .eq("user_id", user.id)
           .eq("status", "pending")
           .single();
-
         if (requestData) {
           membershipStatus = "pending";
         }
@@ -80,12 +71,19 @@ export default async function OrganizationUserView({
 
   const currentPage = 1;
   const eventsPerPage = 6;
+
   const { data: events, error: eventsError } = await fetchEvents(org.organizationid);
   const memberships = await getMemberships(org.organizationid);
-  const socials = org?.socials || {};
-  const {data:posts, error:postsError } = await fetchPosts(org.organizationid, user?.id ?? null); // Fetch posts
 
-  console.log(posts);
+  const socials = org?.socials || {};
+
+  const { data: postsData, error: postsError } = await getVisiblePostsAndComments(
+    user?.id ?? "",
+    org.organizationid
+  );
+  if (postsError) {
+    console.error("Error fetching posts:", postsError);
+  }
 
   return (
     <div>
@@ -172,7 +170,7 @@ export default async function OrganizationUserView({
               memberships={memberships}
               events={events}
               id={user?.id ?? ""}
-              posts={posts} // Pass posts as a prop
+              posts={postsData} // Pass postsData as posts prop
             />
           </div>
         </div>

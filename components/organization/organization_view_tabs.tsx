@@ -25,7 +25,6 @@ const OrganizationViewTabs = ({
     if (typeof window !== "undefined") {
       const query = new URLSearchParams(window.location.search);
       setActiveTab(query.get("tab") || "posts");
-
       const handlePopState = () => {
         const urlTab = new URLSearchParams(window.location.search).get("tab");
         if (urlTab && urlTab !== activeTab) setActiveTab(urlTab);
@@ -51,8 +50,20 @@ const OrganizationViewTabs = ({
 
   const tabContent = {
     posts: <PostsSection organizationId={organizationid} posts={posts} />, // Pass posts to PostsSection
-    membership: <OrganizationMembershipsComponent memberships={memberships} userid={id} organizationid={organizationid}/>,
-    events: <OrganizationEventsComponent events={events} userid={id} organizationId={organizationid} />,
+    membership: (
+      <OrganizationMembershipsComponent
+        memberships={memberships}
+        userid={id}
+        organizationid={organizationid}
+      />
+    ),
+    events: (
+      <OrganizationEventsComponent
+        events={events}
+        userid={id}
+        organizationId={organizationid}
+      />
+    ),
   }[activeTab];
 
   return (
@@ -64,7 +75,9 @@ const OrganizationViewTabs = ({
               key={tab}
               onClick={() => handleTabChange(tab)}
               className={`whitespace-nowrap border-b-2 px-1 py-4 text-base font-medium ${
-                activeTab === tab ? "border-primary text-primary" : "border-transparent text-light hover:border-gray-300 hover:text-gray-300"
+                activeTab === tab
+                  ? "border-primary text-primary"
+                  : "border-transparent text-light hover:border-gray-300 hover:text-gray-300"
               }`}
             >
               {tab.charAt(0).toUpperCase() + tab.slice(1)}

@@ -1,27 +1,140 @@
 "use server";
 import { createClient, getUser } from "@/lib/supabase/server";
-
-export const checkIsMemberOfOrganization = async (organizationid: string) => {
+//import { getVisiblePostsAndComments } from "@/lib/posts_tab"; 
+export async function getVisiblePostsAndComments(p_user_id: string, p_org_id: string) {
   const supabase = createClient();
-  const currentUser = await getUser();
-
-  if (currentUser) {
+  try {
     const { data, error } = await supabase
-      .from("organizationmembers")
-      .select("*")
-      .eq("userid", currentUser.user?.id)
-      .eq("organizationid", organizationid);
+      .rpc('get_visible_posts_and_comments', {
+        p_user_id,
+        p_org_id
+      });
 
-    if (!error && data.length > 0) {
-      return true;
+    if (!error) {
+      return { data, error: null };
     } else {
-      console.error("Error checking membership or user is not a member:", error);
+      return { data: null, error };
     }
-  } else {
-    console.error("No current user found");
+  } catch (error) {
+    return { data: null, error };
   }
-  return false;
-};
+}
+// it returns rows from the ff view.
+/*create view
+  public.org_posts_and_comments_view as
+select
+  p.postid,
+  p.organizationid,
+  p.authorid,
+  p.content,
+  p.createdat,
+  p.postphotos,
+  o.name as organization_name,
+  o.description as organization_description,
+  o.website as organization_website,
+  o.created_at as organization_created_at,
+  jsonb_build_object(
+    'first_name',
+    up.first_name,
+    'last_name',
+    up.last_name,
+    'profile_picture',
+    up.profilepicture
+  ) as author_details,
+  (
+    select
+      jsonb_agg(
+        jsonb_build_object(
+          'commentid',
+          c.commentid,
+          'created_at',
+          c.created_at,
+          'comment',
+          c.comment,
+          'author',
+          jsonb_build_object(
+            'id',
+            au.id,
+            'first_name',
+            upc.first_name,
+            'last_name',
+            upc.last_name,
+            'profile_picture',
+            upc.profilepicture
+          )
+        )
+      ) as jsonb_agg
+    from
+      post_comments c
+      join auth.users au on c.authorid = au.id
+      join userprofiles upc on au.id = upc.userid
+    where
+      c.postid = p.postid
+  ) as comments,
+  jsonb_build_object(
+    'role_privacy',
+    (
+      select
+        jsonb_agg(
+          jsonb_build_object(
+            'role_id',
+            r.role_id,
+            'role',
+            r.role,
+            'color',
+            r.color,
+            'permissions',
+            (
+              select
+                jsonb_agg(p_1.perm_key) as jsonb_agg
+              from
+                role_permissions rp
+                join permissions p_1 on rp.perm_key::text = p_1.perm_key::text
+              where
+                rp.role_id = r.role_id
+            )
+          )
+        ) as jsonb_agg
+      from
+        post_roles pr
+        join organization_roles r on pr.roleid = r.role_id
+      where
+        pr.postid = p.postid
+    ),
+    'membership_privacy',
+    (
+      select
+        jsonb_agg(
+          jsonb_build_object(
+            'membership_id',
+            m.membershipid,
+            'name',
+            m.name,
+            'description',
+            m.description,
+            'registration_fee',
+            m.registrationfee,
+            'features',
+            m.features,
+            'mostPopular',
+            m."mostPopular",
+            'yearlydiscount',
+            m.yearlydiscount
+          )
+        ) as jsonb_agg
+      from
+        post_memberships pm
+        join memberships m on pm.membershipid = m.membershipid
+      where
+        pm.postid = p.postid
+    )
+  ) as privacy
+from
+  posts p
+  join organizations o on p.organizationid = o.organizationid
+  join auth.users u on p.authorid = u.id
+  join userprofiles up on u.id = up.userid;
+*/
 
 export async function insertComment(formData: any) {
   const supabase = createClient();
@@ -266,26 +379,6 @@ export async function deletePost(postid: string, authorid: string) {
     : { data: null, error: { message: error.message } };
 }
 
-export async function getAuthorDetails(authorid: string) {
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from("userprofiles")
-    .select("first_name, last_name, profilepicture")
-    .eq("userid", authorid)
-    .single();
-  return !error ? data : { first_name: null, last_name: null, profilepicture: null };
-}
-
-export async function getUserProfileById(userId: string) {
-  const supabase = createClient();
-  const { data, error } = await supabase.rpc("get_user_profile_by_id", {
-    user_id: userId,
-  });
-  return !error && data
-    ? { data: data[0], error: null }
-    : { data: null, error: error || { message: "No data found" } };
-}
-// Utility function to validate UUIDs
 const isValidUUID = (uuid: string): boolean => {
   const uuidRegex =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -325,91 +418,6 @@ export async function check_permissions(
   }
 }
 
-export async function getUserOrganizationInfo(userId: string, organizationid: string) {
-  const supabase = createClient();
-  const { data } = await supabase
-    .rpc("get_user_organization_info", {
-      user_id: userId,
-      organization_id: organizationid,
-    })
-    .single();
-  return data;
-}
-
-export async function fetchComments(postid: string) {
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from("post_comments")
-    .select("*")
-    .eq("postid", postid)
-    .order("created_at", { ascending: true });
-  return !error
-    ? { data, error: null }
-    : { data: null, error: { message: error.message } };
-}
-
-export async function getMemberships(id: string) {
-  const supabase = createClient();
-  const { data: memberships, error } = await supabase
-    .from("memberships")
-    .select("*")
-    .eq("organizationid", id);
-  return !error ? memberships : [];
-}
-
-export async function fetchMembershipById(membershipId: string) {
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from("memberships")
-    .select("*")
-    .eq("membershipid", membershipId)
-    .single();
-  return !error
-    ? { data, error: null }
-    : { data: null, error: { message: error.message } };
-}
-
-export async function fetchEvents(
-  organizationid: string,
-  currentPage: number,
-  eventsPerPage: number
-) {
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from("events")
-    .select("*")
-    .eq("organizationid", organizationid)
-    .range(currentPage * eventsPerPage - eventsPerPage, currentPage * eventsPerPage)
-    .order("createdat", { ascending: false });
-  return !error
-    ? { data, error: null }
-    : { data: null, error: { message: error.message } };
-}
-
-export async function fetchPosts(organizationid: string, userid: string | null) {
-  const supabase = createClient();
-
-  try {
-    const { data, error } = await supabase.rpc("get_visible_posts", {
-      p_user_id: userid,
-      p_org_id: organizationid,
-    });
-
-    if (!error) {
-      return { data, error: null };
-    } else {
-      console.error("fetchPosts error:", error);
-      return { data: null, error: { message: error.message } };
-    }
-  } catch (e: any) {
-    console.error("Unexpected error in fetchPosts:", e);
-    return {
-      data: null,
-      error: { message: e.message || "An unexpected error occurred" },
-    };
-  }
-}
-
 export async function fetchRolesAndMemberships(organizationId: string) {
   const supabase = createClient();
 
@@ -446,34 +454,3 @@ export async function fetchRolesAndMemberships(organizationId: string) {
   return { roles, memberships, error: null };
 }
 
-export const fetchPostRoles = async (postId: string) => {
-  const supabase = createClient();
-
-  const { data, error } = await supabase
-    .from("post_roles")
-    .select("roleid")
-    .eq("postid", postId);
-
-  if (error) {
-    console.error("Error fetching post roles:", error.message);
-    return [];
-  }
-
-  return data.map((record: { roleid: string }) => record.roleid);
-};
-
-export const fetchPostMemberships = async (postId: string) => {
-  const supabase = createClient();
-
-  const { data, error } = await supabase
-    .from("post_memberships")
-    .select("membershipid")
-    .eq("postid", postId);
-
-  if (error) {
-    console.error("Error fetching post memberships:", error.message);
-    return [];
-  }
-
-  return data.map((record: { membershipid: string }) => record.membershipid);
-};

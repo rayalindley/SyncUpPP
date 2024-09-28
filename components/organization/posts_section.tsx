@@ -1,5 +1,6 @@
-"use client";
+// PostsSection.tsx
 
+"use client";
 import { useState, useEffect, useCallback, memo, Fragment } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
@@ -17,10 +18,7 @@ import {
   insertPost,
   updatePost,
   fetchRolesAndMemberships,
-  getAuthorDetails,
   deletePost,
-  fetchPostRoles,
-  fetchPostMemberships,
   check_permissions,
 } from "@/lib/posts_tab";
 import { Posts } from "@/types/posts";
@@ -35,9 +33,27 @@ import ReactDatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { Menu, Transition } from '@headlessui/react';
 import { EllipsisVerticalIcon } from '@heroicons/react/24/solid';
+import { SupabaseClient } from "@supabase/supabase-js";
 
+// Define the getVisiblePostsAndComments function
+export async function getVisiblePostsAndComments(p_user_id: string, p_org_id: string) {
+  const supabase: SupabaseClient = createClient();
+  try {
+    const { data, error } = await supabase
+      .rpc('get_visible_posts_and_comments', {
+        p_user_id,
+        p_org_id
+      });
 
-const supabase = createClient();
+    if (!error) {
+      return { data, error: null };
+    } else {
+      return { data: null, error };
+    }
+  } catch (error) {
+    return { data: null, error };
+  }
+}
 
 const postSchema = z.object({
   content: z.string().min(1, "Content is required").max(500),
@@ -47,12 +63,12 @@ const postSchema = z.object({
 
 interface PostsSectionProps {
   organizationId: string;
-  posts: Posts[]; // Add posts prop
 }
 
-const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, posts: initialPosts }) => {
+const PostsSection: React.FC<PostsSectionProps> = ({ organizationId }) => {
   const { user } = useUser();
-  const [posts, setPosts] = useState<Posts[]>(initialPosts); // Initialize posts with initialPosts
+  const [posts, setPosts] = useState<Posts[]>([]);
+  
   const [editingPost, setEditingPost] = useState<Posts | null>(null);
   const [isPublic, setIsPublic] = useState(false);
   const [availableRoles, setAvailableRoles] = useState<{ id: string; name: string }[]>([]);
@@ -70,29 +86,34 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, posts: init
   const [filterByDate, setFilterByDate] = useState<Date | null>(null);
   const [canCreate, setCanCreate] = useState(false);
   const [canDelete, setCanDelete] = useState(false);
+
+  const supabase = createClient();
   const { register, handleSubmit, control, setValue, reset, watch } = useForm({
     resolver: zodResolver(postSchema),
   });
 
   const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
-
   const isLoggedIn = user && user.id && user.id.length > 0;
 
   const fetchPermissions = useCallback(async () => {
     if (!isLoggedIn) {
       setCanCreate(false);
       setCanDelete(false);
+      console.log("User not logged in. Permissions set to false.");
       return;
     }
-
     try {
+      console.log("Fetching permissions for user:", user?.id);
       const [createPermission, deletePermission] = await Promise.all([
         check_permissions(user?.id ?? "", organizationId, "create_posts"),
         check_permissions(user?.id ?? "", organizationId, "delete_posts"),
       ]);
-
       setCanCreate(!!createPermission);
       setCanDelete(!!deletePermission);
+      console.log("Permissions fetched:", {
+        canCreate: !!createPermission,
+        canDelete: !!deletePermission,
+      });
     } catch (error) {
       console.error("Error checking permissions", error);
       setCanCreate(false);
@@ -101,56 +122,105 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, posts: init
   }, [isLoggedIn, user?.id, organizationId]);
 
   const fetchData = useCallback(async () => {
+    console.log("Fetching roles and memberships for organization:", organizationId);
     const rolesAndMemberships = await fetchRolesAndMemberships(organizationId);
-
-    // Check if rolesAndMemberships is defined before accessing its properties
     if (rolesAndMemberships && rolesAndMemberships.error) {
       console.error("Error fetching roles and memberships:", rolesAndMemberships.error);
       setCreationMessage({ text: rolesAndMemberships.error, type: "error" });
     } else if (rolesAndMemberships) {
-      setAvailableRoles(
-        rolesAndMemberships.roles.map((role: any) => ({ id: role.id, name: role.name }))
-      );
-      setAvailableMemberships(
-        rolesAndMemberships.memberships.map((membership: any) => ({
-          membershipid: membership.membershipid,
-          name: membership.name,
-        }))
-      );
+      const fetchedRoles = rolesAndMemberships.roles.map((role: any) => ({ id: role.id, name: role.name }));
+      const fetchedMemberships = rolesAndMemberships.memberships.map((membership: any) => ({
+        membershipid: membership.membershipid,
+        name: membership.name,
+      }));
+      setAvailableRoles(fetchedRoles);
+      setAvailableMemberships(fetchedMemberships);
+      console.log("Available roles and memberships fetched:", {
+        roles: fetchedRoles,
+        memberships: fetchedMemberships,
+      });
     }
   }, [organizationId]);
+
+  const loadPosts = useCallback(async () => {
+    if (!user?.id) {
+      setPosts([]);
+      return;
+    }
+    const { data, error } = await getVisiblePostsAndComments(user.id, organizationId);
+    if (data) {
+      setPosts(data);
+      console.log("Posts loaded:", data);
+    }
+    if (error) {
+      console.error("Error loading posts:", error);
+    }
+  }, [user?.id, organizationId]);
 
   useEffect(() => {
     fetchData();
     fetchPermissions();
-  }, [fetchData, fetchPermissions]);
+    loadPosts();
+
+    // Set up real-time subscriptions
+    console.log("Setting up real-time subscriptions for organization:", organizationId);
+    const postsChannel = supabase
+      .channel('posts-and-privacy')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'posts', filter: `organizationid=eq.${organizationId}` },
+        async (payload) => {
+          console.log("Real-time payload received:", payload);
+          // Fetch the complete posts upon any change
+          await loadPosts();
+        }
+      )
+      .subscribe((status) => {
+        console.log(`Subscription status: ${status}`);
+        if (status === 'SUBSCRIBED') {
+          console.log("Successfully subscribed to posts changes.");
+        } else {
+          console.warn("Subscription status:", status);
+        }
+      });
+
+    // Cleanup subscriptions on unmount
+    return () => {
+      console.log("Removing subscription channel: posts-and-privacy");
+      supabase.removeChannel(postsChannel);
+    };
+  }, [fetchData, fetchPermissions, organizationId, user?.id, supabase, loadPosts]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     setPhotoFiles(files);
     const newPhotos = files.map((file) => URL.createObjectURL(file));
     setPhotos((prevPhotos) => [...prevPhotos, ...newPhotos]);
+    console.log("Photos selected:", newPhotos);
   };
 
   const handleRemovePhoto = (index: number, isExistingPhoto: boolean) => {
     if (isExistingPhoto) {
       setRemovedPhotos((prev) => [...prev, photos[index]]);
+      console.log("Existing photo removed:", photos[index]);
     }
     setPhotos((prevPhotos) => prevPhotos.filter((_, i) => i !== index));
     setPhotoFiles((prevFiles) => prevFiles.filter((_, i) => i !== index));
+    console.log("Photo removed at index:", index);
   };
 
   const uploadPhotosToSupabase = async () => {
     const uploadedUrls: string[] = [];
     for (const file of photoFiles) {
       const fileName = `post_${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      console.log("Uploading file:", fileName);
       const { data: uploadResult, error } = await supabase.storage
         .from("post-images")
         .upload(fileName, file);
-
       if (uploadResult) {
         const imageUrl = `${supabaseStorageBaseUrl}/post-images/${uploadResult.path}`;
         uploadedUrls.push(imageUrl);
+        console.log("Uploaded image URL:", imageUrl);
       } else {
         console.error("Error uploading image:", error);
         Swal.fire({
@@ -171,6 +241,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, posts: init
     setRemovedPhotos([]);
     setEditingPost(null);
     setIsPublic(false);
+    console.log("Form reset.");
   };
 
   const onSubmit = async (formData: any) => {
@@ -180,6 +251,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, posts: init
         title: "Oops...",
         text: "You must be logged in to create or edit posts.",
       });
+      console.warn("User not logged in. Cannot submit post.");
       return;
     }
     if (!canCreate && !editingPost) {
@@ -188,11 +260,11 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, posts: init
         title: "Oops...",
         text: "You do not have permission to create posts.",
       });
+      console.warn("User lacks permission to create posts.");
       return;
     }
-
     setIsLoading(true);
-
+    console.log("Submitting post with data:", formData);
     try {
       const selectedRolesUUIDs =
         formData.selectedRoles
@@ -201,7 +273,6 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, posts: init
               availableRoles.find((role) => role.name === roleName)?.id
           )
           .filter(Boolean) || [];
-
       const selectedMembershipUUIDs =
         formData.selectedMemberships
           ?.map(
@@ -211,23 +282,19 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, posts: init
               )?.membershipid
           )
           .filter(Boolean) || [];
-
       if (selectedRolesUUIDs.length === 0 && selectedMembershipUUIDs.length === 0) {
         setIsPublic(true);
+        console.log("Post set to public.");
       }
-
       const uploadedPhotoUrls = await uploadPhotosToSupabase();
       if (uploadedPhotoUrls === null) {
         setIsLoading(false);
         return;
       }
-
       const retainedPhotos = editingPost
         ? (editingPost.postphotos || []).filter((photo) => !removedPhotos.includes(photo))
         : [];
-
       const finalPhotoUrls = [...retainedPhotos, ...uploadedPhotoUrls];
-
       const postPayload = {
         ...formData,
         organizationid: organizationId,
@@ -236,18 +303,18 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, posts: init
         targetroles: selectedRolesUUIDs,
         targetmemberships: selectedMembershipUUIDs,
       };
-
+      console.log("Final post payload:", postPayload);
       const result = editingPost
         ? await updatePost({ ...postPayload, postid: editingPost.postid })
         : await insertPost(postPayload, organizationId);
-
       if (result.data) {
         resetForm();
         setCreationMessage({
           text: editingPost ? "Post updated" : "Post created",
           type: "success",
         });
-        await fetchData();
+        console.log(editingPost ? "Post updated successfully." : "Post created successfully.");
+        // The real-time subscription will handle updating the posts state
       } else {
         console.error("Failed to save post:", result.error);
         setCreationMessage({ text: "Failed to save post", type: "error" });
@@ -259,7 +326,6 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, posts: init
         type: "error",
       });
     }
-
     setIsLoading(false);
     setTimeout(() => setCreationMessage(null), 3000);
   };
@@ -277,12 +343,10 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, posts: init
       const matchesPublic = filterByPublic
         ? !post.roles?.length && !post.memberships?.length
         : true;
-
       const matchesDate = filterByDate
         ? post.createdat &&
           new Date(post.createdat).toDateString() === filterByDate.toDateString()
         : true;
-
       return (
         matchesSearch &&
         matchesRole &&
@@ -306,6 +370,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, posts: init
       setIsPublic(
         !editingPost.selectedRoles?.length && !editingPost.selectedMemberships?.length
       );
+      console.log("Editing post set:", editingPost);
     }
   }, [editingPost, setValue]);
 
@@ -314,6 +379,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, posts: init
     if (checked) {
       setFilterByRole(null);
       setFilterByMembership(null);
+      console.log("Filter set to public only.");
     }
   };
 
@@ -344,6 +410,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, posts: init
                     if (checked) {
                       setValue("selectedRoles", []);
                       setValue("selectedMemberships", []);
+                      console.log("Post visibility set to public.");
                     }
                   }}
                   className={`${
@@ -366,7 +433,10 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, posts: init
                     render={({ field }) => (
                       <TagsInput
                         value={field.value}
-                        onChange={(tags) => field.onChange(tags)}
+                        onChange={(tags) => {
+                          field.onChange(tags);
+                          console.log("Selected roles updated:", tags);
+                        }}
                         suggestions={availableRoles.map((role) => role.name)}
                         placeholder="Roles (Optional)"
                         className="w-full rounded-lg border border-[#3d3d3d] bg-[#3b3b3b] p-2 text-white"
@@ -380,7 +450,10 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, posts: init
                     render={({ field }) => (
                       <TagsInput
                         value={field.value}
-                        onChange={(tags) => field.onChange(tags)}
+                        onChange={(tags) => {
+                          field.onChange(tags);
+                          console.log("Selected memberships updated:", tags);
+                        }}
                         suggestions={availableMemberships.map(
                           (membership) => membership.name
                         )}
@@ -464,99 +537,6 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, posts: init
           </form>
         </div>
       )}
-
-      {/* {isLoggedIn && canCreate && (
-        <div className="mb-4 mt-8 flex flex-wrap items-center space-x-2 space-y-2 rounded-lg bg-[#1e1e1e] p-4 shadow-lg">
-          <div className="relative flex-grow">
-            <input
-              type="text"
-              placeholder="Search posts..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-lg border border-[#3d3d3d] bg-[#2a2a2a] px-3 py-2 pl-10 text-white placeholder-gray-400 focus:border-transparent focus:ring-2 focus:ring-primary"
-            />
-            <span className="absolute left-3 top-2.5 text-gray-400">
-              <i className="fas fa-search"></i>
-            </span>
-          </div>
-          <div className="h-full w-px bg-gray-600"></div>
-          <div className="relative">
-            <select
-              value={filterByRole || ""}
-              onChange={(e) => setFilterByRole(e.target.value || null)}
-              disabled={filterByPublic}
-              className={`w-full rounded-lg border border-[#3d3d3d] bg-[#2a2a2a] px-3 py-2 pr-10 text-white focus:border-transparent focus:ring-2 focus:ring-primary ${
-                filterByPublic ? "cursor-not-allowed bg-gray-700 text-gray-500" : ""
-              }`}
-            >
-              <option value="">Filter by Role</option>
-              {availableRoles.map((role) => (
-                <option key={role.id} value={role.id}>
-                  {role.name}
-                </option>
-              ))}
-            </select>
-            <span className="absolute right-3 top-2.5 text-gray-400">
-              <i className="fas fa-chevron-down"></i>
-            </span>
-          </div>
-          <div className="h-full w-px bg-gray-600"></div>
-          <div className="relative">
-            <select
-              value={filterByMembership || ""}
-              onChange={(e) => setFilterByMembership(e.target.value || null)}
-              disabled={filterByPublic}
-              className={`w-full rounded-lg border border-[#3d3d3d] bg-[#2a2a2a] px-3 py-2 pr-10 text-white focus:border-transparent focus:ring-2 focus:ring-primary ${
-                filterByPublic ? "cursor-not-allowed bg-gray-700 text-gray-500" : ""
-              }`}
-            >
-              <option value="">Filter by Membership</option>
-              {availableMemberships.map((membership) => (
-                <option key={membership.membershipid} value={membership.membershipid}>
-                  {membership.name}
-                </option>
-              ))}
-            </select>
-            <span className="absolute right-3 top-2.5 text-gray-400">
-              <i className="fas fa-chevron-down"></i>
-            </span>
-          </div>
-          <div className="h-full w-px bg-gray-600"></div>
-          <label className="flex items-center space-x-1 text-white">
-            <input
-              type="checkbox"
-              checked={filterByAuthor}
-              onChange={(e) => setFilterByAuthor(e.target.checked)}
-              className="form-checkbox h-4 w-4 rounded border-[#3d3d3d] bg-[#2a2a2a] text-primary focus:border-transparent focus:ring-2 focus:ring-primary"
-            />
-            <span className="text-sm">Authored by Me</span>
-          </label>
-          <div className="h-full w-px bg-gray-600"></div>
-          <label className="flex items-center space-x-1 text-white">
-            <input
-              type="checkbox"
-              checked={filterByPublic}
-              onChange={(e) => {
-                handleFilterByPublicChange(e.target.checked);
-              }}
-              className="form-checkbox h-4 w-4 rounded border-[#3d3d3d] bg-[#2a2a2a] text-primary focus:border-transparent focus:ring-2 focus:ring-primary"
-            />
-            <span className="text-sm">Public Posts</span>
-          </label>
-          <div className="h-full w-px bg-gray-600"></div>
-          <div className="flex items-center space-x-1 text-white">
-            <label className="text-sm">Filter by Date:</label>
-            <ReactDatePicker
-              selected={filterByDate}
-              onChange={(date: Date | null) => setFilterByDate(date)}
-              isClearable
-              placeholderText="Select Date"
-              className="rounded-lg border border-[#3d3d3d] bg-[#2a2a2a] px-3 py-2 text-white focus:border-transparent focus:ring-2 focus:ring-primary"
-            />
-          </div>
-        </div>
-      )} */}
-
       <div className="mt-8 space-y-4">
         {(filteredPosts.length <= 0 || isLoading) && (
           <div
@@ -584,7 +564,6 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, posts: init
     </div>
   );
 };
-
 PostsSection.displayName = "PostsSection";
 
 const PostCard: React.FC<{
@@ -606,48 +585,24 @@ const PostCard: React.FC<{
     organizationId,
   }) => {
     const { content, authorid, postphotos, postid, createdat } = post;
-    const [authorDetails, setAuthorDetails] = useState<{
+    const [authorDetails] = useState<{
       firstName: string;
       lastName: string;
       profilePicture: string | null;
-    }>({ firstName: "", lastName: "", profilePicture: null });
-    const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
-    const [selectedMemberships, setSelectedMemberships] = useState<string[]>([]);
+    }>({
+      firstName: post.author_details.first_name,
+      lastName: post.author_details.last_name,  
+      profilePicture: post.author_details.profile_picture
+        ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${post.author_details.profile_picture}`
+        : null,
+    });
+    const [selectedRoles] = useState<string[]>(post.privacy.role_privacy?.map((role: any) => role.role_id) || []);
+    const [selectedMemberships] = useState<string[]>(post.privacy.membership_privacy?.map((membership: any) => membership.membership_id) || []);
     const [isDeleted, setIsDeleted] = useState(false);
-    const [isLoadingPrivacy, setIsLoadingPrivacy] = useState(true);
-
+    const isLoadingPrivacy = false; // Privacy data is already loaded
     const { user } = useUser();
     const isLoggedIn = user && user.id && user.id.length > 0;
     const isCurrentUserAuthor = user?.id === authorid;
-
-    const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
-
-    useEffect(() => {
-      const fetchPostPrivacy = async () => {
-        setIsLoadingPrivacy(true);
-        const [roles, memberships] = await Promise.all([
-          fetchPostRoles(postid),
-          fetchPostMemberships(postid),
-        ]);
-        setSelectedRoles(roles);
-        setSelectedMemberships(memberships);
-        setIsLoadingPrivacy(false);
-      };
-
-      fetchPostPrivacy();
-
-      getAuthorDetails(authorid).then((details) => {
-        if (details) {
-          setAuthorDetails({
-            firstName: details.first_name || "",
-            lastName: details.last_name || "",
-            profilePicture: details.profilepicture
-              ? `${supabaseStorageBaseUrl}/${details.profilepicture}`
-              : null,
-          });
-        }
-      });
-    }, [authorid, postid]);
 
     const handleDelete = () => {
       if (!canDelete) {
@@ -656,9 +611,9 @@ const PostCard: React.FC<{
           title: "Oops...",
           text: "You do not have permission to delete posts.",
         });
+        console.warn("User lacks permission to delete posts.");
         return;
       }
-
       Swal.fire({
         title: "Are you sure?",
         text: "Do you really want to delete this post?",
@@ -670,19 +625,39 @@ const PostCard: React.FC<{
         cancelButtonText: "Cancel",
       }).then(async (result) => {
         if (result.isConfirmed) {
+          console.log("User confirmed deletion of post ID:", postid);
           try {
-            const { error } = await deletePost(postid, authorid);
-            if (!error) {
-              setIsDeleted(true);
-              setTimeout(
-                () =>
-                  setPosts((prevPosts) => prevPosts.filter((p) => p.postid !== postid)),
-                3000
-              );
+            if (postid && authorid) {
+              const { error } = await deletePost(postid, authorid);
+              if (!error) {
+                setIsDeleted(true);
+                console.log("Post deleted successfully. Removing from state.");
+                setTimeout(
+                  () =>
+                    setPosts((prevPosts) => prevPosts.filter((p) => p.postid !== postid)),
+                  3000
+                );
+              } else {
+                console.error("Error deleting post:", error);
+                Swal.fire({
+                  icon: "error",
+                  title: "Deletion Failed",
+                  text: "Unable to delete post. Please try again.",
+                });
+              }
+            } else {
+              console.error("Post ID or Author ID is undefined");
             }
           } catch (error) {
             console.error("Error deleting post", error);
+            Swal.fire({
+              icon: "error",
+              title: "Deletion Error",
+              text: "An error occurred while deleting the post.",
+            });
           }
+        } else {
+          console.log("User canceled deletion of post ID:", postid);
         }
       });
     };
@@ -691,7 +666,6 @@ const PostCard: React.FC<{
       const roleNames = selectedRoles.map(
         (roleId) => availableRoles.find((role) => role.id === roleId)?.name || ""
       );
-
       const membershipNames = selectedMemberships
         .map(
           (membershipId) =>
@@ -700,12 +674,12 @@ const PostCard: React.FC<{
             )?.name || ""
         )
         .filter(Boolean);
-
       setEditingPost({
         ...post,
         selectedRoles: roleNames,
         selectedMemberships: membershipNames,
       });
+      console.log("Editing post set:", postid);
     };
 
     const generatePrivacyLabel = () => {
@@ -716,7 +690,6 @@ const PostCard: React.FC<{
           </span>
         );
       }
-
       const roleLabels = selectedRoles.map((roleId) => {
         const roleName = availableRoles.find((role) => role.id === roleId)?.name;
         return (
@@ -728,7 +701,6 @@ const PostCard: React.FC<{
           </span>
         );
       });
-
       const membershipLabels = selectedMemberships.map((membershipId) => {
         const membershipName = availableMemberships.find(
           (membership) => membership.membershipid === membershipId
@@ -742,11 +714,9 @@ const PostCard: React.FC<{
           </span>
         );
       });
-
       if (roleLabels.length || membershipLabels.length) {
         return [...roleLabels, ...membershipLabels];
       }
-
       return (
         <span className="inline-block rounded-full bg-green-500 px-2 py-1 text-xs text-white">
           Public
@@ -825,7 +795,6 @@ const PostCard: React.FC<{
             </Menu>
           </div>
         )}
-
         <div className="flex items-center space-x-4">
           <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-[#424242]">
             {authorDetails.profilePicture ? (
@@ -855,15 +824,22 @@ const PostCard: React.FC<{
         </p>
         {galleryImages.length > 0 && (
           <div className="mt-5">
-            <ImageGallery items={galleryImages} showNav={false} showThumbnails={false} showBullets={true} showIndex={true} showFullscreenButton={false} showPlayButton={false} />
+            <ImageGallery
+              items={galleryImages}
+              showNav={true}
+              showThumbnails={false}
+              showBullets={true}
+              showIndex={true}
+              showFullscreenButton={false}
+              showPlayButton={false}
+            />
           </div>
         )}
-        <CommentsSection postId={postid} organizationId={organizationId} />
+        <CommentsSection postId={postid ?? ""} organizationId={organizationId} comments={post.comments} />
       </div>
     );
   }
 );
-
 PostCard.displayName = "PostCard";
 
 export default PostsSection;

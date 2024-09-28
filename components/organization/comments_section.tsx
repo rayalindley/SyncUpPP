@@ -1,23 +1,26 @@
-import { useState, useEffect } from "react";
+"use client";
+
+import { useState, useEffect, Fragment } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { UserCircleIcon, EllipsisVerticalIcon } from "@heroicons/react/24/solid";
+import { Menu, Transition } from "@headlessui/react";
+import { timeAgo } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 import {
   insertComment,
-  fetchComments,
   deleteComment,
   updateComment,
   check_permissions,
-  getAuthorDetails,
+  getVisiblePostsAndComments,
 } from "@/lib/posts_tab";
 import { useUser } from "@/context/user_context";
+import Swal from "sweetalert2";
 import { PostComments } from "@/types/post_comments";
-import { UserCircleIcon, EllipsisVerticalIcon } from "@heroicons/react/24/solid";
-import { CombinedUserData } from "@/types/combined_user_data";
-import { Menu, Transition } from '@headlessui/react';
-import { Fragment } from 'react';
+import { Posts } from "@/types/posts";
 
-import { timeAgo } from "@/lib/utils";
+const supabase = createClient();
 
 const commentSchema = z.object({
   commentText: z
@@ -29,11 +32,16 @@ const commentSchema = z.object({
 interface CommentsSectionProps {
   postId: string;
   organizationId: string;
+  comments?: PostComments[];
 }
 
-const CommentsSection: React.FC<CommentsSectionProps> = ({ postId, organizationId }) => {
+const CommentsSection: React.FC<CommentsSectionProps> = ({
+  postId,
+  organizationId,
+  comments: initialComments,
+}) => {
   const { user } = useUser();
-  const [comments, setComments] = useState<PostComments[]>([]);
+  const [comments, setComments] = useState<PostComments[]>(initialComments ?? []);
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [canComment, setCanComment] = useState(false);
@@ -47,7 +55,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ postId, organizationI
 
   const isLoggedIn = user && user.id && user.id.length > 0;
 
-  const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
+  useEffect(() => {}, [initialComments]);
 
   useEffect(() => {
     const fetchPermissions = async () => {
@@ -73,46 +81,61 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ postId, organizationI
   }, [isLoggedIn, user?.id, organizationId]);
 
   useEffect(() => {
-    const loadComments = async () => {
+    const fetchComments = async () => {
+      if (!user || !user.id) {
+        return;
+      }
       try {
-        const data = await fetchComments(postId);
-        if (data && !data.error) {
-          const commentsWithAuthorDetails = await Promise.all(
-            data.data.map(async (comment: PostComments) => {
-              const authorDetails = await getAuthorDetails(comment.authorid!);
-              const combined_user_data: CombinedUserData | undefined = authorDetails
-                ? {
-                    first_name: authorDetails.first_name || "",
-                    last_name: authorDetails.last_name || "",
-                    profilepicture: authorDetails.profilepicture
-                      ? `${supabaseStorageBaseUrl}/${authorDetails.profilepicture}`
-                      : undefined,
-                  }
-                : undefined;
-              return {
-                ...comment,
-                combined_user_data,
-              };
-            })
-          );
-          setComments(
-            commentsWithAuthorDetails.sort(
-              (a, b) =>
-                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-            )
-          );
+        const { data, error } = await getVisiblePostsAndComments(user.id, organizationId);
+        if (error) {
+          console.error("Error fetching posts and comments:", error);
+          return;
+        }
+
+        const post: Posts | undefined = data.find((p: Posts) => p.postid === postId);
+        if (post) {
+          setComments(post.comments ?? []);
         } else {
+          console.warn(`Post with ID ${postId} not found.`);
           setComments([]);
         }
       } catch (error) {
-        console.error("Error loading comments:", error);
+        console.error("Exception while fetching comments:", error);
       }
     };
-    loadComments();
-  }, [postId]);
+
+    fetchComments();
+
+    const commentsChannel = supabase
+      .channel(`comments:postid=${postId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "post_comments",
+          filter: `postid=eq.${postId}`,
+        },
+        async (payload) => {
+          await fetchComments();
+        }
+      )
+      .subscribe((status) => {
+        console.log(`Subscription status: ${status}`);
+      });
+
+    return () => {
+      supabase.removeChannel(commentsChannel);
+    };
+  }, [postId, organizationId, user?.id]);
+
+  useEffect(() => {}, [comments]);
 
   const onSubmit = async (data: { commentText: string }) => {
-    if (!isLoggedIn || !canComment) return;
+    if (!isLoggedIn || !canComment) {
+      console.warn("User not authorized to comment.");
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -123,74 +146,116 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ postId, organizationI
       });
 
       if (newCommentResult && newCommentResult.data) {
-        const authorDetails = await getAuthorDetails(user.id!); // Ensure this is correct
-        const newComment = {
-          ...newCommentResult.data,
-          created_at: new Date().toISOString(), // Set the current timestamp
-          combined_user_data: {
-            first_name: authorDetails.first_name || "",
-            last_name: authorDetails.last_name || "",
-            profilepicture: authorDetails.profilepicture
-              ? `${supabaseStorageBaseUrl}/${authorDetails.profilepicture}`
-              : undefined,
-          },
-        };
-
-        setComments((prev) => [newComment, ...prev]);
         reset();
+        Swal.fire({
+          icon: "success",
+          title: "Submitted!",
+          text: "Your comment has been submitted.",
+          timer: 1500,
+          showConfirmButton: false,
+        });
       } else {
         console.error("Failed to submit comment.");
+        Swal.fire({
+          icon: "error",
+          title: "Submission Failed",
+          text: "Unable to submit comment. Please try again.",
+        });
       }
     } catch (error) {
       console.error("Failed to submit comment.", error);
+      Swal.fire({
+        icon: "error",
+        title: "Submission Error",
+        text: "An error occurred while submitting your comment.",
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleDelete = async (commentId: string, authorId: string) => {
-    if (!canDeleteComments && user?.id !== authorId) return;
+    if (!canDeleteComments && user?.id !== authorId) {
+      console.warn("User does not have permission to delete this comment.");
+      return;
+    }
     try {
-      await deleteComment(commentId, user?.id!);
-      setComments((prev) => prev.filter((comment) => comment.commentid !== commentId));
+      console.log(`Attempting to delete comment ID: ${commentId}`);
+      const deleteResult = await deleteComment(commentId, user?.id!);
+      console.log(`Delete comment result:`, deleteResult);
+
+      if (deleteResult.error) {
+        throw deleteResult.error;
+      }
+
+      Swal.fire({
+        icon: "success",
+        title: "Deleted!",
+        text: "Your comment has been deleted.",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+
+      setComments((prevComments) =>
+        prevComments.filter((comment) => comment.commentid !== commentId)
+      );
+      console.log(`Comment ID ${commentId} removed from state.`);
     } catch (error) {
-      console.error("Failed to delete comment.");
+      console.error("Failed to delete comment.", error);
+      Swal.fire({
+        icon: "error",
+        title: "Deletion Failed",
+        text: "Unable to delete comment. Please try again.",
+      });
     }
   };
 
   const handleEdit = (commentId: string, commentText: string) => {
+    console.log(`Editing comment ID: ${commentId}`);
     setEditingCommentId(commentId);
     setEditingText(commentText);
   };
 
   const handleUpdateComment = async () => {
-    if (!editingCommentId || !editingText) return;
+    if (!editingCommentId || !editingText) {
+      console.warn("No comment is being edited.");
+      return;
+    }
 
     setIsUpdating(editingCommentId);
     try {
+      console.log(`Attempting to update comment ID: ${editingCommentId}`);
       const updatedCommentResult = await updateComment(
         editingCommentId,
         { comment: editingText },
         { commentid: editingCommentId, comment: editingText }
       );
+
       if (updatedCommentResult && updatedCommentResult.data) {
-        setComments((prev) =>
-          prev.map((comment) =>
-            comment.commentid === editingCommentId
-              ? {
-                  ...updatedCommentResult.data,
-                  combined_user_data: comment.combined_user_data,
-                }
-              : comment
-          )
-        );
         setEditingCommentId(null);
         setEditingText(null);
+        Swal.fire({
+          icon: "success",
+          title: "Updated!",
+          text: "Your comment has been updated.",
+          timer: 1500,
+          showConfirmButton: false,
+        });
       } else {
         console.error("Failed to update comment.");
+        Swal.fire({
+          icon: "error",
+          title: "Update Failed",
+          text: "Unable to update comment. Please try again.",
+        });
       }
     } catch (error) {
       console.error("Failed to update comment.", error);
+      Swal.fire({
+        icon: "error",
+        title: "Update Error",
+        text: "An error occurred while updating your comment.",
+      });
     } finally {
       setIsUpdating(null);
     }
@@ -201,136 +266,136 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({ postId, organizationI
     setEditingText(null);
   };
 
-  const formatDateTime = (dateString: string) => {
-    const options: Intl.DateTimeFormatOptions = {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    };
-    return new Date(dateString).toLocaleDateString(undefined, options);
-  };
-
-  
-
   return (
-    <div className="bg-eerieblack p-4 rounded-lg shadow space-y-4 max-w-4xl mx-auto font-poppins">
-      {isLoggedIn && canComment ? (
+    <div className="mx-auto mt-5 max-w-4xl space-y-4 rounded-lg bg-eerieblack p-4 font-poppins shadow">
+      {canComment && (
         <form onSubmit={handleSubmit(onSubmit)} className="mb-4">
           <textarea
             {...register("commentText")}
             placeholder="Enter your comment..."
             rows={2}
             maxLength={100}
-            className="w-full p-2 bg-charleston text-light rounded-md border border-fadedgrey focus:outline-none focus:border-primary"
+            className="w-full rounded-md border border-fadedgrey bg-charleston p-2 text-light focus:border-primary focus:outline-none"
             disabled={isLoading}
           />
           <button
             type="submit"
             disabled={isLoading}
-            className={`mt-2 bg-primary hover:bg-primarydark text-white font-semibold py-2 px-4 rounded`}
+            className={`mt-2 rounded bg-primary px-4 py-2 font-semibold text-white hover:bg-primarydark ${
+              isLoading ? "cursor-not-allowed opacity-50" : ""
+            }`}
           >
             {isLoading ? "Submitting..." : "Submit"}
           </button>
         </form>
-      ) : !isLoggedIn ? (
-        <p className="text-white">You must be logged in to comment.</p>
-      ) : (
-        <p className="text-white">You do not have permission to comment on this post.</p>
       )}
 
-      <button
-        onClick={() => setShowComments(!showComments)}
-        className="mb-4 text-sm text-blue-500"
-      >
-        {showComments ? "Hide Comments" : `Show Comments (${comments.length})`}
-      </button>
+      {canComment && (
+        <button
+          onClick={() => {
+            setShowComments(!showComments);
+          }}
+          className="mb-4 text-sm text-blue-500 hover:underline"
+        >
+          {showComments ? "Hide Comments" : `Show Comments (${comments.length})`}
+        </button>
+      )}
 
       {showComments &&
-        (comments.length > 0 ? (
+        (Array.isArray(comments) && comments.length > 0 ? (
           comments.map((comment) => (
-            <div key={comment.commentid} className="bg-raisinblack p-3 rounded-md">
+            <div key={comment.commentid} className="rounded-md bg-raisinblack p-3">
               <div className="flex items-center space-x-3">
-                {comment.combined_user_data?.profilepicture ? (
+                {comment.author.profile_picture ? (
                   <img
-                    src={comment.combined_user_data.profilepicture}
-                    alt="Profile"
+                    src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${comment.author.profile_picture}`}
+                    alt={`${comment.author.first_name} ${comment.author.last_name}'s profile`}
                     className="h-10 w-10 rounded-full object-cover"
                   />
                 ) : (
                   <UserCircleIcon className="h-10 w-10 text-white" />
                 )}
                 <div className="flex-1">
-                  <p className="text-sm text-light">
-                    {comment.combined_user_data?.first_name}{" "}
-                    {comment.combined_user_data?.last_name}
+                  <p className="text-sm font-medium text-light">
+                    {comment.author.first_name} {comment.author.last_name}
                   </p>
-                  <p className="text-xs text-fadedgrey">{timeAgo(comment.created_at)} ago</p>
+                  <p className="text-xs text-fadedgrey">
+                    {timeAgo(comment.created_at)} ago
+                  </p>
                 </div>
-                <Menu as="div" className="relative">
-                  <Menu.Button>
-                    <EllipsisVerticalIcon className="h-5 w-5 text-gray-400" />
-                  </Menu.Button>
-                  <Transition
-                    as={Fragment}
-                    enter="transition ease-out duration-100"
-                    enterFrom="transform opacity-0 scale-95"
-                    enterTo="transform opacity-100 scale-100"
-                    leave="transition ease-in duration-75"
-                    leaveFrom="transform opacity-100 scale-100"
-                    leaveTo="transform opacity-0 scale-95"
-                  >
-                    <Menu.Items className="absolute right-0 w-48 mt-2 origin-top-right bg-white divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                      <div className="p-1">
-                        <Menu.Item>
-                          {({ active }) => (
-                            <button
-                              onClick={() => handleEdit(comment.commentid, comment.comment)}
-                              className={`${
-                                active ? 'bg-gray-100' : ''
-                              } group flex w-full items-center rounded-md px-2 py-2 text-sm text-gray-900`}
-                            >
-                              Edit
-                            </button>
+                {(user?.id === comment.author.id || canDeleteComments) && (
+                  <Menu as="div" className="relative">
+                    <Menu.Button>
+                      <EllipsisVerticalIcon className="h-5 w-5 text-gray-400" />
+                    </Menu.Button>
+                    <Transition
+                      as={Fragment}
+                      enter="transition ease-out duration-100"
+                      enterFrom="transform opacity-0 scale-95"
+                      enterTo="transform opacity-100 scale-100"
+                      leave="transition ease-in duration-75"
+                      leaveFrom="transform opacity-100 scale-100"
+                      leaveTo="transform opacity-0 scale-95"
+                    >
+                      <Menu.Items className="absolute right-0 mt-2 w-48 origin-top-right divide-y divide-gray-700 rounded-md bg-raisinblack shadow-lg ring-1 ring-gray-700 ring-opacity-5 focus:outline-white">
+                        <div className="p-1">
+                          {user?.id === comment.author.id && (
+                            <Menu.Item>
+                              {({ active }) => (
+                                <button
+                                  onClick={() =>
+                                    handleEdit(comment.commentid, comment.comment)
+                                  }
+                                  className={`${
+                                    active ? "bg-gray-700" : "bg-raisinblack"
+                                  } group flex w-full items-center rounded-md px-2 py-2 text-sm text-white`}
+                                >
+                                  Edit
+                                </button>
+                              )}
+                            </Menu.Item>
                           )}
-                        </Menu.Item>
-                        <Menu.Item>
-                          {({ active }) => (
-                            <button
-                              onClick={() => handleDelete(comment.commentid, comment.authorid!)}
-                              className={`${
-                                active ? 'bg-gray-100' : ''
-                              } group flex w-full items-center rounded-md px-2 py-2 text-sm text-red-600`}
-                            >
-                              Delete
-                            </button>
+                          {(user?.id === comment.author.id || canDeleteComments) && (
+                            <Menu.Item>
+                              {({ active }) => (
+                                <button
+                                  onClick={() =>
+                                    handleDelete(comment.commentid, comment.author.id)
+                                  }
+                                  className={`${
+                                    active ? "bg-gray-700" : "bg-raisinblack"
+                                  } group flex w-full items-center rounded-md px-2 py-2 text-sm text-red-500`}
+                                >
+                                  Delete
+                                </button>
+                              )}
+                            </Menu.Item>
                           )}
-                        </Menu.Item>
-                      </div>
-                    </Menu.Items>
-                  </Transition>
-                </Menu>
+                        </div>
+                      </Menu.Items>
+                    </Transition>
+                  </Menu>
+                )}
               </div>
               {editingCommentId === comment.commentid ? (
-                <div>
+                <div className="mt-2">
                   <textarea
                     value={editingText || ""}
                     onChange={(e) => setEditingText(e.target.value)}
                     rows={2}
-                    className="w-full resize-none rounded-lg border border-[#424242] bg-[#1c1c1c] p-2 text-sm text-white"
+                    className="w-full resize-none rounded-lg border border-[#424242] bg-[#1c1c1c] p-2 text-sm text-white focus:border-primary focus:outline-none"
                   />
                   <div className="mt-2 flex space-x-4">
                     <button
                       onClick={handleUpdateComment}
-                      className="text-sm text-blue-500"
+                      className="text-sm text-blue-500 hover:underline"
                       disabled={isUpdating === comment.commentid}
                     >
                       {isUpdating === comment.commentid ? "Updating..." : "Update"}
                     </button>
                     <button
                       onClick={handleCancelEdit}
-                      className="text-sm text-gray-500"
+                      className="text-sm text-gray-500 hover:underline"
                     >
                       Cancel
                     </button>
