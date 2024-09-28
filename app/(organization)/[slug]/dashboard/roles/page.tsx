@@ -2,7 +2,8 @@
 
 import { RoleDisplay } from "@/components/settings/role_display_tab";
 import { Members } from "@/components/settings/role_members_tab";
-import { createClient } from "@/lib/supabase/client";
+import { createClient, getUser } from "@/lib/supabase/client";
+import { check_permissions } from "@/lib/organization";
 import { Menu, Switch, Tab } from "@headlessui/react";
 import {
   ArrowLeftIcon,
@@ -10,7 +11,7 @@ import {
   UserCircleIcon,
   UsersIcon,
 } from "@heroicons/react/20/solid";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { ToastContainer, toast } from "react-toastify";
@@ -59,7 +60,14 @@ export default function SettingsRolesPage() {
   const [selectedInviteRole, setSelectedInviteRole] = useState<string>("");
   const [selectedTab, setSelectedTab] = useState(0);
 
+  const [canViewDashboard, setCanViewDashboard] = useState<boolean>(false);
+  const [canEditRoles, setCanEditRoles] = useState<boolean>(false);
+  const [canDeleteRoles, setCanDeleteRoles] = useState<boolean>(false);
+  const [canAssignPermissions, setCanAssignPermissions] = useState<boolean>(false);
+  const [canCreateRoles, setCanCreateRoles] = useState<boolean>(false);
+  
   const slug = params.slug;
+  const router = useRouter();
 
   useEffect(() => {
     const supabase = createClient();
@@ -67,6 +75,7 @@ export default function SettingsRolesPage() {
     if (slug) {
       (async () => {
         try {
+          // Fetch organization and roles data
           const { data: organization, error: orgError } = await supabase
             .from("organization_roles_view")
             .select("*")
@@ -93,7 +102,7 @@ export default function SettingsRolesPage() {
             setPermissionsData(groupedPermissions);
           } else {
             if (permissionsError) {
-              // console.log(permissionsError);
+              // Handle permissions fetch error
             }
           }
 
@@ -124,24 +133,72 @@ export default function SettingsRolesPage() {
               setPermissionsEnabled(permissionsEnabledState);
             } else {
               if (rolePermissionsError) {
-                // console.log(rolePermissionsError);
+                // Handle role permissions fetch error
               }
             }
 
             setRolesData(organization.roles as Role[]);
             setFilteredRoles(organization.roles as Role[]);
           } else {
-            // console.log("Error:", orgError);
+            // Handle organization fetch error
           }
+
+          // Check permissions for the user
+          const user = await getUser();
+          if (user && organization) {
+            const userId = user.user?.id || "";
+
+            const [viewPermission, editPermission, deletePermission, assignPermission, createPermission] = await Promise.all([
+              check_permissions(userId, organization.organizationid, "view_dashboard"),
+              check_permissions(userId, organization.organizationid, "edit_roles"),
+              check_permissions(userId, organization.organizationid, "delete_roles"),
+              check_permissions(userId, organization.organizationid, "assign_permissions"),
+              check_permissions(userId, organization.organizationid, "create_roles")
+            ]);
+
+            setCanViewDashboard(viewPermission);
+            setCanEditRoles(editPermission);
+            setCanDeleteRoles(deletePermission);
+            setCanAssignPermissions(assignPermission);
+            setCanCreateRoles(createPermission);
+
+            if (!viewPermission) {
+              toast.error("You do not have permission to view this page.", {
+                position: "bottom-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: "light",
+              });
+              router.push("/dashboard");
+            }
+          }
+
         } catch (xError) {
-          // console.log(xError);
+          // Handle general error
         }
       })();
     }
   }, [slug]);
 
   const handleRoleClick = (role: Role) => {
-    setSelectedRole(role);
+    if (canEditRoles) {
+      setSelectedRole(role);
+    } else {
+      toast.error("You do not have permission to edit roles.", {
+        position: "bottom-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+      });
+    }
   };
 
   const handleSidebarClose = () => {
@@ -150,6 +207,20 @@ export default function SettingsRolesPage() {
 
   const handleSaveChanges = async (formValues: Role): Promise<void> => {
     const supabase = createClient();
+
+    if (!canEditRoles) {
+      toast.error("You do not have permission to edit roles.", {
+        position: "bottom-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+      });
+      return;
+    }
 
     try {
       const { data, error } = await supabase
@@ -215,6 +286,21 @@ export default function SettingsRolesPage() {
 
   const handleDeleteRole = async (role: Role) => {
     const supabase = createClient();
+
+    if (!canDeleteRoles) {
+      toast.error("You do not have permission to delete roles.", {
+        position: "bottom-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+      });
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from("organization_roles")
@@ -238,8 +324,7 @@ export default function SettingsRolesPage() {
         prevRolesData ? prevRolesData.filter((r) => r.role_id !== role.role_id) : null
       );
       setSelectedRole(null);
-      // console.log("Role deleted");
-      toast.success("The role was delete successfully.", {
+      toast.success("The role was deleted successfully.", {
         position: "bottom-right",
         autoClose: 5000,
         hideProgressBar: false,
@@ -267,6 +352,20 @@ export default function SettingsRolesPage() {
   const handlePermissionToggle = async (permKey: string) => {
     const supabase = createClient();
 
+    if (!canAssignPermissions) {
+      toast.error("You do not have permission to assign permissions.", {
+        position: "bottom-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+      });
+      return;
+    }
+
     if (selectedRole) {
       const isEnabled = permissionsEnabled[selectedRole.role_id]?.[permKey] || false;
 
@@ -290,7 +389,7 @@ export default function SettingsRolesPage() {
           .single();
 
         if (error) {
-          // console.log(error);
+          // Handle error
         }
       } else {
         const { data, error } = await supabase
@@ -302,7 +401,7 @@ export default function SettingsRolesPage() {
           .single();
 
         if (error) {
-          // console.log(error);
+          // Handle error
         }
       }
     }
@@ -310,6 +409,21 @@ export default function SettingsRolesPage() {
 
   const handleAddRole = async () => {
     const supabase = createClient();
+
+    if (!canCreateRoles) {
+      toast.error("You do not have permission to create roles.", {
+        position: "bottom-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+      });
+      return;
+    }
+
     const { data, error } = await supabase
       .from("organization_roles")
       .insert([
@@ -326,7 +440,6 @@ export default function SettingsRolesPage() {
 
     if (error) {
     } else {
-
       await recordActivity({
         activity_type: "role_create",
         description: `User has created a new role: ${data.role}.`,
@@ -522,9 +635,7 @@ export default function SettingsRolesPage() {
         roleId: selectedInviteRole,
       });
 
-      // console.log("Sending invites to:", inviteEmails);
-      // console.log("Selected role:", selectedInviteRole);
-      // TODO: Implement the API call to send invites
+      // Handle API call to send invites
       closeInviteModal();
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -557,7 +668,7 @@ export default function SettingsRolesPage() {
 
   return (
     <div className="bg-eerieblack p-6 text-white">
-      <ToastContainer />
+      <ToastContainer autoClose={3000}/>
 
       <h1 className="mb-2 text-xl font-medium">Roles</h1>
       <p className="mb-4 text-sm">Manage and configure roles for your organization.</p>
@@ -570,18 +681,14 @@ export default function SettingsRolesPage() {
           value={searchQuery}
           onChange={handleSearchChange}
         />
-        <button
-          className="rounded-md bg-primary p-2 px-4 text-sm hover:bg-primarydark"
-          onClick={handleAddRole}
-        >
-          Create Role
-        </button>
-        {/* <button
-          className="rounded-md bg-primary p-2 px-4 text-sm hover:bg-primarydark"
-          onClick={handleInvite}
-        >
-          Invite
-        </button> */}
+        {canCreateRoles && (
+          <button
+            className="rounded-md bg-primary p-2 px-4 text-sm hover:bg-primarydark"
+            onClick={handleAddRole}
+          >
+            Create Role
+          </button>
+        )}
       </div>
 
       <div className="rounded py-4">
@@ -639,7 +746,7 @@ export default function SettingsRolesPage() {
                             </button>
                           )}
                         </Menu.Item>
-                        {role.deletable && (
+                        {role.deletable && canDeleteRoles && (
                           <Menu.Item>
                             {({ active }) => (
                               <button
@@ -675,12 +782,14 @@ export default function SettingsRolesPage() {
                 <span>Back</span>
               </button>
               <div>
-                <button
-                  className="rounded-sm p-1 hover:bg-charleston"
-                  onClick={handleAddRole}
-                >
-                  <FiPlus size={18} />
-                </button>
+                {canCreateRoles && (
+                  <button
+                    className="rounded-sm p-1 hover:bg-charleston"
+                    onClick={handleAddRole}
+                  >
+                    <FiPlus size={18} />
+                  </button>
+                )}
               </div>
             </div>
             {rolesData?.map((role) => (
@@ -703,6 +812,7 @@ export default function SettingsRolesPage() {
           </div>
           <div className="flex-grow overflow-y-auto bg-raisinblack py-6 pl-10 pr-10">
             <h2 className="mb-4 text-lg font-medium">EDIT ROLE - {selectedRole.role}</h2>
+            {canEditRoles ? (
             <Tab.Group selectedIndex={selectedTab} onChange={setSelectedTab}>
               <Tab.List className="border-b border-gray-700">
                 {["Display", "Permissions", "Members"].map((tab, index) => (
@@ -781,6 +891,11 @@ export default function SettingsRolesPage() {
                 </Tab.Panel>
               </Tab.Panels>
             </Tab.Group>
+            ) : (
+              <div>
+                <p>You do not have permission to edit roles.</p>
+              </div>
+            )}
           </div>
         </div>
       )}

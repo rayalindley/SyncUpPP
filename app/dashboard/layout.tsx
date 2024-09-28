@@ -4,7 +4,7 @@ import Header from "@/components/dashboard/header";
 import SideNavMenuForAdmins from "@/components/dashboard/side_nav_menu_for_admins";
 import SideNavMenuForUsers from "@/components/dashboard/side_nav_menu_for_users";
 import { UserProvider } from "@/context/user_context";
-import { fetchOrganizationsForUser } from "@/lib/organization";
+import { fetchOrganizationsForUser, fetchOrganizationsForUserWithViewPermission } from "@/lib/organization";
 import { getUser } from "@/lib/supabase/server";
 
 export default async function DashboardLayout({
@@ -18,7 +18,7 @@ export default async function DashboardLayout({
     return redirect("/signin");
   }
 
-  const organizations = await fetchOrganizationsForUser(user.id);
+  const organizations = await fetchOrganizationsForUserWithViewPermission(user.id);
 
   return (
     <UserProvider>
