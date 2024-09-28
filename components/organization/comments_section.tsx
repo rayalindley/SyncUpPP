@@ -72,7 +72,6 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
         setCanComment(!!commentPermission);
         setCanDeleteComments(!!deletePermission);
       } catch (error) {
-        console.error("Error checking permissions", error);
         setCanComment(false);
         setCanDeleteComments(false);
       }
@@ -88,7 +87,6 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
       try {
         const { data, error } = await getVisiblePostsAndComments(user.id, organizationId);
         if (error) {
-          console.error("Error fetching posts and comments:", error);
           return;
         }
 
@@ -96,11 +94,10 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
         if (post) {
           setComments(post.comments ?? []);
         } else {
-          console.warn(`Post with ID ${postId} not found.`);
           setComments([]);
         }
       } catch (error) {
-        console.error("Exception while fetching comments:", error);
+        // Handle exception if necessary
       }
     };
 
@@ -121,7 +118,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
         }
       )
       .subscribe((status) => {
-        console.log(`Subscription status: ${status}`);
+        // Handle subscription status if necessary
       });
 
     return () => {
@@ -133,7 +130,6 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
 
   const onSubmit = async (data: { commentText: string }) => {
     if (!isLoggedIn || !canComment) {
-      console.warn("User not authorized to comment.");
       return;
     }
 
@@ -155,7 +151,6 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
           showConfirmButton: false,
         });
       } else {
-        console.error("Failed to submit comment.");
         Swal.fire({
           icon: "error",
           title: "Submission Failed",
@@ -163,7 +158,6 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
         });
       }
     } catch (error) {
-      console.error("Failed to submit comment.", error);
       Swal.fire({
         icon: "error",
         title: "Submission Error",
@@ -176,55 +170,50 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
 
   const handleDelete = async (commentId: string, authorId: string) => {
     if (!canDeleteComments && user?.id !== authorId) {
-      console.warn("User does not have permission to delete this comment.");
       return;
     }
     try {
-      console.log(`Attempting to delete comment ID: ${commentId}`);
       const deleteResult = await deleteComment(commentId, user?.id!);
-      console.log(`Delete comment result:`, deleteResult);
+      if (!deleteResult.error) {
+        Swal.fire({
+          icon: "success",
+          title: "Deleted!",
+          text: "Your comment has been deleted.",
+          timer: 1500,
+          showConfirmButton: false,
+        });
 
-      if (deleteResult.error) {
-        throw deleteResult.error;
+        setComments((prevComments) =>
+          prevComments.filter((comment) => comment.commentid !== commentId)
+        );
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Deletion Failed",
+          text: "Unable to delete comment. Please try again.",
+        });
       }
-
-      Swal.fire({
-        icon: "success",
-        title: "Deleted!",
-        text: "Your comment has been deleted.",
-        timer: 1500,
-        showConfirmButton: false,
-      });
-
-      setComments((prevComments) =>
-        prevComments.filter((comment) => comment.commentid !== commentId)
-      );
-      console.log(`Comment ID ${commentId} removed from state.`);
     } catch (error) {
-      console.error("Failed to delete comment.", error);
       Swal.fire({
         icon: "error",
-        title: "Deletion Failed",
-        text: "Unable to delete comment. Please try again.",
+        title: "Deletion Error",
+        text: "An error occurred while deleting the comment.",
       });
     }
   };
 
   const handleEdit = (commentId: string, commentText: string) => {
-    console.log(`Editing comment ID: ${commentId}`);
     setEditingCommentId(commentId);
     setEditingText(commentText);
   };
 
   const handleUpdateComment = async () => {
     if (!editingCommentId || !editingText) {
-      console.warn("No comment is being edited.");
       return;
     }
 
     setIsUpdating(editingCommentId);
     try {
-      console.log(`Attempting to update comment ID: ${editingCommentId}`);
       const updatedCommentResult = await updateComment(
         editingCommentId,
         { comment: editingText },
@@ -242,7 +231,6 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
           showConfirmButton: false,
         });
       } else {
-        console.error("Failed to update comment.");
         Swal.fire({
           icon: "error",
           title: "Update Failed",
@@ -250,7 +238,6 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
         });
       }
     } catch (error) {
-      console.error("Failed to update comment.", error);
       Swal.fire({
         icon: "error",
         title: "Update Error",

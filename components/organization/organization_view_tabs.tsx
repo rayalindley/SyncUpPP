@@ -49,7 +49,7 @@ const OrganizationViewTabs = ({
   }
 
   const tabContent = {
-    posts: <PostsSection organizationId={organizationid} posts={posts} />, // Pass posts to PostsSection
+    posts: <PostsSection organizationId={organizationid} initialPosts={posts} />, // Pass posts to PostsSection
     membership: (
       <OrganizationMembershipsComponent
         memberships={memberships}
