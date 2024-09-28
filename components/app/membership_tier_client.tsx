@@ -108,7 +108,6 @@ export default function MembershipTiersClient({
     setShowModal(true);
   };
 
-  console.log(memberships);
 
   return (
     <>
