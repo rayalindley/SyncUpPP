@@ -48,7 +48,6 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
   const [isAdmin, setIsAdmin] = useState(false);
   const [organizationSlug, setOrganizationSlug] = useState<string | null>(null);
   const [canCreateEvents, setCanCreateEvents] = useState(false);
-  const [canManageEvents, setCanManageEvents] = useState(false); // State for managing events
   const [searchQuery, setSearchQuery] = useState(""); // Search query state
   const [eventStatusFilter, setEventStatusFilter] = useState(""); // Event status filter state
   const [eventPrivacyFilter, setEventPrivacyFilter] = useState(""); // Privacy filter state
@@ -93,13 +92,6 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
           "create_events"
         );
         setCanCreateEvents(createPermission);
-
-        const managePermission = await check_permissions(
-          userid || "",
-          organizationId,
-          "view_dashboard"
-        );
-        setCanManageEvents(managePermission); // Check permission for managing events
       } catch (error) {
         console.error("Failed to check permissions", error);
       }
@@ -181,7 +173,7 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
   const isLastPage = indexOfLastEvent >= filteredEvents.length;
 
   return (
-    <div className="mx-auto max-w-screen-xl px-6 lg:px-12">
+    <div className="mx-auto max-w-7xl px-6 lg:px-8">
       <div className="mx-auto max-w-7xl text-center">
         <p className="mt-2 text-2xl font-bold tracking-tight text-light sm:text-2xl lg:mx-32 lg:px-96 whitespace-nowrap">
           Our Events
@@ -189,7 +181,7 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
       </div>
 
       {/* Search, Sort, Filter, and Create Event Button */}
-      <div className="mx-auto mt-6 flex max-w-4xl justify-between space-x-4">
+      <div className="mx-auto mt-6 flex max-w-3xl justify-between ">
         <div className="relative flex-grow">
           <input
             type="text"
@@ -203,7 +195,7 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
           </div>
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-4 pl-8">
           {/* Sort Menu */}
           <Menu as="div" className="relative">
             <Menu.Button className="flex items-center text-sm font-medium text-light">
@@ -287,14 +279,6 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
               className="hover:bg-primary-dark ml-4 rounded-lg bg-primary px-4 py-2 text-white"
             >
               Create Event
-            </Link>
-          )}
-          {canManageEvents && (
-            <Link
-              href={`/${organizationSlug}/dashboard/events`}
-              className="hover:bg-primary-dark ml-2 rounded-lg bg-primary px-4 py-2 text-white"
-            >
-              Manage Events
             </Link>
           )}
         </div>
