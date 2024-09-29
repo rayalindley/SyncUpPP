@@ -2,9 +2,12 @@ import { Organizations } from "@/types/organizations";
 import { CombinedUserData } from "@/types/combined_user_data";
 
 export interface Posts {
-  postid: string;
-  organizationid: string;
-  authorid: string;
+  comments?: any;
+  privacy?: any;
+  author_details?: any;
+  postid?: string;
+  organizationid?: string;
+  authorid?: string;
   content?: string;
   selectedRoles?: string[];
   selectedMemberships?: string[];

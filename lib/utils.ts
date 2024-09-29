@@ -26,25 +26,40 @@ export function isDateValid(dateString: string): boolean {
 
 
 export function timeAgo(dateString: string) {
-  const date = new Date(dateString);
+  // If the commentDate string is in UTC, ensure it's parsed as UTC.
+  // You can append 'Z' to the date string to enforce UTC interpretation.
+  const commentDate = new Date(dateString.endsWith("Z") ? dateString : dateString + "Z");
+
   const now = new Date();
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-  // Debugging output
-  console.log(
-    `Date now: ${now.toISOString()}, Comment date: ${date.toISOString()}, Seconds ago: ${seconds}`
-  );
+  const timeDifferenceInSeconds = Math.floor((now.getTime() - commentDate.getTime()) / 1000);
 
-  let interval = seconds / 31536000;
+  // Helper function to format date in 12-hour AM/PM format
+  function formatAMPM(date: Date) {
+    let hours = date.getHours();
+    let minutes = date.getMinutes();
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12;
+    hours = hours ? hours : 12; // hour '0' should be '12'
+    const formattedMinutes = minutes < 10 ? "0" + minutes : minutes.toString(); // add leading zero to minutes
+    return `${hours}:${minutes} ${ampm}`;
+  }
 
-  if (interval > 1) return Math.floor(interval) + "yrs";
-  interval = seconds / 2592000;
-  if (interval > 1) return Math.floor(interval) + "m";
-  interval = seconds / 86400;
-  if (interval > 1) return Math.floor(interval) + "d";
-  interval = seconds / 3600;
-  if (interval > 1) return Math.floor(interval) + "h";
-  interval = seconds / 60;
-  if (interval > 1) return Math.floor(interval) + "min";
-  return Math.floor(seconds) + "s";
-};
+  // Convert seconds into minutes, hours, days, months, years
+  let interval = timeDifferenceInSeconds / 31536000; // years
+  if (interval >= 1) return Math.floor(interval) + " yrs";
+
+  interval = timeDifferenceInSeconds / 2592000; // months
+  if (interval >= 1) return Math.floor(interval) + " m";
+
+  interval = timeDifferenceInSeconds / 86400; // days
+  if (interval >= 1) return Math.floor(interval) + " d";
+
+  interval = timeDifferenceInSeconds / 3600; // hours
+  if (interval >= 1) return Math.floor(interval) + " h";
+
+  interval = timeDifferenceInSeconds / 60; // minutes
+  if (interval >= 1) return Math.floor(interval) + " min";
+
+  return Math.floor(timeDifferenceInSeconds) + " s"; // seconds
+}
