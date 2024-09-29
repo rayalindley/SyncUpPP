@@ -1,6 +1,7 @@
 "use server";
 import { createClient, getUser } from "@/lib/supabase/server";
 //import { getVisiblePostsAndComments } from "@/lib/posts_tab"; 
+
 export async function getVisiblePostsAndComments(p_user_id: string, p_org_id: string) {
   const supabase = createClient();
   try {
@@ -19,7 +20,8 @@ export async function getVisiblePostsAndComments(p_user_id: string, p_org_id: st
     return { data: null, error };
   }
 }
-// it returns rows from the ff view.
+
+// It returns rows from the following view.
 /*create view
   public.org_posts_and_comments_view as
 select
@@ -201,12 +203,13 @@ export async function updateComment(
   }
 }
 
-export async function deleteComment(commentid: string, authorid: string) {
+export async function deleteComment(commentid: string, user_id: string) {
   const supabase = createClient();
   try {
+    // Step 1: Fetch the comment's authorid and postid
     const { data: comment, error: fetchError } = await supabase
       .from("post_comments")
-      .select("authorid")
+      .select("authorid, postid")
       .eq("commentid", commentid)
       .single();
 
@@ -215,14 +218,37 @@ export async function deleteComment(commentid: string, authorid: string) {
       return { data: null, error: { message: "Comment not found" } };
     }
 
-    if (comment.authorid !== authorid) {
-      console.error("Unauthorized: Only the author can delete this comment");
+    const { authorid, postid } = comment;
+
+    // Step 2: Fetch the organizationid from the post
+    const { data: post, error: postError } = await supabase
+      .from("posts")
+      .select("organizationid")
+      .eq("postid", postid)
+      .single();
+
+    if (postError || !post) {
+      console.error("Post not found or fetch error:", postError?.message);
+      return { data: null, error: { message: "Post not found" } };
+    }
+
+    const { organizationid } = post;
+
+    // Step 3: Check if the user is the author
+    const isAuthor = authorid === user_id;
+
+    // Step 4: Check if the user has delete_comments permission
+    const hasDeletePermission = await check_permissions(user_id, organizationid, "delete_comments");
+
+    if (!isAuthor && !hasDeletePermission) {
+      console.error("Unauthorized: Only the author or users with delete permissions can delete this comment");
       return {
         data: null,
-        error: { message: `Unauthorized: Only the author can delete this comment` },
+        error: { message: "Unauthorized: Only the author or users with delete permissions can delete this comment" },
       };
     }
 
+    // Step 5: Proceed to delete the comment
     const { data, error } = await supabase
       .from("post_comments")
       .delete()
@@ -244,6 +270,7 @@ export async function deleteComment(commentid: string, authorid: string) {
     };
   }
 }
+
 export async function insertPost(formData: any, organizationid: string) {
   const supabase = createClient();
 
@@ -453,4 +480,3 @@ export async function fetchRolesAndMemberships(organizationId: string) {
 
   return { roles, memberships, error: null };
 }
-

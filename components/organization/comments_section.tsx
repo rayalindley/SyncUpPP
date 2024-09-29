@@ -55,7 +55,9 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
 
   const isLoggedIn = user && user.id && user.id.length > 0;
 
-  useEffect(() => {}, [initialComments]);
+  useEffect(() => {
+    // Initial comments update if needed
+  }, [initialComments]);
 
   useEffect(() => {
     const fetchPermissions = async () => {
@@ -92,7 +94,10 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
 
         const post: Posts | undefined = data.find((p: Posts) => p.postid === postId);
         if (post) {
-          setComments(post.comments ?? []);
+          const sortedComments: PostComments[] = (post.comments ?? []).sort(
+            (a: PostComments, b: PostComments) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
+          setComments(sortedComments);
         } else {
           setComments([]);
         }
@@ -117,16 +122,12 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
           await fetchComments();
         }
       )
-      .subscribe((status) => {
-        // Handle subscription status if necessary
-      });
+      .subscribe();
 
     return () => {
       supabase.removeChannel(commentsChannel);
     };
   }, [postId, organizationId, user?.id]);
-
-  useEffect(() => {}, [comments]);
 
   const onSubmit = async (data: { commentText: string }) => {
     if (!isLoggedIn || !canComment) {
@@ -170,6 +171,11 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
 
   const handleDelete = async (commentId: string, authorId: string) => {
     if (!canDeleteComments && user?.id !== authorId) {
+      Swal.fire({
+        icon: "error",
+        title: "Unauthorized",
+        text: "You do not have permission to delete this comment.",
+      });
       return;
     }
     try {
@@ -190,7 +196,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
         Swal.fire({
           icon: "error",
           title: "Deletion Failed",
-          text: "Unable to delete comment. Please try again.",
+          text: deleteResult.error.message || "Unable to delete comment. Please try again.",
         });
       }
     } catch (error) {
@@ -279,9 +285,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
 
       {canComment && (
         <button
-          onClick={() => {
-            setShowComments(!showComments);
-          }}
+          onClick={() => setShowComments(!showComments)}
           className="mb-4 text-sm text-blue-500 hover:underline"
         >
           {showComments ? "Hide Comments" : `Show Comments (${comments.length})`}
