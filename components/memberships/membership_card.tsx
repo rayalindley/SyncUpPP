@@ -1,11 +1,10 @@
 import { CheckIcon } from "@heroicons/react/20/solid";
 import { TrashIcon } from "@heroicons/react/20/solid";
 import { Membership } from "@/types/membership"; 
-import { useState } from 'react'; // Add this import
-import ReactDOM from 'react-dom'; // Add this import for portal rendering
+import { useState } from 'react';
+import ReactDOM from 'react-dom';
 
 import { createClient } from '@/lib/supabase/client';
-import { Router } from "next/router";
 import { useRouter } from "next/navigation";
 import { recordActivity } from "@/lib/track";
 
@@ -29,7 +28,8 @@ interface MembershipCardProps {
   handleDeleteMembership: (membershipId: string) => void;
   frequency: Frequency;
   editable?: boolean;
-  isCurrentPlan: boolean; // Add this prop
+  isCurrentPlan: boolean;
+  isProcessing: boolean; // Add this prop
 }
 
 function classNames(...classes: string[]) {
@@ -41,7 +41,7 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
   index,
   totalMemberships,
   userid,
-  isAuthenticated = false, // Default to false
+  isAuthenticated = false,
   userMemberships,
   handleSubscribe,
   handleEditMembership,
@@ -49,9 +49,10 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
   frequency,
   editable = false,
   isCurrentPlan,
+  isProcessing, // Destructure the new prop
 }) => {
-  const [isHovered, setIsHovered] = useState(false); // Add state for hover
-  const [isModalOpen, setIsModalOpen] = useState(false); // Add state for modal
+  const [isHovered, setIsHovered] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const isPurchased = userMemberships.includes(membership.membershipid);
   const router = useRouter();
@@ -97,8 +98,8 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
           : "ring-1 ring-white/10",
         "max-w-sm bg-white/5 sm:w-auto rounded-3xl p-8 xl:p-10"
       )}
-      onMouseEnter={() => setIsHovered(true)} // Set hover state
-      onMouseLeave={() => setIsHovered(false)} // Reset hover state
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       <div className="flex items-center justify-between gap-x-4">
         <h3
@@ -133,8 +134,8 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
         <button
           onClick={() => {
             if (isCurrentPlan && isHovered) {
-              setIsModalOpen(true); // Open modal on hover
-            } else {
+              setIsModalOpen(true);
+            } else if (!isProcessing) {
               handleSubscribe(
                 membership.membershipid,
                 membership.organizationid || ""
@@ -146,15 +147,20 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
             "mt-6 block w-full rounded-md px-3 py-2 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2",
             isCurrentPlan
               ? isHovered
-                ? "bg-red-600 text-white" // Change to red on hover
+                ? "bg-red-600 text-white"
                 : "cursor-not-allowed bg-gray-300 text-white"
               : membership.mostPopular
                 ? "bg-primary text-white shadow-sm hover:bg-primarydark focus-visible:outline-primary"
-                : "bg-white/10 text-white hover:bg-white/20 focus-visible:outline-white"
+                : "bg-white/10 text-white hover:bg-white/20 focus-visible:outline-white",
+            isProcessing ? "opacity-50 cursor-not-allowed" : ""
           )}
-          disabled={isCurrentPlan && !isHovered} // Disable if not hovered
+          disabled={isCurrentPlan && !isHovered || isProcessing}
         >
-          {isCurrentPlan ? (isHovered ? "Cancel Plan" : "Current Plan") : isFree ? "Join Plan" : "Subscribe"}
+          {isProcessing
+            ? "Processing..."
+            : isCurrentPlan
+              ? (isHovered ? "Cancel Plan" : "Current Plan")
+              : isFree ? "Join Plan" : "Subscribe"}
         </button>
       ) : null}
 
@@ -191,6 +197,7 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
               handleEditMembership(membership, membership.organizationid || "")
             }
             className="mt-6 block w-full rounded-md bg-primary px-3 py-2 text-center text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            disabled={isProcessing}
           >
             Edit Membership
           </button>
@@ -199,6 +206,7 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
             aria-describedby={membership.membershipid}
             onClick={() => handleDeleteMembership(membership.membershipid)}
             className="mt-6 block rounded-md bg-red-900 px-3 py-2 text-center text-sm font-semibold leading-6 text-white hover:bg-red-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-900"
+            disabled={isProcessing}
           >
             <TrashIcon className="size-5 text-white"></TrashIcon>
           </button>

@@ -25,6 +25,7 @@ export default function JoinButton({
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [membershipStatus, setMembershipStatus] = useState(initialMembershipStatus);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -33,6 +34,7 @@ export default function JoinButton({
   }, []);
 
   const handleAction = async () => {
+    setIsLoading(true);
     const supabase = createClient();
     const {
       data: { user },
@@ -61,9 +63,11 @@ export default function JoinButton({
     }
 
     setShowConfirmDialog(false);
+    setIsLoading(false);
   };
 
   const handleLeave = async (supabase: SupabaseClient, userId: string) => {
+    setIsLoading(true);
     const { error } = await supabase
       .from("organizationmembers")
       .delete()
@@ -91,9 +95,11 @@ export default function JoinButton({
 
       setMembershipStatus("none");
     }
+    setIsLoading(false);
   };
 
   const handleCancelRequest = async (supabase: SupabaseClient, userId: string) => {
+    setIsLoading(true);
     const { error } = await supabase
       .from("organization_requests")
       .delete()
@@ -122,9 +128,11 @@ export default function JoinButton({
 
       setMembershipStatus("none");
     }
+    setIsLoading(false);
   };
 
   const handleJoin = async (supabase: SupabaseClient, userId: string) => {
+    setIsLoading(true);
     const { error } = await supabase.from("organizationmembers").insert([
       {
         organizationid: organizationId,
@@ -154,9 +162,11 @@ export default function JoinButton({
 
       setMembershipStatus("member");
     }
+    setIsLoading(false);
   };
 
   const handleJoinRequest = async (supabase: SupabaseClient, userId: string) => {
+    setIsLoading(true);
     const { error } = await supabase.from("organization_requests").insert([
       {
         org_id: organizationId,
@@ -186,6 +196,7 @@ export default function JoinButton({
 
       setMembershipStatus("pending");
     }
+    setIsLoading(false);
   };
 
   const getButtonText = () => {
@@ -206,8 +217,9 @@ export default function JoinButton({
         <p>Are you sure you want to {getButtonText().toLowerCase()} this organization?</p>
         <div className="mt-4 flex justify-end gap-2">
           <button
-            className="rounded-lg bg-gray-300 px-4 py-2 text-gray-800 hover:bg-gray-400"
+            className="rounded-lg bg-gray-300 px-4 py-2 text-gray-800 hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={() => setShowConfirmDialog(false)}
+            disabled={isLoading}
           >
             Cancel
           </button>
@@ -216,8 +228,9 @@ export default function JoinButton({
               membershipStatus === "member"
                 ? "bg-red-500 hover:bg-red-600"
                 : "bg-primary hover:bg-primarydark"
-            }`}
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
             onClick={handleAction}
+            disabled={isLoading}
           >
             Confirm
           </button>
@@ -233,8 +246,9 @@ export default function JoinButton({
           membershipStatus === "member"
             ? "bg-red-500 hover:bg-red-600"
             : "bg-primary hover:bg-primarydark"
-        }`}
+        } disabled:opacity-50 disabled:cursor-not-allowed`}
         onClick={() => setShowConfirmDialog(true)}
+        disabled={isLoading}
       >
         {getButtonText()}
       </button>
