@@ -17,20 +17,20 @@ const QrScannerComponent: React.FC<QrScannerProps> = ({ onScan, onError }) => {
       videoRef.current,
       (result) => {
         if (result) {
-          onScan(result.data);
+          onScan(result);
         }
       },
       {
-        onDecodeError: (error) => {
-          console.error("QR Scan Error:", error); // Log scan errors
+        onDecodeError: (error: Error | string) => {
+          console.error("QR Scan Error:", error);
           if (error instanceof Error) {
             onError(error);
           } else {
             onError(new Error(error));
           }
         },
-        highlightScanRegion: true, // Highlight scan area for better visibility
-        highlightCodeOutline: true // Highlight detected code outline
+        highlightScanRegion: true,
+        highlightCodeOutline: true
       }
     );
 
