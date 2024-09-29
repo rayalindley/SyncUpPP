@@ -8,6 +8,7 @@ import "react-toastify/dist/ReactToastify.css";
 import Preloader from "@/components/preloader";
 import { Dialog } from "@headlessui/react";
 import QrScannerComponent from "@/components/qrscanner"; // Import the updated QrScanner component
+import { recordActivity } from "@/lib/track";
 
 const AttendanceContent = () => {
   const router = useRouter();
@@ -31,69 +32,85 @@ const AttendanceContent = () => {
           router.push("/"); // Redirect to a safe page
           return;
         }
-
+  
         const { user } = await getUser();
-
+  
         if (!user) {
           toast.error("User not logged in");
           router.push("/signin");
           return;
         }
-
+  
         // Fetch event details
         const { data: eventData, error: eventError } = await supabase
           .from("events")
           .select("*")
           .eq("eventid", eventid)
           .single();
-
+  
         if (eventError || !eventData) {
           toast.error("Event not found");
           setLoading(false);
           return;
         }
         setEvent(eventData);
-
+  
         // Check user permissions
         const permission = await check_permissions(
           user.id,
           eventData.organizationid,
           "manage_event_registrations"
         );
-
+  
         if (!permission) {
           setHasPermission(false);
           setLoading(false);
           return;
         }
-
+  
         setHasPermission(true);
-
+  
         // Fetch user profile
         const { data: userProfileData, error: userProfileError } = await supabase
           .from("userprofiles")
           .select("*")
           .eq("userid", userid)
           .single();
-
+  
         if (userProfileError || !userProfileData) {
           toast.error("User profile not found");
           setLoading(false);
           return;
         }
         setUserProfile(userProfileData);
-
+  
+        // Ensure fullName is generated correctly
+        const fullName = `${userProfileData.first_name} ${userProfileData.last_name}`;
+  
         // Mark attendance
         const { error } = await supabase
           .from("eventregistrations")
           .update({ attendance: "present" })
           .eq("userid", userid)
           .eq("eventid", eventid);
-
+  
         if (error) {
           toast.error("Failed to mark attendance");
         } else {
           setShowSuccessModal(true);
+  
+          // Log user activity
+          await recordActivity({
+            activity_type: "event_attendance",
+            description: `User marked as present for event: ${eventData.title}`,
+          });
+  
+          // Log organization activity AFTER full name is properly fetched
+          await recordActivity({
+            activity_type: "event_attendance",
+            organization_id: eventData.organizationid,
+            description: `User ${fullName} marked as present for event: ${eventData.title}`,
+          });
         }
       } catch (error) {
         console.error("Error:", error);
@@ -102,9 +119,10 @@ const AttendanceContent = () => {
         setLoading(false);
       }
     };
-
+  
     markAttendance();
   }, [userid, eventid, router]);
+  
 
   // Handle the result from the QR scanner
   const handleQrScan = async (scannedResult: string) => {
