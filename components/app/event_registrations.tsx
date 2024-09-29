@@ -8,6 +8,9 @@ import { createClient } from "@/lib/supabase/client";
 import dynamic from 'next/dynamic';
 import { TableColumn } from "react-data-table-component";
 import { saveAs } from 'file-saver';
+import { Dialog } from "@headlessui/react";
+import QrScannerComponent from "@/components/qrscanner"; // Import QR Scanner component
+import { useRouter } from "next/navigation";
 
 // Dynamically import DataTable
 const DataTable = dynamic(() => import('react-data-table-component'), {
@@ -36,7 +39,7 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
   registrations,
 }) => {
   const supabase = createClient();
-
+  const router = useRouter();
   const [tableData, setTableData] = useState<Registration[]>(registrations);
   const [filterText, setFilterText] = useState<string>("");
   const [debouncedFilterText] = useDebounce(filterText, 300);
@@ -44,6 +47,8 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
   const [orgFilter, setOrgFilter] = useState<string>("");
   const [eventFilter, setEventFilter] = useState<string>("");
   const [attendanceFilter, setAttendanceFilter] = useState<string>("");
+
+  const [showQrScanner, setShowQrScanner] = useState(false); // State to toggle QR scanner dialog
 
   // Unique organizations and events for filter options
   const uniqueOrganizations = Array.from(
@@ -269,6 +274,29 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
     );
   });
 
+  const handleQrScan = async (scannedResult: string) => {
+    try {
+      // Extract the user ID and event ID from the scanned QR code URL
+      const url = new URL(scannedResult);
+      const scannedUserId = url.searchParams.get("uid");
+      const scannedEventId = url.searchParams.get("event");
+
+      if (scannedUserId && scannedEventId) {
+        // Redirect to the attendance page with the scanned user ID and event ID
+        router.push(`/attendance?uid=${scannedUserId}&event=${scannedEventId}`);
+      } else {
+        toast.error("Invalid QR code.");
+      }
+    } catch (error) {
+      console.error("QR Code processing error:", error); // Log QR processing error
+      toast.error("Failed to process the scanned QR code.");
+    }
+  };
+
+  const handleQrError = (error: Error) => {
+    console.error("QR Scan Error:", error);
+  };
+
   return (
     <div className="px-4 sm:px-6 lg:px-8">
       <div className="sm:flex sm:items-center">
@@ -293,11 +321,18 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
           />
         </div>
         {/* Filters and Export Button on the Right */}
-        <div className="flex items-center">
+        <div className="flex items-center space-x-2">
+          {/* Scan QR Button */}
+          <button
+            onClick={() => setShowQrScanner(true)}
+            className="block rounded-md bg-primary text-white px-3 py-2 text-sm shadow-sm hover:bg-primarydark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50"
+          >
+            Scan QR
+          </button>
           {eventFilter && (
             <button
               onClick={exportToCSV}
-              className="mr-2 block rounded-md bg-primary text-white px-3 py-2 text-sm shadow-sm hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50"
+              className="block rounded-md bg-primary text-white px-3 py-2 text-sm shadow-sm hover:bg-primarydark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50"
             >
               Export
             </button>
@@ -305,7 +340,7 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="ml-2 block rounded-md border border-[#525252] bg-charleston pl-3 pr-8 py-2 text-white shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+            className="block rounded-md border border-[#525252] bg-charleston pl-3 pr-8 py-2 text-white shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
           >
             <option value="">All Status</option>
             <option value="pending">Pending</option>
@@ -314,7 +349,7 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
           <select
             value={eventFilter}
             onChange={(e) => setEventFilter(e.target.value)}
-            className="truncate ml-2 block rounded-md border border-[#525252] bg-charleston px-3 py-2 text-white shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+            className="truncate block rounded-md border border-[#525252] bg-charleston px-3 py-2 text-white shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
             style={{ maxWidth: '200px' }}
           >
             <option value="">All Events</option>
@@ -327,7 +362,7 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
           <select
             value={attendanceFilter}
             onChange={(e) => setAttendanceFilter(e.target.value)}
-            className="ml-2 block rounded-md border border-[#525252] bg-charleston pl-3 pr-8 py-2 text-white shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+            className="block rounded-md border border-[#525252] bg-charleston pl-3 pr-8 py-2 text-white shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
           >
             <option value="">All Attendance</option>
             <option value="present">Present</option>
@@ -364,6 +399,29 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
           }}
         />
       </div>
+
+      {/* QR Scanner Modal */}
+      {showQrScanner && (
+        <Dialog
+          open={showQrScanner}
+          onClose={() => setShowQrScanner(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black bg-opacity-50"
+        >
+          <div className="bg-raisinblack p-6 rounded-lg shadow-lg max-w-md mx-auto w-full h-auto">
+            <h2 className="text-light text-lg font-semibold mb-4 text-center">Scan QR for Attendance</h2>
+            <QrScannerComponent
+              onScan={handleQrScan}
+              onError={handleQrError}
+            />
+            <button
+              onClick={() => setShowQrScanner(false)}
+              className="mt-4 block w-full rounded-md bg-primary px-4 py-2 text-white hover:bg-primarydark"
+            >
+              Close Scanner
+            </button>
+          </div>
+        </Dialog>
+      )}
     </div>
   );
 };
