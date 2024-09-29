@@ -11,6 +11,7 @@ import JoinButton from "@/components/organization/join_organization_button";
 import { User } from "@supabase/supabase-js";
 import { CalendarIcon, InboxIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 import { fetchPosts } from "@/lib/posts_tab"; // Import fetchPosts
+import { checkMembership } from "@/lib/events"; // Add this import
 
 const getInitials = (name: string) =>
   name
@@ -51,15 +52,14 @@ export default async function OrganizationUserView({
     if (user.id === org.adminid) {
       membershipStatus = "admin";
     } else {
-      // Check if user is a member
-      const { data: memberData } = await supabase
-        .from("organizationmembers")
-        .select("*")
-        .eq("organizationid", org.organizationid)
-        .eq("userid", user.id)
-        .single();
+      // Use checkMembership function to check if user is a member
+      const { isMember, error } = await checkMembership(user.id, org.organizationid);
 
-      if (memberData) {
+      console.log(isMember);
+      console.log(error);
+      if (error) {
+        console.error("Error checking membership:", error);
+      } else if (isMember) {
         membershipStatus = "member";
       } else {
         // Check if user has a pending request
@@ -85,7 +85,6 @@ export default async function OrganizationUserView({
   const socials = org?.socials || {};
   const {data:posts, error:postsError } = await fetchPosts(org.organizationid, user?.id ?? null); // Fetch posts
 
-  console.log(posts);
 
   return (
     <div>
