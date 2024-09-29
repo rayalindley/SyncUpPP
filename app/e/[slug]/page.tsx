@@ -245,7 +245,7 @@ const EventPage = () => {
       }
     
       // Generate QR code data for in-person events
-      const qrCodeData = `${process.env.NEXT_PUBLIC_SITE_URL}/attendance/${eventId}/${userId}`;
+      const qrCodeData = `${process.env.NEXT_PUBLIC_SITE_URL}/attendance?uid=${userId}&event=${eventId}`;
   
       await supabase
         .from("eventregistrations")
@@ -259,13 +259,17 @@ const EventPage = () => {
   useEffect(() => {
     async function checkAndGenerateQRCode() {
       if (user && isRegistered && event && !isUrl(event.location) && !qrCodeUrl) {
-        // User is registered, event is not virtual, and no QR code has been generated
-        await generateAndSaveQRCode(user.id, event.eventid);
+        if (user.id && event.eventid) {
+          await generateAndSaveQRCode(user.id, event.eventid);
+        } else {
+          console.error("User ID or Event ID is missing");
+        }
       }
     }
-
+  
     checkAndGenerateQRCode();
   }, [user, isRegistered, event, qrCodeUrl]);
+  
 
   if (loading) {
     return <Preloader />;
