@@ -8,13 +8,13 @@ import { Dialog, Transition } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/20/solid";
 import { Fragment } from "react";
 import Swal from 'sweetalert2';
-import { createClient } from "@/lib/supabase/client";
-import { getUser } from "@/lib/supabase/client";
+import { createClient, getUser } from "@/lib/supabase/client";
 import { useRouter } from 'next/navigation';
 import { TableColumn } from "react-data-table-component";
 import ActivityFeed from "@/components/acitivty_feed";
 import { Activity } from "@/types/activities";
 import { recordActivity, isActiveMember } from "@/lib/track";
+import { check_permissions } from "@/lib/organization";
 
 const supabase = createClient();
 
@@ -87,8 +87,18 @@ const MembersTable: React.FC<MembersTableProps> = ({ members, organization }) =>
   const [debouncedFilterText] = useDebounce(filterText, 300);
   const [isMounted, setIsMounted] = useState(false);
   const [selectedMember, setSelectedMember] = useState<MemberTableData | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const router = useRouter();
   const [userActivities, setUserActivities] = useState<Activity[]>([]);
+
+  useEffect(() => {
+    // Fetch the current user's ID
+    const fetchUserData = async () => {
+      const { user } = await getUser();
+      setUserId(user?.id ?? null);
+    };
+    fetchUserData();
+  }, []);
 
   useEffect(() => {
     const fetchMemberStatus = async () => {
@@ -132,7 +142,6 @@ const MembersTable: React.FC<MembersTableProps> = ({ members, organization }) =>
       .is('organization_id', null)
       .order("created_at", { ascending: false })
       .limit(10);
-
 
     if (error) {
       console.error("Error fetching user activities:", error);
@@ -210,7 +219,7 @@ const MembersTable: React.FC<MembersTableProps> = ({ members, organization }) =>
     />
   );
 
-  const handleRemoveMember = async (organizationMemberId: string, userId: string, role: string) => {
+  const handleRemoveMember = async (organizationMemberId: string, userIdToRemove: string, role: string) => {
     const { user } = await getUser(); // Get the currently logged-in user
 
     // Check if the member is the owner or the current user
@@ -223,10 +232,26 @@ const MembersTable: React.FC<MembersTableProps> = ({ members, organization }) =>
       return;
     }
 
-    if (user?.id === userId) {
+    if (user?.id === userIdToRemove) {
       Swal.fire({
         title: "Failed!",
         text: "You can't remove your own account.",
+        icon: "error",
+      });
+      return;
+    }
+
+    // Check if the user has the 'remove_member' permission
+    const hasPermission = await check_permissions(
+      user?.id || "",
+      organization.organizationid,
+      "remove_member"
+    );
+
+    if (!hasPermission) {
+      Swal.fire({
+        title: "Failed!",
+        text: "You do not have the permission to remove members.",
         icon: "error",
       });
       return;
@@ -247,33 +272,33 @@ const MembersTable: React.FC<MembersTableProps> = ({ members, organization }) =>
       try {
         // Call Supabase to remove the member
         const { error } = await supabase
-          .from('organization_members_view')
+          .from('organizationmembers')
           .delete()
-          .eq('organizationid', null)
-          .eq('userid', userId)
+          .eq('organizationid', organization.organizationid)
+          .eq('userid', userIdToRemove);
 
         if (error) {
           throw new Error(error.message);
         }
 
-        // user userId to get firname and last name in user profiles
+        // Fetch user's first and last name
         const { data: userData, error: userError } = await supabase
           .from('userprofiles')
           .select('first_name, last_name')
-          .eq('userid', userId)
+          .eq('userid', userIdToRemove)
           .single();
 
         if (userError) {
           throw new Error(userError.message);
         }
-        
-        //record Activity
+
+        // Record Activity
         await recordActivity({
           activity_type: "member_remove",
           description: `${user?.user_metadata?.first_name} has removed the member: ${userData.first_name} ${userData.last_name}.`,
           organization_id: organization.organizationid,
           activity_details: {
-            member_id: userId,
+            member_id: userIdToRemove,
           },
         });
 
@@ -284,9 +309,9 @@ const MembersTable: React.FC<MembersTableProps> = ({ members, organization }) =>
         );
 
         // Update the table data
-        setTableData(prevData => prevData.filter(member => member.userid !== userId));
+        setTableData(prevData => prevData.filter(member => member.userid !== userIdToRemove));
         setSelectedMember(null);
-        
+
         // Refresh the page to get updated data from the server
         router.refresh();
       } catch (error) {

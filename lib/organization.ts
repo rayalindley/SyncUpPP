@@ -173,6 +173,30 @@ export async function fetchOrganizationsForUser(userId: string) {
   }
 }
 
+export async function fetchOrganizationsForUserWithViewPermission(userId: string) {
+  const supabase = createClient();
+
+  try {
+    const { data, error } = await supabase
+      .from("user_organization_dashboard_view")
+      .select("*")
+      .eq("user_id", userId)
+
+    if (!error) {
+      return { data, error: null };
+    } else {
+      console.error("Error fetching organizations for user:", error);
+      return { data: null, error: { message: error.message } };
+    }
+  } catch (e: any) {
+    console.error("Unexpected error:", e);
+    return {
+      data: null,
+      error: { message: e.message || "An unexpected error occurred" },
+    };
+  }
+}
+
 export async function getUserOrganizationInfo(userId: string, organizationid: string) {
   const supabase = createClient();
   // console.log("orgaiztion.ts userId", userId);

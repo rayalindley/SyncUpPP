@@ -20,7 +20,6 @@ export default function EventsTableUser({
 }) {
   const router = useRouter();
   const [canCreateEvents, setCanCreateEvents] = useState(false);
-  const [canViewRegistrations, setCanViewRegistrations] = useState(false);
   const [filterText, setFilterText] = useState<string>("");
   const [debouncedFilterText] = useDebounce(filterText, 300);
 
@@ -38,13 +37,6 @@ export default function EventsTableUser({
           "create_events"
         );
         setCanCreateEvents(permission);
-
-        const managePermission = await check_permissions(
-          userId || "",
-          organization.organizationid,
-          "view_dashboard"
-        );
-        setCanViewRegistrations(managePermission); // Check permission for managing events
       } catch (error) {
         console.error("Failed to check permissions", error);
       }
@@ -152,14 +144,6 @@ export default function EventsTableUser({
             className="rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-primarydark"
           >
             Create Event
-          </button>
-        )}
-        {canViewRegistrations && (
-          <button
-            onClick={() => router.push(`/${organization.slug}/dashboard/registrations`)}
-            className="rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-primarydark"
-          >
-            View Registrations
           </button>
         )}
       </div>

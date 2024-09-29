@@ -45,54 +45,58 @@ const UserOrganizations = ({ organizations }: { organizations: Organization[] })
           />
         ))}
       </div>
-      <nav className="mt-8 flex items-center justify-between border-t border-gray-200 px-4 sm:px-0">
-        <div className="-mt-px flex w-0 flex-1">
-          <button
-            disabled={isFirstPage}
-            onClick={() => paginate(currentPage - 1)}
-            className={`inline-flex items-center border-t-2 border-transparent pr-1 pt-4 text-sm font-medium ${
-              isFirstPage
-                ? "cursor-not-allowed text-gray-500"
-                : "text-light hover:border-primary hover:text-primary"
-            }`}
-          >
-            <ArrowLongLeftIcon className="mr-3 h-5 w-5 text-light" aria-hidden="true" />
-            Previous
-          </button>
-        </div>
-        <div className="hidden md:-mt-px md:flex">
-          {Array.from(
-            { length: Math.ceil(organizations.length / organizationsPerPage) },
-            (_, index) => (
-              <button
-                key={index}
-                onClick={() => paginate(index + 1)}
-                className={`inline-flex items-center border-t-2 border-transparent px-4 pt-4 text-sm font-medium ${
-                  currentPage === index + 1
-                    ? "border-primarydark text-primary"
-                    : "text-light hover:border-primary hover:text-primary"
-                }`}
-              >
-                {index + 1}
-              </button>
-            )
-          )}
-        </div>
-        <div className="-mt-px flex w-0 flex-1 justify-end">
-          <button
-            disabled={isLastPage}
-            onClick={() => paginate(currentPage + 1)}
-            className={`inline-flex items-center border-t-2 border-transparent pl-1 pt-4 text-sm font-medium ${
-              isLastPage
-                ? "cursor-not-allowed text-gray-500"
-                : "text-light hover:border-primary hover:text-primary"
-            }`}
-          >
-            Next
-            <ArrowLongRightIcon className="ml-3 h-5 w-5 text-light" aria-hidden="true" />
-          </button>
-        </div>
-      </nav>
+
+      {/* Show pagination only if the number of organizations exceeds organizationsPerPage */}
+      {organizations.length > organizationsPerPage && (
+        <nav className="mt-8 flex items-center justify-between border-t border-gray-200 px-4 sm:px-0">
+          <div className="-mt-px flex w-0 flex-1">
+            <button
+              disabled={isFirstPage}
+              onClick={() => paginate(currentPage - 1)}
+              className={`inline-flex items-center border-t-2 border-transparent pr-1 pt-4 text-sm font-medium ${
+                isFirstPage
+                  ? "cursor-not-allowed text-gray-500"
+                  : "text-light hover:border-primary hover:text-primary"
+              }`}
+            >
+              <ArrowLongLeftIcon className="mr-3 h-5 w-5 text-light" aria-hidden="true" />
+              Previous
+            </button>
+          </div>
+          <div className="hidden md:-mt-px md:flex">
+            {Array.from(
+              { length: Math.ceil(organizations.length / organizationsPerPage) },
+              (_, index) => (
+                <button
+                  key={index}
+                  onClick={() => paginate(index + 1)}
+                  className={`inline-flex items-center border-t-2 border-transparent px-4 pt-4 text-sm font-medium ${
+                    currentPage === index + 1
+                      ? "border-primarydark text-primary"
+                      : "text-light hover:border-primary hover:text-primary"
+                  }`}
+                >
+                  {index + 1}
+                </button>
+              )
+            )}
+          </div>
+          <div className="-mt-px flex w-0 flex-1 justify-end">
+            <button
+              disabled={isLastPage}
+              onClick={() => paginate(currentPage + 1)}
+              className={`inline-flex items-center border-t-2 border-transparent pl-1 pt-4 text-sm font-medium ${
+                isLastPage
+                  ? "cursor-not-allowed text-gray-500"
+                  : "text-light hover:border-primary hover:text-primary"
+              }`}
+            >
+              Next
+              <ArrowLongRightIcon className="ml-3 h-5 w-5 text-light" aria-hidden="true" />
+            </button>
+          </div>
+        </nav>
+      )}
     </div>
   );
 };

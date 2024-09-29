@@ -51,7 +51,7 @@ export default function DashboardPage() {
           const permission = await check_permissions(
             user.id,
             organization.organizationid,
-            "view_dashboard" // The permission key for editing events
+            "view_dashboard" // The permission key for viewing events dashboard
           );
           setHasPermission(permission);
         } else {
