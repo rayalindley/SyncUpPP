@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -68,6 +68,8 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [pendingMembershipId, setPendingMembershipId] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const processingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (userid) {
@@ -105,6 +107,20 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
 
   const handleSubscribe = useCallback(
     async (membershipId: string) => {
+      if (isProcessing) {
+        toast.info("Please wait, your request is being processed.");
+        return;
+      }
+
+      setIsProcessing(true);
+      if (processingTimeoutRef.current) {
+        clearTimeout(processingTimeoutRef.current);
+      }
+
+      processingTimeoutRef.current = setTimeout(() => {
+        setIsProcessing(false);
+      }, 5000); // Reset after 5 seconds
+
       try {
         // Check if the user is a member of the organization
         const { data: orgMember, error: orgMemberError } = await supabase
@@ -123,6 +139,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
         if (orgMember.membershipid) {
           setIsModalOpen(true);
           setPendingMembershipId(membershipId);
+          setIsProcessing(false);
           return;
         }
 
@@ -132,9 +149,14 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
       } catch (error) {
         console.error("Error: ", error);
         toast.error("An error occurred. Please try again later.");
+      } finally {
+        setIsProcessing(false);
+        if (processingTimeoutRef.current) {
+          clearTimeout(processingTimeoutRef.current);
+        }
       }
     },
-    [userid, userMemberships, frequency, router, organizationid]
+    [userid, userMemberships, frequency, router, organizationid, isProcessing]
   );
 
   const processSubscription = async (membershipId: string) => {
@@ -388,6 +410,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
                 frequency={frequency}
                 editable={editable}
                 isCurrentPlan={currentMembershipId === membership.membershipid}
+                isProcessing={isProcessing}
               />
             ))
           ) : (
