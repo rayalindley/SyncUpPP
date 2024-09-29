@@ -1,6 +1,5 @@
-// pages/attendance.tsx
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/client";
 import { check_permissions } from "@/lib/organization";
@@ -12,11 +11,12 @@ import { Dialog } from "@headlessui/react";
 import { format } from "date-fns";
 import QrScannerComponent from "@/components/qrscanner"; // Import the updated QrScanner component
 
-const Attendance = () => {
+const AttendanceContent = () => {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams(); // useSearchParams must be inside a Suspense boundary
   const eventid = searchParams?.get("event");
   const userid = searchParams?.get("uid");
+
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [userProfile, setUserProfile] = useState<any | null>(null);
   const [event, setEvent] = useState<any | null>(null);
@@ -157,18 +157,14 @@ const Attendance = () => {
   };
 
   return (
-    <>
-      <ToastContainer />
-      <div className="flex min-h-full flex-col justify-between bg-eerieblack px-6 py-12 lg:px-8">
-        {/* Centering the Scan Again button */}
-        <div className="flex flex-col items-center justify-center h-screen bg-eerieblack px-6 py-12 lg:px-8">
+    <div className="flex min-h-full flex-col justify-between bg-eerieblack px-6 py-12 lg:px-8">
+      {/* Centering the Scan Again button */}
+      <div className="flex flex-col items-center justify-center h-screen bg-eerieblack px-6 py-12 lg:px-8">
         {/* Logo */}
         <img className="h-10 w-auto mb-6" src="/syncup.png" alt="SyncUp" />
-        
+
         {/* Success message */}
-        <h2 className="text-3xl font-bold text-white mb-6">
-          Attendance Check
-        </h2>
+        <h2 className="text-3xl font-bold text-white mb-6">Attendance Check</h2>
         {/* Centered Scan Again button */}
         <button
           onClick={() => {
@@ -180,75 +176,97 @@ const Attendance = () => {
           Scan QR
         </button>
       </div>
-        
-        {/* Success Modal */}
+
+{/* Success Modal */}
+<Dialog
+  open={showSuccessModal}
+  onClose={() => setShowSuccessModal(false)}
+  className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black bg-opacity-50"
+>
+  <div className="bg-raisinblack p-6 rounded-lg shadow-lg max-w-md mx-auto animate-pop-up">
+    <div className="sm:mx-auto sm:w-full sm:max-w-sm text-center flex-grow">
+      <img className="mx-auto h-10 w-auto" src="/syncup.png" alt="SyncUp" />
+      <h2 className="mt-4 text-3xl font-bold leading-9 tracking-tight text-white">
+        Success!
+      </h2>
+      {userProfile && (
+        <div className="mt-4 flex flex-col items-center text-white">
+          {userProfile.profilepicture ? (
+            <img
+              src={`${supabaseStorageBaseUrl}/${userProfile.profilepicture}`}
+              alt="Profile"
+              className="h-24 w-24 rounded-full object-cover"
+            />
+          ) : (
+            <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gray-500 text-3xl font-bold text-white">
+              {getInitials(userProfile.first_name ?? "", userProfile.last_name ?? "")}
+            </div>
+          )}
+          <p className="text-xl pt-2 font-medium">
+            {userProfile.first_name} {userProfile.last_name}
+          </p>
+          <p className="text-xs">has been marked as present for this event.</p>
+        </div>
+      )}
+    </div>
+    <button
+      onClick={() => {
+        setShowSuccessModal(false);
+        setShowQrScanner(true); // Open the QR scanner
+      }}
+      className="mt-4 block w-full rounded-md bg-primary px-4 py-2 text-white hover:bg-primarydark"
+    >
+      Scan Another
+    </button>
+  </div>
+</Dialog>
+
+<style jsx>{`
+  @keyframes pop-up {
+    0% {
+      transform: scale(0.9);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  .animate-pop-up {
+    animation: pop-up 0.1s ease-out;
+  }
+`}</style>
+
+
+      {/* QR Scanner Modal */}
+      {showQrScanner && (
         <Dialog
-          open={showSuccessModal}
-          onClose={() => setShowSuccessModal(false)}
+          open={showQrScanner}
+          onClose={() => setShowQrScanner(false)}
           className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black bg-opacity-50"
         >
-          <div className="bg-raisinblack p-6 rounded-lg shadow-lg max-w-md mx-auto">
-            <div className="sm:mx-auto sm:w-full sm:max-w-sm text-center flex-grow">
-              <img className="mx-auto h-10 w-auto" src="/syncup.png" alt="SyncUp" />
-              <h2 className="mt-4 text-3xl font-bold leading-9 tracking-tight text-white">
-                Success!
-              </h2>
-              {userProfile && (
-                <div className="mt-4 flex flex-col items-center text-white">
-                  {userProfile.profilepicture ? (
-                    <img
-                      src={`${supabaseStorageBaseUrl}/${userProfile.profilepicture}`}
-                      alt="Profile"
-                      className="h-24 w-24 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gray-500 text-3xl font-bold text-white">
-                      {getInitials(userProfile.first_name ?? "", userProfile.last_name ?? "")}
-                    </div>
-                  )}
-                  <p className="text-xl pt-2 font-medium">
-                    {userProfile.first_name} {userProfile.last_name}
-                  </p>
-                  <p className="text-xs">has been marked as present for this event.</p>
-                </div>
-              )}
-            </div>
+          <div className="bg-raisinblack p-6 rounded-lg shadow-lg max-w-md mx-auto w-full h-auto">
+            <h2 className="text-light text-lg font-semibold mb-4 text-center">Scan QR for Attendance</h2>
+            <QrScannerComponent onScan={handleQrScan} onError={handleQrError} />
             <button
-              onClick={() => {
-                setShowSuccessModal(false);
-                setShowQrScanner(true); // Open the QR scanner
-              }}
+              onClick={() => setShowQrScanner(false)}
               className="mt-4 block w-full rounded-md bg-primary px-4 py-2 text-white hover:bg-primarydark"
             >
-              Scan Another
+              Close Scanner
             </button>
           </div>
         </Dialog>
+      )}
+    </div>
+  );
+};
 
-        {/* QR Scanner Modal */}
-        {showQrScanner && (
-          <Dialog
-            open={showQrScanner}
-            onClose={() => setShowQrScanner(false)}
-            className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black bg-opacity-50"
-          >
-            <div className="bg-raisinblack p-6 rounded-lg shadow-lg max-w-md mx-auto w-full h-auto">
-              <h2 className="text-light text-lg font-semibold mb-4 text-center">Scan QR for Attendance</h2>
-              <QrScannerComponent
-                onScan={handleQrScan}
-                onError={handleQrError}
-              />
-              <button
-                onClick={() => setShowQrScanner(false)}
-                className="mt-4 block w-full rounded-md bg-primary px-4 py-2 text-white hover:bg-primarydark"
-              >
-                Close Scanner
-              </button>
-            </div>
-          </Dialog>
-        )}
-      </div>
-    </>
+const Attendance = () => {
+  return (
+    <Suspense fallback={<Preloader />}>
+      <AttendanceContent />
+    </Suspense>
   );
 };
 
