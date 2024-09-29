@@ -1,6 +1,5 @@
-// components/qrscanner.tsx
-import React, { useEffect, useRef } from 'react';
-import QrScanner from 'qr-scanner';
+import React from 'react';
+import { Scanner, IDetectedBarcode } from '@yudiel/react-qr-scanner';
 
 interface QrScannerProps {
   onScan: (result: string) => void;
@@ -8,45 +7,21 @@ interface QrScannerProps {
 }
 
 const QrScannerComponent: React.FC<QrScannerProps> = ({ onScan, onError }) => {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-
-  useEffect(() => {
-    if (!videoRef.current) return;
-
-    const qrScanner = new QrScanner(
-      videoRef.current,
-      (result) => {
-        if (result) {
-          onScan(result);
-        }
-      },
-      {
-        onDecodeError: (error: Error | string) => {
-          console.error("QR Scan Error:", error);
-          if (error instanceof Error) {
-            onError(error);
-          } else {
-            onError(new Error(error));
-          }
-        },
-        highlightScanRegion: true,
-        highlightCodeOutline: true
-      }
-    );
-
-    qrScanner.start().catch((error) => {
-      console.error("Failed to start QR Scanner:", error); // Log start errors
-      onError(error);
-    });
-
-    return () => {
-      qrScanner.stop();
-    };
-  }, [onScan, onError]);
-
   return (
-    <div className="qr-scanner">
-      <video ref={videoRef} className="w-full h-auto" />
+    <div className="qr-scanner flex items-center justify-center w-full h-full bg-charleston">
+      {/* The scanner will be centered within this flex container */}
+      <div className="w-96 h-96">
+        <Scanner
+          onScan={(results: IDetectedBarcode[]) => {
+            if (results && results.length > 0) {
+              const scannedResult = results[0].rawValue;
+              onScan(scannedResult);
+            }
+          }}
+          onError={(error) => onError(error as Error)}
+          constraints={{ facingMode: 'environment' }} // Use back camera for mobile
+        />
+      </div>
     </div>
   );
 };
