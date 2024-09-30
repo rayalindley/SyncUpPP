@@ -14,9 +14,24 @@ import {
 
 import { AnalyticsData } from "@/types/analytics_data";
 import { AnalyticsDashboardProps } from "@/types/analytics_dashboard_props";
+import ActivityFeed from "@/components/activity_feed";
+import { FaUsers, FaRegFileAlt, FaCalendarAlt } from "react-icons/fa"; // Example icons
 
+const SummaryCard: React.FC<{
+  title: string;
+  value: string | number;
+  icon: React.ReactNode;
+}> = ({ title, value, icon }) => (
+  <div className="flex items-center rounded-lg bg-charleston p-6 shadow-md mb-4">
+    <div className="mr-4 text-3xl text-primary">{icon}</div>
+    <div>
+      <h3 className="text-lg font-semibold text-white">{title}</h3>
+      <p className="text-2xl font-bold text-white">{value}</p>
+    </div>
+  </div>
+);
 
-const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ organizationid }) => {
+const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ organizationid, activities }) => {
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData[]>([]);
   const [eventFilter, setEventFilter] = useState<string | null>(null);
   const [filteredRegistrations, setFilteredRegistrations] = useState<AnalyticsData[]>([]);
@@ -32,7 +47,6 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ organizationid 
       if (error) {
         console.error("Error fetching analytics data:", error.message);
       } else {
-        // console.log("Fetched data:", data);
         const formattedData = data.map((item) => ({
           ...item,
           day_joined: new Date(item.day_joined)
@@ -45,6 +59,12 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ organizationid 
             : null,
         }));
         setAnalyticsData(formattedData);
+
+        // Automatically select the first event if available
+        if (formattedData.length > 0) {
+          const firstEvent = formattedData[0].eventid;
+          setEventFilter(firstEvent);
+        }
       }
     };
 
@@ -59,7 +79,6 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ organizationid 
           filtered.map((item) => [`${item.eventid}-${item.day_registered}`, item])
         ).values()
       );
-      // console.log("Filtered and unique data:", uniqueFiltered);
       setFilteredRegistrations(uniqueFiltered);
     } else {
       setFilteredRegistrations([]);
@@ -78,45 +97,29 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ organizationid 
     new Map(analyticsData.map((item) => [item.day_joined, item])).values()
   );
 
-  const topPosts = [...analyticsData]
-    .sort((a, b) => b.total_comments - a.total_comments)
-    .slice(0, 5);
+  // Extract the total members, total posts, and total events from the first element of analyticsData
+  const totalMembers = analyticsData.length > 0 && analyticsData[0].total_members
+    ? analyticsData[0].total_members
+    : 1;
+  const totalPosts = analyticsData.length > 0 && analyticsData[0].total_posts
+    ? analyticsData[0].total_posts
+    : 0;
+  const totalEvents = analyticsData.length > 0 && analyticsData[0].total_events
+    ? analyticsData[0].total_events
+    : 0;
 
   return (
     <div className="container mx-auto py-8">
       <div className="grid grid-cols-3 gap-4">
-        <div className="rounded-lg bg-charleston p-4 text-light">
-          <h2 className="mb-2 text-lg font-bold">Total Members</h2>
-          <p className="text-xl ">
-            {analyticsData.length > 0 && analyticsData[0].total_members
-              ? analyticsData[0].total_members
-              : "1"}
-          </p>
-        </div>
-        <div className="rounded-lg bg-charleston p-4 text-light">
-          <h2 className="mb-2 text-lg font-bold">Total Posts</h2>
-          <p className="text-xl">
-            {analyticsData.length > 0 && analyticsData[0].total_posts
-              ? analyticsData[0].total_posts
-              : "0"}
-          </p>
-        </div>
-        <div className="rounded-lg bg-charleston p-4 text-light">
-          <h2 className="mb-2 text-lg font-bold">Total Events</h2>
-          <p className="text-xl">
-            {analyticsData.length > 0 && analyticsData[0].total_events
-              ? analyticsData[0].total_events
-              : "0"}
-          </p>
-        </div>
-        <div className="col-span-3 flex gap-4">
-          <div className="flex-1 rounded-lg bg-charleston p-4 text-light">
+        {/* Left side - Member Growth Over Time */}
+        <div className="col-span-2">
+          <div className="rounded-lg bg-charleston p-4 text-light">
             <h2 className="mb-4 text-lg font-bold">Member Growth Over Time</h2>
-            <ResponsiveContainer width="100%" height={400}>
+            <ResponsiveContainer width="100%" height={325}>
               <LineChart data={uniqueMemberGrowthData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="day_joined" tick={{ fill: "#E0E0E0" }} />
-                <YAxis tick={{ fill: "#E0E0E0" }} /> {/* Change tick color */}
+                <YAxis tick={{ fill: "#E0E0E0" }} />
                 <Tooltip
                   contentStyle={{ backgroundColor: "#525252", color: "#E0E0E0" }}
                 />
@@ -130,7 +133,9 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ organizationid 
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <div className="flex-1 rounded-lg bg-charleston p-4">
+
+          {/* Event Registrations Over Time */}
+          <div className="rounded-lg bg-charleston p-4 mt-4">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-bold text-light">
                 Event Registrations Over Time
@@ -149,7 +154,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ organizationid 
               </select>
             </div>
             {eventFilter && (
-              <ResponsiveContainer width="100%" height={400}>
+              <ResponsiveContainer width="100%" height={325}>
                 <LineChart data={filteredRegistrations}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="day_registered" tick={{ fill: "#E0E0E0" }} />
@@ -169,6 +174,24 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ organizationid 
                   />
                 </LineChart>
               </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+
+        {/* Right side - Total Stats and Recent Activities */}
+        <div className="col-span-1">
+          {/* Top Stats using SummaryCard */}
+          <SummaryCard title="Total Members" value={totalMembers} icon={<FaUsers />} />
+          <SummaryCard title="Total Posts" value={totalPosts} icon={<FaRegFileAlt />} />
+          <SummaryCard title="Total Events" value={totalEvents} icon={<FaCalendarAlt />} />
+
+          {/* Recent Activities */}
+          <div className="rounded-lg bg-charleston p-4 text-light mt-4">
+            <h2 className="mb-4 text-lg font-bold">Recent Activities</h2>
+            {activities && activities.length > 0 ? (
+              <ActivityFeed activities={activities} />
+            ) : (
+              <p>No activities yet</p>
             )}
           </div>
         </div>

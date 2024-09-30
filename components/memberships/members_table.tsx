@@ -11,7 +11,7 @@ import Swal from 'sweetalert2';
 import { createClient, getUser } from "@/lib/supabase/client";
 import { useRouter } from 'next/navigation';
 import { TableColumn } from "react-data-table-component";
-import ActivityFeed from "@/components/acitivty_feed";
+import ActivityFeed from "@/components/activity_feed";
 import { Activity } from "@/types/activities";
 import { recordActivity, isActiveMember } from "@/lib/track";
 import { check_permissions } from "@/lib/organization";
