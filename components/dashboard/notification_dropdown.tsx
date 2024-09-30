@@ -1,10 +1,12 @@
+// Filename: D:\Repos\SyncUp\components\dashboard\notification_dropdown.tsx
+
 "use client";
 
 import { Menu, Transition } from "@headlessui/react";
 import { Fragment } from "react";
 import { BellIcon } from "@heroicons/react/24/outline";
 import { Notifications } from "@/types/notifications";
-import { formatDistanceToNow } from "date-fns";
+import { timeAgo } from "@/lib/utils"; // Imported timeAgo
 
 interface NotificationDropdownProps {
   notifications: Notifications[];
@@ -70,7 +72,6 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
               </button>
             )}
           </div>
-
           {/* Notifications List */}
           <div className="px-4 py-2">
             {notifications.slice(0, 5).map((notification) => {
@@ -88,9 +89,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
                     <p className="text-sm font-medium text-white">{notification.title}</p>
                     <p className="mt-1 text-xs text-gray-300">{notification.message}</p>
                     <p className="mt-1 text-xs text-gray-400">
-                      {formatDistanceToNow(new Date(notification.date_created), {
-                        addSuffix: true,
-                      })}
+                      {timeAgo(notification.date_created)} ago {/* Replaced formatDistanceToNow */}
                     </p>
                   </div>
                 </div>
@@ -100,7 +99,6 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
               <p className="text-xs text-gray-400">No new notifications.</p>
             )}
           </div>
-
           {/* Footer Section */}
           <div className="border-t border-gray-700 px-4 py-2">
             <button

@@ -1,3 +1,5 @@
+// Filename: D:\Repos\SyncUp\components\dashboard\notification_dialog.tsx
+
 "use client";
 
 import { Dialog, Transition, Menu } from "@headlessui/react";
@@ -8,7 +10,7 @@ import {
   MagnifyingGlassIcon,
 } from "@heroicons/react/20/solid";
 import { Notifications } from "@/types/notifications";
-import { formatDistanceToNow } from "date-fns";
+import { timeAgo } from "@/lib/utils"; // Imported timeAgo
 
 interface NotificationDialogProps {
   isOpen: boolean;
@@ -105,7 +107,6 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
         >
           <div className="fixed inset-0 bg-black bg-opacity-75 transition-opacity" />
         </Transition.Child>
-
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
             <Transition.Child
@@ -130,7 +131,6 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
                     <XMarkIcon className="h-6 w-6" aria-hidden="true" />
                   </button>
                 </div>
-
                 {/* Search and Filters */}
                 <div className="border-b border-gray-700 px-6 py-4">
                   <div className="flex flex-col items-center gap-3 sm:flex-row">
@@ -150,7 +150,6 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
                         />
                       </div>
                     </div>
-
                     {/* Filter Dropdown */}
                     <Menu as="div" className="relative">
                       <Menu.Button className="flex items-center rounded-md bg-gray-800 px-4 py-3 text-sm text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-[#23af90]">
@@ -207,7 +206,6 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
                         </Menu.Items>
                       </Transition>
                     </Menu>
-
                     {/* Sort Dropdown */}
                     <Menu as="div" className="relative">
                       <Menu.Button className="flex items-center rounded-md bg-gray-800 px-4 py-3 text-sm text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-[#23af90]">
@@ -264,7 +262,6 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
                     </Menu>
                   </div>
                 </div>
-
                 {/* Notifications List */}
                 <div className="max-h-[500px] overflow-y-auto px-6 py-4">
                   {filteredNotifications.length > 0 ? (
@@ -294,9 +291,7 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
                               {notification.message}
                             </p>
                             <p className="mt-1 text-xs text-gray-400">
-                              {formatDistanceToNow(new Date(notification.date_created), {
-                                addSuffix: true,
-                              })}
+                              {timeAgo(notification.date_created)} ago {/* Replaced formatDistanceToNow */}
                             </p>
                           </div>
                         </div>
