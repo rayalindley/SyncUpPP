@@ -80,7 +80,7 @@ export default async function OrganizationUserView({
 
 
   const { data: postsData, error: postsError } = await getVisiblePostsAndComments(
-    user?.id ?? "",
+    user?.id ?? null,
     org.organizationid
   );
   if (postsError) {

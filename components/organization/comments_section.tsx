@@ -1,3 +1,5 @@
+// Filename: D:\Repos\SyncUp\components\dashboard\comments_section.tsx
+
 "use client";
 
 import { useState, useEffect, Fragment } from "react";
@@ -83,25 +85,26 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
 
   useEffect(() => {
     const fetchComments = async () => {
-      if (!user || !user.id) {
-        return;
-      }
       try {
-        const { data, error } = await getVisiblePostsAndComments(user.id, organizationId);
+        const userId = isLoggedIn ? user.id : null; // Allow null user_id
+        const { data, error } = await getVisiblePostsAndComments(userId ?? null, organizationId);
         if (error) {
+          console.error("Error fetching comments:", error);
           return;
         }
 
         const post: Posts | undefined = data.find((p: Posts) => p.postid === postId);
         if (post) {
           const sortedComments: PostComments[] = (post.comments ?? []).sort(
-            (a: PostComments, b: PostComments) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            (a: PostComments, b: PostComments) =>
+              new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
           );
           setComments(sortedComments);
         } else {
           setComments([]);
         }
       } catch (error) {
+        console.error("Exception fetching comments:", error);
         // Handle exception if necessary
       }
     };
@@ -127,7 +130,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
     return () => {
       supabase.removeChannel(commentsChannel);
     };
-  }, [postId, organizationId, user?.id]);
+  }, [postId, organizationId, isLoggedIn, user?.id]);
 
   const onSubmit = async (data: { commentText: string }) => {
     if (!isLoggedIn || !canComment) {
@@ -283,14 +286,13 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
         </form>
       )}
 
-      {canComment && (
-        <button
-          onClick={() => setShowComments(!showComments)}
-          className="mb-4 text-sm text-blue-500 hover:underline"
-        >
-          {showComments ? "Hide Comments" : `Show Comments (${comments.length})`}
-        </button>
-      )}
+      {/* Show Comments Button - Always Visible */}
+      <button
+        onClick={() => setShowComments(!showComments)}
+        className="mb-4 text-sm text-blue-500 hover:underline"
+      >
+        {showComments ? "Hide Comments" : `Show Comments (${comments.length})`}
+      </button>
 
       {showComments &&
         (Array.isArray(comments) && comments.length > 0 ? (
@@ -328,7 +330,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
                       leaveFrom="transform opacity-100 scale-100"
                       leaveTo="transform opacity-0 scale-95"
                     >
-                      <Menu.Items className="absolute right-0 mt-2 w-48 origin-top-right divide-y divide-gray-700 rounded-md bg-raisinblack shadow-lg ring-1 ring-gray-700 ring-opacity-5 focus:outline-white">
+                      <Menu.Items className="absolute right-0 mt-2 w-48 origin-top-right divide-y divide-gray-700 rounded-md bg-raisinblack shadow-lg ring-1 ring-gray-700 ring-opacity-5 focus:outline-none">
                         <div className="p-1">
                           {user?.id === comment.author.id && (
                             <Menu.Item>
