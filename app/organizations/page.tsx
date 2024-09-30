@@ -61,7 +61,7 @@ export default function OrganizationUserView() {
   const [industryFilter, setIndustryFilter] = useState(""); // Industry filter
   const [sortOption, setSortOption] = useState("most-popular"); // Sort option state
   const [currentPage, setCurrentPage] = useState(1);
-  const organizationsPerPage = 5;
+  const organizationsPerPage = 6;
 
   useEffect(() => {
     async function fetchUserAndOrganizations() {
