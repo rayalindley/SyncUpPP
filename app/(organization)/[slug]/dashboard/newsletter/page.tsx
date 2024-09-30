@@ -216,7 +216,6 @@ export default function NewsletterPage() {
           if (response.status === 200) {
             setSuccessMessage("Newsletter sent successfully!");
             setAttachments([]);
-            setSentEmails((prev) => [response.data.email, ...prev]);
           } else {
             setErrorMessage("Failed to send newsletter.");
           }
