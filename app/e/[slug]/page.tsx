@@ -35,6 +35,7 @@ import { Invoice as InvoiceClient, Xendit } from "xendit-node";
 import type { CreateInvoiceRequest, Invoice } from "xendit-node/invoice/models";
 import { QRCode } from "react-qrcode-logo";
 import Modal from "react-modal"; // Import modal library
+import { check_permissions } from "@/lib/organization";
 
 const xenditClient = new Xendit({
   secretKey: process.env.NEXT_PUBLIC_XENDIT_SECRET_KEY!,
@@ -67,6 +68,8 @@ const EventPage = () => {
   const [showQRCode, setShowQRCode] = useState(false); // State to show/hide QR code
   const [qrCodeUrl, setQRCodeUrl] = useState(""); // State for QR code URL
   const [modalIsOpen, setModalIsOpen] = useState(false); // State for modal visibility
+  const [canManageRegistrations, setCanManageRegistrations] = useState(false); // New state for managing event registrations permission
+
 
   const openModal = () => setModalIsOpen(true);
   const closeModal = () => setModalIsOpen(false);
@@ -139,6 +142,16 @@ const EventPage = () => {
 
           if (orgError) throw orgError;
           setOrganization(organizationData);
+
+          // Check if the user has permission to manage registrations
+          if (user) {
+            const hasPermission = await check_permissions(
+              user.id,
+              eventData.organizationid,
+              "manage_event_registrations"
+            );
+            setCanManageRegistrations(hasPermission);
+          }
         }
 
         if (eventData) {
@@ -539,6 +552,11 @@ const EventPage = () => {
     }
   };
 
+   // Redirect to registrations page with the event ID in query params
+   const redirectToRegistrations = () => {
+    router.push(`/${organization?.slug}/dashboard/registrations?event=${event?.eventid}`);
+  };
+
 
 
   const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
@@ -731,9 +749,8 @@ const EventPage = () => {
                 <div className="flex items-center space-x-2">
                   <UsersIcon className="h-6 w-6 text-primary sm:h-8 sm:w-8" />
                   <span
-                    className={`text-sm sm:text-base ${
-                      attendeesCount >= event.capacity ? "text-red-500" : "text-light"
-                    }`}
+                    className={`text-sm sm:text-base ${event.capacity && attendeesCount >= event.capacity ? "text-red-500" : "text-light"} ${canManageRegistrations ? "cursor-pointer hover:text-primary" : ""}`}
+                    onClick={canManageRegistrations ? redirectToRegistrations : undefined} // Only clickable if user has permission
                   >
                     {event.capacity > 0
                       ? `${attendeesCount} / ${event.capacity} attending`
