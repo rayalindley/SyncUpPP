@@ -21,6 +21,7 @@ interface Registration {
   organization_slug: string;
   eventid: string;
   attendance: string;
+  attendance_updated_at: string;
 }
 
 export default function RegistrationsPageUser() {

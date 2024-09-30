@@ -30,6 +30,7 @@ interface Registration {
   registrationdate: string;
   status: string;
   attendance: string | null; // Modified to allow null for empty values
+  attendance_updated_at: string;
 }
 
 interface RegistrationsTableProps {
@@ -321,6 +322,15 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
         </div>
 
       ),
+    },
+    {
+      name: "Attendance Updated At",
+      selector: (row: Registration) => row.attendance_updated_at,
+      sortable: true,
+      cell: (row: Registration) => {
+        const attendanceDate = new Date(row.attendance_updated_at);
+        return attendanceDate.getTime() === 0 ? "" : format(attendanceDate, "MMM d, yyyy h:mma");
+      },
     },
   ];
 
