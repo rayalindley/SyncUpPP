@@ -69,6 +69,7 @@ const EventPage = () => {
   const [qrCodeUrl, setQRCodeUrl] = useState(""); // State for QR code URL
   const [modalIsOpen, setModalIsOpen] = useState(false); // State for modal visibility
   const [canManageRegistrations, setCanManageRegistrations] = useState(false); // New state for managing event registrations permission
+  const [attendanceStatus, setAttendanceStatus] = useState<string | null>(null);
 
 
   const openModal = () => setModalIsOpen(true);
@@ -190,20 +191,25 @@ const EventPage = () => {
             setIsMember(true);
           }
 
-          // Check if a QR code exists for the user
-          const { data: registrationData, error: registrationError } = await supabase
+            // Check if a QR code exists for the user and fetch attendance status
+            const { data: registrationData, error: registrationError } = await supabase
             .from("eventregistrations")
-            .select("qr_code_data")
+            .select("qr_code_data, attendance")
             .eq("userid", user.id)
             .eq("eventid", eventData.eventid)
             .single();
 
-          if (registrationError) {
+            if (registrationError) {
             console.error("Error fetching registration data:", registrationError);
-          } else if (registrationData.qr_code_data) {
-            setQRCodeUrl(registrationData.qr_code_data);
+            } else {
+            if (registrationData.qr_code_data) {
+              setQRCodeUrl(registrationData.qr_code_data);
+            }
+
+            // Set attendance status
+            setAttendanceStatus(registrationData.attendance);
+            }
           }
-        }
 
         if (user && eventData) {
           const { isMember } = await checkMembership(user.id, eventData.organizationid);
@@ -803,7 +809,8 @@ const EventPage = () => {
                     ? "Unregister"
                     : "Register"}
                 </button>
-                {isRegistered && qrCodeUrl && !eventFinished && (
+                {/* If user has been marked as present or late, do not show the "View QR" button */}
+                {isRegistered && qrCodeUrl && !eventFinished && attendanceStatus !== "present" && attendanceStatus !== "late" && (
                   <button
                     className="w-full mt-4 rounded-md bg-primary px-6 py-3 text-white hover:bg-primarydark"
                     onClick={openModal}
@@ -811,6 +818,14 @@ const EventPage = () => {
                     View QR
                   </button>
                 )}
+
+                {/* If the user is already marked as present or late */}
+                {(attendanceStatus === "present" || attendanceStatus === "late") && (
+                  <p className="mt-4 text-center text-sm text-light">
+                    You have already been marked as present for this event.
+                  </p>
+                )}
+
               </div>
 
               <div className="space-y-2">
@@ -846,8 +861,11 @@ const EventPage = () => {
         ) : (
           <p className="text-light">Loading QR Code...</p> // Loading message when qrCodeUrl is not available
         )}
-        <p className="mt-2 text-light text-center">Please save this QR Code and present it at the event for your attendance.</p>
-        <button
+      <p className="mt-2 text-light text-center">
+        {attendanceStatus === "present" || attendanceStatus === "late"
+          ? "You have already been marked as present for this event."
+          : "Please save this QR Code and present it at the event for your attendance."}
+      </p>        <button
           className="mt-4 rounded-md bg-primary px-6 py-2 text-white hover:bg-primarydark"
           onClick={closeModal}
         >
