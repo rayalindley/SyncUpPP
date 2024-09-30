@@ -1,4 +1,7 @@
+// Filename: D:\Github\SyncUp\components\dashboard\header.tsx
+
 "use client";
+
 import { signOut } from "@/lib/auth";
 import {
   fetchNotifications,
@@ -369,7 +372,7 @@ function Header({ user }: { user: User }) {
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Menu.Items className="absolute right-0 z-20 mt-2 w-48 origin-top-right rounded-md bg-[#151718] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+              <Menu.Items className="absolute right-0 z-20 mt-2 w-56 origin-top-right rounded-md bg-[#151718] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                 {/* Menu Items */}
                 <div className="py-1">
                   <Menu.Item>
@@ -385,29 +388,17 @@ function Header({ user }: { user: User }) {
                       </Link>
                     )}
                   </Menu.Item>
+                  {/* Added Dashboard Link */}
                   <Menu.Item>
                     {({ active }) => (
                       <Link
-                        href="/support"
+                        href="/dashboard"
                         className={classNames(
                           active ? "bg-[#23af90] text-white" : "text-gray-300",
                           "block px-4 py-2 text-sm"
                         )}
                       >
-                        Support
-                      </Link>
-                    )}
-                  </Menu.Item>
-                  <Menu.Item>
-                    {({ active }) => (
-                      <Link
-                        href="/license"
-                        className={classNames(
-                          active ? "bg-[#23af90] text-white" : "text-gray-300",
-                          "block px-4 py-2 text-sm"
-                        )}
-                      >
-                        License
+                        Dashboard
                       </Link>
                     )}
                   </Menu.Item>
