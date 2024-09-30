@@ -379,7 +379,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({
     setTimeout(() => setCreationMessage(null), 3000);
   };
 
-  const filteredPosts = currentPosts
+  const filteredPosts = (currentPosts || [])
     .filter((post) => {
       const matchesSearch = post.content
         ?.toLowerCase()
