@@ -11,6 +11,7 @@ import { saveAs } from 'file-saver';
 import { Dialog } from "@headlessui/react";
 import QrScannerComponent from "@/components/qrscanner"; // Import QR Scanner component
 import { useRouter } from "next/navigation";
+import { recordActivity } from "@/lib/track";
 
 // Dynamically import DataTable
 const DataTable = dynamic(() => import('react-data-table-component'), {
@@ -90,15 +91,79 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
   };
 
   const handleAttendanceChange = async (id: string, newAttendance: string) => {
-    const { error } = await supabase
-      .from("eventregistrations")
-      .update({ attendance: newAttendance })
-      .eq("eventregistrationid", id);
-
-    if (error) {
-      toast.error("Failed to update attendance. Please try again.");
-    } else {
+    try {
+      // Fetch registration to get event data
+      const { data: registrationData, error: registrationError } = await supabase
+        .from("eventregistrations")
+        .select("eventid, userid")
+        .eq("eventregistrationid", id)
+        .single();
+  
+      if (registrationError || !registrationData) {
+        toast.error("Failed to fetch registration details.");
+        return;
+      }
+  
+      const { eventid, userid } = registrationData;
+  
+      // Fetch event details
+      const { data: eventData, error: eventError } = await supabase
+        .from("events")
+        .select("*")
+        .eq("eventid", eventid)
+        .single();
+  
+      if (eventError || !eventData) {
+        toast.error("Failed to fetch event details.");
+        return;
+      }
+  
+      // Fetch user profile
+      const { data: userProfile, error: userProfileError } = await supabase
+        .from("userprofiles")
+        .select("*")
+        .eq("userid", userid)
+        .single();
+  
+      if (userProfileError || !userProfile) {
+        toast.error("Failed to fetch user profile.");
+        return;
+      }
+  
+      // Update attendance in the database
+      const { error } = await supabase
+        .from("eventregistrations")
+        .update({ attendance: newAttendance })
+        .eq("eventregistrationid", id);
+  
+      if (error) {
+        toast.error("Failed to update attendance. Please try again.");
+        return;
+      }
+  
       toast.success("Attendance updated successfully!");
+  
+      // Determine the description based on the attendance state
+      const attendanceDescription = {
+        present: `marked as present`,
+        absent: `marked as absent`,
+        late: `marked as late`,
+      }[newAttendance] || `updated attendance`;
+  
+      // Log user activity
+      await recordActivity({
+        activity_type: "event_attendance",
+        description: `User ${attendanceDescription} for event: ${eventData.title}`,
+      });
+  
+      // Log organization activity
+      await recordActivity({
+        activity_type: "event_attendance",
+        organization_id: eventData.organizationid,
+        description: `User ${userProfile.first_name} ${userProfile.last_name} ${attendanceDescription} for event: ${eventData.title}`,
+      });
+  
+      // Update the local state to reflect the new attendance
       setTableData((prevData) =>
         prevData.map((registration) =>
           registration.eventregistrationid === id
@@ -106,8 +171,12 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
             : registration
         )
       );
+    } catch (err) {
+      console.error("Error marking attendance:", err);
+      toast.error("An error occurred. Please try again.");
     }
   };
+  
 
   // Function to export filtered data to CSV
   const exportToCSV = () => {
