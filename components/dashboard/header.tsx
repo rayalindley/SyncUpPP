@@ -1,5 +1,3 @@
-// Filename: D:\Github\SyncUp\components\dashboard\header.tsx
-
 "use client";
 import { signOut } from "@/lib/auth";
 import {
@@ -11,54 +9,60 @@ import { createClient } from "@/lib/supabase/client";
 import { UserProfile } from "@/types/user_profile";
 import { getUserProfileById } from "@/lib/user_actions";
 import useSidebarStore from "@/store/useSidebarStore";
-import { Menu, Transition } from "@headlessui/react";
 import { ChevronDownIcon } from "@heroicons/react/20/solid";
 import {
   Bars3Icon,
-  BellIcon,
-  CalendarIcon,
-  CurrencyDollarIcon,
-  ExclamationCircleIcon,
-  HandRaisedIcon,
   UserIcon,
-  ChatBubbleLeftEllipsisIcon,
+  HandRaisedIcon,
+  CurrencyDollarIcon,
   PencilSquareIcon,
-} from "@heroicons/react/24/outline";
-import { type User } from "@supabase/supabase-js";
-import { addHours, formatDistanceToNow } from "date-fns";
+  ChatBubbleLeftEllipsisIcon,
+  ExclamationCircleIcon,
+  UserGroupIcon,
+  ArrowPathIcon,
+  CheckBadgeIcon,
+  UserPlusIcon,
+  UserMinusIcon,
+  TrashIcon,
+  CalendarIcon,
+  BellIcon,
+} from "@heroicons/react/20/solid";
+import { User } from "@supabase/supabase-js";
+import { addHours } from "date-fns";
 import Link from "next/link";
 import { Fragment, useEffect, useRef, useState } from "react";
-import { Notifications } from "@/types/notifications"; // Ensure correct import
+import { Notifications } from "@/types/notifications";
+import NotificationDropdown from "./notification_dropdown";
+import NotificationDialog from "./notification_dialog";
+import { Menu, Transition } from "@headlessui/react";
 
 function classNames(...classes: any[]) {
-  return classes?.filter(Boolean).join(" ");
+  return classes.filter(Boolean).join(" ");
 }
 
 function Header({ user }: { user: User }) {
-  const notificationLinkRef = useRef(null);
-
   const { sidebarOpen, setSidebarOpen } = useSidebarStore((state) => ({
     sidebarOpen: state.sidebarOpen,
     setSidebarOpen: state.setSidebarOpen,
   }));
-
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [notifications, setNotifications] = useState<Notifications[]>([]); // Typed as Notifications[]
+  const [notifications, setNotifications] = useState<Notifications[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isNotificationDialogOpen, setIsNotificationDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   const loadNotifications = async () => {
     const response = await fetchNotifications(user.id);
-
     if (response && response.data) {
       const { data, unreadCount } = response;
-
       const sortedData = data.sort((a: Notifications, b: Notifications) => {
         if (a.read === b.read) {
-          return a.message.localeCompare(b.message);
+          return new Date(b.date_created).getTime() - new Date(a.date_created).getTime();
         }
         return a.read ? 1 : -1;
       });
-
       setNotifications(sortedData);
       setUnreadCount(unreadCount);
     }
@@ -66,10 +70,8 @@ function Header({ user }: { user: User }) {
 
   useEffect(() => {
     const supabase = createClient();
-
     const initializeNotifications = async () => {
       await loadNotifications();
-
       const notificationChannel = supabase
         .channel("notifications")
         .on(
@@ -85,80 +87,41 @@ function Header({ user }: { user: User }) {
           }
         )
         .subscribe();
-
       return () => {
         notificationChannel.unsubscribe();
       };
     };
-
     initializeNotifications();
   }, [user.id]);
 
   const handleMarkAllAsRead = async () => {
     const updatedNotifications = notifications.map((notification) => ({
       ...notification,
-      read: true, // Changed from isread
+      read: true,
     }));
     setNotifications(updatedNotifications);
     setUnreadCount(0);
-
     const { success } = await markAllAsRead(user.id);
     if (!success) {
       loadNotifications();
     }
   };
 
-  function getNotificationLink(notification: Notifications) {
-    switch (notification.type) {
-      case "event":
-      case "membership":
-      case "welcome":
-      case "post":
-      case "comment":
-        return `/${notification.path}`;
-      case "payment":
-        return null;
-      default:
-        return null;
-    }
-  }
-
-  function getNotificationIcon(notification: Notifications) {
-    switch (notification.type) {
-      case "event":
-        return <CalendarIcon className="h-6 w-6 text-light" />;
-      case "membership":
-      case "membership_notif_for_admin":
-        return <UserIcon className="h-6 w-6 text-light" />;
-      case "welcome":
-        return <HandRaisedIcon className="h-6 w-6 text-light" />;
-      case "payment":
-        return <CurrencyDollarIcon className="h-6 w-6 text-light" />;
-      case "post":
-        return <PencilSquareIcon className="h-6 w-6 text-light" />;
-      case "comment":
-        return <ChatBubbleLeftEllipsisIcon className="h-6 w-6 text-light" />;
-      default:
-        return <ExclamationCircleIcon className="h-6 w-6 text-light" />;
-    }
-  }
-
   const handleNotificationClick = async (notificationId: string, link: string | null) => {
     const updatedNotifications = notifications.map((notification) =>
       notification.notificationid === notificationId
-        ? { ...notification, read: true } // Changed from isread
+        ? { ...notification, read: true }
         : notification
     );
     setNotifications(updatedNotifications);
-    setUnreadCount((prevUnreadCount) => prevUnreadCount - 1);
-
+    setUnreadCount((prevUnreadCount) => (prevUnreadCount > 0 ? prevUnreadCount - 1 : 0));
     const { success } = await markNotificationAsRead(notificationId);
     if (!success) {
       loadNotifications();
     }
-
     if (link) {
-      window.location.href = link;
+      console.log("Navigating to:", link); // Debugging line
+      window.location.href = link; // Use window.location.href for navigation
     }
   };
 
@@ -167,117 +130,216 @@ function Header({ user }: { user: User }) {
       const response = await getUserProfileById(user?.id);
       setUserProfile(response.data as UserProfile);
     };
-
     fetchUserProfile();
   }, [user.id]);
 
   return (
-    <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-[#525252] bg-eerieblack px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
+    <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-[#151718] bg-[#151718] px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
+      {/* Sidebar Toggle Button */}
       <button
         type="button"
-        className="-m-2.5 p-2.5 text-gray-700 lg:hidden"
+        className="-m-2.5 p-2.5 text-[#23af90] hover:text-[#23af90] lg:hidden"
         onClick={() => setSidebarOpen(true)}
       >
         <span className="sr-only">Open sidebar</span>
         <Bars3Icon className="h-6 w-6" aria-hidden="true" />
       </button>
-
-      <div className="h-6 w-px bg-gray-200 lg:hidden" aria-hidden="true" />
-
+      {/* Vertical Divider (Hidden on Large Screens) */}
+      <div className="h-6 w-px bg-[#151718] lg:hidden" aria-hidden="true" />
+      {/* Main Content Area */}
       <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-        <div className="relative flex flex-1 items-center "></div>
+        <div className="flex flex-1 items-center"></div>
         <div className="flex items-center gap-x-4 lg:gap-x-6">
-          <Menu as="div" className="relative">
-            <Menu.Button className="p-3 text-gray-400 hover:text-gray-500">
-              <span className="sr-only">View notifications</span>
-              <BellIcon className="h-6 w-6" aria-hidden="true" />
-              {unreadCount > 0 && (
-                <span className="absolute bottom-0 left-0 inline-flex h-4 w-4 -translate-y-7 translate-x-7 transform items-center justify-center rounded-full bg-[#32805c] text-xs font-semibold text-white">
-                  {unreadCount}
-                </span>
-              )}
-            </Menu.Button>
-            <Transition
-              as={Fragment}
-              enter="transition ease-out duration-200"
-              enterFrom="transform opacity-0 scale-95"
-              enterTo="transform opacity-100 scale-100"
-              leave="transition ease-in duration-150"
-              leaveFrom="transform opacity-100 scale-100"
-              leaveTo="transform opacity-0 scale-95"
-            >
-              <Menu.Items
-                className="absolute right-0 z-10 w-96 origin-top-right overflow-hidden rounded-md bg-charleston shadow-lg ring-1 ring-light ring-opacity-5 focus:outline-none"
-                style={{
-                  maxHeight: "500px",
-                  scrollbarWidth: "none",
-                  msOverflowStyle: "none",
-                }}
-              >
-                <div className="notification-container">
-                  <div className="h-80 overflow-y-auto px-4 py-3">
-                    <p className="mb-2 text-sm font-medium text-light">Notifications</p>
-                    {notifications.length > 0 ? (
-                      notifications.map((notification) => {
-                        const link = getNotificationLink(notification);
-                        return (
-                          <a
-                            key={notification.notificationid}
-                            className={`my-1 flex items-center gap-x-2 rounded-lg px-4 py-2 hover:bg-[#525252] ${
-                              notification.read ? "bg-gray" : "bg-[#232323]"
-                            } cursor-pointer`}
-                            onClick={() => {
-                              handleNotificationClick(notification.notificationid, link);
-                            }}
-                          >
-                            <span className="text-sm leading-tight">
-                              {getNotificationIcon(notification)}
-                            </span>
-                            <span
-                              className="flex-1 text-xs leading-tight text-light"
-                              dangerouslySetInnerHTML={{
-                                __html: notification.message,
-                              }}
-                            />
-                            <span className="w-1/5 flex-none text-right text-xs text-light">
-                              {formatDistanceToNow(
-                                addHours(new Date(notification.date_created), 8), // Add 8 hours to the date_created
-                                {
-                                  addSuffix: true,
-                                }
-                              )}
-                            </span>
-                          </a>
-                        );
-                      })
-                    ) : (
-                      <p className="text-xs text-light">No new notifications.</p>
-                    )}
-                  </div>
-                </div>
+          {/* Notification Dropdown */}
+          <NotificationDropdown
+            notifications={notifications}
+            unreadCount={unreadCount}
+            onMarkAllAsRead={handleMarkAllAsRead}
+            onNotificationClick={handleNotificationClick}
+            getNotificationLink={(notification) => {
+              if (!notification.path) return null;
+              const sanitizedPath = notification.path.startsWith("/")
+                ? notification.path.slice(1)
+                : notification.path;
+              switch (notification.type) {
+                case "event":
+                case "event_update":
+                case "event_registration":
+                case "payment_event":
+                  return `/e/${notification.path}`;
+                case "payment_membership":
+                case "membership":
+                case "membership_expiring":
+                case "membership_expiring_today":
+                  return `${notification.path}?tab=membership`;
+                case "event_cancellation":
+                case "welcome":
+                case "new_member":
+                case "post":
+                case "post_deletion":
+                case "comment":
+                case "comment_deletion":
+                case "organization_request":
+                case "organization_request_update":
+                case "role_change":
+                case "member_removal":
+                case "payment":
+                  return notification.path;
+                default:
+                  return null;
+              }
+            }}
+            getNotificationIcon={(notification) => {
+              switch (notification.type) {
+                case "event":
+                case "event_update":
+                case "event_registration":
+                  return <CalendarIcon className="h-6 w-6 text-blue-500" />;
 
-                <div className="border-t border-[#525252]">
-                  <button
-                    className="my-3 block w-full text-center text-sm text-[#32805c] hover:text-[#285a47]"
-                    onClick={handleMarkAllAsRead}
-                  >
-                    Mark all as read
-                  </button>
-                </div>
-              </Menu.Items>
-            </Transition>
-          </Menu>
+                case "membership":
+                case "membership_expiring":
+                case "membership_expiring_today":
+                  return <UserIcon className="h-6 w-6 text-green-500" />;
 
+                case "event_cancellation":
+                  return <CalendarIcon className="h-6 w-6 text-blue-500" />; // Same as event for now, or change if needed
+
+                case "welcome":
+                  return <HandRaisedIcon className="h-6 w-6 text-purple-500" />;
+
+                case "new_member":
+                  return <UserPlusIcon className="h-6 w-6 text-green-600" />;
+
+                case "post":
+                  return <PencilSquareIcon className="h-6 w-6 text-indigo-500" />;
+
+                case "post_deletion":
+                  return <TrashIcon className="h-6 w-6 text-gray-400" />;
+
+                case "comment":
+                  return <ChatBubbleLeftEllipsisIcon className="h-6 w-6 text-pink-500" />;
+
+                case "organization_request":
+                  return <UserGroupIcon className="h-6 w-6 text-teal-500" />;
+
+                case "organization_request_update":
+                  return <ArrowPathIcon className="h-6 w-6 text-orange-500" />;
+
+                case "role_change":
+                  return <CheckBadgeIcon className="h-6 w-6 text-indigo-600" />;
+
+                case "member_removal":
+                  return <UserMinusIcon className="h-6 w-6 text-gray-500" />;
+
+                case "payment":
+                case "payment_membership":
+                case "payment_event":
+                  return <CurrencyDollarIcon className="h-6 w-6 text-yellow-500" />;
+
+                case "event_reminder":
+                  return <BellIcon className="h-6 w-6 text-blue-400" />;
+
+                default:
+                  return <ExclamationCircleIcon className="h-6 w-6 text-gray-500" />;
+              }
+            }}
+            onViewAllNotifications={() => setIsNotificationDialogOpen(true)} // Pass the handler
+          />
+          {/* Notification Dialog */}
+          <NotificationDialog
+            isOpen={isNotificationDialogOpen}
+            onClose={setIsNotificationDialogOpen}
+            notifications={notifications}
+            onNotificationClick={handleNotificationClick}
+            getNotificationLink={(notification) => {
+              if (!notification.path) return null;
+              const sanitizedPath = notification.path.startsWith("/")
+                ? notification.path.slice(1)
+                : notification.path;
+              switch (notification.type) {
+                case "event":
+                case "event_update":
+                case "event_registration":
+                case "payment_event":
+                  return `/e/${notification.path}`;
+                case "payment_membership":
+                case "membership":
+                case "membership_expiring":
+                case "membership_expiring_today":
+                  return `${notification.path}?tab=membership`;
+                case "event_cancellation":
+                case "welcome":
+                case "new_member":
+                case "post":
+                case "post_deletion":
+                case "comment":
+                case "comment_deletion":
+                case "organization_request":
+                case "organization_request_update":
+                case "role_change":
+                case "member_removal":
+                case "payment":
+                  return notification.path;
+                default:
+                  return null;
+              }
+            }}
+            getNotificationIcon={(notification) => {
+              switch (notification.type) {
+                case "event":
+                case "event_update":
+                case "event_registration":
+                case "event_cancellation":
+                  return <CalendarIcon className="h-6 w-6 text-blue-500" />;
+                case "membership":
+                case "membership_expiring":
+                case "membership_expiring_today":
+                  return <UserIcon className="h-6 w-6 text-green-500" />;
+                case "welcome":
+                  return <HandRaisedIcon className="h-6 w-6 text-purple-500" />;
+                case "payment":
+                  return <CurrencyDollarIcon className="h-6 w-6 text-yellow-500" />;
+                case "post":
+                  return <PencilSquareIcon className="h-6 w-6 text-indigo-500" />;
+                case "comment":
+                  return <ChatBubbleLeftEllipsisIcon className="h-6 w-6 text-pink-500" />;
+                case "payment_failure":
+                  return <ExclamationCircleIcon className="h-6 w-6 text-red-500" />;
+                case "organization_request":
+                  return <UserGroupIcon className="h-6 w-6 text-teal-500" />;
+                case "organization_request_update":
+                  return <ArrowPathIcon className="h-6 w-6 text-orange-500" />;
+                case "role_change":
+                  return <CheckBadgeIcon className="h-6 w-6 text-indigo-600" />;
+                case "new_member":
+                  return <UserPlusIcon className="h-6 w-6 text-green-600" />;
+                case "member_removal":
+                  return <UserMinusIcon className="h-6 w-6 text-gray-500" />;
+                case "comment_deletion":
+                case "post_deletion":
+                  return <TrashIcon className="h-6 w-6 text-gray-400" />;
+                default:
+                  return <ExclamationCircleIcon className="h-6 w-6 text-gray-500" />;
+              }
+            }}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            filterType={filterType}
+            setFilterType={setFilterType}
+            sortOrder={sortOrder}
+            setSortOrder={setSortOrder}
+          />
+          {/* Vertical Divider (Hidden on Large Screens) */}
           <div
-            className="hidden lg:block lg:h-6 lg:w-px lg:bg-gray-200"
+            className="hidden lg:block lg:h-6 lg:w-px lg:bg-[#151718]"
             aria-hidden="true"
           />
-
+          {/* User Menu */}
           <Menu as="div" className="relative">
             <Menu.Button className="-m-1.5 flex items-center p-1.5">
               <span className="sr-only">Open user menu</span>
               <img
-                className="h-8 w-8 rounded-full bg-gray-50"
+                className="h-8 w-8 rounded-full bg-gray-700"
                 src={
                   userProfile?.profilepicture
                     ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${userProfile.profilepicture}`
@@ -287,38 +349,35 @@ function Header({ user }: { user: User }) {
               />
               <span className="hidden lg:flex lg:items-center">
                 <span
-                  className="ml-4 text-sm font-semibold leading-6 text-light"
+                  className="ml-3 text-sm font-semibold text-white"
                   aria-hidden="true"
                 >
                   {userProfile?.first_name}
                 </span>
                 <ChevronDownIcon
-                  className="ml-2 h-5 w-5 text-gray-400"
+                  className="ml-1 h-5 w-5 text-gray-400"
                   aria-hidden="true"
                 />
               </span>
             </Menu.Button>
             <Transition
               as={Fragment}
-              enter="transition ease-out duration-100"
-              enterFrom="transform opacity-0 scale-95"
-              enterTo="transform opacity-100 scale-100"
-              leave="transition ease-in duration-75"
-              leaveFrom="transform opacity-100 scale-100"
-              leaveTo="transform opacity-0 scale-95"
+              enter="transition ease-out duration-200"
+              enterFrom="opacity-0 scale-95"
+              enterTo="opacity-100 scale-100"
+              leave="transition ease-in duration-150"
+              leaveFrom="opacity-100 scale-100"
+              leaveTo="opacity-0 scale-95"
             >
-              <Menu.Items className="absolute right-0 z-10 mt-2 w-56 origin-top-right divide-y divide-[#525252] rounded-md bg-charleston shadow-lg ring-1 ring-light ring-opacity-5 focus:outline-none">
-                <div className="px-4 py-3">
-                  <p className="text-sm text-light">Signed in as</p>
-                  <p className="truncate text-sm font-medium text-light">{user.email}</p>
-                </div>
+              <Menu.Items className="absolute right-0 z-20 mt-2 w-48 origin-top-right rounded-md bg-[#151718] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                {/* Menu Items */}
                 <div className="py-1">
                   <Menu.Item>
                     {({ active }) => (
                       <Link
                         href={`/user/profile/${user.id}`}
                         className={classNames(
-                          active ? "bg-[#383838] text-light" : "text-light",
+                          active ? "bg-[#23af90] text-white" : "text-gray-300",
                           "block px-4 py-2 text-sm"
                         )}
                       >
@@ -326,18 +385,45 @@ function Header({ user }: { user: User }) {
                       </Link>
                     )}
                   </Menu.Item>
+                  <Menu.Item>
+                    {({ active }) => (
+                      <Link
+                        href="/support"
+                        className={classNames(
+                          active ? "bg-[#23af90] text-white" : "text-gray-300",
+                          "block px-4 py-2 text-sm"
+                        )}
+                      >
+                        Support
+                      </Link>
+                    )}
+                  </Menu.Item>
+                  <Menu.Item>
+                    {({ active }) => (
+                      <Link
+                        href="/license"
+                        className={classNames(
+                          active ? "bg-[#23af90] text-white" : "text-gray-300",
+                          "block px-4 py-2 text-sm"
+                        )}
+                      >
+                        License
+                      </Link>
+                    )}
+                  </Menu.Item>
                 </div>
+                <div className="border-t border-gray-700"></div>
                 <div className="py-1">
                   <Menu.Item>
                     {({ active }) => (
                       <button
-                        className={classNames(
-                          active ? "bg-[#383838] text-light" : "text-light",
-                          "block w-full px-4 py-2 text-left text-sm"
-                        )}
                         onClick={async () => {
                           await signOut();
                         }}
+                        className={classNames(
+                          active ? "bg-[#23af90] text-white" : "text-gray-300",
+                          "block w-full px-4 py-2 text-left text-sm"
+                        )}
                       >
                         Sign out
                       </button>
