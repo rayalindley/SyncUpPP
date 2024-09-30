@@ -46,6 +46,10 @@ const truncateText = (text: string, maxLength: number) => {
   }
 };
 
+const getInitials = (firstName: string, lastName: string): string => {
+  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+};
+
 export default function EventOptions({
   selectedEvent,
   userId,
@@ -235,6 +239,7 @@ export default function EventOptions({
     saveAs(blob, fileName);
   };
 
+  
   return (
     <>
       <Menu as="div" className="relative inline-block text-left">
@@ -635,12 +640,19 @@ export default function EventOptions({
                             ) : filteredAttendees && filteredAttendees.length > 0 ? (
                               filteredAttendees.map((attendee: UserProfile, index: number) => (
                                 <div key={index} className="flex items-center space-x-3">
+                                  {/* Attendee profile image or initials */}
                                   <div className="relative h-8 w-8 flex-shrink-0">
-                                    <img
-                                      className="h-8 w-8 rounded-full object-cover"
-                                      src={`${supabaseStorageBaseUrl}/${attendee.profilepicture}`}
-                                      alt={`${attendee.first_name} ${attendee.last_name}`}
-                                    />
+                                    {attendee.profilepicture ? (
+                                      <img
+                                        className="h-8 w-8 rounded-full object-cover"
+                                        src={`${supabaseStorageBaseUrl}/${attendee.profilepicture}`}
+                                        alt={`${attendee.first_name} ${attendee.last_name}`}
+                                      />
+                                    ) : (
+                                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-500 text-sm font-bold text-white">
+                                        {getInitials(attendee.first_name ?? "", attendee.last_name ?? "")}
+                                      </div>
+                                    )}
                                   </div>
                                   <div>{`${attendee.first_name} ${attendee.last_name}`}</div>
                                 </div>
