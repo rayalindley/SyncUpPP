@@ -37,7 +37,7 @@ export default function OrganizationSection({ organizations }: OrganizationSecti
         href="/organization/create"
         className="border-1 rounded-md border border-primary bg-primarydark p-1 px-2 text-sm text-gray-100 hover:cursor-pointer"
       >
-        New Organization
+        Create Organization
       </a>
       <h3 className="mt-5 text-base font-semibold leading-6 text-gray-300">
         Organizations
