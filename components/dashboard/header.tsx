@@ -1,4 +1,7 @@
+// Filename: D:\Github\SyncUp\components\dashboard\header.tsx
+
 "use client";
+
 import { signOut } from "@/lib/auth";
 import {
   fetchNotifications,
@@ -53,85 +56,153 @@ function Header({ user }: { user: User }) {
   const [filterType, setFilterType] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
-  const loadNotifications = async () => {
-    const response = await fetchNotifications(user.id);
-    if (response && response.data) {
-      const { data, unreadCount } = response;
-      const sortedData = data.sort((a: Notifications, b: Notifications) => {
-        if (a.read === b.read) {
-          return new Date(b.date_created).getTime() - new Date(a.date_created).getTime();
+  // Fetch user profile with null checks and error handling
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user && user.id) { // Ensure user and user.id are defined
+        try {
+          const response = await getUserProfileById(user.id);
+          if (response && response.data) { // Check if response and response.data exist
+            setUserProfile(response.data as UserProfile);
+          } else {
+            // Handle case where response or response.data is undefined
+            console.error("Failed to fetch user profile: response or data is undefined.");
+            setUserProfile({
+              id: user.id,
+              first_name: "Unknown",
+              profilepicture: "",
+              // ... initialize other required fields with default values
+            } as UserProfile);
+          }
+        } catch (error) {
+          // Handle fetch error
+          console.error("Error fetching user profile:", error);
+          setUserProfile({
+            id: user.id,
+            first_name: "Unknown",
+            profilepicture: "",
+            // ... initialize other required fields with default values
+          } as UserProfile);
         }
-        return a.read ? 1 : -1;
-      });
-      setNotifications(sortedData);
-      setUnreadCount(unreadCount);
+      } else {
+        // Handle case where user or user.id is undefined
+        console.warn("User is not defined or user.id is missing.");
+        setUserProfile(null);
+      }
+    };
+    fetchUserProfile();
+  }, [user]);
+
+  // Load notifications with null checks and error handling
+  const loadNotifications = async () => {
+    if (!user || !user.id) return; // Ensure user and user.id are defined
+    try {
+      const response = await fetchNotifications(user.id);
+      if (response && response.data) {
+        const { data, unreadCount } = response;
+        const sortedData = data.sort((a: Notifications, b: Notifications) => {
+          if (a.read === b.read) {
+            return new Date(b.date_created).getTime() - new Date(a.date_created).getTime();
+          }
+          return a.read ? 1 : -1;
+        });
+        setNotifications(sortedData);
+        setUnreadCount(unreadCount || 0);
+      } else {
+        // Handle case where response or response.data is undefined
+        console.error("Failed to fetch notifications: response or data is undefined.");
+        setNotifications([]);
+        setUnreadCount(0);
+      }
+    } catch (error) {
+      // Handle fetch error
+      console.error("Error fetching notifications:", error);
+      setNotifications([]);
+      setUnreadCount(0);
     }
   };
 
+  // Initialize notifications and subscribe to real-time updates with error handling
   useEffect(() => {
     const supabase = createClient();
     const initializeNotifications = async () => {
-      await loadNotifications();
-      const notificationChannel = supabase
-        .channel("notifications")
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "notifications",
-            filter: `userid=eq.${user.id}`,
-          },
-          () => {
-            loadNotifications();
-          }
-        )
-        .subscribe();
-      return () => {
-        notificationChannel.unsubscribe();
-      };
+      await loadNotifications(); // Load initial notifications
+      if (user && user.id) {
+        try {
+          const notificationChannel = supabase
+            .channel("notifications")
+            .on(
+              "postgres_changes",
+              {
+                event: "*", // Listen to all changes
+                schema: "public",
+                table: "notifications",
+                filter: `userid=eq.${user.id}`,
+              },
+              () => {
+                loadNotifications(); // Reload notifications on change
+              }
+            )
+            .subscribe();
+
+          // Cleanup subscription on unmount
+          return () => {
+            notificationChannel.unsubscribe();
+          };
+        } catch (error) {
+          console.error("Error subscribing to notifications:", error);
+        }
+      }
     };
     initializeNotifications();
-  }, [user.id]);
+  }, [user]);
 
+  // Handle marking all notifications as read with error handling
   const handleMarkAllAsRead = async () => {
-    const updatedNotifications = notifications.map((notification) => ({
-      ...notification,
-      read: true,
-    }));
-    setNotifications(updatedNotifications);
-    setUnreadCount(0);
-    const { success } = await markAllAsRead(user.id);
-    if (!success) {
-      loadNotifications();
+    if (user && user.id) {
+      try {
+        const updatedNotifications = notifications.map((notification) => ({
+          ...notification,
+          read: true,
+        }));
+        setNotifications(updatedNotifications);
+        setUnreadCount(0);
+        const { success } = await markAllAsRead(user.id);
+        if (!success) {
+          await loadNotifications();
+        }
+      } catch (error) {
+        console.error("Error marking all as read:", error);
+        await loadNotifications();
+      }
+    } else {
+      alert("User is not logged in. Please log in to mark notifications as read.");
     }
   };
 
+  // Handle individual notification click with error handling
   const handleNotificationClick = async (notificationId: string, link: string | null) => {
-    const updatedNotifications = notifications.map((notification) =>
-      notification.notificationid === notificationId
-        ? { ...notification, read: true }
-        : notification
-    );
-    setNotifications(updatedNotifications);
-    setUnreadCount((prevUnreadCount) => (prevUnreadCount > 0 ? prevUnreadCount - 1 : 0));
-    const { success } = await markNotificationAsRead(notificationId);
-    if (!success) {
-      loadNotifications();
-    }
-    if (link) {
-      console.log("Navigating to:", link); // Debugging line
-      window.location.href = link; // Use window.location.href for navigation
+    try {
+      const updatedNotifications = notifications.map((notification) =>
+        notification.notificationid === notificationId
+          ? { ...notification, read: true }
+          : notification
+      );
+      setNotifications(updatedNotifications);
+      setUnreadCount((prevUnreadCount) => (prevUnreadCount > 0 ? prevUnreadCount - 1 : 0));
+      const { success } = await markNotificationAsRead(notificationId);
+      if (!success) {
+        await loadNotifications();
+      }
+      if (link) {
+        console.log("Navigating to:", link); // Debugging line
+        window.location.href = link; // Use window.location.href for navigation
+      }
+    } catch (error) {
+      console.error("Error handling notification click:", error);
+      await loadNotifications();
     }
   };
-
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      const response = await getUserProfileById(user?.id);
-      setUserProfile(response.data as UserProfile);
-    };
-    fetchUserProfile();
-  }, [user.id]);
 
   return (
     <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-[#151718] bg-[#151718] px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
@@ -352,7 +423,7 @@ function Header({ user }: { user: User }) {
                   className="ml-3 text-sm font-semibold text-white"
                   aria-hidden="true"
                 >
-                  {userProfile?.first_name}
+                  {userProfile?.first_name || "User"}
                 </span>
                 <ChevronDownIcon
                   className="ml-1 h-5 w-5 text-gray-400"
@@ -369,7 +440,7 @@ function Header({ user }: { user: User }) {
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Menu.Items className="absolute right-0 z-20 mt-2 w-48 origin-top-right rounded-md bg-[#151718] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+              <Menu.Items className="absolute right-0 z-20 mt-2 w-56 origin-top-right rounded-md bg-[#151718] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                 {/* Menu Items */}
                 <div className="py-1">
                   <Menu.Item>
@@ -385,29 +456,17 @@ function Header({ user }: { user: User }) {
                       </Link>
                     )}
                   </Menu.Item>
+                  {/* Added Dashboard Link */}
                   <Menu.Item>
                     {({ active }) => (
                       <Link
-                        href="/support"
+                        href="/dashboard"
                         className={classNames(
                           active ? "bg-[#23af90] text-white" : "text-gray-300",
                           "block px-4 py-2 text-sm"
                         )}
                       >
-                        Support
-                      </Link>
-                    )}
-                  </Menu.Item>
-                  <Menu.Item>
-                    {({ active }) => (
-                      <Link
-                        href="/license"
-                        className={classNames(
-                          active ? "bg-[#23af90] text-white" : "text-gray-300",
-                          "block px-4 py-2 text-sm"
-                        )}
-                      >
-                        License
+                        Dashboard
                       </Link>
                     )}
                   </Menu.Item>
@@ -418,7 +477,11 @@ function Header({ user }: { user: User }) {
                     {({ active }) => (
                       <button
                         onClick={async () => {
-                          await signOut();
+                          try {
+                            await signOut();
+                          } catch (error) {
+                            console.error("Error signing out:", error);
+                          }
                         }}
                         className={classNames(
                           active ? "bg-[#23af90] text-white" : "text-gray-300",
