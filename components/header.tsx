@@ -67,9 +67,37 @@ export default function Header({ user = null }: { user: User | null }) {
   // Fetch user profile
   useEffect(() => {
     const fetchUserProfile = async () => {
-      if (user) {
-        const response = await getUserProfileById(user.id);
-        setUserProfile(response.data as UserProfile);
+      if (user && user.id) {
+        // Ensure user and user.id are defined
+        try {
+          const response = await getUserProfileById(user.id);
+          if (response && response.data) {
+            // Check if response and response.data exist
+            setUserProfile(response.data as UserProfile);
+          } else {
+            // Handle case where response or response.data is undefined
+            console.error("Failed to fetch user profile: response or data is undefined.");
+            setUserProfile({
+              id: user.id,
+              first_name: "Unknown",
+              profilepicture: "",
+              // ... initialize other required fields with default values
+            } as UserProfile);
+          }
+        } catch (error) {
+          // Handle fetch error
+          console.error("Error fetching user profile:", error);
+          setUserProfile({
+            id: user.id,
+            first_name: "Unknown",
+            profilepicture: "",
+            // ... initialize other required fields with default values
+          } as UserProfile);
+        }
+      } else {
+        // Handle case where user or user.id is undefined
+        console.warn("User is not defined or user.id is missing.");
+        setUserProfile(null);
       }
     };
     fetchUserProfile();
@@ -77,18 +105,32 @@ export default function Header({ user = null }: { user: User | null }) {
 
   // Load notifications
   const loadNotifications = async () => {
-    if (!user) return; // Ensure user is logged in
-    const response = await fetchNotifications(user.id);
-    if (response && response.data) {
-      const { data, unreadCount } = response;
-      const sortedData = data.sort((a: Notifications, b: Notifications) => {
-        if (a.read === b.read) {
-          return new Date(b.date_created).getTime() - new Date(a.date_created).getTime();
-        }
-        return a.read ? 1 : -1;
-      });
-      setNotifications(sortedData);
-      setUnreadCount(unreadCount);
+    if (!user || !user.id) return; // Ensure user and user.id are defined
+    try {
+      const response = await fetchNotifications(user.id);
+      if (response && response.data) {
+        const { data, unreadCount } = response;
+        const sortedData = data.sort((a: Notifications, b: Notifications) => {
+          if (a.read === b.read) {
+            return (
+              new Date(b.date_created).getTime() - new Date(a.date_created).getTime()
+            );
+          }
+          return a.read ? 1 : -1;
+        });
+        setNotifications(sortedData);
+        setUnreadCount(unreadCount || 0);
+      } else {
+        // Handle case where response or response.data is undefined
+        console.error("Failed to fetch notifications: response or data is undefined.");
+        setNotifications([]);
+        setUnreadCount(0);
+      }
+    } catch (error) {
+      // Handle fetch error
+      console.error("Error fetching notifications:", error);
+      setNotifications([]);
+      setUnreadCount(0);
     }
   };
 
@@ -97,7 +139,7 @@ export default function Header({ user = null }: { user: User | null }) {
     const supabase = createClient();
     const initializeNotifications = async () => {
       await loadNotifications(); // Load initial notifications
-      if (user) {
+      if (user && user.id) {
         const notificationChannel = supabase
           .channel("notifications")
           .on(
@@ -113,6 +155,7 @@ export default function Header({ user = null }: { user: User | null }) {
             }
           )
           .subscribe();
+
         return () => {
           notificationChannel.unsubscribe(); // Clean up subscription
         };
@@ -123,16 +166,21 @@ export default function Header({ user = null }: { user: User | null }) {
 
   // Handle marking all notifications as read
   const handleMarkAllAsRead = async () => {
-    if (user) {
-      const updatedNotifications = notifications.map((notification) => ({
-        ...notification,
-        read: true,
-      }));
-      setNotifications(updatedNotifications);
-      setUnreadCount(0);
-      const { success } = await markAllAsRead(user.id);
-      if (!success) {
-        loadNotifications();
+    if (user && user.id) {
+      try {
+        const updatedNotifications = notifications.map((notification) => ({
+          ...notification,
+          read: true,
+        }));
+        setNotifications(updatedNotifications);
+        setUnreadCount(0);
+        const { success } = await markAllAsRead(user.id);
+        if (!success) {
+          await loadNotifications();
+        }
+      } catch (error) {
+        console.error("Error marking all as read:", error);
+        await loadNotifications();
       }
     } else {
       alert("User is not logged in. Please log in to mark notifications as read.");
@@ -141,19 +189,26 @@ export default function Header({ user = null }: { user: User | null }) {
 
   // Handle individual notification click
   const handleNotificationClick = async (notificationId: string, link: string | null) => {
-    const updatedNotifications = notifications.map((notification) =>
-      notification.notificationid === notificationId
-        ? { ...notification, read: true }
-        : notification
-    );
-    setNotifications(updatedNotifications);
-    setUnreadCount((prevUnreadCount) => (prevUnreadCount > 0 ? prevUnreadCount - 1 : 0));
-    const { success } = await markNotificationAsRead(notificationId);
-    if (!success) {
-      loadNotifications();
-    }
-    if (link) {
-      window.location.href = link;
+    try {
+      const updatedNotifications = notifications.map((notification) =>
+        notification.notificationid === notificationId
+          ? { ...notification, read: true }
+          : notification
+      );
+      setNotifications(updatedNotifications);
+      setUnreadCount((prevUnreadCount) =>
+        prevUnreadCount > 0 ? prevUnreadCount - 1 : 0
+      );
+      const { success } = await markNotificationAsRead(notificationId);
+      if (!success) {
+        await loadNotifications();
+      }
+      if (link) {
+        window.location.href = link;
+      }
+    } catch (error) {
+      console.error("Error handling notification click:", error);
+      await loadNotifications();
     }
   };
 
@@ -422,7 +477,7 @@ export default function Header({ user = null }: { user: User | null }) {
                       className="ml-3 text-sm font-semibold text-white"
                       aria-hidden="true"
                     >
-                      {userProfile?.first_name}
+                      {userProfile?.first_name || "User"}
                     </span>
                     <ChevronDownIcon
                       className="ml-1 h-5 w-5 text-gray-400"
@@ -475,7 +530,11 @@ export default function Header({ user = null }: { user: User | null }) {
                         {({ active }) => (
                           <button
                             onClick={async () => {
-                              await signOut();
+                              try {
+                                await signOut();
+                              } catch (error) {
+                                console.error("Error signing out:", error);
+                              }
                             }}
                             className={classNames(
                               active ? "bg-[#23af90] text-white" : "text-gray-300",
@@ -587,8 +646,13 @@ export default function Header({ user = null }: { user: User | null }) {
                     <button
                       className="-mx-3 block w-full rounded-lg px-3 py-2 text-left text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
                       onClick={async () => {
-                        await signOut();
-                        setSidebarOpen(false);
+                        try {
+                          await signOut();
+                          setSidebarOpen(false);
+                        } catch (error) {
+                          console.error("Error signing out:", error);
+                          setSidebarOpen(false);
+                        }
                       }}
                     >
                       Sign out
