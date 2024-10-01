@@ -30,9 +30,9 @@ import ImageGallery from "react-image-gallery";
 import "react-image-gallery/styles/css/image-gallery.css";
 import { createClient } from "@/lib/supabase/client";
 import { format } from "date-fns";
-import ReactDatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { SupabaseClient } from "@supabase/supabase-js";
+import { getUserProfileById } from "@/lib/user_actions"; // Add this import
+import { CombinedUserData } from "@/types/combined_user_data";
 
 const postSchema = z.object({
   content: z.string().min(1, "Content is required").max(500),
@@ -45,18 +45,15 @@ interface PostsSectionProps {
   initialPosts: Posts[];
 }
 
-const PostsSection: React.FC<PostsSectionProps> = ({
-  organizationId,
-  initialPosts,
-}) => {
+const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPosts }) => {
   const { user } = useUser();
   const [currentPosts, setCurrentPosts] = useState<Posts[]>(initialPosts);
 
   const [editingPost, setEditingPost] = useState<Posts | null>(null);
   const [isPublic, setIsPublic] = useState(false);
-  const [availableRoles, setAvailableRoles] = useState<
-    { id: string; name: string }[]
-  >([]);
+  const [availableRoles, setAvailableRoles] = useState<{ id: string; name: string }[]>(
+    []
+  );
   const [availableMemberships, setAvailableMemberships] = useState<
     { membershipid: string; name: string }[]
   >([]);
@@ -64,31 +61,23 @@ const PostsSection: React.FC<PostsSectionProps> = ({
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [removedPhotos, setRemovedPhotos] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [
-    creationMessage,
-    setCreationMessage,
-  ] = useState<{ text: string; type: "success" | "error" } | null>(null);
+  const [creationMessage, setCreationMessage] = useState<{
+    text: string;
+    type: "success" | "error";
+  } | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterByRole, setFilterByRole] = useState<string | null>(null);
-  const [filterByMembership, setFilterByMembership] = useState<string | null>(
-    null
-  );
+  const [filterByMembership, setFilterByMembership] = useState<string | null>(null);
   const [filterByAuthor, setFilterByAuthor] = useState<boolean>(false);
   const [filterByPublic, setFilterByPublic] = useState<boolean>(false);
   const [filterByDate, setFilterByDate] = useState<Date | null>(null);
   const [canCreate, setCanCreate] = useState(false);
   const [canDelete, setCanDelete] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState<CombinedUserData | null>(null); // Add this line
 
   const supabase = createClient();
-  const {
-    register,
-    handleSubmit,
-    control,
-    setValue,
-    reset,
-    watch,
-  } = useForm({
+  const { register, handleSubmit, control, setValue, reset, watch } = useForm({
     resolver: zodResolver(postSchema),
   });
 
@@ -149,6 +138,19 @@ const PostsSection: React.FC<PostsSectionProps> = ({
       // Handle error if necessary
     }
   }, [user?.id, organizationId]);
+
+  // Add useEffect to fetch the user profile
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user) {
+        if (user?.id) {
+          const response = await getUserProfileById(user.id);
+          setUserProfile(response.data as CombinedUserData);
+        }
+      }
+    };
+    fetchUserProfile();
+  }, [user]);
 
   useEffect(() => {
     fetchData();
@@ -216,19 +218,14 @@ const PostsSection: React.FC<PostsSectionProps> = ({
     }
   }, [editingPost]);
 
-  const handleFileChange = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     setPhotoFiles(files);
     const newPhotos = files.map((file) => URL.createObjectURL(file));
     setPhotos((prevPhotos) => [...prevPhotos, ...newPhotos]);
   };
 
-  const handleRemovePhoto = (
-    index: number,
-    isExistingPhoto: boolean
-  ) => {
+  const handleRemovePhoto = (index: number, isExistingPhoto: boolean) => {
     if (isExistingPhoto) {
       setRemovedPhotos((prev) => [...prev, photos[index]]);
     }
@@ -239,9 +236,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({
   const uploadPhotosToSupabase = async () => {
     const uploadedUrls: string[] = [];
     for (const file of photoFiles) {
-      const fileName = `post_${Date.now()}-${Math.random()
-        .toString(36)
-        .substring(7)}`;
+      const fileName = `post_${Date.now()}-${Math.random().toString(36).substring(7)}`;
       const { data: uploadResult, error } = await supabase.storage
         .from("post-images")
         .upload(fileName, file);
@@ -305,10 +300,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({
               )?.membershipid
           )
           .filter(Boolean) || [];
-      if (
-        selectedRolesUUIDs.length === 0 &&
-        selectedMembershipUUIDs.length === 0
-      ) {
+      if (selectedRolesUUIDs.length === 0 && selectedMembershipUUIDs.length === 0) {
         setIsPublic(true);
       }
       const uploadedPhotoUrls = await uploadPhotosToSupabase();
@@ -317,9 +309,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({
         return;
       }
       const retainedPhotos = editingPost
-        ? (editingPost.postphotos || []).filter(
-            (photo) => !removedPhotos.includes(photo)
-          )
+        ? (editingPost.postphotos || []).filter((photo) => !removedPhotos.includes(photo))
         : [];
       const finalPhotoUrls = [...retainedPhotos, ...uploadedPhotoUrls];
       const postPayload = {
@@ -359,9 +349,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({
       const matchesSearch = post.content
         ?.toLowerCase()
         .includes(searchTerm.toLowerCase());
-      const matchesRole = filterByRole
-        ? post.roles?.includes(filterByRole)
-        : true;
+      const matchesRole = filterByRole ? post.roles?.includes(filterByRole) : true;
       const matchesMembership = filterByMembership
         ? post.memberships?.includes(filterByMembership)
         : true;
@@ -371,8 +359,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({
         : true;
       const matchesDate = filterByDate
         ? post.createdat &&
-          new Date(post.createdat).toDateString() ===
-            filterByDate.toDateString()
+          new Date(post.createdat).toDateString() === filterByDate.toDateString()
         : true;
       return (
         matchesSearch &&
@@ -385,8 +372,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({
     })
     .sort(
       (a, b) =>
-        new Date(b.createdat ?? 0).getTime() -
-        new Date(a.createdat ?? 0).getTime()
+        new Date(b.createdat ?? 0).getTime() - new Date(a.createdat ?? 0).getTime()
     );
 
   useEffect(() => {
@@ -397,8 +383,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({
       setValue("selectedRoles", editingPost.selectedRoles || []);
       setValue("selectedMemberships", editingPost.selectedMemberships || []);
       setIsPublic(
-        !editingPost.selectedRoles?.length &&
-          !editingPost.selectedMemberships?.length
+        !editingPost.selectedRoles?.length && !editingPost.selectedMemberships?.length
       );
     }
   }, [editingPost, setValue]);
@@ -423,12 +408,12 @@ const PostsSection: React.FC<PostsSectionProps> = ({
             // Compact form
             <div
               onClick={() => setIsFormOpen(true)}
-              className="flex cursor-pointer items-center space-x-4 rounded-lg bg-[#3b3b3b] p-4 hover:bg-[#4b4b4b]"
+              className="flex cursor-pointer items-center space-x-4 rounded-lg bg-charleston p-4 hover:bg-[#212121]"
             >
               <div className="flex-shrink-0">
-                {user.profilepicture ? (
+                {userProfile?.profilepicture ? (
                   <img
-                    src={user.profilepicture}
+                    src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${userProfile.profilepicture}`}
                     alt="Profile"
                     className="h-10 w-10 rounded-full object-cover"
                   />
@@ -439,25 +424,22 @@ const PostsSection: React.FC<PostsSectionProps> = ({
               <div className="w-full">
                 <input
                   type="text"
-                  placeholder="What's on your mind?"
-                  className="w-full cursor-pointer rounded-full bg-[#4b4b4b] px-4 py-2 text-white focus:outline-none"
+                  placeholder="Let your organization know what's happening..."
+                  className="w-full cursor-pointer rounded-full bg-charleston px-4 py-2 text-white focus:outline-none"
                   readOnly
                 />
               </div>
             </div>
           ) : (
             // Full form
-            <div
-              ref={formRef}
-              className="mt-4 rounded-lg bg-[#3b3b3b] p-4 shadow-lg"
-            >
+            <div ref={formRef} className="mt-4 rounded-lg bg-charleston p-4 shadow-lg">
               <form id="post-form" onSubmit={handleSubmit(onSubmit)}>
                 {/* Top row: User avatar and content input */}
                 <div className="flex space-x-4">
                   <div className="flex-shrink-0">
-                    {user.profilepicture ? (
+                    {userProfile?.profilepicture ? (
                       <img
-                        src={user.profilepicture}
+                        src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${userProfile.profilepicture}`}
                         alt="Profile"
                         className="h-10 w-10 rounded-full object-cover"
                       />
@@ -468,8 +450,8 @@ const PostsSection: React.FC<PostsSectionProps> = ({
                   <div className="w-full">
                     <textarea
                       {...register("content")}
-                      className="w-full resize-none rounded-lg bg-[#171717] px-4 py-2 text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary"
-                      placeholder="What's on your mind?"
+                      className="w-full resize-none rounded-lg bg-charleston px-4 py-2 text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="Let your organization know what's happening..."
                       maxLength={500}
                       disabled={isLoading}
                       rows={3}
@@ -508,43 +490,45 @@ const PostsSection: React.FC<PostsSectionProps> = ({
                     </span>
                   </div>
                   {!isPublic && (
-                    <div className="mt-2 space-y-2">
+                    <div className="mt-2 flex flex-wrap gap-2 lg:flex-nowrap">
                       {/* Selected Roles */}
-                      <Controller
-                        name="selectedRoles"
-                        control={control}
-                        defaultValue={[]}
-                        render={({ field }) => (
-                          <TagsInput
-                            value={field.value}
-                            onChange={(tags) => {
-                              field.onChange(tags);
-                            }}
-                            suggestions={availableRoles.map((role) => role.name)}
-                            placeholder="Select roles"
-                            className="w-full rounded-lg border border-[#3d3d3d] bg-[#2a2a2a] px-3 py-1 text-white focus:outline-none focus:ring-2 focus:ring-primary"
-                          />
-                        )}
-                      />
+                      <div className="flex-1 min-w-[200px]">
+                        <Controller
+                          name="selectedRoles"
+                          control={control}
+                          defaultValue={[]}
+                          render={({ field }) => (
+                            <TagsInput
+                              value={field.value}
+                              onChange={(tags) => {
+                                field.onChange(tags);
+                              }}
+                              suggestions={availableRoles.map((role) => role.name)}
+                              placeholder="Select roles"
+                              className="w-full bg-charleston py-1 text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                            />
+                          )}
+                        />
+                      </div>
                       {/* Selected Memberships */}
-                      <Controller
-                        name="selectedMemberships"
-                        control={control}
-                        defaultValue={[]}
-                        render={({ field }) => (
-                          <TagsInput
-                            value={field.value}
-                            onChange={(tags) => {
-                              field.onChange(tags);
-                            }}
-                            suggestions={availableMemberships.map(
-                              (membership) => membership.name
-                            )}
-                            placeholder="Select memberships"
-                            className="w-full rounded-lg border border-[#3d3d3d] bg-[#2a2a2a] px-3 py-1 text-white focus:outline-none focus:ring-2 focus:ring-primary"
-                          />
-                        )}
-                      />
+                      <div className="flex-1 min-w-[200px]">
+                        <Controller
+                          name="selectedMemberships"
+                          control={control}
+                          defaultValue={[]}
+                          render={({ field }) => (
+                            <TagsInput
+                              value={field.value}
+                              onChange={(tags) => {
+                                field.onChange(tags);
+                              }}
+                              suggestions={availableMemberships.map((membership) => membership.name)}
+                              placeholder="Select memberships"
+                              className="w-full bg-charleston py-1 text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                            />
+                          )}
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -597,7 +581,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({
                     {photos.map((photo, index) => (
                       <div
                         key={index}
-                        className="relative bg-black h-40 w-full flex items-center justify-center overflow-hidden rounded-md"
+                        className="relative flex h-40 w-full items-center justify-center overflow-hidden rounded-md bg-black"
                       >
                         <img
                           src={photo}
@@ -696,9 +680,9 @@ const PostCard: React.FC<{
 
   // Compute selectedRoles and selectedMemberships directly from post prop
   const selectedRoles = post.privacy.role_privacy?.map((role: any) => role.role_id) || [];
-  const selectedMemberships = post.privacy.membership_privacy?.map(
-    (membership: any) => membership.membership_id
-  ) || [];
+  const selectedMemberships =
+    post.privacy.membership_privacy?.map((membership: any) => membership.membership_id) ||
+    [];
 
   const [isDeleted, setIsDeleted] = useState(false);
   const isLoadingPrivacy = false; // Privacy data is already loaded
@@ -733,9 +717,7 @@ const PostCard: React.FC<{
               setIsDeleted(true);
               setTimeout(
                 () =>
-                  setPosts((prevPosts) =>
-                    prevPosts.filter((p) => p.postid !== postid)
-                  ),
+                  setPosts((prevPosts) => prevPosts.filter((p) => p.postid !== postid)),
                 3000
               );
             } else {
@@ -760,7 +742,8 @@ const PostCard: React.FC<{
   const handleEdit = () => {
     const roleNames: string[] = selectedRoles.map(
       (roleId: string): string =>
-        availableRoles.find((role: { id: string; name: string }) => role.id === roleId)?.name || ""
+        availableRoles.find((role: { id: string; name: string }) => role.id === roleId)
+          ?.name || ""
     );
     const membershipNames: string[] = selectedMemberships
       .map(
@@ -912,9 +895,7 @@ const PostCard: React.FC<{
               ? format(new Date(createdat), "MMMM dd, yyyy hh:mm a")
               : "Unknown date"}
           </p>
-          <div className="flex flex-wrap space-x-2">
-            {generatePrivacyLabel()}
-          </div>
+          <div className="flex flex-wrap space-x-2">{generatePrivacyLabel()}</div>
         </div>
       </div>
       <p className="mb-5 mt-5 break-words rounded-lg bg-[#2a2a2a] p-4 text-white">
