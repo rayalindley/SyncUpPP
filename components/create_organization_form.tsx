@@ -45,12 +45,12 @@ const INDUSTRIES = [
   "Other",
 ] as const;
 const ORGANIZATION_SIZES = [
-  "1-10 employees",
-  "11-50 employees",
-  "51-200 employees",
-  "201-500 employees",
-  "501-1000 employees",
-  "1000+ employees",
+  "1-10 members",
+  "11-50 members",
+  "51-200 members",
+  "201-500 members",
+  "501-1000 members",
+  "1000+ members",
 ] as const;
 const COUNTRIES = countries.map((x) => x.name) as [string, ...string[]];
 
@@ -89,7 +89,7 @@ const OrganizationSchema = z.object({
   }),
   website: z.string().url("Invalid URL format").optional().or(z.literal("")),
   dateEstablished: z.date(),
-  addressLine1: z.string().min(3, "Address Line 1 is required"),
+  addressLine1: z.string().optional(),
   addressLine2: z.string().optional(),
   city: z.string().min(3, "City is required"),
   stateProvince: z.string().min(3, "State / Province is required"),
@@ -824,7 +824,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                 htmlFor="addressLine1"
                 className="block text-sm font-medium leading-6 text-white"
               >
-                Address Line 1
+                Address Line 1 <span className="text-sm text-gray-400">(optional)</span>
               </label>
               <div className="mt-2">
                 <input
