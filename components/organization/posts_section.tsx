@@ -392,49 +392,46 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPost
         <>
           {!isFormOpen ? (
             // Compact form
-              <div
-                onClick={() => setIsFormOpen(true)}
-                className="flex items-center space-x-4 rounded-lg bg-[#171717] p-4 "
-              >
-                <div className="w-full border-b border-gray-600 flex items-center">
+            <div
+              onClick={() => setIsFormOpen(true)}
+              className="flex items-center space-x-4 rounded-lg bg-[#171717] p-4 "
+            >
+              <div className="flex w-full items-center border-b border-gray-600">
                 <PencilIcon className="h-5 w-5 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Let your organization know what's happening..."
-                  className="w-full cursor-text border-transparent bg-transparent py-2 text-white focus:outline-none focus:ring-0 focus:border-transparent"
+                  className="w-full cursor-text border-transparent bg-transparent py-2 text-white focus:border-transparent focus:outline-none focus:ring-0"
                   readOnly
                 />
-                </div>
               </div>
+            </div>
           ) : (
             // Full form
             <div ref={formRef} className="mt-4 rounded-lg bg-[#171717] p-4 shadow-lg">
               <form id="post-form" onSubmit={handleSubmit(onSubmit)}>
                 {/* Top row: User avatar and content input */}
-                <div className="flex space-x-4">
-                  <div className="flex-shrink-0">
-                    {userProfile?.profilepicture ? (
-                      <img
-                        src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${userProfile.profilepicture}`}
-                        alt="Profile"
-                        className="h-10 w-10 rounded-full object-cover"
-                      />
-                    ) : (
-                      <UserCircleIcon className="h-10 w-10 text-white" />
+
+                <div className="w-full">
+                  <div className="flex w-full items-center border-b border-gray-600">
+                    {!watch("content") && (
+                      <PencilIcon className="h-5 w-5 text-gray-400" />
                     )}
-                  </div>
-                  <div className="w-full">
                     <textarea
-                      {...register("content")}
-                      className="w-full resize-none rounded-lg bg-[#232323] border-transparent px-4 py-2 text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary"
                       placeholder="Let your organization know what's happening..."
+                      className="w-full cursor-text resize-none overflow-hidden border-transparent bg-transparent py-2 text-white focus:border-transparent focus:outline-none focus:ring-0"
+                      // limit content to 500 characters
                       maxLength={500}
-                      disabled={isLoading}
-                      rows={3}
+                      rows={1}
+                      {...register("content")}
+                      onInput={(e) => {
+                        e.currentTarget.style.height = "auto";
+                        e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
+                      }}
                     />
-                    <div className="text-right text-xs text-gray-400">
-                      {watch("content")?.length || 0}/500
-                    </div>
+                  </div>
+                  <div className="text-right text-xs text-gray-400">
+                    {watch("content")?.length || 0}/500
                   </div>
                 </div>
 
@@ -465,48 +462,48 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPost
                       {isPublic ? "Public" : "Private"}
                     </span>
                   </div>
-                    {!isPublic && (
+                  {!isPublic && (
                     <div className="mt-2 flex flex-wrap gap-1 lg:flex-nowrap">
                       {/* Selected Roles */}
                       <div className="min-w-[150px] flex-1">
-                      <Controller
-                        name="selectedRoles"
-                        control={control}
-                        defaultValue={[]}
-                        render={({ field }) => (
-                        <TagsInput
-                          value={field.value}
-                          onChange={(tags) => {
-                          field.onChange(tags);
-                          }}
-                          suggestions={availableRoles.map((role) => role.name)}
-                          placeholder="Roles"
+                        <Controller
+                          name="selectedRoles"
+                          control={control}
+                          defaultValue={[]}
+                          render={({ field }) => (
+                            <TagsInput
+                              value={field.value}
+                              onChange={(tags) => {
+                                field.onChange(tags);
+                              }}
+                              suggestions={availableRoles.map((role) => role.name)}
+                              placeholder="Roles"
+                            />
+                          )}
                         />
-                        )}
-                      />
                       </div>
                       {/* Selected Memberships */}
                       <div className="min-w-[150px] flex-1">
-                      <Controller
-                        name="selectedMemberships"
-                        control={control}
-                        defaultValue={[]}
-                        render={({ field }) => (
-                        <TagsInput
-                          value={field.value}
-                          onChange={(tags) => {
-                          field.onChange(tags);
-                          }}
-                          suggestions={availableMemberships.map(
-                          (membership) => membership.name
+                        <Controller
+                          name="selectedMemberships"
+                          control={control}
+                          defaultValue={[]}
+                          render={({ field }) => (
+                            <TagsInput
+                              value={field.value}
+                              onChange={(tags) => {
+                                field.onChange(tags);
+                              }}
+                              suggestions={availableMemberships.map(
+                                (membership) => membership.name
+                              )}
+                              placeholder="Memberships"
+                            />
                           )}
-                          placeholder="Memberships"
                         />
-                        )}
-                      />
                       </div>
                     </div>
-                    )}
+                  )}
                 </div>
 
                 {/* Attachments and actions */}
@@ -562,8 +559,9 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPost
                         <img
                           src={photo}
                           alt={`Attachment ${index + 1}`}
-                          className="max-h-full max-w-full object-contain"
+                          className="h-auto max-h-40 w-auto max-w-full bg-black object-contain"
                         />
+
                         <button
                           type="button"
                           onClick={() =>
@@ -744,7 +742,7 @@ const PostCard: React.FC<{
         </span>
       );
     }
-  
+
     const roleLabels = selectedRoles.map((roleId: string) => {
       const roleName = availableRoles.find((role) => role.id === roleId)?.name;
       return (
@@ -756,7 +754,7 @@ const PostCard: React.FC<{
         </span>
       );
     });
-  
+
     const membershipLabels = selectedMemberships.map((membershipId: string) => {
       const membershipName = availableMemberships.find(
         (membership) => membership.membershipid === membershipId
@@ -770,18 +768,17 @@ const PostCard: React.FC<{
         </span>
       );
     });
-  
+
     if (roleLabels.length || membershipLabels.length) {
       return [...roleLabels, ...membershipLabels];
     }
-  
+
     return (
       <span className="inline-block rounded-full border border-green-500 px-2 py-0.5 text-xs text-green-500">
         Public
       </span>
     );
   };
-  
 
   if (isDeleted) {
     return (
@@ -873,10 +870,66 @@ const PostCard: React.FC<{
         <div className="mt-3 break-words rounded-md text-sm text-white">{content}</div>
 
         {galleryImages.length > 0 && (
-          <div className="mt-3">
-            <ImageGallery items={galleryImages} showNav={false} showBullets={false} />
-          </div>
-        )}
+  <div className="mt-3" style={{ maxHeight: '400px', overflow: 'hidden' }}>
+    <ImageGallery
+      items={galleryImages}
+      showNav={false}
+      showPlayButton={false}
+      showBullets={false}
+      renderItem={(item) => (
+        <div className="image-gallery-image" style={{ backgroundColor: 'black' }}>
+          <img
+            src={item.original}
+            alt={item.originalAlt}
+            style={{
+              maxHeight: '300px',
+              width: 'auto',
+              height: 'auto',
+              margin: '0 auto',
+              objectFit: 'contain',
+            }}
+          />
+        </div>
+      )}
+      renderThumbInner={(item) => (
+        <div className="image-gallery-thumbnail-inner" style={{ backgroundColor: 'black' }}>
+          <img
+            src={item.thumbnail}
+            alt={item.thumbnailAlt}
+            style={{ maxHeight: '50px', width: 'auto', height: 'auto', margin: '0 auto' }}
+          />
+        </div>
+      )}
+      onScreenChange={(isFullScreen) => {
+        const galleryElement = document.querySelector('.image-gallery');
+        if (galleryElement) {
+          const images = galleryElement.querySelectorAll('.image-gallery-image img');
+          if (isFullScreen) {
+            // Make the images fill the full screen while maintaining aspect ratio
+            images.forEach((img) => {
+              (img as HTMLElement).style.maxHeight = '100vh'; // Fill the full screen height
+              (img as HTMLElement).style.maxWidth = '100vw'; // Fill the full screen width
+              (img as HTMLElement).style.height = '100%'; // Set height to fill screen
+              (img as HTMLElement).style.width = '100%'; // Set width to fill screen
+              (img as HTMLElement).style.objectFit = 'contain'; // Maintain aspect ratio
+            });
+          } else {
+            // Restore the limited height when exiting full-screen
+            images.forEach((img) => {
+              (img as HTMLElement).style.maxHeight = '300px'; // Reset to original max height
+              (img as HTMLElement).style.maxWidth = '100%'; // Reset width
+              (img as HTMLElement).style.height = 'auto'; // Restore normal dimensions
+              (img as HTMLElement).style.width = 'auto'; // Restore normal dimensions
+              (img as HTMLElement).style.objectFit = 'contain'; // Maintain aspect ratio
+            });
+          }
+        }
+      }}
+    />
+  </div>
+)}
+
+
 
         <div className="mt-3 flex justify-between text-xs text-gray-700">
           <div>
