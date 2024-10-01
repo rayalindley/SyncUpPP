@@ -870,66 +870,74 @@ const PostCard: React.FC<{
         <div className="mt-3 break-words rounded-md text-sm text-white">{content}</div>
 
         {galleryImages.length > 0 && (
-  <div className="mt-3" style={{ maxHeight: '400px', overflow: 'hidden' }}>
-    <ImageGallery
-      items={galleryImages}
-      showNav={false}
-      showPlayButton={false}
-      showBullets={false}
-      renderItem={(item) => (
-        <div className="image-gallery-image" style={{ backgroundColor: 'black' }}>
-          <img
-            src={item.original}
-            alt={item.originalAlt}
-            style={{
-              maxHeight: '300px',
-              width: 'auto',
-              height: 'auto',
-              margin: '0 auto',
-              objectFit: 'contain',
-            }}
-          />
-        </div>
-      )}
-      renderThumbInner={(item) => (
-        <div className="image-gallery-thumbnail-inner" style={{ backgroundColor: 'black' }}>
-          <img
-            src={item.thumbnail}
-            alt={item.thumbnailAlt}
-            style={{ maxHeight: '50px', width: 'auto', height: 'auto', margin: '0 auto' }}
-          />
-        </div>
-      )}
-      onScreenChange={(isFullScreen) => {
-        const galleryElement = document.querySelector('.image-gallery');
-        if (galleryElement) {
-          const images = galleryElement.querySelectorAll('.image-gallery-image img');
-          if (isFullScreen) {
-            // Make the images fill the full screen while maintaining aspect ratio
-            images.forEach((img) => {
-              (img as HTMLElement).style.maxHeight = '100vh'; // Fill the full screen height
-              (img as HTMLElement).style.maxWidth = '100vw'; // Fill the full screen width
-              (img as HTMLElement).style.height = '100%'; // Set height to fill screen
-              (img as HTMLElement).style.width = '100%'; // Set width to fill screen
-              (img as HTMLElement).style.objectFit = 'contain'; // Maintain aspect ratio
-            });
-          } else {
-            // Restore the limited height when exiting full-screen
-            images.forEach((img) => {
-              (img as HTMLElement).style.maxHeight = '300px'; // Reset to original max height
-              (img as HTMLElement).style.maxWidth = '100%'; // Reset width
-              (img as HTMLElement).style.height = 'auto'; // Restore normal dimensions
-              (img as HTMLElement).style.width = 'auto'; // Restore normal dimensions
-              (img as HTMLElement).style.objectFit = 'contain'; // Maintain aspect ratio
-            });
-          }
-        }
-      }}
-    />
-  </div>
-)}
-
-
+          <div className="mt-3" style={{ maxHeight: "400px", overflow: "hidden" }}>
+            <ImageGallery
+              items={galleryImages}
+              showNav={false}
+              showPlayButton={false}
+              showBullets={false}
+              renderItem={(item) => (
+                <div className="image-gallery-image" style={{ backgroundColor: "black" }}>
+                  <img
+                    src={item.original}
+                    alt={item.originalAlt}
+                    style={{
+                      maxHeight: "300px",
+                      width: "auto",
+                      height: "auto",
+                      margin: "0 auto",
+                      objectFit: "contain",
+                    }}
+                  />
+                </div>
+              )}
+              renderThumbInner={(item) => (
+                <div
+                  className="image-gallery-thumbnail-inner"
+                  style={{ backgroundColor: "black" }}
+                >
+                  <img
+                    src={item.thumbnail}
+                    alt={item.thumbnailAlt}
+                    style={{
+                      maxHeight: "50px",
+                      width: "auto",
+                      height: "auto",
+                      margin: "0 auto",
+                    }}
+                  />
+                </div>
+              )}
+              onScreenChange={(isFullScreen) => {
+                const galleryElement = document.querySelector(".image-gallery");
+                if (galleryElement) {
+                  const images = galleryElement.querySelectorAll(
+                    ".image-gallery-image img"
+                  );
+                  if (isFullScreen) {
+                    // Make the images fill the full screen while maintaining aspect ratio
+                    images.forEach((img) => {
+                      (img as HTMLElement).style.maxHeight = "100vh"; // Fill the full screen height
+                      (img as HTMLElement).style.maxWidth = "100vw"; // Fill the full screen width
+                      (img as HTMLElement).style.height = "100%"; // Set height to fill screen
+                      (img as HTMLElement).style.width = "100%"; // Set width to fill screen
+                      (img as HTMLElement).style.objectFit = "contain"; // Maintain aspect ratio
+                    });
+                  } else {
+                    // Restore the limited height when exiting full-screen
+                    images.forEach((img) => {
+                      (img as HTMLElement).style.maxHeight = "300px"; // Reset to original max height
+                      (img as HTMLElement).style.maxWidth = "100%"; // Reset width
+                      (img as HTMLElement).style.height = "auto"; // Restore normal dimensions
+                      (img as HTMLElement).style.width = "auto"; // Restore normal dimensions
+                      (img as HTMLElement).style.objectFit = "contain"; // Maintain aspect ratio
+                    });
+                  }
+                }
+              }}
+            />
+          </div>
+        )}
 
         <div className="mt-3 flex justify-between text-xs text-gray-700">
           <div>

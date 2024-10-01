@@ -4,7 +4,12 @@ import { useState, useEffect, Fragment } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { UserCircleIcon, EllipsisVerticalIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/solid";
+import {
+  UserCircleIcon,
+  EllipsisVerticalIcon,
+  PencilIcon,
+  TrashIcon,
+} from "@heroicons/react/24/solid";
 import { Menu, Transition } from "@headlessui/react";
 import { timeAgo } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -101,11 +106,7 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
 
       // Update state to trigger re-render
       setComments((prevComments) => {
-        // Only update the state if there is a change to the comments
-        if (JSON.stringify(prevComments) !== JSON.stringify(sortedComments)) {
-          return sortedComments;
-        }
-        return prevComments;
+        return sortedComments;
       });
     } catch (error) {
       console.error("Exception fetching comments: ", error);
@@ -113,17 +114,29 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
   };
 
   useEffect(() => {
-    const channels = supabase
-      .channel("custom-all-channel")
+    const channel = supabase
+      .channel(`comments-channel-${postId}`) // Ensure a unique channel per post
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "post_comments" },
         (payload) => {
-          fetchComments();
+          const changedPostId = (payload.new as { postid: string })?.postid || (payload.old as { postid: string })?.postid;
+  
+          if (changedPostId === postId) {
+            // Only fetch comments for this specific postId
+            fetchComments();
+          }
         }
       )
       .subscribe();
-  }, []);
+  
+    // Clean up the subscription when the component unmounts
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [postId]);
+  
+  
 
   const onSubmit = async (data: { commentText: string }) => {
     if (!isLoggedIn || !canComment) {
@@ -259,159 +272,160 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
   return (
     <div className="mx-auto max-w-4xl rounded-md bg-[#171717] p-3 font-poppins shadow-sm">
       {canComment && (
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="mb-3 flex items-center"
-      >
-        <div className="flex-1 border-b border-fadedgrey">
-        <textarea
-          {...register("commentText")}
-          placeholder="Add a comment..."
-          rows={1}
-          maxLength={100}
-          className="w-full resize-none bg-transparent border-transparent text-sm text-white focus:outline-none h-auto overflow-hidden"
-          disabled={isLoading}
-          onInput={(e) => {
-        e.currentTarget.style.height = "auto";
-        e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
-          }}
-        />
-        </div>
-        <button
-        type="submit"
-        disabled={isLoading}
-        className={`rounded-full bg-primary px-3 py-1 text-sm font-semibold text-white hover:bg-primarydark ${
-          isLoading ? "cursor-not-allowed opacity-50" : ""
-        }`}
-        >
-        {isLoading ? "Submitting..." : "Submit"}
-        </button>
-      </form>
+        <form onSubmit={handleSubmit(onSubmit)} className="mb-3 flex items-center">
+          <div className="flex-1 border-b border-fadedgrey">
+            <textarea
+              {...register("commentText")}
+              placeholder="Add a comment..."
+              rows={1}
+              maxLength={100}
+              className="h-auto w-full resize-none overflow-hidden border-transparent bg-transparent text-sm text-white focus:outline-none"
+              disabled={isLoading}
+              onInput={(e) => {
+                e.currentTarget.style.height = "auto";
+                e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
+              }}
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className={`rounded-full bg-primary px-3 py-1 text-sm font-semibold text-white hover:bg-primarydark ${
+              isLoading ? "cursor-not-allowed opacity-50" : ""
+            }`}
+          >
+            {isLoading ? "Submitting..." : "Submit"}
+          </button>
+        </form>
       )}
 
       {comments.length > 0 && (
-      <button
-        onClick={() => setShowComments(!showComments)}
-        className="text-xs text-primary hover:underline"
-      >
-        {showComments ? "Hide Comments" : `Show Comments (${comments.length})`}
-      </button>
+        <button
+          onClick={() => setShowComments(!showComments)}
+          className="text-xs text-primary hover:underline"
+        >
+          {showComments ? "Hide Comments" : `Show Comments (${comments.length})`}
+        </button>
       )}
 
       {showComments && (
-      <div>
-        {Array.isArray(comments) && comments.length > 0 ? (
-        comments.map((comment) => (
-          <div
-          key={comment.commentid}
-          className="flex space-x-3 rounded-md bg-[#171717] p-3"
-          >
-          <div className="flex-shrink-0">
-            {comment.author.profile_picture ? (
-            <img
-              src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${comment.author.profile_picture}`}
-              alt={`${comment.author.first_name} ${comment.author.last_name}'s profile`}
-              className="h-8 w-8 rounded-full object-cover"
-            />
-            ) : (
-            <UserCircleIcon className="h-8 w-8 text-white" />
-            )}
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-white">
-              {comment.author.first_name} {comment.author.last_name}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-gray-500">
-              {timeAgo(comment.created_at)} ago
-              </p>
-            </div>
-            {(user?.id === comment.author.id || canDeleteComments) && (
-              <Menu as="div" className="relative">
-              <Menu.Button>
-                <EllipsisVerticalIcon className="h-4 w-4 text-gray-400" />
-              </Menu.Button>
-              <Transition
-                as={Fragment}
-                enter="transition ease-out duration-100"
-                enterFrom="transform opacity-0 scale-95"
-                enterTo="transform opacity-100 scale-100"
-                leave="transition ease-in duration-75"
-                leaveFrom="transform opacity-100 scale-100"
-                leaveTo="transform opacity-0 scale-95"
+        <div>
+          {Array.isArray(comments) && comments.length > 0 ? (
+            comments.map((comment) => (
+              <div
+                key={comment.commentid}
+                className="flex space-x-3 rounded-md bg-[#171717] p-3"
               >
-                <Menu.Items className="absolute right-0 z-10 mt-2 w-36 rounded-md bg-charleston shadow-md ring-1 ring-black ring-opacity-5">
-                  {user?.id === comment.author.id && (
-                  <Menu.Item>
-                    {({ active }) => (
-                    <button
-                      onClick={() => handleEdit(comment.commentid, comment.comment)}
-                      className={`flex w-full items-center rounded-md p-2 text-sm text-gray-300 ${
-                      active ? "bg-gray-700" : ""
-                      }`}
-                    >
-                      <PencilIcon className="mr-2 h-4 w-4" /> Edit
-                    </button>
-                    )}
-                  </Menu.Item>
+                <div className="flex-shrink-0">
+                  {comment.author.profile_picture ? (
+                    <img
+                      src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${comment.author.profile_picture}`}
+                      alt={`${comment.author.first_name} ${comment.author.last_name}'s profile`}
+                      className="h-8 w-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <UserCircleIcon className="h-8 w-8 text-white" />
                   )}
-                  {(user?.id === comment.author.id || canDeleteComments) && (
-                  <Menu.Item>
-                    {({ active }) => (
-                    <button
-                      onClick={() => handleDelete(comment.commentid, comment.author.id)}
-                      className={`flex w-full items-center rounded-md p-2 text-sm text-gray-300 ${
-                      active ? "bg-gray-700" : ""
-                      }`}
-                    >
-                      <TrashIcon className="mr-2 h-4 w-4" /> Delete
-                    </button>
-                    )}
-                  </Menu.Item>
-                  )}
-                </Menu.Items>
-              </Transition>
-              </Menu>
-            )}
-            </div>
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-white">
+                        {comment.author.first_name} {comment.author.last_name}
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <p className="text-xs text-gray-500">
+                        {timeAgo(comment.created_at)} ago
+                      </p>
+                      {(user?.id === comment.author.id || canDeleteComments) && (
+                        <Menu as="div" className="relative">
+                          <Menu.Button className="relative top-1">
+                            <EllipsisVerticalIcon className="h-4 w-4 text-gray-400" />
+                          </Menu.Button>
+                          <Transition
+                            as={Fragment}
+                            enter="transition ease-out duration-100"
+                            enterFrom="transform opacity-0 scale-95"
+                            enterTo="transform opacity-100 scale-100"
+                            leave="transition ease-in duration-75"
+                            leaveFrom="transform opacity-100 scale-100"
+                            leaveTo="transform opacity-0 scale-95"
+                          >
+                            <Menu.Items className="absolute right-0 z-10 mt-2 w-36 rounded-md bg-charleston shadow-md ring-1 ring-black ring-opacity-5">
+                              {user?.id === comment.author.id && (
+                                <Menu.Item>
+                                  {({ active }) => (
+                                    <button
+                                      onClick={() =>
+                                        handleEdit(comment.commentid, comment.comment)
+                                      }
+                                      className={`flex w-full items-center rounded-md p-2 text-sm text-gray-300 ${
+                                        active ? "bg-gray-700" : ""
+                                      }`}
+                                    >
+                                      <PencilIcon className="mr-2 h-4 w-4" /> Edit
+                                    </button>
+                                  )}
+                                </Menu.Item>
+                              )}
+                              {(user?.id === comment.author.id || canDeleteComments) && (
+                                <Menu.Item>
+                                  {({ active }) => (
+                                    <button
+                                      onClick={() =>
+                                        handleDelete(comment.commentid, comment.author.id)
+                                      }
+                                      className={`flex w-full items-center rounded-md p-2 text-sm text-gray-300 ${
+                                        active ? "bg-gray-700" : ""
+                                      }`}
+                                    >
+                                      <TrashIcon className="mr-2 h-4 w-4" /> Delete
+                                    </button>
+                                  )}
+                                </Menu.Item>
+                              )}
+                            </Menu.Items>
+                          </Transition>
+                        </Menu>
+                      )}
+                    </div>
+                  </div>
 
-            {editingCommentId === comment.commentid ? (
-            <div className="mt-2">
-              <textarea
-              value={editingText || ""}
-              onChange={(e) => setEditingText(e.target.value)}
-              rows={1}
-              className="w-full resize-none border-b border-[#424242] bg-transparent p-1 text-sm text-white focus:border-primary focus:outline-none"
-              />
-              <div className="mt-2 flex space-x-3">
-              <button
-                onClick={handleUpdateComment}
-                className="text-xs text-blue-500 hover:underline"
-                disabled={isUpdating === comment.commentid}
-              >
-                {isUpdating === comment.commentid ? "Updating..." : "Update"}
-              </button>
-              <button
-                onClick={handleCancelEdit}
-                className="text-xs text-gray-500 hover:underline"
-              >
-                Cancel
-              </button>
+                  {editingCommentId === comment.commentid ? (
+                    <div className="mt-2">
+                      <textarea
+                        value={editingText || ""}
+                        onChange={(e) => setEditingText(e.target.value)}
+                        rows={1}
+                        className="w-full resize-none border-b border-[#424242] bg-transparent p-1 text-sm text-white focus:border-primary focus:outline-none"
+                      />
+                      <div className="mt-2 flex space-x-3">
+                        <button
+                          onClick={handleUpdateComment}
+                          className="text-xs text-blue-500 hover:underline"
+                          disabled={isUpdating === comment.commentid}
+                        >
+                          {isUpdating === comment.commentid ? "Updating..." : "Update"}
+                        </button>
+                        <button
+                          onClick={handleCancelEdit}
+                          className="text-xs text-gray-500 hover:underline"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="mt-1 text-sm text-white">{comment.comment}</p>
+                  )}
+                </div>
               </div>
-            </div>
-            ) : (
-            <p className="mt-1 text-sm text-white">{comment.comment}</p>
-            )}
-          </div>
-          </div>
-        ))
-        ) : (
-        <p className="text-sm text-white">No comments yet.</p>
-        )}
-      </div>
+            ))
+          ) : (
+            <p className="text-sm text-white">No comments yet.</p>
+          )}
+        </div>
       )}
     </div>
   );
