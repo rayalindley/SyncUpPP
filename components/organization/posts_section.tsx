@@ -601,26 +601,24 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPost
       )}
 
       <div className="mt-8 space-y-4">
-        {(filteredPosts.length <= 0 || isLoading) && (
+        {(filteredPosts.length <= 0 && !isLoading) && (
           <div
-            className="mb-4 rounded-lg bg-gray-800 p-4 text-center text-sm text-blue-400"
-            role="alert"
+        className="mb-4 rounded-lg bg-gray-800 p-4 text-center text-sm text-blue-400"
+        role="alert"
           >
-            {isLoading
-              ? "Checking permissions..."
-              : "The organization has no posts available for you at the moment."}
+        The organization has no posts available for you at the moment.
           </div>
         )}
         {filteredPosts.map((post) => (
           <PostCard
-            key={post.postid}
-            post={post}
-            setPosts={setCurrentPosts}
-            setEditingPost={setEditingPost}
-            availableRoles={availableRoles}
-            availableMemberships={availableMemberships}
-            canDelete={canDelete}
-            organizationId={organizationId}
+        key={post.postid}
+        post={post}
+        setPosts={setCurrentPosts}
+        setEditingPost={setEditingPost}
+        availableRoles={availableRoles}
+        availableMemberships={availableMemberships}
+        canDelete={canDelete}
+        organizationId={organizationId}
           />
         ))}
       </div>
