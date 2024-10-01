@@ -11,7 +11,7 @@ import { createClient } from "@/lib/supabase/client";
 import { getUser } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Preloader from "@/components/preloader";
-import ActivityFeed from "@/components/acitivty_feed";
+import ActivityFeed from "@/components/activity_feed";
 import { Activity } from "@/types/activities";
 import { isActiveMember } from "@/lib/track";
 
