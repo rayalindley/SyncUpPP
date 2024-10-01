@@ -357,11 +357,17 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                           },
                         }}
                         onChange={(selectedDate) => {
-                          // Increment the selected date by 1 day
-                          const incrementedDate = new Date(selectedDate);
-                          incrementedDate.setDate(incrementedDate.getDate() + 1);
-                          // Format the date object to a string in the format 'yyyy-mm-dd'
-                          const formattedDate = incrementedDate.toISOString().split("T")[0];
+                          // Format the selected date without using toISOString to avoid timezone issues
+                          const formattedDate = selectedDate
+                            ? `${selectedDate.getFullYear()}-${(
+                                selectedDate.getMonth() + 1
+                              )
+                                .toString()
+                                .padStart(
+                                  2,
+                                  "0"
+                                )}-${selectedDate.getDate().toString().padStart(2, "0")}`
+                            : "";
                           field.onChange(formattedDate);
                         }}
                         show={show}
