@@ -436,73 +436,73 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPost
                 </div>
 
                 {/* Privacy options */}
-                <div className="mt-2">
+                <div className="mt-2 flex flex-wrap items-center space-x-4">
                   {/* Public switch */}
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      checked={isPublic}
-                      onChange={(checked) => {
-                        setIsPublic(checked);
-                        if (checked) {
-                          setValue("selectedRoles", []);
-                          setValue("selectedMemberships", []);
-                        }
-                      }}
-                      className={`${
-                        isPublic ? "bg-blue-500" : "bg-gray-600"
-                      } relative inline-flex h-5 w-10 items-center rounded-full transition-colors duration-300 focus:outline-none`}
-                    >
-                      <span
-                        className={`${
-                          isPublic ? "translate-x-5" : "translate-x-1"
-                        } inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-300`}
-                      />
-                    </Switch>
-                    <span className="text-sm text-white">
-                      {isPublic ? "Public" : "Private"}
-                    </span>
+                  <div className="flex w-full items-center space-x-2 sm:w-auto mb-2 sm:mb-0">
+                  <Switch
+                    checked={isPublic}
+                    onChange={(checked) => {
+                    setIsPublic(checked);
+                    if (checked) {
+                      setValue("selectedRoles", []);
+                      setValue("selectedMemberships", []);
+                    }
+                    }}
+                    className={`${
+                    isPublic ? "bg-blue-500" : "bg-gray-600"
+                    } relative inline-flex h-5 w-10 items-center rounded-full transition-colors duration-300 focus:outline-none`}
+                  >
+                    <span
+                    className={`${
+                      isPublic ? "translate-x-5" : "translate-x-1"
+                    } inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-300`}
+                    />
+                  </Switch>
+                  <span className="text-sm text-white">
+                    {isPublic ? "Public" : "Private"}
+                  </span>
                   </div>
                   {!isPublic && (
-                    <div className="mt-2 flex flex-wrap gap-1 lg:flex-nowrap">
-                      {/* Selected Roles */}
-                      <div className="min-w-[150px] flex-1">
-                        <Controller
-                          name="selectedRoles"
-                          control={control}
-                          defaultValue={[]}
-                          render={({ field }) => (
-                            <TagsInput
-                              value={field.value}
-                              onChange={(tags) => {
-                                field.onChange(tags);
-                              }}
-                              suggestions={availableRoles.map((role) => role.name)}
-                              placeholder="Roles"
-                            />
-                          )}
-                        />
-                      </div>
-                      {/* Selected Memberships */}
-                      <div className="min-w-[150px] flex-1">
-                        <Controller
-                          name="selectedMemberships"
-                          control={control}
-                          defaultValue={[]}
-                          render={({ field }) => (
-                            <TagsInput
-                              value={field.value}
-                              onChange={(tags) => {
-                                field.onChange(tags);
-                              }}
-                              suggestions={availableMemberships.map(
-                                (membership) => membership.name
-                              )}
-                              placeholder="Memberships"
-                            />
-                          )}
-                        />
-                      </div>
+                  <div className="flex w-full flex-wrap gap-1 sm:flex-1 sm:flex-nowrap sm:gap-4">
+                    {/* Selected Roles */}
+                    <div className="w-full sm:flex-1 sm:min-w-[150px] mb-2 sm:mb-0">
+                    <Controller
+                      name="selectedRoles"
+                      control={control}
+                      defaultValue={[]}
+                      render={({ field }) => (
+                      <TagsInput
+                        value={field.value}
+                        onChange={(tags) => {
+                        field.onChange(tags);
+                        }}
+                        suggestions={availableRoles.map((role) => role.name)}
+                        placeholder="Roles"
+                      />
+                      )}
+                    />
                     </div>
+                    {/* Selected Memberships */}
+                    <div className="w-full sm:flex-1 sm:min-w-[150px]">
+                    <Controller
+                      name="selectedMemberships"
+                      control={control}
+                      defaultValue={[]}
+                      render={({ field }) => (
+                      <TagsInput
+                        value={field.value}
+                        onChange={(tags) => {
+                        field.onChange(tags);
+                        }}
+                        suggestions={availableMemberships.map(
+                        (membership) => membership.name
+                        )}
+                        placeholder="Memberships"
+                      />
+                      )}
+                    />
+                    </div>
+                  </div>
                   )}
                 </div>
 
