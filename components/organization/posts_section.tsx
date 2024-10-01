@@ -382,7 +382,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPost
   }, [photos]);
 
   return (
-    <div className="mx-auto max-w-7xl px-6 lg:px-8">
+    <div className="mx-auto max-w-3xl px-6 lg:px-8">
       <div className="mb-5 w-full text-center">
         <p className="mt-2 w-full text-2xl font-bold tracking-tight text-light sm:text-2xl">
           Posts Section
@@ -392,33 +392,23 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPost
         <>
           {!isFormOpen ? (
             // Compact form
-            <div
-              onClick={() => setIsFormOpen(true)}
-              className="flex cursor-pointer items-center space-x-4 rounded-lg bg-charleston p-4 hover:bg-[#212121]"
-            >
-              <div className="flex-shrink-0">
-                {userProfile?.profilepicture ? (
-                  <img
-                    src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${userProfile.profilepicture}`}
-                    alt="Profile"
-                    className="h-10 w-10 rounded-full object-cover"
-                  />
-                ) : (
-                  <UserCircleIcon className="h-10 w-10 text-white" />
-                )}
-              </div>
-              <div className="w-full">
+              <div
+                onClick={() => setIsFormOpen(true)}
+                className="flex items-center space-x-4 rounded-lg bg-[#171717] p-4 "
+              >
+                <div className="w-full border-b border-gray-600 flex items-center">
+                <PencilIcon className="h-5 w-5 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Let your organization know what's happening..."
-                  className="w-full cursor-pointer rounded-full bg-charleston px-4 py-2 text-white focus:outline-none"
+                  className="w-full cursor-text border-transparent bg-transparent py-2 text-white focus:outline-none focus:ring-0 focus:border-transparent"
                   readOnly
                 />
+                </div>
               </div>
-            </div>
           ) : (
             // Full form
-            <div ref={formRef} className="mt-4 rounded-lg bg-charleston p-4 shadow-lg">
+            <div ref={formRef} className="mt-4 rounded-lg bg-[#171717] p-4 shadow-lg">
               <form id="post-form" onSubmit={handleSubmit(onSubmit)}>
                 {/* Top row: User avatar and content input */}
                 <div className="flex space-x-4">
@@ -436,7 +426,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPost
                   <div className="w-full">
                     <textarea
                       {...register("content")}
-                      className="w-full resize-none rounded-lg bg-charleston px-4 py-2 text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full resize-none rounded-lg bg-[#232323] border-transparent px-4 py-2 text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary"
                       placeholder="Let your organization know what's happening..."
                       maxLength={500}
                       disabled={isLoading}
@@ -475,50 +465,48 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPost
                       {isPublic ? "Public" : "Private"}
                     </span>
                   </div>
-                  {!isPublic && (
-                    <div className="mt-2 flex flex-wrap gap-2 lg:flex-nowrap">
+                    {!isPublic && (
+                    <div className="mt-2 flex flex-wrap gap-1 lg:flex-nowrap">
                       {/* Selected Roles */}
-                      <div className="min-w-[200px] flex-1">
-                        <Controller
-                          name="selectedRoles"
-                          control={control}
-                          defaultValue={[]}
-                          render={({ field }) => (
-                            <TagsInput
-                              value={field.value}
-                              onChange={(tags) => {
-                                field.onChange(tags);
-                              }}
-                              suggestions={availableRoles.map((role) => role.name)}
-                              placeholder="Select roles"
-                              className="w-full bg-charleston py-1 text-white focus:outline-none focus:ring-2 focus:ring-primary"
-                            />
-                          )}
+                      <div className="min-w-[150px] flex-1">
+                      <Controller
+                        name="selectedRoles"
+                        control={control}
+                        defaultValue={[]}
+                        render={({ field }) => (
+                        <TagsInput
+                          value={field.value}
+                          onChange={(tags) => {
+                          field.onChange(tags);
+                          }}
+                          suggestions={availableRoles.map((role) => role.name)}
+                          placeholder="Roles"
                         />
+                        )}
+                      />
                       </div>
                       {/* Selected Memberships */}
-                      <div className="min-w-[200px] flex-1">
-                        <Controller
-                          name="selectedMemberships"
-                          control={control}
-                          defaultValue={[]}
-                          render={({ field }) => (
-                            <TagsInput
-                              value={field.value}
-                              onChange={(tags) => {
-                                field.onChange(tags);
-                              }}
-                              suggestions={availableMemberships.map(
-                                (membership) => membership.name
-                              )}
-                              placeholder="Select memberships"
-                              className="w-full bg-charleston py-1 text-white focus:outline-none focus:ring-2 focus:ring-primary"
-                            />
+                      <div className="min-w-[150px] flex-1">
+                      <Controller
+                        name="selectedMemberships"
+                        control={control}
+                        defaultValue={[]}
+                        render={({ field }) => (
+                        <TagsInput
+                          value={field.value}
+                          onChange={(tags) => {
+                          field.onChange(tags);
+                          }}
+                          suggestions={availableMemberships.map(
+                          (membership) => membership.name
                           )}
+                          placeholder="Memberships"
                         />
+                        )}
+                      />
                       </div>
                     </div>
-                  )}
+                    )}
                 </div>
 
                 {/* Attachments and actions */}
@@ -748,26 +736,27 @@ const PostCard: React.FC<{
       selectedMemberships: membershipNames,
     });
   };
-
   const generatePrivacyLabel = () => {
     if (isLoadingPrivacy) {
       return (
-        <span className="inline-block rounded-full bg-yellow-500 px-2 py-1 text-xs text-white">
+        <span className="inline-block rounded-full border border-yellow-500 px-2 py-0.5 text-xs text-yellow-500">
           Loading...
         </span>
       );
     }
+  
     const roleLabels = selectedRoles.map((roleId: string) => {
       const roleName = availableRoles.find((role) => role.id === roleId)?.name;
       return (
         <span
           key={roleId}
-          className="inline-block rounded-full bg-blue-500 px-2 py-1 text-xs text-white"
+          className="inline-block rounded-full border border-blue-500 px-2 py-0.5 text-xs text-blue-500"
         >
           {roleName}
         </span>
       );
     });
+  
     const membershipLabels = selectedMemberships.map((membershipId: string) => {
       const membershipName = availableMemberships.find(
         (membership) => membership.membershipid === membershipId
@@ -775,21 +764,24 @@ const PostCard: React.FC<{
       return (
         <span
           key={membershipId}
-          className="inline-block rounded-full bg-purple-500 px-2 py-1 text-xs text-white"
+          className="inline-block rounded-full border border-purple-500 px-2 py-0.5 text-xs text-purple-500"
         >
           {membershipName}
         </span>
       );
     });
+  
     if (roleLabels.length || membershipLabels.length) {
       return [...roleLabels, ...membershipLabels];
     }
+  
     return (
-      <span className="inline-block rounded-full bg-green-500 px-2 py-1 text-xs text-white">
+      <span className="inline-block rounded-full border border-green-500 px-2 py-0.5 text-xs text-green-500">
         Public
       </span>
     );
   };
+  
 
   if (isDeleted) {
     return (
@@ -807,101 +799,94 @@ const PostCard: React.FC<{
 
   return (
     <div className="relative rounded-lg bg-[#171717] p-4 shadow-lg">
-      {isLoggedIn && (
-        <div className="absolute right-2 top-2">
-          <Menu as="div" className="relative">
-            <Menu.Button className="flex items-center text-gray-500 hover:text-gray-400">
-              <EllipsisVerticalIcon className="h-5 w-5" />
-            </Menu.Button>
-            <Transition
-              as={Fragment}
-              enter="transition ease-out duration-100"
-              enterFrom="transform opacity-0 scale-95"
-              enterTo="transform opacity-100 scale-100"
-              leave="transition ease-in duration-75"
-              leaveFrom="transform opacity-100 scale-100"
-              leaveTo="transform opacity-0 scale-95"
-            >
-              <Menu.Items className="absolute right-0 z-10 mt-2 w-48 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                {isCurrentUserAuthor && (
-                  <div className="p-1">
+      <div className="relative rounded-md bg-[#171717] shadow-sm">
+        {isLoggedIn && (
+          <div className="absolute right-2 top-2 flex space-x-2">
+            <div className="flex flex-wrap">{generatePrivacyLabel()}</div>
+            <Menu as="div" className="relative">
+              <Menu.Button className="text-gray-400 hover:text-gray-300">
+                <EllipsisVerticalIcon className="h-4 w-4" />
+              </Menu.Button>
+              <Transition
+                as={Fragment}
+                enter="transition ease-out duration-100"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="transition ease-in duration-75"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Menu.Items className="absolute right-0 z-10 mt-2 w-36 rounded-md bg-charleston shadow-md ring-1 ring-black ring-opacity-5">
+                  {isCurrentUserAuthor && (
                     <Menu.Item>
                       {({ active }) => (
                         <button
                           onClick={handleEdit}
-                          className={`${
-                            active ? "bg-gray-100" : ""
-                          } group flex w-full items-center rounded-md p-2 text-sm text-gray-900`}
+                          className={`flex w-full items-center rounded-md p-2 text-sm text-gray-300 ${
+                            active ? "bg-gray-700" : ""
+                          }`}
                         >
-                          <PencilIcon className="mr-2 h-5 w-5 text-gray-400" />
-                          Edit
+                          <PencilIcon className="mr-2 h-4 w-4" /> Edit
                         </button>
                       )}
                     </Menu.Item>
-                  </div>
-                )}
-                {(isCurrentUserAuthor || canDelete) && (
-                  <div className="p-1">
+                  )}
+                  {(isCurrentUserAuthor || canDelete) && (
                     <Menu.Item>
                       {({ active }) => (
                         <button
                           onClick={handleDelete}
-                          className={`${
-                            active ? "bg-gray-100" : ""
-                          } group flex w-full items-center rounded-md p-2 text-sm text-gray-900`}
+                          className={`flex w-full items-center rounded-md p-2 text-sm text-gray-300 ${
+                            active ? "bg-gray-700" : ""
+                          }`}
                         >
-                          <TrashIcon className="mr-2 h-5 w-5 text-gray-400" />
-                          Delete
+                          <TrashIcon className="mr-2 h-4 w-4" /> Delete
                         </button>
                       )}
                     </Menu.Item>
-                  </div>
-                )}
-              </Menu.Items>
-            </Transition>
-          </Menu>
+                  )}
+                </Menu.Items>
+              </Transition>
+            </Menu>
+          </div>
+        )}
+
+        <div className="flex items-center space-x-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#424242]">
+            {authorDetails.profilePicture ? (
+              <img
+                src={authorDetails.profilePicture}
+                alt={`${authorDetails.firstName}'s profile`}
+                className="h-full w-full rounded-full object-cover"
+              />
+            ) : (
+              <UserCircleIcon className="h-8 w-8 text-white" />
+            )}
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-white">
+              {authorDetails.firstName} {authorDetails.lastName}
+            </span>
+          </div>
         </div>
-      )}
-      <div className="flex items-center space-x-4">
-        <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-[#424242]">
-          {authorDetails.profilePicture ? (
-            <img
-              src={authorDetails.profilePicture}
-              alt={`${authorDetails.firstName}'s profile`}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <UserCircleIcon className="h-10 w-10 text-white" />
-          )}
-        </div>
-        <div>
-          <p className="text-white">
-            {authorDetails.firstName} {authorDetails.lastName}
-          </p>
-          <p className="text-sm text-gray-400">
+
+        <div className="mt-3 break-words rounded-md text-sm text-white">{content}</div>
+
+        {galleryImages.length > 0 && (
+          <div className="mt-3">
+            <ImageGallery items={galleryImages} showNav={false} showBullets={false} />
+          </div>
+        )}
+
+        <div className="mt-3 flex justify-between text-xs text-gray-700">
+          <div>
             {createdat
-              ? format(new Date(createdat), "MMMM dd, yyyy hh:mm a")
+              ? format(new Date(createdat), "MMM dd, yyyy hh:mm a")
               : "Unknown date"}
-          </p>
-          <div className="flex flex-wrap space-x-2">{generatePrivacyLabel()}</div>
+          </div>
         </div>
       </div>
-      <p className="mb-5 mt-5 break-words rounded-lg bg-[#2a2a2a] p-4 text-white">
-        {content}
-      </p>
-      {galleryImages.length > 0 && (
-        <div className="mt-5">
-          <ImageGallery
-            items={galleryImages}
-            showNav={true}
-            showThumbnails={false}
-            showBullets={true}
-            showIndex={true}
-            showFullscreenButton={false}
-            showPlayButton={false}
-          />
-        </div>
-      )}
+
       <CommentsSection
         postId={postid ?? ""}
         organizationId={organizationId}
