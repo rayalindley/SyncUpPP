@@ -410,25 +410,59 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPost
             // Full form
             <div ref={formRef} className="mt-4 rounded-lg bg-[#171717] p-4 shadow-lg">
               <form id="post-form" onSubmit={handleSubmit(onSubmit)}>
-                {/* Top row: User avatar and content input */}
-
                 <div className="w-full">
                   <div className="flex w-full items-center border-b border-gray-600">
-                    {!watch("content") && (
-                      <PencilIcon className="h-5 w-5 text-gray-400" />
-                    )}
-                    <textarea
-                      placeholder="Let your organization know what's happening..."
-                      className="w-full cursor-text resize-none overflow-hidden border-transparent bg-transparent py-2 text-white focus:border-transparent focus:outline-none focus:ring-0"
-                      // limit content to 500 characters
-                      maxLength={500}
-                      rows={1}
-                      {...register("content")}
-                      onInput={(e) => {
-                        e.currentTarget.style.height = "auto";
-                        e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
-                      }}
-                    />
+                    <div className="w-full">
+                        <div className="w-full flex items-center">
+                        {!watch("content") && (
+                          <PencilIcon className="h-5 w-5 text-gray-400 mr-2" />
+                        )}
+                        <textarea
+                          placeholder="Let your organization know what's happening..."
+                          className="w-full cursor-text resize-none overflow-hidden border-transparent bg-transparent py-2 text-white focus:border-transparent focus:outline-none focus:ring-0"
+                          // limit content to 500 characters
+                          maxLength={500}
+                          rows={1}
+                          {...register("content")}
+                          onInput={(e) => {
+                          e.currentTarget.style.height = "auto";
+                          e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
+                          }}
+                        />
+                        </div>
+                      {/* Photo previews */}
+                      {photos.length > 0 && (
+                        <div className="mt-4 grid w-full grid-cols-3 gap-2 mb-4">
+                          {photos.map((photo, index) => (
+                            <div
+                              key={index}
+                              className="relative flex h-40 w-full items-center justify-center overflow-hidden rounded-md bg-black"
+                            >
+                              <img
+                                src={photo}
+                                alt={`Attachment ${index + 1}`}
+                                className="h-auto max-h-40 w-auto max-w-full bg-black object-contain"
+                              />
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleRemovePhoto(
+                                    index,
+                                    !!(
+                                      editingPost &&
+                                      editingPost.postphotos?.includes(photo)
+                                    )
+                                  )
+                                }
+                                className="absolute right-1 top-1 rounded-full bg-black bg-opacity-50 p-1 text-white hover:bg-opacity-75"
+                              >
+                                <XCircleIcon className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="text-right text-xs text-gray-400">
                     {watch("content")?.length || 0}/500
@@ -438,71 +472,71 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPost
                 {/* Privacy options */}
                 <div className="mt-2 flex flex-wrap items-center space-x-4">
                   {/* Public switch */}
-                  <div className="flex w-full items-center space-x-2 sm:w-auto mb-2 sm:mb-0">
-                  <Switch
-                    checked={isPublic}
-                    onChange={(checked) => {
-                    setIsPublic(checked);
-                    if (checked) {
-                      setValue("selectedRoles", []);
-                      setValue("selectedMemberships", []);
-                    }
-                    }}
-                    className={`${
-                    isPublic ? "bg-blue-500" : "bg-gray-600"
-                    } relative inline-flex h-5 w-10 items-center rounded-full transition-colors duration-300 focus:outline-none`}
-                  >
-                    <span
-                    className={`${
-                      isPublic ? "translate-x-5" : "translate-x-1"
-                    } inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-300`}
-                    />
-                  </Switch>
-                  <span className="text-sm text-white">
-                    {isPublic ? "Public" : "Private"}
-                  </span>
+                  <div className="mb-2 flex w-full items-center space-x-2 sm:mb-0 sm:w-auto">
+                    <Switch
+                      checked={isPublic}
+                      onChange={(checked) => {
+                        setIsPublic(checked);
+                        if (checked) {
+                          setValue("selectedRoles", []);
+                          setValue("selectedMemberships", []);
+                        }
+                      }}
+                      className={`${
+                        isPublic ? "bg-blue-500" : "bg-gray-600"
+                      } relative inline-flex h-5 w-10 items-center rounded-full transition-colors duration-300 focus:outline-none`}
+                    >
+                      <span
+                        className={`${
+                          isPublic ? "translate-x-5" : "translate-x-1"
+                        } inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-300`}
+                      />
+                    </Switch>
+                    <span className="text-sm text-white">
+                      {isPublic ? "Public" : "Private"}
+                    </span>
                   </div>
                   {!isPublic && (
-                  <div className="flex w-full flex-wrap gap-1 sm:flex-1 sm:flex-nowrap sm:gap-4">
-                    {/* Selected Roles */}
-                    <div className="w-full sm:flex-1 sm:min-w-[150px] mb-2 sm:mb-0">
-                    <Controller
-                      name="selectedRoles"
-                      control={control}
-                      defaultValue={[]}
-                      render={({ field }) => (
-                      <TagsInput
-                        value={field.value}
-                        onChange={(tags) => {
-                        field.onChange(tags);
-                        }}
-                        suggestions={availableRoles.map((role) => role.name)}
-                        placeholder="Roles"
-                      />
-                      )}
-                    />
+                    <div className="flex w-full flex-wrap gap-1 sm:flex-1 sm:flex-nowrap sm:gap-4">
+                      {/* Selected Roles */}
+                      <div className="mb-2 w-full sm:mb-0 sm:min-w-[150px] sm:flex-1">
+                        <Controller
+                          name="selectedRoles"
+                          control={control}
+                          defaultValue={[]}
+                          render={({ field }) => (
+                            <TagsInput
+                              value={field.value}
+                              onChange={(tags) => {
+                                field.onChange(tags);
+                              }}
+                              suggestions={availableRoles.map((role) => role.name)}
+                              placeholder="Roles"
+                            />
+                          )}
+                        />
+                      </div>
+                      {/* Selected Memberships */}
+                      <div className="w-full sm:min-w-[150px] sm:flex-1">
+                        <Controller
+                          name="selectedMemberships"
+                          control={control}
+                          defaultValue={[]}
+                          render={({ field }) => (
+                            <TagsInput
+                              value={field.value}
+                              onChange={(tags) => {
+                                field.onChange(tags);
+                              }}
+                              suggestions={availableMemberships.map(
+                                (membership) => membership.name
+                              )}
+                              placeholder="Memberships"
+                            />
+                          )}
+                        />
+                      </div>
                     </div>
-                    {/* Selected Memberships */}
-                    <div className="w-full sm:flex-1 sm:min-w-[150px]">
-                    <Controller
-                      name="selectedMemberships"
-                      control={control}
-                      defaultValue={[]}
-                      render={({ field }) => (
-                      <TagsInput
-                        value={field.value}
-                        onChange={(tags) => {
-                        field.onChange(tags);
-                        }}
-                        suggestions={availableMemberships.map(
-                        (membership) => membership.name
-                        )}
-                        placeholder="Memberships"
-                      />
-                      )}
-                    />
-                    </div>
-                  </div>
                   )}
                 </div>
 
@@ -547,37 +581,6 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPost
                     </button>
                   </div>
                 </div>
-
-                {/* Photo previews */}
-                {photos.length > 0 && (
-                  <div className="mt-4 grid grid-cols-3 gap-2">
-                    {photos.map((photo, index) => (
-                      <div
-                        key={index}
-                        className="relative flex h-40 w-full items-center justify-center overflow-hidden rounded-md bg-black"
-                      >
-                        <img
-                          src={photo}
-                          alt={`Attachment ${index + 1}`}
-                          className="h-auto max-h-40 w-auto max-w-full bg-black object-contain"
-                        />
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleRemovePhoto(
-                              index,
-                              !!(editingPost && editingPost.postphotos?.includes(photo))
-                            )
-                          }
-                          className="absolute right-1 top-1 rounded-full bg-black bg-opacity-50 p-1 text-white hover:bg-opacity-75"
-                        >
-                          <XCircleIcon className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
 
                 {/* Creation message */}
                 {creationMessage && (
