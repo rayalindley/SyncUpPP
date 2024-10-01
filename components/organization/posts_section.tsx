@@ -20,6 +20,7 @@ import {
   fetchRolesAndMemberships,
   deletePost,
   check_permissions,
+  getVisiblePostsAndComments,
 } from "@/lib/posts_tab";
 import { Posts } from "@/types/posts";
 import TagsInput from "../custom/tags-input";
@@ -32,31 +33,6 @@ import { format } from "date-fns";
 import ReactDatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { SupabaseClient } from "@supabase/supabase-js";
-
-// Define the getVisiblePostsAndComments function
-export async function getVisiblePostsAndComments(
-  p_user_id: string,
-  p_org_id: string
-) {
-  const supabase: SupabaseClient = createClient();
-  try {
-    const { data, error } = await supabase.rpc(
-      "get_visible_posts_and_comments",
-      {
-        p_user_id,
-        p_org_id,
-      }
-    );
-
-    if (!error) {
-      return { data, error: null };
-    } else {
-      return { data: null, error };
-    }
-  } catch (error) {
-    return { data: null, error };
-  }
-}
 
 const postSchema = z.object({
   content: z.string().min(1, "Content is required").max(500),
@@ -102,6 +78,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({
   const [filterByDate, setFilterByDate] = useState<Date | null>(null);
   const [canCreate, setCanCreate] = useState(false);
   const [canDelete, setCanDelete] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
   const supabase = createClient();
   const {
@@ -161,11 +138,8 @@ const PostsSection: React.FC<PostsSectionProps> = ({
   }, [organizationId]);
 
   const loadPosts = useCallback(async () => {
-    if (!user?.id) {
-      return;
-    }
     const { data, error } = await getVisiblePostsAndComments(
-      user.id,
+      user?.id ?? null,
       organizationId
     );
     if (data) {
@@ -293,6 +267,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({
     setRemovedPhotos([]);
     setEditingPost(null);
     setIsPublic(false);
+    setIsFormOpen(false);
   };
 
   const onSubmit = async (formData: any) => {
@@ -416,6 +391,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({
 
   useEffect(() => {
     if (editingPost) {
+      setIsFormOpen(true);
       setValue("content", editingPost.content);
       setPhotos(editingPost.postphotos || []);
       setValue("selectedRoles", editingPost.selectedRoles || []);
@@ -426,14 +402,6 @@ const PostsSection: React.FC<PostsSectionProps> = ({
       );
     }
   }, [editingPost, setValue]);
-
-  const handleFilterByPublicChange = (checked: boolean) => {
-    setFilterByPublic(checked);
-    if (checked) {
-      setFilterByRole(null);
-      setFilterByMembership(null);
-    }
-  };
 
   // Cleanup object URLs to prevent memory leaks
   useEffect(() => {
@@ -450,164 +418,227 @@ const PostsSection: React.FC<PostsSectionProps> = ({
         </p>
       </div>
       {isLoggedIn && canCreate && (
-        <div
-          ref={formRef}
-          className="space-y-4 rounded-lg bg-[#3b3b3b] p-4 shadow-lg sm:p-6 lg:p-8"
-        >
-          <form
-            id="post-form"
-            onSubmit={handleSubmit(onSubmit)}
-            className="space-y-4"
-          >
-            <textarea
-              {...register("content")}
-              className="w-full resize-none rounded-lg border border-[#3d3d3d] bg-[#171717] p-2 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-primary sm:p-3 lg:p-4"
-              placeholder="Write a post..."
-              maxLength={500}
-              disabled={isLoading}
-            />
-            <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center space-x-2">
-                <label className="text-white">Public</label>
-                <Switch
-                  checked={isPublic}
-                  onChange={(checked) => {
-                    setIsPublic(checked);
-                    if (checked) {
-                      setValue("selectedRoles", []);
-                      setValue("selectedMemberships", []);
-                    }
-                  }}
-                  className={`${
-                    isPublic ? "bg-green-600" : "bg-gray-700"
-                  } relative inline-flex h-6 w-11 items-center rounded-full`}
-                >
-                  <span
-                    className={`${
-                      isPublic ? "translate-x-6" : "translate-x-1"
-                    } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+        <>
+          {!isFormOpen ? (
+            // Compact form
+            <div
+              onClick={() => setIsFormOpen(true)}
+              className="flex cursor-pointer items-center space-x-4 rounded-lg bg-[#3b3b3b] p-4 hover:bg-[#4b4b4b]"
+            >
+              <div className="flex-shrink-0">
+                {user.profilepicture ? (
+                  <img
+                    src={user.profilepicture}
+                    alt="Profile"
+                    className="h-10 w-10 rounded-full object-cover"
                   />
-                </Switch>
+                ) : (
+                  <UserCircleIcon className="h-10 w-10 text-white" />
+                )}
               </div>
-              {!isPublic && (
-                <>
-                  <Controller
-                    name="selectedRoles"
-                    control={control}
-                    defaultValue={[]}
-                    render={({ field }) => (
-                      <TagsInput
-                        value={field.value}
-                        onChange={(tags) => {
-                          field.onChange(tags);
-                        }}
-                        suggestions={availableRoles.map((role) => role.name)}
-                        placeholder="Roles (Optional)"
-                        className="w-full rounded-lg border border-[#3d3d3d] bg-[#3b3b3b] p-2 text-white"
-                      />
-                    )}
-                  />
-                  <Controller
-                    name="selectedMemberships"
-                    control={control}
-                    defaultValue={[]}
-                    render={({ field }) => (
-                      <TagsInput
-                        value={field.value}
-                        onChange={(tags) => {
-                          field.onChange(tags);
-                        }}
-                        suggestions={availableMemberships.map(
-                          (membership) => membership.name
-                        )}
-                        placeholder="Memberships (Optional)"
-                        className="w-full rounded-lg border border-[#3d3d3d] bg-[#3b3b3b] p-2 text-white"
-                      />
-                    )}
-                  />
-                </>
-              )}
-            </div>
-            <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between">
-              <label
-                htmlFor="file-input"
-                className="cursor-pointer rounded-lg bg-[#171717] p-2 text-white hover:bg-[#1f1f1f]"
-              >
-                <PhotoIcon className="inline-block h-6 w-6" />
-                Add Photo
+              <div className="w-full">
                 <input
-                  type="file"
-                  accept="image/*"
-                  id="file-input"
-                  multiple
-                  onChange={handleFileChange}
-                  className="hidden"
+                  type="text"
+                  placeholder="What's on your mind?"
+                  className="w-full cursor-pointer rounded-full bg-[#4b4b4b] px-4 py-2 text-white focus:outline-none"
+                  readOnly
                 />
-              </label>
-              <button
-                type="submit"
-                className={`rounded-lg bg-primary p-2 text-white shadow-md hover:bg-[#37996b] ${
-                  isLoading || !watch("content")?.trim()
-                    ? "cursor-not-allowed"
-                    : ""
-                }`}
-                disabled={isLoading || !watch("content")?.trim()}
-              >
-                {isLoading
-                  ? "Saving..."
-                  : editingPost
-                  ? "Update Post"
-                  : "Create Post"}
-              </button>
-              {editingPost && (
-                <button
-                  type="button"
-                  className="rounded-lg bg-gray-600 p-2 text-white shadow-md hover:bg-gray-700"
-                  onClick={resetForm}
-                >
-                  Cancel Edit
-                </button>
-              )}
+              </div>
             </div>
-            {photos.length > 0 && (
-              <div className="mt-4 flex space-x-2 overflow-x-auto">
-                {photos.map((photo, index) => (
-                  <div key={index} className="relative h-24 w-24">
-                    <img
-                      src={photo}
-                      alt={`Attachment ${index + 1}`}
-                      className="h-full w-full rounded-lg object-cover"
+          ) : (
+            // Full form
+            <div
+              ref={formRef}
+              className="mt-4 rounded-lg bg-[#3b3b3b] p-4 shadow-lg"
+            >
+              <form id="post-form" onSubmit={handleSubmit(onSubmit)}>
+                {/* Top row: User avatar and content input */}
+                <div className="flex space-x-4">
+                  <div className="flex-shrink-0">
+                    {user.profilepicture ? (
+                      <img
+                        src={user.profilepicture}
+                        alt="Profile"
+                        className="h-10 w-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <UserCircleIcon className="h-10 w-10 text-white" />
+                    )}
+                  </div>
+                  <div className="w-full">
+                    <textarea
+                      {...register("content")}
+                      className="w-full resize-none rounded-lg bg-[#171717] px-4 py-2 text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="What's on your mind?"
+                      maxLength={500}
+                      disabled={isLoading}
+                      rows={3}
                     />
+                    <div className="text-right text-xs text-gray-400">
+                      {watch("content")?.length || 0}/500
+                    </div>
+                  </div>
+                </div>
+
+                {/* Privacy options */}
+                <div className="mt-2">
+                  {/* Public switch */}
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={isPublic}
+                      onChange={(checked) => {
+                        setIsPublic(checked);
+                        if (checked) {
+                          setValue("selectedRoles", []);
+                          setValue("selectedMemberships", []);
+                        }
+                      }}
+                      className={`${
+                        isPublic ? "bg-blue-500" : "bg-gray-600"
+                      } relative inline-flex h-5 w-10 items-center rounded-full transition-colors duration-300 focus:outline-none`}
+                    >
+                      <span
+                        className={`${
+                          isPublic ? "translate-x-5" : "translate-x-1"
+                        } inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-300`}
+                      />
+                    </Switch>
+                    <span className="text-sm text-white">
+                      {isPublic ? "Public" : "Private"}
+                    </span>
+                  </div>
+                  {!isPublic && (
+                    <div className="mt-2 space-y-2">
+                      {/* Selected Roles */}
+                      <Controller
+                        name="selectedRoles"
+                        control={control}
+                        defaultValue={[]}
+                        render={({ field }) => (
+                          <TagsInput
+                            value={field.value}
+                            onChange={(tags) => {
+                              field.onChange(tags);
+                            }}
+                            suggestions={availableRoles.map((role) => role.name)}
+                            placeholder="Select roles"
+                            className="w-full rounded-lg border border-[#3d3d3d] bg-[#2a2a2a] px-3 py-1 text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                          />
+                        )}
+                      />
+                      {/* Selected Memberships */}
+                      <Controller
+                        name="selectedMemberships"
+                        control={control}
+                        defaultValue={[]}
+                        render={({ field }) => (
+                          <TagsInput
+                            value={field.value}
+                            onChange={(tags) => {
+                              field.onChange(tags);
+                            }}
+                            suggestions={availableMemberships.map(
+                              (membership) => membership.name
+                            )}
+                            placeholder="Select memberships"
+                            className="w-full rounded-lg border border-[#3d3d3d] bg-[#2a2a2a] px-3 py-1 text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                          />
+                        )}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Attachments and actions */}
+                <div className="mt-4 flex items-center justify-between">
+                  <div className="flex space-x-2">
+                    {/* Photo upload */}
+                    <label
+                      htmlFor="file-input"
+                      className="flex cursor-pointer items-center space-x-1 text-white"
+                    >
+                      <PhotoIcon className="h-5 w-5 text-green-500" />
+                      <span className="text-sm">Photo/Video</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        id="file-input"
+                        multiple
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                  <div className="flex space-x-2">
                     <button
                       type="button"
-                      onClick={() =>
-                        handleRemovePhoto(
-                          index,
-                          !!(editingPost && editingPost.postphotos?.includes(photo))
-                        )
-                      }
-                      className="absolute right-1 top-1 rounded-full bg-black bg-opacity-75 p-1 text-white"
+                      className="text-sm text-gray-400 hover:text-gray-200"
+                      onClick={resetForm}
                     >
-                      <XCircleIcon className="h-5 w-5" />
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className={`rounded-full bg-primary px-4 py-1 text-sm font-semibold text-white ${
+                        isLoading || !watch("content")?.trim()
+                          ? "cursor-not-allowed opacity-50"
+                          : "hover:bg-primarydark"
+                      }`}
+                      disabled={isLoading || !watch("content")?.trim()}
+                    >
+                      {isLoading ? "Posting..." : "Post"}
                     </button>
                   </div>
-                ))}
-              </div>
-            )}
-            {creationMessage && (
-              <div
-                className={`mt-4 rounded-lg p-4 text-white ${
-                  creationMessage.type === "success"
-                    ? "bg-green-500"
-                    : "bg-red-500"
-                }`}
-              >
-                {creationMessage.text}
-              </div>
-            )}
-          </form>
-        </div>
+                </div>
+
+                {/* Photo previews */}
+                {photos.length > 0 && (
+                  <div className="mt-4 grid grid-cols-3 gap-2">
+                    {photos.map((photo, index) => (
+                      <div
+                        key={index}
+                        className="relative bg-black h-40 w-full flex items-center justify-center overflow-hidden rounded-md"
+                      >
+                        <img
+                          src={photo}
+                          alt={`Attachment ${index + 1}`}
+                          className="max-h-full max-w-full object-contain"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleRemovePhoto(
+                              index,
+                              !!(editingPost && editingPost.postphotos?.includes(photo))
+                            )
+                          }
+                          className="absolute right-1 top-1 rounded-full bg-black bg-opacity-50 p-1 text-white hover:bg-opacity-75"
+                        >
+                          <XCircleIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Creation message */}
+                {creationMessage && (
+                  <div
+                    className={`mt-3 rounded-md px-4 py-2 text-center text-sm font-medium ${
+                      creationMessage.type === "success"
+                        ? "bg-green-500 text-white"
+                        : "bg-red-500 text-white"
+                    }`}
+                  >
+                    {creationMessage.text}
+                  </div>
+                )}
+              </form>
+            </div>
+          )}
+        </>
       )}
+
       <div className="mt-8 space-y-4">
         {(filteredPosts.length <= 0 || isLoading) && (
           <div
@@ -911,4 +942,5 @@ const PostCard: React.FC<{
   );
 };
 PostCard.displayName = "PostCard";
+
 export default PostsSection;

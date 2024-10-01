@@ -490,7 +490,7 @@ export default function Header({ user = null }: { user: User | null }) {
                             }}
                             className={classNames(
                               active ? "bg-[#23af90] text-white" : "text-gray-300",
-                              "block w-full px-4 py-2 text-left text-sm"
+                              "block px-4 py-2 text-sm"
                             )}
                           >
                             Sign out
@@ -574,7 +574,7 @@ export default function Header({ user = null }: { user: User | null }) {
                       handleNavClick(item.href);
                       setSidebarOpen(false); // Close the menu after navigation
                     }}
-                    className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+                    className="-mx-3 block rounded-lg px-3 py-2 text-sm font-semibold leading-6 text-light hover:bg-primary"
                   >
                     {item.name}
                   </Link>
@@ -585,13 +585,13 @@ export default function Header({ user = null }: { user: User | null }) {
                   <>
                     <Link
                       href={`/dashboard`}
-                      className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+                      className="-mx-3 block rounded-lg px-3 py-2 text-sm font-semibold leading-6 text-light hover:bg-primary"
                     >
                       Dashboard
                     </Link>
                     <Link
                       href={`/user/profile/${user.id}`}
-                      className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+                      className="-mx-3 block rounded-lg px-3 py-2 text-sm font-semibold leading-6 text-light hover:bg-primary"
                     >
                       My Profile
                     </Link>
