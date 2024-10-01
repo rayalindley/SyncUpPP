@@ -139,7 +139,47 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPost
     }
   }, [user?.id, organizationId]);
 
-  // Add useEffect to fetch the user profile
+  // fetch permissions and data on mount
+  useEffect(() => {
+    fetchPermissions();
+    fetchData();
+  }, [fetchPermissions, fetchData]);
+
+  useEffect(() => {
+    const postsChannel = supabase
+      .channel("posts-channel")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "posts" },
+        (payload) => {
+          loadPosts();
+        }
+      )
+      .subscribe();
+
+    const rolePrivacyChannel = supabase
+      .channel("role-privacy-channel")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "post_roles" },
+        (payload) => {
+          loadPosts();
+        }
+      )
+      .subscribe();
+
+    const membershipPrivacyChannel = supabase
+      .channel("membership-privacy-channel")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "post_memberships" },
+        (payload) => {
+          loadPosts();
+        }
+      )
+      .subscribe();
+  }, [supabase, loadPosts, organizationId]);
+
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (user) {
@@ -151,60 +191,6 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPost
     };
     fetchUserProfile();
   }, [user]);
-
-  useEffect(() => {
-    fetchData();
-    fetchPermissions();
-
-    // Set up real-time subscriptions
-    const postsChannel = supabase
-      .channel("posts-and-privacy")
-      // Subscribe to changes in the 'posts' table
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "posts",
-          filter: `organizationid=eq.${organizationId}`,
-        },
-        async (payload) => {
-          await loadPosts();
-        }
-      )
-      // Subscribe to changes in the 'role_privacy' table
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "role_privacy",
-          filter: `organizationid=eq.${organizationId}`,
-        },
-        async (payload) => {
-          await loadPosts();
-        }
-      )
-      // Subscribe to changes in the 'membership_privacy' table
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "membership_privacy",
-          filter: `organizationid=eq.${organizationId}`,
-        },
-        async (payload) => {
-          await loadPosts();
-        }
-      )
-      .subscribe();
-
-    // Cleanup subscriptions on unmount
-    return () => {
-      supabase.removeChannel(postsChannel);
-    };
-  }, [fetchData, fetchPermissions, organizationId, user?.id, supabase, loadPosts]);
 
   // Scroll to form when editingPost is set
   useEffect(() => {
@@ -492,7 +478,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPost
                   {!isPublic && (
                     <div className="mt-2 flex flex-wrap gap-2 lg:flex-nowrap">
                       {/* Selected Roles */}
-                      <div className="flex-1 min-w-[200px]">
+                      <div className="min-w-[200px] flex-1">
                         <Controller
                           name="selectedRoles"
                           control={control}
@@ -511,7 +497,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPost
                         />
                       </div>
                       {/* Selected Memberships */}
-                      <div className="flex-1 min-w-[200px]">
+                      <div className="min-w-[200px] flex-1">
                         <Controller
                           name="selectedMemberships"
                           control={control}
@@ -522,7 +508,9 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPost
                               onChange={(tags) => {
                                 field.onChange(tags);
                               }}
-                              suggestions={availableMemberships.map((membership) => membership.name)}
+                              suggestions={availableMemberships.map(
+                                (membership) => membership.name
+                              )}
                               placeholder="Select memberships"
                               className="w-full bg-charleston py-1 text-white focus:outline-none focus:ring-2 focus:ring-primary"
                             />
