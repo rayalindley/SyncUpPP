@@ -179,7 +179,7 @@ export default function Header({ user = null }: { user: User | null }) {
       window.removeEventListener("hashchange", handleHashChange);
     };
   }, []);
-
+  
   return (
     <header className="bg-eerieblack">
       <nav
@@ -528,8 +528,8 @@ export default function Header({ user = null }: { user: User | null }) {
       {/* Mobile Menu */}
       <Dialog as="div" className="lg:hidden" open={sidebarOpen} onClose={setSidebarOpen}>
         <div className="fixed inset-0 z-10" />
-        <Dialog.Panel className="fixed inset-y-0 right-0 z-10 w-full overflow-y-auto bg-white px-6 py-6 sm:max-w-sm sm:ring-1 sm:ring-gray-900/10">
-          <div className="flex items-center gap-x-6">
+        <Dialog.Panel className="fixed inset-y-0 right-0 z-10 w-full overflow-y-auto bg-charleston px-6 py-6 sm:max-w-sm sm:ring-1 sm:ring-gray-900/10">
+          <div className="flex items-center justify-between gap-x-6">
             <Link href="/">
               <div className="flex lg:flex-1 ">
                 <div className="-m-1.5 p-1.5">
@@ -539,12 +539,14 @@ export default function Header({ user = null }: { user: User | null }) {
                 <div className="font text-lg font-semibold text-light">SyncUp</div>
               </div>
             </Link>
-            <Link
-              href="/signup"
-              className="ml-auto rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            >
-              Sign up
-            </Link>
+            {!user && (
+              <Link
+                href="/signup"
+                className="ml-auto rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                Sign up
+              </Link>
+            )}
             <button
               type="button"
               className="-m-2.5 rounded-md p-2.5 text-gray-700"
@@ -588,10 +590,10 @@ export default function Header({ user = null }: { user: User | null }) {
                       My Profile
                     </Link>
                     <button
-                      className="-mx-3 block w-full rounded-lg px-3 py-2 text-left text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+                      className="-mx-3 block w-full rounded-lg px-3 py-2 text-left text-base font-semibold leading-7 text-red-500 hover:bg-primary"
                       onClick={async () => {
-                        await signOut();
-                        setSidebarOpen(false);
+                      await signOut();
+                      setSidebarOpen(false);
                       }}
                     >
                       Sign out
@@ -601,7 +603,7 @@ export default function Header({ user = null }: { user: User | null }) {
                   <>
                     <Link
                       href="/signin"
-                      className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+                      className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-light hover:bg-primary"
                     >
                       Log in
                     </Link>
