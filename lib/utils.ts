@@ -13,17 +13,19 @@ export function isDateValid(dateString: string): boolean {
   const monthDiff = today.getMonth() - date.getMonth();
   const dayDiff = today.getDate() - date.getDate();
 
+  // Adjust the date to account for timezone differences (local time handling)
+  const adjustedDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
+
   // Check if the date is valid and the user is at least 18 years old
   if (
-    date instanceof Date &&
-    !isNaN(date.getTime()) &&
+    adjustedDate instanceof Date &&
+    !isNaN(adjustedDate.getTime()) &&
     (age > 18 || (age === 18 && (monthDiff > 0 || (monthDiff === 0 && dayDiff >= 0))))
   ) {
     return true;
   }
   return false;
 }
-
 
 export function timeAgo(dateString: string) {
   // If the commentDate string is in UTC, ensure it's parsed as UTC.
@@ -32,7 +34,9 @@ export function timeAgo(dateString: string) {
 
   const now = new Date();
 
-  const timeDifferenceInSeconds = Math.floor((now.getTime() - commentDate.getTime()) / 1000);
+  const timeDifferenceInSeconds = Math.floor(
+    (now.getTime() - commentDate.getTime()) / 1000
+  );
 
   // Helper function to format date in 12-hour AM/PM format
   function formatAMPM(date: Date) {

@@ -357,19 +357,15 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
                           },
                         }}
                         onChange={(selectedDate) => {
-                          // Format the selected date without using toISOString to avoid timezone issues
-                          const formattedDate = selectedDate
-                            ? `${selectedDate.getFullYear()}-${(
-                                selectedDate.getMonth() + 1
-                              )
+                          const localDate = selectedDate ? new Date(selectedDate.getTime() - selectedDate.getTimezoneOffset() * 60000) : undefined;
+                          const formattedDate = localDate
+                            ? `${localDate.getFullYear()}-${(localDate.getMonth() + 1)
                                 .toString()
-                                .padStart(
-                                  2,
-                                  "0"
-                                )}-${selectedDate.getDate().toString().padStart(2, "0")}`
+                                .padStart(2, "0")}-${localDate.getDate().toString().padStart(2, "0")}`
                             : "";
                           field.onChange(formattedDate);
                         }}
+                        
                         show={show}
                         setShow={setShow}
                       />
