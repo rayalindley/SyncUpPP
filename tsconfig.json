@@ -33,7 +33,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts"
-  ], // Includes TypeScript files and Next.js types
+, "app/(organization)/[slug]/dashboard/edit/page-oldtsx"  ], // Includes TypeScript files and Next.js types
   "exclude": [
     "node_modules",
     "models",

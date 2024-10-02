@@ -393,7 +393,10 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
                                     )}
                                   >
                                     <div className="flex items-center gap-x-3">
-                                      <item.icon className="h-6 w-6 shrink-0 text-gray-400" aria-hidden="true" />
+                                      <item.icon
+                                        className="h-6 w-6 shrink-0 text-gray-400"
+                                        aria-hidden="true"
+                                      />
                                       {item.name}
                                     </div>
                                     <ChevronDownIcon
@@ -451,7 +454,7 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
                       </li>
                       {slug && (
                         <li className="">
-                          <hr className="my-4 border-t border-fadedgrey" />
+                          <hr className="my-4 border-t border-charleston" />
                           <Link href={`/${slug}`}>
                             <div className="border-1 rounded-md border border-primary bg-primarydark p-1 px-2 text-center text-sm text-gray-100 hover:cursor-pointer">
                               Visit Page
@@ -483,7 +486,7 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
       {/* Static sidebar for desktop */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
         {/* Sidebar component, swap this element with another sidebar if you like */}
-        <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-fadedgrey bg-eerieblack px-6">
+        <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-charleston bg-eerieblack px-6">
           <Link href="/">
             <div className="flex h-16 shrink-0 items-center">
               <img className="h-10 w-auto" src="/syncup.png" alt="SyncUp" />
@@ -654,7 +657,10 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
                             )}
                           >
                             <div className="flex items-center gap-x-3">
-                              <item.icon className="h-6 w-6 shrink-0 text-gray-400" aria-hidden="true" />
+                              <item.icon
+                                className="h-6 w-6 shrink-0 text-gray-400"
+                                aria-hidden="true"
+                              />
                               {item.name}
                             </div>
                             <ChevronDownIcon

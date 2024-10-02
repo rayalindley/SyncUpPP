@@ -89,11 +89,7 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>
-      <Dialog
-        as="div"
-        className="relative z-50"
-        onClose={() => onClose(false)}
-      >
+      <Dialog as="div" className="relative z-50" onClose={() => onClose(false)}>
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-300"
@@ -117,10 +113,10 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
               leaveFrom="opacity-100 translate-y-0 sm:scale-100"
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <Dialog.Panel className="relative transform rounded-lg bg-[#151718] text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl">
+              <Dialog.Panel className="relative transform rounded-lg bg-charleston text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl">
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-gray-700 px-6 py-4">
-                  <span className="text-xl font-semibold text-white">
+                <div className="flex items-center justify-between divide-[#525252] border-b px-6 py-4">
+                  <span className="text-xl font-semibold text-light">
                     All Notifications
                   </span>
                   <button
@@ -132,13 +128,13 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
                 </div>
 
                 {/* Search and Filters */}
-                <div className="border-b border-gray-700 px-6 py-4">
+                <div className="divide-[#525252] border-b px-6 py-4">
                   <div className="flex flex-col items-center gap-3 sm:flex-row">
                     {/* Search Input */}
                     <div className="relative flex-1">
                       <input
                         type="text"
-                        className="w-full rounded-md bg-gray-800 px-4 py-3 text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#23af90]"
+                        className="w-full rounded-md bg-charleston px-4 py-3 text-sm text-light placeholder-[#525252] focus:outline-none focus:ring-2 focus:ring-light"
                         placeholder="Search notifications..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -153,7 +149,7 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
 
                     {/* Filter Dropdown */}
                     <Menu as="div" className="relative">
-                      <Menu.Button className="flex items-center rounded-md bg-gray-800 px-4 py-3 text-sm text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-[#23af90]">
+                      <Menu.Button className="flex items-center rounded-md bg-charleston px-4 py-3 text-sm text-light hover:bg-[#383838] focus:outline-none focus:ring-2 focus:ring-light">
                         Filter
                         <ChevronDownIcon
                           className="ml-2 h-5 w-5 text-gray-400"
@@ -176,9 +172,7 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
                                 <button
                                   onClick={() => setFilterType(null)}
                                   className={classNames(
-                                    active
-                                      ? "bg-[#23af90] text-white"
-                                      : "text-gray-300",
+                                    active ? "bg-[#23af90] text-white" : "text-gray-300",
                                     "block w-full px-4 py-2 text-left text-sm"
                                   )}
                                 >
@@ -210,7 +204,7 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
 
                     {/* Sort Dropdown */}
                     <Menu as="div" className="relative">
-                      <Menu.Button className="flex items-center rounded-md bg-gray-800 px-4 py-3 text-sm text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-[#23af90]">
+                      <Menu.Button className="flex items-center rounded-md bg-charleston px-4 py-3 text-sm text-light hover:bg-[#383838] focus:outline-none focus:ring-2 focus:ring-light">
                         Sort
                         <ChevronDownIcon
                           className="ml-2 h-5 w-5 text-gray-400"
@@ -233,9 +227,7 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
                                 <button
                                   onClick={() => setSortOrder("desc")}
                                   className={classNames(
-                                    active
-                                      ? "bg-[#23af90] text-white"
-                                      : "text-gray-300",
+                                    active ? "bg-[#23af90] text-white" : "text-gray-300",
                                     "block w-full px-4 py-2 text-left text-sm"
                                   )}
                                 >
@@ -248,9 +240,7 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
                                 <button
                                   onClick={() => setSortOrder("asc")}
                                   className={classNames(
-                                    active
-                                      ? "bg-[#23af90] text-white"
-                                      : "text-gray-300",
+                                    active ? "bg-[#23af90] text-white" : "text-gray-300",
                                     "block w-full px-4 py-2 text-left text-sm"
                                   )}
                                 >
@@ -273,27 +263,24 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
                       return (
                         <div
                           key={notification.notificationid}
-                          className={`mb-3 flex cursor-pointer items-start gap-4 rounded-lg p-3 hover:bg-[#1a1d1f] ${
+                          className={`mb-3 flex cursor-pointer items-start gap-4 rounded-lg p-3 hover:bg-[#383838] ${
                             notification.read ? "opacity-60" : ""
                           }`}
                           onClick={() =>
-                            onNotificationClick(
-                              notification.notificationid,
-                              link
-                            )
+                            onNotificationClick(notification.notificationid, link)
                           }
                         >
                           <div className="flex-shrink-0">
                             {getNotificationIcon(notification)}
                           </div>
                           <div className="flex-1">
-                            <p className="text-sm font-medium text-white">
+                            <p className="text-sm font-medium text-light">
                               {notification.title}
                             </p>
-                            <p className="mt-1 text-xs text-gray-300">
+                            <p className="mt-1 text-xs text-light">
                               {notification.message}
                             </p>
-                            <p className="mt-1 text-xs text-gray-400">
+                            <p className="mt-1 text-xs text-light">
                               {formatDistanceToNow(new Date(notification.date_created), {
                                 addSuffix: true,
                               })}

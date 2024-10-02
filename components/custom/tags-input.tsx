@@ -146,12 +146,12 @@ export default function TagsInput({
         {tags.map((tag) => (
           <span
             key={tag}
-            className={`text-primary-foreground inline-flex items-center rounded-md bg-primary px-2 py-1 text-sm font-medium ${tagClassName}`}
+            className={`inline-flex items-center rounded-md bg-primary px-2 py-1 text-sm font-medium text-primary-foreground ${tagClassName}`}
           >
             {tag}
             <button
               type="button"
-              className="text-primary-foreground hover:text-primary-foreground/70 ml-1 inline-flex items-center p-0.5"
+              className="ml-1 inline-flex items-center p-0.5 text-primary-foreground hover:text-primary-foreground/70"
               onClick={() => removeTag(tag)}
               disabled={disabled}
             >
@@ -163,8 +163,8 @@ export default function TagsInput({
         <input
           ref={inputRef}
           type="text"
-          className={`flex-1 border-0 bg-transparent text-white outline-none placeholder:text-gray-400 focus:ring-0 ${inputClassName}`}
-          placeholder={placeholder}
+          className={`h-6 w-20 border-0 bg-transparent p-0 text-white outline-none placeholder:text-gray-400 focus:ring-0 ${inputClassName}`}
+          placeholder={tags.length === 0 ? placeholder : ""}
           value={inputValue}
           onChange={handleInputChange}
           onKeyDown={handleInputKeyDown}

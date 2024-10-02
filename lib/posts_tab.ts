@@ -2,7 +2,7 @@
 import { createClient, getUser } from "@/lib/supabase/server";
 //import { getVisiblePostsAndComments } from "@/lib/posts_tab"; 
 
-export async function getVisiblePostsAndComments(p_user_id: string, p_org_id: string) {
+export async function getVisiblePostsAndComments(p_user_id: string | null, p_org_id: string) {
   const supabase = createClient();
   try {
     const { data, error } = await supabase

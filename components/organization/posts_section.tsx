@@ -20,6 +20,7 @@ import {
   fetchRolesAndMemberships,
   deletePost,
   check_permissions,
+  getVisiblePostsAndComments,
 } from "@/lib/posts_tab";
 import { Posts } from "@/types/posts";
 import TagsInput from "../custom/tags-input";
@@ -29,34 +30,9 @@ import ImageGallery from "react-image-gallery";
 import "react-image-gallery/styles/css/image-gallery.css";
 import { createClient } from "@/lib/supabase/client";
 import { format } from "date-fns";
-import ReactDatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { SupabaseClient } from "@supabase/supabase-js";
-
-// Define the getVisiblePostsAndComments function
-export async function getVisiblePostsAndComments(
-  p_user_id: string,
-  p_org_id: string
-) {
-  const supabase: SupabaseClient = createClient();
-  try {
-    const { data, error } = await supabase.rpc(
-      "get_visible_posts_and_comments",
-      {
-        p_user_id,
-        p_org_id,
-      }
-    );
-
-    if (!error) {
-      return { data, error: null };
-    } else {
-      return { data: null, error };
-    }
-  } catch (error) {
-    return { data: null, error };
-  }
-}
+import { getUserProfileById } from "@/lib/user_actions"; // Add this import
+import { CombinedUserData } from "@/types/combined_user_data";
 
 const postSchema = z.object({
   content: z.string().min(1, "Content is required").max(500),
@@ -69,18 +45,15 @@ interface PostsSectionProps {
   initialPosts: Posts[];
 }
 
-const PostsSection: React.FC<PostsSectionProps> = ({
-  organizationId,
-  initialPosts,
-}) => {
+const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPosts }) => {
   const { user } = useUser();
   const [currentPosts, setCurrentPosts] = useState<Posts[]>(initialPosts);
 
   const [editingPost, setEditingPost] = useState<Posts | null>(null);
   const [isPublic, setIsPublic] = useState(false);
-  const [availableRoles, setAvailableRoles] = useState<
-    { id: string; name: string }[]
-  >([]);
+  const [availableRoles, setAvailableRoles] = useState<{ id: string; name: string }[]>(
+    []
+  );
   const [availableMemberships, setAvailableMemberships] = useState<
     { membershipid: string; name: string }[]
   >([]);
@@ -88,30 +61,23 @@ const PostsSection: React.FC<PostsSectionProps> = ({
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [removedPhotos, setRemovedPhotos] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [
-    creationMessage,
-    setCreationMessage,
-  ] = useState<{ text: string; type: "success" | "error" } | null>(null);
+  const [creationMessage, setCreationMessage] = useState<{
+    text: string;
+    type: "success" | "error";
+  } | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterByRole, setFilterByRole] = useState<string | null>(null);
-  const [filterByMembership, setFilterByMembership] = useState<string | null>(
-    null
-  );
+  const [filterByMembership, setFilterByMembership] = useState<string | null>(null);
   const [filterByAuthor, setFilterByAuthor] = useState<boolean>(false);
   const [filterByPublic, setFilterByPublic] = useState<boolean>(false);
   const [filterByDate, setFilterByDate] = useState<Date | null>(null);
   const [canCreate, setCanCreate] = useState(false);
   const [canDelete, setCanDelete] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState<CombinedUserData | null>(null); // Add this line
 
   const supabase = createClient();
-  const {
-    register,
-    handleSubmit,
-    control,
-    setValue,
-    reset,
-    watch,
-  } = useForm({
+  const { register, handleSubmit, control, setValue, reset, watch } = useForm({
     resolver: zodResolver(postSchema),
   });
 
@@ -161,11 +127,8 @@ const PostsSection: React.FC<PostsSectionProps> = ({
   }, [organizationId]);
 
   const loadPosts = useCallback(async () => {
-    if (!user?.id) {
-      return;
-    }
     const { data, error } = await getVisiblePostsAndComments(
-      user.id,
+      user?.id ?? null,
       organizationId
     );
     if (data) {
@@ -176,59 +139,58 @@ const PostsSection: React.FC<PostsSectionProps> = ({
     }
   }, [user?.id, organizationId]);
 
+  // fetch permissions and data on mount
   useEffect(() => {
-    fetchData();
     fetchPermissions();
+    fetchData();
+  }, [fetchPermissions, fetchData]);
 
-    // Set up real-time subscriptions
+  useEffect(() => {
     const postsChannel = supabase
-      .channel("posts-and-privacy")
-      // Subscribe to changes in the 'posts' table
+      .channel("posts-channel")
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "posts",
-          filter: `organizationid=eq.${organizationId}`,
-        },
-        async (payload) => {
-          await loadPosts();
-        }
-      )
-      // Subscribe to changes in the 'role_privacy' table
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "role_privacy",
-          filter: `organizationid=eq.${organizationId}`,
-        },
-        async (payload) => {
-          await loadPosts();
-        }
-      )
-      // Subscribe to changes in the 'membership_privacy' table
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "membership_privacy",
-          filter: `organizationid=eq.${organizationId}`,
-        },
-        async (payload) => {
-          await loadPosts();
+        { event: "*", schema: "public", table: "posts" },
+        (payload) => {
+          loadPosts();
         }
       )
       .subscribe();
 
-    // Cleanup subscriptions on unmount
-    return () => {
-      supabase.removeChannel(postsChannel);
+    const rolePrivacyChannel = supabase
+      .channel("role-privacy-channel")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "post_roles" },
+        (payload) => {
+          loadPosts();
+        }
+      )
+      .subscribe();
+
+    const membershipPrivacyChannel = supabase
+      .channel("membership-privacy-channel")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "post_memberships" },
+        (payload) => {
+          loadPosts();
+        }
+      )
+      .subscribe();
+  }, [supabase, loadPosts, organizationId]);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user) {
+        if (user?.id) {
+          const response = await getUserProfileById(user.id);
+          setUserProfile(response.data as CombinedUserData);
+        }
+      }
     };
-  }, [fetchData, fetchPermissions, organizationId, user?.id, supabase, loadPosts]);
+    fetchUserProfile();
+  }, [user]);
 
   // Scroll to form when editingPost is set
   useEffect(() => {
@@ -242,19 +204,14 @@ const PostsSection: React.FC<PostsSectionProps> = ({
     }
   }, [editingPost]);
 
-  const handleFileChange = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     setPhotoFiles(files);
     const newPhotos = files.map((file) => URL.createObjectURL(file));
     setPhotos((prevPhotos) => [...prevPhotos, ...newPhotos]);
   };
 
-  const handleRemovePhoto = (
-    index: number,
-    isExistingPhoto: boolean
-  ) => {
+  const handleRemovePhoto = (index: number, isExistingPhoto: boolean) => {
     if (isExistingPhoto) {
       setRemovedPhotos((prev) => [...prev, photos[index]]);
     }
@@ -265,9 +222,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({
   const uploadPhotosToSupabase = async () => {
     const uploadedUrls: string[] = [];
     for (const file of photoFiles) {
-      const fileName = `post_${Date.now()}-${Math.random()
-        .toString(36)
-        .substring(7)}`;
+      const fileName = `post_${Date.now()}-${Math.random().toString(36).substring(7)}`;
       const { data: uploadResult, error } = await supabase.storage
         .from("post-images")
         .upload(fileName, file);
@@ -293,6 +248,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({
     setRemovedPhotos([]);
     setEditingPost(null);
     setIsPublic(false);
+    setIsFormOpen(false);
   };
 
   const onSubmit = async (formData: any) => {
@@ -330,10 +286,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({
               )?.membershipid
           )
           .filter(Boolean) || [];
-      if (
-        selectedRolesUUIDs.length === 0 &&
-        selectedMembershipUUIDs.length === 0
-      ) {
+      if (selectedRolesUUIDs.length === 0 && selectedMembershipUUIDs.length === 0) {
         setIsPublic(true);
       }
       const uploadedPhotoUrls = await uploadPhotosToSupabase();
@@ -342,9 +295,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({
         return;
       }
       const retainedPhotos = editingPost
-        ? (editingPost.postphotos || []).filter(
-            (photo) => !removedPhotos.includes(photo)
-          )
+        ? (editingPost.postphotos || []).filter((photo) => !removedPhotos.includes(photo))
         : [];
       const finalPhotoUrls = [...retainedPhotos, ...uploadedPhotoUrls];
       const postPayload = {
@@ -384,9 +335,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({
       const matchesSearch = post.content
         ?.toLowerCase()
         .includes(searchTerm.toLowerCase());
-      const matchesRole = filterByRole
-        ? post.roles?.includes(filterByRole)
-        : true;
+      const matchesRole = filterByRole ? post.roles?.includes(filterByRole) : true;
       const matchesMembership = filterByMembership
         ? post.memberships?.includes(filterByMembership)
         : true;
@@ -396,8 +345,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({
         : true;
       const matchesDate = filterByDate
         ? post.createdat &&
-          new Date(post.createdat).toDateString() ===
-            filterByDate.toDateString()
+          new Date(post.createdat).toDateString() === filterByDate.toDateString()
         : true;
       return (
         matchesSearch &&
@@ -410,30 +358,21 @@ const PostsSection: React.FC<PostsSectionProps> = ({
     })
     .sort(
       (a, b) =>
-        new Date(b.createdat ?? 0).getTime() -
-        new Date(a.createdat ?? 0).getTime()
+        new Date(b.createdat ?? 0).getTime() - new Date(a.createdat ?? 0).getTime()
     );
 
   useEffect(() => {
     if (editingPost) {
+      setIsFormOpen(true);
       setValue("content", editingPost.content);
       setPhotos(editingPost.postphotos || []);
       setValue("selectedRoles", editingPost.selectedRoles || []);
       setValue("selectedMemberships", editingPost.selectedMemberships || []);
       setIsPublic(
-        !editingPost.selectedRoles?.length &&
-          !editingPost.selectedMemberships?.length
+        !editingPost.selectedRoles?.length && !editingPost.selectedMemberships?.length
       );
     }
   }, [editingPost, setValue]);
-
-  const handleFilterByPublicChange = (checked: boolean) => {
-    setFilterByPublic(checked);
-    if (checked) {
-      setFilterByRole(null);
-      setFilterByMembership(null);
-    }
-  };
 
   // Cleanup object URLs to prevent memory leaks
   useEffect(() => {
@@ -443,192 +382,243 @@ const PostsSection: React.FC<PostsSectionProps> = ({
   }, [photos]);
 
   return (
-    <div className="mx-auto max-w-7xl px-6 lg:px-8">
+    <div className="mx-auto max-w-3xl px-6 lg:px-8">
       <div className="mb-5 w-full text-center">
         <p className="mt-2 w-full text-2xl font-bold tracking-tight text-light sm:text-2xl">
           Posts Section
         </p>
       </div>
       {isLoggedIn && canCreate && (
-        <div
-          ref={formRef}
-          className="space-y-4 rounded-lg bg-[#3b3b3b] p-4 shadow-lg sm:p-6 lg:p-8"
-        >
-          <form
-            id="post-form"
-            onSubmit={handleSubmit(onSubmit)}
-            className="space-y-4"
-          >
-            <textarea
-              {...register("content")}
-              className="w-full resize-none rounded-lg border border-[#3d3d3d] bg-[#171717] p-2 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-primary sm:p-3 lg:p-4"
-              placeholder="Write a post..."
-              maxLength={500}
-              disabled={isLoading}
-            />
-            <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center space-x-2">
-                <label className="text-white">Public</label>
-                <Switch
-                  checked={isPublic}
-                  onChange={(checked) => {
-                    setIsPublic(checked);
-                    if (checked) {
-                      setValue("selectedRoles", []);
-                      setValue("selectedMemberships", []);
-                    }
-                  }}
-                  className={`${
-                    isPublic ? "bg-green-600" : "bg-gray-700"
-                  } relative inline-flex h-6 w-11 items-center rounded-full`}
-                >
-                  <span
-                    className={`${
-                      isPublic ? "translate-x-6" : "translate-x-1"
-                    } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
-                  />
-                </Switch>
-              </div>
-              {!isPublic && (
-                <>
-                  <Controller
-                    name="selectedRoles"
-                    control={control}
-                    defaultValue={[]}
-                    render={({ field }) => (
-                      <TagsInput
-                        value={field.value}
-                        onChange={(tags) => {
-                          field.onChange(tags);
-                        }}
-                        suggestions={availableRoles.map((role) => role.name)}
-                        placeholder="Roles (Optional)"
-                        className="w-full rounded-lg border border-[#3d3d3d] bg-[#3b3b3b] p-2 text-white"
-                      />
-                    )}
-                  />
-                  <Controller
-                    name="selectedMemberships"
-                    control={control}
-                    defaultValue={[]}
-                    render={({ field }) => (
-                      <TagsInput
-                        value={field.value}
-                        onChange={(tags) => {
-                          field.onChange(tags);
-                        }}
-                        suggestions={availableMemberships.map(
-                          (membership) => membership.name
-                        )}
-                        placeholder="Memberships (Optional)"
-                        className="w-full rounded-lg border border-[#3d3d3d] bg-[#3b3b3b] p-2 text-white"
-                      />
-                    )}
-                  />
-                </>
-              )}
-            </div>
-            <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between">
-              <label
-                htmlFor="file-input"
-                className="cursor-pointer rounded-lg bg-[#171717] p-2 text-white hover:bg-[#1f1f1f]"
-              >
-                <PhotoIcon className="inline-block h-6 w-6" />
-                Add Photo
+        <>
+          {!isFormOpen ? (
+            // Compact form
+            <div
+              onClick={() => setIsFormOpen(true)}
+              className="flex items-center space-x-4 rounded-lg bg-[#171717] p-4 "
+            >
+              <div className="flex w-full items-center border-b border-gray-600">
+                <PencilIcon className="h-5 w-5 text-gray-400" />
                 <input
-                  type="file"
-                  accept="image/*"
-                  id="file-input"
-                  multiple
-                  onChange={handleFileChange}
-                  className="hidden"
+                  type="text"
+                  placeholder="Let your organization know what's happening..."
+                  className="w-full cursor-text border-transparent bg-transparent py-2 text-white focus:border-transparent focus:outline-none focus:ring-0"
+                  readOnly
                 />
-              </label>
-              <button
-                type="submit"
-                className={`rounded-lg bg-primary p-2 text-white shadow-md hover:bg-[#37996b] ${
-                  isLoading || !watch("content")?.trim()
-                    ? "cursor-not-allowed"
-                    : ""
-                }`}
-                disabled={isLoading || !watch("content")?.trim()}
-              >
-                {isLoading
-                  ? "Saving..."
-                  : editingPost
-                  ? "Update Post"
-                  : "Create Post"}
-              </button>
-              {editingPost && (
-                <button
-                  type="button"
-                  className="rounded-lg bg-gray-600 p-2 text-white shadow-md hover:bg-gray-700"
-                  onClick={resetForm}
-                >
-                  Cancel Edit
-                </button>
-              )}
+              </div>
             </div>
-            {photos.length > 0 && (
-              <div className="mt-4 flex space-x-2 overflow-x-auto">
-                {photos.map((photo, index) => (
-                  <div key={index} className="relative h-24 w-24">
-                    <img
-                      src={photo}
-                      alt={`Attachment ${index + 1}`}
-                      className="h-full w-full rounded-lg object-cover"
-                    />
+          ) : (
+            // Full form
+            <div ref={formRef} className="mt-4 rounded-lg bg-[#171717] p-4 shadow-lg">
+              <form id="post-form" onSubmit={handleSubmit(onSubmit)}>
+                <div className="w-full">
+                  <div className="flex w-full items-center border-b border-gray-600">
+                    <div className="w-full">
+                        <div className="w-full flex items-center">
+                        {!watch("content") && (
+                          <PencilIcon className="h-5 w-5 text-gray-400 mr-2" />
+                        )}
+                        <textarea
+                          placeholder="Let your organization know what's happening..."
+                          className="w-full cursor-text resize-none overflow-hidden border-transparent bg-transparent py-2 text-white focus:border-transparent focus:outline-none focus:ring-0"
+                          // limit content to 500 characters
+                          maxLength={500}
+                          rows={1}
+                          {...register("content")}
+                          onInput={(e) => {
+                          e.currentTarget.style.height = "auto";
+                          e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
+                          }}
+                        />
+                        </div>
+                      {/* Photo previews */}
+                      {photos.length > 0 && (
+                        <div className="mt-4 grid w-full grid-cols-3 gap-2 mb-4">
+                          {photos.map((photo, index) => (
+                            <div
+                              key={index}
+                              className="relative flex h-40 w-full items-center justify-center overflow-hidden rounded-md bg-black"
+                            >
+                              <img
+                                src={photo}
+                                alt={`Attachment ${index + 1}`}
+                                className="h-auto max-h-40 w-auto max-w-full bg-black object-contain"
+                              />
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleRemovePhoto(
+                                    index,
+                                    !!(
+                                      editingPost &&
+                                      editingPost.postphotos?.includes(photo)
+                                    )
+                                  )
+                                }
+                                className="absolute right-1 top-1 rounded-full bg-black bg-opacity-50 p-1 text-white hover:bg-opacity-75"
+                              >
+                                <XCircleIcon className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right text-xs text-gray-400">
+                    {watch("content")?.length || 0}/500
+                  </div>
+                </div>
+
+                {/* Privacy options */}
+                <div className="mt-2 flex flex-wrap items-center space-x-4">
+                  {/* Public switch */}
+                  <div className="mb-2 flex w-full items-center space-x-2 sm:mb-0 sm:w-auto">
+                    <Switch
+                      checked={isPublic}
+                      onChange={(checked) => {
+                        setIsPublic(checked);
+                        if (checked) {
+                          setValue("selectedRoles", []);
+                          setValue("selectedMemberships", []);
+                        }
+                      }}
+                      className={`${
+                        isPublic ? "bg-blue-500" : "bg-gray-600"
+                      } relative inline-flex h-5 w-10 items-center rounded-full transition-colors duration-300 focus:outline-none`}
+                    >
+                      <span
+                        className={`${
+                          isPublic ? "translate-x-5" : "translate-x-1"
+                        } inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-300`}
+                      />
+                    </Switch>
+                    <span className="text-sm text-white">
+                      {isPublic ? "Public" : "Private"}
+                    </span>
+                  </div>
+                  {!isPublic && (
+                    <div className="flex w-full flex-wrap gap-1 sm:flex-1 sm:flex-nowrap sm:gap-4">
+                      {/* Selected Roles */}
+                      <div className="mb-2 w-full sm:mb-0 sm:min-w-[150px] sm:flex-1">
+                        <Controller
+                          name="selectedRoles"
+                          control={control}
+                          defaultValue={[]}
+                          render={({ field }) => (
+                            <TagsInput
+                              value={field.value}
+                              onChange={(tags) => {
+                                field.onChange(tags);
+                              }}
+                              suggestions={availableRoles.map((role) => role.name)}
+                              placeholder="Roles"
+                            />
+                          )}
+                        />
+                      </div>
+                      {/* Selected Memberships */}
+                      <div className="w-full sm:min-w-[150px] sm:flex-1">
+                        <Controller
+                          name="selectedMemberships"
+                          control={control}
+                          defaultValue={[]}
+                          render={({ field }) => (
+                            <TagsInput
+                              value={field.value}
+                              onChange={(tags) => {
+                                field.onChange(tags);
+                              }}
+                              suggestions={availableMemberships.map(
+                                (membership) => membership.name
+                              )}
+                              placeholder="Memberships"
+                            />
+                          )}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Attachments and actions */}
+                <div className="mt-4 flex items-center justify-between">
+                  <div className="flex space-x-2">
+                    {/* Photo upload */}
+                    <label
+                      htmlFor="file-input"
+                      className="flex cursor-pointer items-center space-x-1 text-white"
+                    >
+                      <PhotoIcon className="h-5 w-5 text-green-500" />
+                      <span className="text-sm">Photo/Video</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        id="file-input"
+                        multiple
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                  <div className="flex space-x-2">
                     <button
                       type="button"
-                      onClick={() =>
-                        handleRemovePhoto(
-                          index,
-                          !!(editingPost && editingPost.postphotos?.includes(photo))
-                        )
-                      }
-                      className="absolute right-1 top-1 rounded-full bg-black bg-opacity-75 p-1 text-white"
+                      className="text-sm text-gray-400 hover:text-gray-200"
+                      onClick={resetForm}
                     >
-                      <XCircleIcon className="h-5 w-5" />
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className={`rounded-full bg-primary px-4 py-1 text-sm font-semibold text-white ${
+                        isLoading || !watch("content")?.trim()
+                          ? "cursor-not-allowed opacity-50"
+                          : "hover:bg-primarydark"
+                      }`}
+                      disabled={isLoading || !watch("content")?.trim()}
+                    >
+                      {isLoading ? "Posting..." : "Post"}
                     </button>
                   </div>
-                ))}
-              </div>
-            )}
-            {creationMessage && (
-              <div
-                className={`mt-4 rounded-lg p-4 text-white ${
-                  creationMessage.type === "success"
-                    ? "bg-green-500"
-                    : "bg-red-500"
-                }`}
-              >
-                {creationMessage.text}
-              </div>
-            )}
-          </form>
-        </div>
+                </div>
+
+                {/* Creation message */}
+                {creationMessage && (
+                  <div
+                    className={`mt-3 rounded-md px-4 py-2 text-center text-sm font-medium ${
+                      creationMessage.type === "success"
+                        ? "bg-green-500 text-white"
+                        : "bg-red-500 text-white"
+                    }`}
+                  >
+                    {creationMessage.text}
+                  </div>
+                )}
+              </form>
+            </div>
+          )}
+        </>
       )}
+
       <div className="mt-8 space-y-4">
-        {(filteredPosts.length <= 0 || isLoading) && (
+        {(filteredPosts.length <= 0 && !isLoading) && (
           <div
-            className="mb-4 rounded-lg bg-gray-800 p-4 text-center text-sm text-blue-400"
-            role="alert"
+        className="mb-4 rounded-lg bg-gray-800 p-4 text-center text-sm text-blue-400"
+        role="alert"
           >
-            {isLoading
-              ? "Checking permissions..."
-              : "The organization has no posts available for you at the moment."}
+        The organization has no posts available for you at the moment.
           </div>
         )}
         {filteredPosts.map((post) => (
           <PostCard
-            key={post.postid}
-            post={post}
-            setPosts={setCurrentPosts}
-            setEditingPost={setEditingPost}
-            availableRoles={availableRoles}
-            availableMemberships={availableMemberships}
-            canDelete={canDelete}
-            organizationId={organizationId}
+        key={post.postid}
+        post={post}
+        setPosts={setCurrentPosts}
+        setEditingPost={setEditingPost}
+        availableRoles={availableRoles}
+        availableMemberships={availableMemberships}
+        canDelete={canDelete}
+        organizationId={organizationId}
           />
         ))}
       </div>
@@ -665,9 +655,9 @@ const PostCard: React.FC<{
 
   // Compute selectedRoles and selectedMemberships directly from post prop
   const selectedRoles = post.privacy.role_privacy?.map((role: any) => role.role_id) || [];
-  const selectedMemberships = post.privacy.membership_privacy?.map(
-    (membership: any) => membership.membership_id
-  ) || [];
+  const selectedMemberships =
+    post.privacy.membership_privacy?.map((membership: any) => membership.membership_id) ||
+    [];
 
   const [isDeleted, setIsDeleted] = useState(false);
   const isLoadingPrivacy = false; // Privacy data is already loaded
@@ -702,9 +692,7 @@ const PostCard: React.FC<{
               setIsDeleted(true);
               setTimeout(
                 () =>
-                  setPosts((prevPosts) =>
-                    prevPosts.filter((p) => p.postid !== postid)
-                  ),
+                  setPosts((prevPosts) => prevPosts.filter((p) => p.postid !== postid)),
                 3000
               );
             } else {
@@ -729,7 +717,8 @@ const PostCard: React.FC<{
   const handleEdit = () => {
     const roleNames: string[] = selectedRoles.map(
       (roleId: string): string =>
-        availableRoles.find((role: { id: string; name: string }) => role.id === roleId)?.name || ""
+        availableRoles.find((role: { id: string; name: string }) => role.id === roleId)
+          ?.name || ""
     );
     const membershipNames: string[] = selectedMemberships
       .map(
@@ -746,26 +735,27 @@ const PostCard: React.FC<{
       selectedMemberships: membershipNames,
     });
   };
-
   const generatePrivacyLabel = () => {
     if (isLoadingPrivacy) {
       return (
-        <span className="inline-block rounded-full bg-yellow-500 px-2 py-1 text-xs text-white">
+        <span className="inline-block rounded-full border border-yellow-500 px-2 py-0.5 text-xs text-yellow-500">
           Loading...
         </span>
       );
     }
+
     const roleLabels = selectedRoles.map((roleId: string) => {
       const roleName = availableRoles.find((role) => role.id === roleId)?.name;
       return (
         <span
           key={roleId}
-          className="inline-block rounded-full bg-blue-500 px-2 py-1 text-xs text-white"
+          className="inline-block rounded-full border border-blue-500 px-2 py-0.5 text-xs text-blue-500"
         >
           {roleName}
         </span>
       );
     });
+
     const membershipLabels = selectedMemberships.map((membershipId: string) => {
       const membershipName = availableMemberships.find(
         (membership) => membership.membershipid === membershipId
@@ -773,17 +763,19 @@ const PostCard: React.FC<{
       return (
         <span
           key={membershipId}
-          className="inline-block rounded-full bg-purple-500 px-2 py-1 text-xs text-white"
+          className="inline-block rounded-full border border-purple-500 px-2 py-0.5 text-xs text-purple-500"
         >
           {membershipName}
         </span>
       );
     });
+
     if (roleLabels.length || membershipLabels.length) {
       return [...roleLabels, ...membershipLabels];
     }
+
     return (
-      <span className="inline-block rounded-full bg-green-500 px-2 py-1 text-xs text-white">
+      <span className="inline-block rounded-full border border-green-500 px-2 py-0.5 text-xs text-green-500">
         Public
       </span>
     );
@@ -805,103 +797,158 @@ const PostCard: React.FC<{
 
   return (
     <div className="relative rounded-lg bg-[#171717] p-4 shadow-lg">
-      {isLoggedIn && (
-        <div className="absolute right-2 top-2">
-          <Menu as="div" className="relative">
-            <Menu.Button className="flex items-center text-gray-500 hover:text-gray-400">
-              <EllipsisVerticalIcon className="h-5 w-5" />
-            </Menu.Button>
-            <Transition
-              as={Fragment}
-              enter="transition ease-out duration-100"
-              enterFrom="transform opacity-0 scale-95"
-              enterTo="transform opacity-100 scale-100"
-              leave="transition ease-in duration-75"
-              leaveFrom="transform opacity-100 scale-100"
-              leaveTo="transform opacity-0 scale-95"
-            >
-              <Menu.Items className="absolute right-0 z-10 mt-2 w-48 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                {isCurrentUserAuthor && (
-                  <div className="p-1">
+      <div className="relative rounded-md bg-[#171717] shadow-sm">
+        {isLoggedIn && (
+          <div className="absolute right-2 top-2 flex space-x-2">
+            <div className="flex flex-wrap">{generatePrivacyLabel()}</div>
+            <Menu as="div" className="relative">
+              <Menu.Button className="text-gray-400 hover:text-gray-300">
+                <EllipsisVerticalIcon className="h-4 w-4" />
+              </Menu.Button>
+              <Transition
+                as={Fragment}
+                enter="transition ease-out duration-100"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="transition ease-in duration-75"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Menu.Items className="absolute right-0 z-10 mt-2 w-36 rounded-md bg-charleston shadow-md ring-1 ring-black ring-opacity-5">
+                  {isCurrentUserAuthor && (
                     <Menu.Item>
                       {({ active }) => (
                         <button
                           onClick={handleEdit}
-                          className={`${
-                            active ? "bg-gray-100" : ""
-                          } group flex w-full items-center rounded-md p-2 text-sm text-gray-900`}
+                          className={`flex w-full items-center rounded-md p-2 text-sm text-gray-300 ${
+                            active ? "bg-gray-700" : ""
+                          }`}
                         >
-                          <PencilIcon className="mr-2 h-5 w-5 text-gray-400" />
-                          Edit
+                          <PencilIcon className="mr-2 h-4 w-4" /> Edit
                         </button>
                       )}
                     </Menu.Item>
-                  </div>
-                )}
-                {(isCurrentUserAuthor || canDelete) && (
-                  <div className="p-1">
+                  )}
+                  {(isCurrentUserAuthor || canDelete) && (
                     <Menu.Item>
                       {({ active }) => (
                         <button
                           onClick={handleDelete}
-                          className={`${
-                            active ? "bg-gray-100" : ""
-                          } group flex w-full items-center rounded-md p-2 text-sm text-gray-900`}
+                          className={`flex w-full items-center rounded-md p-2 text-sm text-gray-300 ${
+                            active ? "bg-gray-700" : ""
+                          }`}
                         >
-                          <TrashIcon className="mr-2 h-5 w-5 text-gray-400" />
-                          Delete
+                          <TrashIcon className="mr-2 h-4 w-4" /> Delete
                         </button>
                       )}
                     </Menu.Item>
-                  </div>
-                )}
-              </Menu.Items>
-            </Transition>
-          </Menu>
+                  )}
+                </Menu.Items>
+              </Transition>
+            </Menu>
+          </div>
+        )}
+
+        <div className="flex items-center space-x-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#424242]">
+            {authorDetails.profilePicture ? (
+              <img
+                src={authorDetails.profilePicture}
+                alt={`${authorDetails.firstName}'s profile`}
+                className="h-full w-full rounded-full object-cover"
+              />
+            ) : (
+              <UserCircleIcon className="h-8 w-8 text-white" />
+            )}
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-white">
+              {authorDetails.firstName} {authorDetails.lastName}
+            </span>
+          </div>
         </div>
-      )}
-      <div className="flex items-center space-x-4">
-        <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-[#424242]">
-          {authorDetails.profilePicture ? (
-            <img
-              src={authorDetails.profilePicture}
-              alt={`${authorDetails.firstName}'s profile`}
-              className="h-full w-full object-cover"
+
+        <div className="mt-3 break-words rounded-md text-sm text-white">{content}</div>
+
+        {galleryImages.length > 0 && (
+          <div className="mt-3" style={{ maxHeight: "400px", overflow: "hidden" }}>
+            <ImageGallery
+              items={galleryImages}
+              showNav={false}
+              showPlayButton={false}
+              showBullets={false}
+              renderItem={(item) => (
+                <div className="image-gallery-image" style={{ backgroundColor: "black" }}>
+                  <img
+                    src={item.original}
+                    alt={item.originalAlt}
+                    style={{
+                      maxHeight: "300px",
+                      width: "auto",
+                      height: "auto",
+                      margin: "0 auto",
+                      objectFit: "contain",
+                    }}
+                  />
+                </div>
+              )}
+              renderThumbInner={(item) => (
+                <div
+                  className="image-gallery-thumbnail-inner"
+                  style={{ backgroundColor: "black" }}
+                >
+                  <img
+                    src={item.thumbnail}
+                    alt={item.thumbnailAlt}
+                    style={{
+                      maxHeight: "50px",
+                      width: "auto",
+                      height: "auto",
+                      margin: "0 auto",
+                    }}
+                  />
+                </div>
+              )}
+              onScreenChange={(isFullScreen) => {
+                const galleryElement = document.querySelector(".image-gallery");
+                if (galleryElement) {
+                  const images = galleryElement.querySelectorAll(
+                    ".image-gallery-image img"
+                  );
+                  if (isFullScreen) {
+                    // Make the images fill the full screen while maintaining aspect ratio
+                    images.forEach((img) => {
+                      (img as HTMLElement).style.maxHeight = "100vh"; // Fill the full screen height
+                      (img as HTMLElement).style.maxWidth = "100vw"; // Fill the full screen width
+                      (img as HTMLElement).style.height = "100%"; // Set height to fill screen
+                      (img as HTMLElement).style.width = "100%"; // Set width to fill screen
+                      (img as HTMLElement).style.objectFit = "contain"; // Maintain aspect ratio
+                    });
+                  } else {
+                    // Restore the limited height when exiting full-screen
+                    images.forEach((img) => {
+                      (img as HTMLElement).style.maxHeight = "300px"; // Reset to original max height
+                      (img as HTMLElement).style.maxWidth = "100%"; // Reset width
+                      (img as HTMLElement).style.height = "auto"; // Restore normal dimensions
+                      (img as HTMLElement).style.width = "auto"; // Restore normal dimensions
+                      (img as HTMLElement).style.objectFit = "contain"; // Maintain aspect ratio
+                    });
+                  }
+                }
+              }}
             />
-          ) : (
-            <UserCircleIcon className="h-10 w-10 text-white" />
-          )}
-        </div>
-        <div>
-          <p className="text-white">
-            {authorDetails.firstName} {authorDetails.lastName}
-          </p>
-          <p className="text-sm text-gray-400">
+          </div>
+        )}
+
+        <div className="mt-3 flex justify-between text-xs text-gray-700">
+          <div>
             {createdat
-              ? format(new Date(createdat), "MMMM dd, yyyy hh:mm a")
+              ? format(new Date(createdat), "MMM dd, yyyy hh:mm a")
               : "Unknown date"}
-          </p>
-          <div className="flex flex-wrap space-x-2">
-            {generatePrivacyLabel()}
           </div>
         </div>
       </div>
-      <p className="mb-5 mt-5 break-words rounded-lg bg-[#2a2a2a] p-4 text-white">
-        {content}
-      </p>
-      {galleryImages.length > 0 && (
-        <div className="mt-5">
-          <ImageGallery
-            items={galleryImages}
-            showNav={true}
-            showThumbnails={false}
-            showBullets={true}
-            showIndex={true}
-            showFullscreenButton={false}
-            showPlayButton={false}
-          />
-        </div>
-      )}
+
       <CommentsSection
         postId={postid ?? ""}
         organizationId={organizationId}
@@ -911,4 +958,5 @@ const PostCard: React.FC<{
   );
 };
 PostCard.displayName = "PostCard";
+
 export default PostsSection;
