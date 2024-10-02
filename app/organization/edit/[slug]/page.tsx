@@ -1,38 +1,98 @@
 "use client";
 import CreateOrganizationForm from "@/components/create_organization_form";
-import { fetchOrganizationBySlug } from "@/lib/organization";
-import { createClient } from "@/lib/supabase/client";
+import { fetchOrganizationBySlug, check_permissions } from "@/lib/organization";
+import { createClient, getUser } from "@/lib/supabase/client";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { StepsProvider } from "react-step-builder";
+import Preloader from "@/components/preloader";
+
+const supabase = createClient();
 
 export default function Example() {
   const router = useRouter();
-
   const { slug } = useParams() as { slug: string };
-
   const [formValues, setFormValues] = useState(null);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
-    if (slug) {
-      (async () => {
-        try {
-          const { data, error } = await fetchOrganizationBySlug(slug as string);
-          if (error) {
-            setError(error.message);
-            console.error(error);
-          } else {
-            setFormValues(data);
-          }
-        } catch (err) {
-          console.error("Failed to fetch organization:", err);
-          setError((err as Error).message);
+    const checkAuthorization = async () => {
+      try {
+        console.log("Starting authorization check...");
+        
+        const { user } = await getUser();
+        if (!user) {
+          console.log("Authorization failed: User not logged in");
+          router.back();
+          return;
         }
-      })();
-    }
-  }, [slug]);
+        console.log("User logged in:", user.id);
+
+        if (user.user_metadata.role === 'superadmin') {
+          console.log("User is superadmin, authorization granted");
+          setIsAuthorized(true);
+        } else {
+          console.log("User is not superadmin, checking organization membership...");
+          
+          const { data: org, error: orgError } = await fetchOrganizationBySlug(slug as string);
+          if (orgError) {
+            console.log("Error fetching organization", orgError);
+            router.back();
+            return;
+          }
+          console.log("Organization fetched:", org.organizationid);
+
+          // Check if user is a member of the organization
+          const { data: membership, error: membershipError } = await supabase
+            .from("organizationmembers")
+            .select("roleid")
+            .eq("userid", user.id)
+            .eq("organizationid", org.organizationid)
+            .single();
+
+          if (membershipError) {
+            console.log("Error checking organization membership", membershipError);
+            router.back();
+            return;
+          }
+
+          if (!membership) {
+            console.log("User is not a member of this organization");
+            router.back();
+            return;
+          }
+
+          console.log("User is a member, checking permissions...");
+          const hasPermission = await check_permissions(user.id, org.organizationid, 'edit_organization');
+          console.log("Permission check result:", hasPermission);
+          setIsAuthorized(hasPermission);
+
+          if (hasPermission) {
+            console.log("User is authorized, setting form values");
+            setFormValues(org);
+          } else {
+            console.log("Authorization failed: User doesn't have permission to edit this organization");
+            router.back();
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Unexpected error during authorization check:", err);
+        router.back();
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuthorization();
+  }, [slug, router]);
+
+  if (isLoading) {
+    return <Preloader />;
+  }
 
   return (
     <>
@@ -54,19 +114,11 @@ export default function Example() {
         </div>
 
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-lg">
-          <StepsProvider>
-            <CreateOrganizationForm formValues={formValues} />
-          </StepsProvider>
-          {/* 
-          <p className="mt-10 text-center text-sm text-gray-400">
-            Not a member?{" "}
-            <a
-              href="#"
-              className="font-semibold leading-6 text-primarydark hover:text-primary"
-            >
-              Start a 14 day free trial
-            </a>
-          </p> */}
+          {isAuthorized ? (
+            <StepsProvider>
+              <CreateOrganizationForm formValues={formValues} />
+            </StepsProvider>
+          ) : null}
         </div>
       </div>
     </>

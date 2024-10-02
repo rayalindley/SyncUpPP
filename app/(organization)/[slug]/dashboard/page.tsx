@@ -53,7 +53,7 @@ export default async function SettingsPage({ params }: { params: { slug: string 
       <div className="mt-4 flex gap-2">
         <a
           className="border-1 rounded-md border border-primary bg-primarydark p-1 px-2 text-sm text-gray-100 hover:cursor-pointer"
-          href={`/${slug}/dashboard/edit`}
+          href={`/organization/edit/${slug}`}
         >
           Edit Organization
         </a>
