@@ -179,7 +179,7 @@ export default function Header({ user = null }: { user: User | null }) {
       window.removeEventListener("hashchange", handleHashChange);
     };
   }, []);
-
+  
   return (
     <header className="bg-eerieblack">
       <nav
@@ -438,14 +438,33 @@ export default function Header({ user = null }: { user: User | null }) {
                   leaveFrom="opacity-100 scale-100"
                   leaveTo="opacity-0 scale-95"
                 >
-                  <Menu.Items className="absolute right-0 z-20 mt-2 w-48 origin-top-right rounded-md bg-[#151718] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                  <Menu.Items className="absolute right-0 z-10 mt-2 w-56 origin-top-right divide-y divide-[#525252] rounded-md bg-charleston shadow-lg ring-1 ring-light ring-opacity-5 focus:outline-none">
+                    <div className="px-4 py-3">
+                      <p className="text-sm text-light">Signed in as</p>
+                      <p className="truncate text-sm font-medium text-light">
+                        {user.email}
+                      </p>
+                    </div>
                     <div className="py-1">
                       <Menu.Item>
                         {({ active }) => (
                           <Link
-                            href={`/user/profile/${user.id}`}
+                            href={`/dashboard`}
                             className={classNames(
-                              active ? "bg-[#23af90] text-white" : "text-gray-300",
+                              active ? "bg-[#383838] text-light" : "text-light",
+                              "block px-4 py-2 text-sm"
+                            )}
+                          >
+                            Dashboard
+                          </Link>
+                        )}
+                      </Menu.Item>
+                      <Menu.Item>
+                        {({ active }) => (
+                          <Link
+                            href={`/user/profile/${user?.id}`}
+                            className={classNames(
+                              active ? "bg-[#383838] text-light" : "text-light",
                               "block px-4 py-2 text-sm"
                             )}
                           >
@@ -453,45 +472,18 @@ export default function Header({ user = null }: { user: User | null }) {
                           </Link>
                         )}
                       </Menu.Item>
-                      <Menu.Item>
-                        {({ active }) => (
-                          <Link
-                            href="/support"
-                            className={classNames(
-                              active ? "bg-[#23af90] text-white" : "text-gray-300",
-                              "block px-4 py-2 text-sm"
-                            )}
-                          >
-                            Support
-                          </Link>
-                        )}
-                      </Menu.Item>
-                      <Menu.Item>
-                        {({ active }) => (
-                          <Link
-                            href="/license"
-                            className={classNames(
-                              active ? "bg-[#23af90] text-white" : "text-gray-300",
-                              "block px-4 py-2 text-sm"
-                            )}
-                          >
-                            License
-                          </Link>
-                        )}
-                      </Menu.Item>
                     </div>
-                    <div className="border-t border-gray-700"></div>
                     <div className="py-1">
                       <Menu.Item>
                         {({ active }) => (
                           <button
+                            className={classNames(
+                              active ? "bg-[#383838] text-light" : "text-light",
+                              "block w-full px-4 py-2 text-left text-sm"
+                            )}
                             onClick={async () => {
                               await signOut();
                             }}
-                            className={classNames(
-                              active ? "bg-[#23af90] text-white" : "text-gray-300",
-                              "block w-full px-4 py-2 text-left text-sm"
-                            )}
                           >
                             Sign out
                           </button>
@@ -536,8 +528,8 @@ export default function Header({ user = null }: { user: User | null }) {
       {/* Mobile Menu */}
       <Dialog as="div" className="lg:hidden" open={sidebarOpen} onClose={setSidebarOpen}>
         <div className="fixed inset-0 z-10" />
-        <Dialog.Panel className="fixed inset-y-0 right-0 z-10 w-full overflow-y-auto bg-white px-6 py-6 sm:max-w-sm sm:ring-1 sm:ring-gray-900/10">
-          <div className="flex items-center gap-x-6">
+        <Dialog.Panel className="fixed inset-y-0 right-0 z-10 w-full overflow-y-auto bg-charleston px-6 py-6 sm:max-w-sm sm:ring-1 sm:ring-gray-900/10">
+          <div className="flex items-center justify-between gap-x-6">
             <Link href="/">
               <div className="flex lg:flex-1 ">
                 <div className="-m-1.5 p-1.5">
@@ -547,12 +539,14 @@ export default function Header({ user = null }: { user: User | null }) {
                 <div className="font text-lg font-semibold text-light">SyncUp</div>
               </div>
             </Link>
-            <Link
-              href="/signup"
-              className="ml-auto rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            >
-              Sign up
-            </Link>
+            {!user && (
+              <Link
+                href="/signup"
+                className="ml-auto rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                Sign up
+              </Link>
+            )}
             <button
               type="button"
               className="-m-2.5 rounded-md p-2.5 text-gray-700"
@@ -574,7 +568,7 @@ export default function Header({ user = null }: { user: User | null }) {
                       handleNavClick(item.href);
                       setSidebarOpen(false); // Close the menu after navigation
                     }}
-                    className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+                    className="-mx-3 block rounded-lg px-3 py-2 text-sm font-semibold leading-6 text-light hover:bg-primary"
                   >
                     {item.name}
                   </Link>
@@ -585,21 +579,21 @@ export default function Header({ user = null }: { user: User | null }) {
                   <>
                     <Link
                       href={`/dashboard`}
-                      className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+                      className="-mx-3 block rounded-lg px-3 py-2 text-sm font-semibold leading-6 text-light hover:bg-primary"
                     >
                       Dashboard
                     </Link>
                     <Link
                       href={`/user/profile/${user.id}`}
-                      className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+                      className="-mx-3 block rounded-lg px-3 py-2 text-sm font-semibold leading-6 text-light hover:bg-primary"
                     >
                       My Profile
                     </Link>
                     <button
-                      className="-mx-3 block w-full rounded-lg px-3 py-2 text-left text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+                      className="-mx-3 block w-full rounded-lg px-3 py-2 text-left text-base font-semibold leading-7 text-red-500 hover:bg-primary"
                       onClick={async () => {
-                        await signOut();
-                        setSidebarOpen(false);
+                      await signOut();
+                      setSidebarOpen(false);
                       }}
                     >
                       Sign out
@@ -609,7 +603,7 @@ export default function Header({ user = null }: { user: User | null }) {
                   <>
                     <Link
                       href="/signin"
-                      className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+                      className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-light hover:bg-primary"
                     >
                       Log in
                     </Link>
