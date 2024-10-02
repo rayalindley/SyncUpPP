@@ -46,7 +46,7 @@ const DeleteButton: React.FC<DeleteButtonProps> = ({ organizationId }) => {
       className="border-1 rounded-md border border-red-500 bg-red-600 p-1 px-2 text-sm text-gray-100 hover:cursor-pointer"
       onClick={handleDelete}
     >
-      Delete Org
+      Delete Organization
     </button>
   );
 };

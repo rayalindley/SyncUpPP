@@ -35,6 +35,7 @@ import { Invoice as InvoiceClient, Xendit } from "xendit-node";
 import type { CreateInvoiceRequest, Invoice } from "xendit-node/invoice/models";
 import { QRCode } from "react-qrcode-logo";
 import Modal from "react-modal"; // Import modal library
+import { check_permissions } from "@/lib/organization";
 
 const xenditClient = new Xendit({
   secretKey: process.env.NEXT_PUBLIC_XENDIT_SECRET_KEY!,
@@ -67,6 +68,9 @@ const EventPage = () => {
   const [showQRCode, setShowQRCode] = useState(false); // State to show/hide QR code
   const [qrCodeUrl, setQRCodeUrl] = useState(""); // State for QR code URL
   const [modalIsOpen, setModalIsOpen] = useState(false); // State for modal visibility
+  const [canManageRegistrations, setCanManageRegistrations] = useState(false); // New state for managing event registrations permission
+  const [attendanceStatus, setAttendanceStatus] = useState<string | null>(null);
+
 
   const openModal = () => setModalIsOpen(true);
   const closeModal = () => setModalIsOpen(false);
@@ -139,6 +143,16 @@ const EventPage = () => {
 
           if (orgError) throw orgError;
           setOrganization(organizationData);
+
+          // Check if the user has permission to manage registrations
+          if (user) {
+            const hasPermission = await check_permissions(
+              user.id,
+              eventData.organizationid,
+              "manage_event_registrations"
+            );
+            setCanManageRegistrations(hasPermission);
+          }
         }
 
         if (eventData) {
@@ -177,20 +191,25 @@ const EventPage = () => {
             setIsMember(true);
           }
 
-          // Check if a QR code exists for the user
-          const { data: registrationData, error: registrationError } = await supabase
+            // Check if a QR code exists for the user and fetch attendance status
+            const { data: registrationData, error: registrationError } = await supabase
             .from("eventregistrations")
-            .select("qr_code_data")
+            .select("qr_code_data, attendance")
             .eq("userid", user.id)
             .eq("eventid", eventData.eventid)
             .single();
 
-          if (registrationError) {
+            if (registrationError) {
             console.error("Error fetching registration data:", registrationError);
-          } else if (registrationData.qr_code_data) {
-            setQRCodeUrl(registrationData.qr_code_data);
+            } else {
+            if (registrationData.qr_code_data) {
+              setQRCodeUrl(registrationData.qr_code_data);
+            }
+
+            // Set attendance status
+            setAttendanceStatus(registrationData.attendance);
+            }
           }
-        }
 
         if (user && eventData) {
           const { isMember } = await checkMembership(user.id, eventData.organizationid);
@@ -539,6 +558,11 @@ const EventPage = () => {
     }
   };
 
+   // Redirect to registrations page with the event ID in query params
+   const redirectToRegistrations = () => {
+    router.push(`/${organization?.slug}/dashboard/registrations?event=${event?.eventid}`);
+  };
+
 
 
   const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
@@ -731,9 +755,8 @@ const EventPage = () => {
                 <div className="flex items-center space-x-2">
                   <UsersIcon className="h-6 w-6 text-primary sm:h-8 sm:w-8" />
                   <span
-                    className={`text-sm sm:text-base ${
-                      attendeesCount >= event.capacity ? "text-red-500" : "text-light"
-                    }`}
+                    className={`text-sm sm:text-base ${event.capacity && attendeesCount >= event.capacity ? "text-red-500" : "text-light"} ${canManageRegistrations ? "cursor-pointer hover:text-primary" : ""}`}
+                    onClick={canManageRegistrations ? redirectToRegistrations : undefined} // Only clickable if user has permission
                   >
                     {event.capacity > 0
                       ? `${attendeesCount} / ${event.capacity} attending`
@@ -786,7 +809,8 @@ const EventPage = () => {
                     ? "Unregister"
                     : "Register"}
                 </button>
-                {isRegistered && qrCodeUrl && !eventFinished && (
+                {/* If user has been marked as present or late, do not show the "View QR" button */}
+                {isRegistered && qrCodeUrl && !eventFinished && attendanceStatus !== "present" && attendanceStatus !== "late" && (
                   <button
                     className="w-full mt-4 rounded-md bg-primary px-6 py-3 text-white hover:bg-primarydark"
                     onClick={openModal}
@@ -794,6 +818,14 @@ const EventPage = () => {
                     View QR
                   </button>
                 )}
+
+                {/* If the user is already marked as present or late */}
+                {(attendanceStatus === "present" || attendanceStatus === "late") && (
+                  <p className="mt-4 text-center text-sm text-light">
+                    You have already been marked as present for this event.
+                  </p>
+                )}
+
               </div>
 
               <div className="space-y-2">
@@ -829,8 +861,11 @@ const EventPage = () => {
         ) : (
           <p className="text-light">Loading QR Code...</p> // Loading message when qrCodeUrl is not available
         )}
-        <p className="mt-2 text-light text-center">Please save this QR Code and present it at the event for your attendance.</p>
-        <button
+      <p className="mt-2 text-light text-center">
+        {attendanceStatus === "present" || attendanceStatus === "late"
+          ? "You have already been marked as present for this event."
+          : "Please save this QR Code and present it at the event for your attendance."}
+      </p>        <button
           className="mt-4 rounded-md bg-primary px-6 py-2 text-white hover:bg-primarydark"
           onClick={closeModal}
         >

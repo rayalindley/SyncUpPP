@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation"; // Import useSearchParams to read query params
 import { useDebounce } from "use-debounce";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -30,6 +31,7 @@ interface Registration {
   registrationdate: string;
   status: string;
   attendance: string | null; // Modified to allow null for empty values
+  attendance_updated_at: string;
 }
 
 interface RegistrationsTableProps {
@@ -45,14 +47,25 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
 }) => {
   const supabase = createClient();
   const router = useRouter();
+  const searchParams = useSearchParams(); // Use useSearchParams to capture the event ID/name
   const [tableData, setTableData] = useState<Registration[]>(registrations);
   const [filterText, setFilterText] = useState<string>("");
   const [debouncedFilterText] = useDebounce(filterText, 300);
   const [statusFilter, setStatusFilter] = useState<string>("");
-  const [eventFilter, setEventFilter] = useState<string>("");
+  const [eventFilter, setEventFilter] = useState<string>(""); // Event filter
   const [attendanceFilter, setAttendanceFilter] = useState<string>("");
   const [canManageRegistrations, setCanManageRegistrations] = useState(false); // State for permissions
   const [showQrScanner, setShowQrScanner] = useState(false); // State for QR scanner modal
+
+  // Capture event ID from the query params on component mount
+  useEffect(() => {
+    if (searchParams) {
+      const eventIdFromQuery = searchParams.get("event"); // Get event ID or event name from query params
+      if (eventIdFromQuery) {
+        setEventFilter(eventIdFromQuery); // Set the event filter to this value
+      }
+    }
+  }, [searchParams]); // Run this effect when searchParams change
 
   // Check permissions on component mount
   useEffect(() => {
@@ -191,7 +204,6 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
       toast.error("An error occurred. Please try again.");
     }
   };
-  
 
   // Function to export filtered data to CSV
   const exportToCSV = () => {
@@ -225,29 +237,6 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
     }_registrations_${format(new Date(), "yyyy-MM-dd")}.csv`;
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     saveAs(blob, fileName);
-  };
-
-  const handleQrScan = async (scannedResult: string) => {
-    try {
-      // Extract the user ID and event ID from the scanned QR code URL
-      const url = new URL(scannedResult);
-      const scannedUserId = url.searchParams.get("uid");
-      const scannedEventId = url.searchParams.get("event");
-
-      if (scannedUserId && scannedEventId) {
-        // Redirect to the attendance page with the scanned user ID and event ID
-        router.push(`/attendance?uid=${scannedUserId}&event=${scannedEventId}`);
-      } else {
-        toast.error("Invalid QR code.");
-      }
-    } catch (error) {
-      console.error("QR Code processing error:", error); // Log QR processing error
-      toast.error("Failed to process the scanned QR code.");
-    }
-  };
-
-  const handleQrError = (error: Error) => {
-    console.error("QR Scan Error:", error);
   };
 
   const columns: TableColumn<Registration>[] = [
@@ -357,6 +346,17 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
         </div>
       ),
     },
+    {
+      name: "Attendance Updated At",
+      selector: (row: Registration) => row.attendance_updated_at,
+      sortable: true,
+      cell: (row: Registration) => {
+        const attendanceDate = new Date(row.attendance_updated_at);
+        // Convert UTC to PST (UTC-8 or UTC-7 depending on daylight saving)
+        const pstDate = new Date(attendanceDate.getTime() + (8 * 60 * 60 * 1000)); // Adjust for PST
+        return attendanceDate.getTime() === 0 ? "" : format(pstDate, "MMM d, yyyy h:mma");
+      },
+    },
   ];
 
   const filteredData = tableData.filter((item) => {
@@ -373,6 +373,29 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
       (!attendanceFilter || item.attendance === attendanceFilter)
     );
   });
+
+  const handleQrScan = async (scannedResult: string) => {
+    try {
+      // Extract the user ID and event ID from the scanned QR code URL
+      const url = new URL(scannedResult);
+      const scannedUserId = url.searchParams.get("uid");
+      const scannedEventId = url.searchParams.get("event");
+
+      if (scannedUserId && scannedEventId) {
+        // Redirect to the attendance page with the scanned user ID and event ID
+        router.push(`/attendance?uid=${scannedUserId}&event=${scannedEventId}`);
+      } else {
+        toast.error("Invalid QR code.");
+      }
+    } catch (error) {
+      console.error("QR Code processing error:", error); // Log QR processing error
+      toast.error("Failed to process the scanned QR code.");
+    }
+  };
+
+  const handleQrError = (error: Error) => {
+    console.error("QR Scan Error:", error);
+  };
 
   return (
     <>

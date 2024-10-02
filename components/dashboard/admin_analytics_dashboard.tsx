@@ -15,10 +15,25 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { FaUsers, FaCalendarAlt, FaBuilding } from "react-icons/fa"; // Icons for the summary cards
 
 import { Registration } from "@/types/registration";
 import { TopOrg } from "@/types/top_org";
 import { TotalStats } from "@/types/total_stats";
+
+const SummaryCard: React.FC<{
+  title: string;
+  value: string | number;
+  icon: React.ReactNode;
+}> = ({ title, value, icon }) => (
+  <div className="flex items-center rounded-lg bg-charleston p-6 shadow-md mb-4">
+    <div className="mr-4 text-3xl text-primary">{icon}</div>
+    <div>
+      <h3 className="text-lg font-semibold text-white">{title}</h3>
+      <p className="text-2xl font-bold text-white">{value}</p>
+    </div>
+  </div>
+);
 
 const AdminAnalyticsDashboard = ({ user }: { user: User | null }) => {
   const [totalStats, setTotalStats] = useState<TotalStats | null>(null);
@@ -139,20 +154,12 @@ const AdminAnalyticsDashboard = ({ user }: { user: User | null }) => {
   if (!totalStats) return <Preloader />;
 
   return (
-    <div className="p-4">
+    <div className="">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="rounded bg-charleston p-4 text-light shadow">
-          <h2 className="text-lg font-semibold">Total Organizations</h2>
-          <p className="text-3xl">{totalStats.total_orgs}</p>
-        </div>
-        <div className="rounded bg-charleston p-4 text-light shadow">
-          <h2 className="text-lg font-semibold">Total Events</h2>
-          <p className="text-3xl">{totalStats.total_events}</p>
-        </div>
-        <div className="rounded bg-charleston p-4 text-light shadow">
-          <h2 className="text-lg font-semibold">Total Members</h2>
-          <p className="text-3xl">{totalStats.total_members}</p>
-        </div>
+        {/* Use SummaryCard for total stats */}
+        <SummaryCard title="Total Organizations" value={totalStats.total_orgs} icon={<FaBuilding />} />
+        <SummaryCard title="Total Events" value={totalStats.total_events} icon={<FaCalendarAlt />} />
+        <SummaryCard title="Total Members" value={totalStats.total_members} icon={<FaUsers />} />
       </div>
       <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="rounded bg-charleston p-4 shadow">
