@@ -1,11 +1,9 @@
-// app/api/fetch-newsletter-emails/route.ts
-
-import { NextResponse } from "next/server";
-import imaps from "imap-simple";
-import { simpleParser, ParsedMail } from "mailparser";
-import { Email, IncomingAttachment } from "@/types/email";
-import fs from "fs/promises";
-import path from "path";
+import { NextApiRequest, NextApiResponse } from 'next';
+import imaps from 'imap-simple';
+import { simpleParser, ParsedMail } from 'mailparser';
+import { Email, IncomingAttachment } from '@/types/email';
+import fs from 'fs/promises';
+import path from 'path';
 
 const imapConfig = {
   imap: {
@@ -21,10 +19,7 @@ const imapConfig = {
 
 const downloadedAttachments = new Set<string>();
 
-async function cleanupOldAttachments(
-  attachmentsDir: string,
-  validAttachments: Set<string>
-) {
+async function cleanupOldAttachments(attachmentsDir: string, validAttachments: Set<string>) {
   const files = await fs.readdir(attachmentsDir);
   for (const file of files) {
     if (!validAttachments.has(file)) {
@@ -37,40 +32,32 @@ async function cleanupOldAttachments(
   }
 }
 
-export async function GET(req: Request) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    const { searchParams } = new URL(req.url);
-    const organizationName = searchParams.get("organizationName"); // For sent emails
-    const organizationSlug = searchParams.get("organizationSlug"); // For incoming emails
+    const { organizationName, organizationSlug } = req.query;
 
     if (!organizationName || !organizationSlug) {
-      return NextResponse.json(
-        { message: "Organization name and slug are required" },
-        { status: 400 }
-      );
+      console.warn("Organization name or slug is missing in the request.");
+      return res.status(400).json({ message: "Organization name and slug are required" });
     }
 
+    // console.log("Connecting to IMAP server with config:", imapConfig);
     const connection = await imaps.connect(imapConfig);
+
     const mailboxes = ["INBOX", "[Gmail]/Sent Mail"];
+    // console.log("IMAP server connected successfully. Mailboxes:", mailboxes);
 
     const allEmails: Email[] = [];
 
-    // Define the directory where attachments will be saved
-    const attachmentsDir = path.join(process.cwd(), "attachments");
-
-    // Ensure the attachments directory exists
+    const attachmentsDir = path.join('/tmp', 'attachments');  // Changed to /tmp directory
     await fs.mkdir(attachmentsDir, { recursive: true });
 
     for (const mailbox of mailboxes) {
+      // console.log(`Fetching emails from mailbox: ${mailbox}`);
       await connection.openBox(mailbox);
 
       const searchCriteria = ["ALL"];
-      const fetchOptions = {
-        bodies: [""],
-        struct: true,
-        markSeen: false,
-      };
-
+      const fetchOptions = { bodies: [""], struct: true, markSeen: false };
       const results = await connection.search(searchCriteria, fetchOptions);
 
       for (const res of results) {
@@ -78,80 +65,60 @@ export async function GET(req: Request) {
         const rawEmail = rawEmailPart ? rawEmailPart.body : null;
 
         if (rawEmail) {
-          // Parse the raw email content
           const parsedEmail: ParsedMail = await simpleParser(rawEmail);
+          // console.log(`Parsed email from ${mailbox}: ${parsedEmail.subject}`);
 
-          // Initialize isRelevant to false
           let isRelevant = false;
 
           if (mailbox === "[Gmail]/Sent Mail") {
-            // For sent emails, check if 'from' name includes the organization name
             if (parsedEmail.from && parsedEmail.from.value) {
               isRelevant = parsedEmail.from.value.some(
-                (address) => address.name && address.name.includes(organizationName)
+                (address) => address.name && address.name.includes(Array.isArray(organizationName) ? organizationName.join(' ') : organizationName)
               );
             }
           } else if (mailbox === "INBOX") {
-            // For incoming emails, check if any 'to' address includes the organization's email alias
             if (parsedEmail.to) {
               const toAddresses = Array.isArray(parsedEmail.to)
                 ? parsedEmail.to
                 : [parsedEmail.to];
 
               isRelevant = toAddresses.some(
-                (address) =>
-                  address.text && address.text.includes(`+${organizationSlug}@gmail.com`)
+                (address) => address.text && address.text.includes(`+${organizationSlug}@gmail.com`)
               );
             }
           }
 
-          if (!isRelevant) {
-            // Skip emails not relevant to the organization
-            continue;
-          }
+          if (!isRelevant) continue;
 
-          // Extract attachments if any and save them
           const attachments: IncomingAttachment[] = [];
 
           for (const [index, attachment] of parsedEmail.attachments.entries()) {
             const originalFilename = attachment.filename || `attachment-${index}`;
             const uniqueFilename = `${res.attributes.uid}-${Date.now()}-${originalFilename}`;
-            const sanitizedFilename = path.basename(uniqueFilename); // Prevent directory traversal
-
+            const sanitizedFilename = path.basename(uniqueFilename);
             const filePath = path.join(attachmentsDir, sanitizedFilename);
 
             if (!downloadedAttachments.has(sanitizedFilename)) {
               try {
+                // console.log(`Saving attachment to ${filePath}`);
                 await fs.writeFile(filePath, attachment.content);
-
                 downloadedAttachments.add(sanitizedFilename);
 
                 attachments.push({
                   filename: sanitizedFilename,
                   contentType: attachment.contentType || "application/octet-stream",
-                  url: `/api/get-attachment?filename=${encodeURIComponent(sanitizedFilename)}`,
+                  url: `/api/newsletter/get-attachment?filename=${encodeURIComponent(sanitizedFilename)}`,
                 });
               } catch (writeError: any) {
-                console.error(
-                  `Failed to save attachment ${sanitizedFilename}: ${writeError.message}`
-                );
-
-                // Optionally, continue without failing the entire email processing
+                console.error(`Failed to save attachment: ${writeError.message}`);
               }
             }
           }
 
-          // Construct the Email object
           const email: Email = {
             id: res.attributes.uid.toString(),
-            from: formatAddress(parsedEmail.from),
-            to: parsedEmail.to
-              ? Array.isArray(parsedEmail.to)
-                ? parsedEmail.to.map((addr: any) => `${addr.name} <${addr.address}>`)
-                : parsedEmail.to.value.map(
-                    (addr: any) => `${addr.name} <${addr.address}>`
-                  )
-              : [],
+            from: parsedEmail.from ? parsedEmail.from.text : 'Unknown',
+            to: parsedEmail.to ? (Array.isArray(parsedEmail.to) ? parsedEmail.to.map((addr: any) => addr.text) : [parsedEmail.to.text]) : [],
             subject: parsedEmail.subject || "No Subject",
             date: parsedEmail.date ? parsedEmail.date.toISOString() : "No Date",
             body: parsedEmail.text || "",
@@ -160,6 +127,9 @@ export async function GET(req: Request) {
             mailbox,
             status: "unread",
             date_created: new Date().toISOString(),
+            organizationId: function (arg0: string, organizationId: any): unknown {
+              throw new Error('Function not implemented.');
+            }
           };
 
           allEmails.push(email);
@@ -167,27 +137,15 @@ export async function GET(req: Request) {
       }
     }
 
+    // console.log("Closing IMAP connection...");
     connection.end();
+    // console.log("IMAP connection closed successfully.");
 
-    // Clean up old attachments
     await cleanupOldAttachments(attachmentsDir, downloadedAttachments);
 
-    return NextResponse.json({ emails: allEmails });
+    res.status(200).json({ emails: allEmails });
   } catch (error: any) {
-    console.error("Error fetching emails: %o", error);
-    return NextResponse.json(
-      { message: "Error fetching emails", error: error.message },
-      { status: 500 }
-    );
+    console.error("Error fetching emails:", error);
+    res.status(500).json({ message: "Error fetching emails", error: error.message });
   }
-}
-
-/**
- * Formats an address object to a string.
- * @param address The address object from mailparser.
- * @returns A formatted address string.
- */
-function formatAddress(address: ParsedMail["from"]): string {
-  if (!address || !address.value) return "Unknown";
-  return address.value.map((addr: any) => `${addr.name} <${addr.address}>`).join(", ");
 }
