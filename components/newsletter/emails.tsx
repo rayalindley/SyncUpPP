@@ -326,9 +326,9 @@ const Emails: React.FC<EmailsProps> = ({
     const rawHtml = selectedEmail.htmlContent || selectedEmail.body || "";
     const sanitizedHtml = DOMPurify.sanitize(rawHtml, { USE_PROFILES: { html: true } });
 
-    // Remove any appearance of the environment variable NEXT_PUBLIC_GMAIL_USER and any surrounding <>
+    // Remove any appearance of the environment variable NEWSLETTER_EMAIL and any surrounding <>
     const cleanedHtml = sanitizedHtml
-      .replace(new RegExp(`${process.env.NEXT_PUBLIC_GMAIL_USER}`, "g"), "")
+      .replace(new RegExp(`${process.env.NEWSLETTER_EMAIL}`, "g"), "")
 
     if (isLightMode) {
       // **Render Original HTML Without Adjustments (Light Mode)**

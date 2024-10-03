@@ -63,8 +63,8 @@ async function sendNewsletterEmail({
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: process.env.NEXT_PUBLIC_GMAIL_USER!, // Gmail address from environment variable
-        pass: process.env.NEXT_PUBLIC_GMAIL_APP_PASSWORD!, // Gmail App Password from environment variable
+        user: process.env.NEWSLETTER_EMAIL!, // Gmail address from environment variable
+        pass: process.env.NEWSLETTER_PASSWORD!, // Gmail App Password from environment variable
       },
     });
     console.log('Nodemailer transporter created.');
@@ -87,8 +87,8 @@ async function sendNewsletterEmail({
     }
 
     const mailOptions: nodemailer.SendMailOptions = {
-      from: `"${fromName}" <${process.env.NEXT_PUBLIC_GMAIL_USER!}>`, // Custom name for the "From" field
-      replyTo: `${process.env.NEXT_PUBLIC_GMAIL_USER!.split('@')[0]}+${replyToExtension}@gmail.com`, // Custom Reply-To using +extension
+      from: `"${fromName}" <${process.env.NEWSLETTER_EMAIL!}>`, // Custom name for the "From" field
+      replyTo: `${process.env.NEWSLETTER_EMAIL!.split('@')[0]}+${replyToExtension}@gmail.com`, // Custom Reply-To using +extension
       to: recipients.join(', '), // The recipients' emails as a comma-separated string
       subject: subject, // The email subject
       html: message, // The email message in HTML format

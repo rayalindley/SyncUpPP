@@ -7,8 +7,8 @@ import path from 'path';
 
 const imapConfig = {
   imap: {
-    user: process.env.NEXT_PUBLIC_GMAIL_USER!,
-    password: process.env.NEXT_PUBLIC_GMAIL_APP_PASSWORD!,
+    user: process.env.NEWSLETTER_EMAIL!,
+    password: process.env.NEWSLETTER_PASSWORD!,
     host: "imap.gmail.com",
     port: 993,
     tls: true,
