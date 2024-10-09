@@ -138,10 +138,11 @@ export default function TagsInput({
 
   return (
     <div className={`w-full ${className}`} ref={containerRef}>
-      <div
-        className={`flex flex-wrap gap-2 rounded-md border-0 bg-white/5 p-2  shadow-sm ring-1 ring-inset ring-white/10 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary ${
+      <label
+        className={`flex flex-wrap gap-2 rounded-md border-0 bg-white/5 p-2 shadow-sm ring-1 ring-inset ring-white/10 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary ${
           disabled ? "opacity-50" : ""
         }`}
+        onClick={() => inputRef.current?.focus()}
       >
         {tags.map((tag) => (
           <span
@@ -152,7 +153,10 @@ export default function TagsInput({
             <button
               type="button"
               className="ml-1 inline-flex items-center p-0.5 text-primary-foreground hover:text-primary-foreground/70"
-              onClick={() => removeTag(tag)}
+              onClick={(e) => {
+                e.stopPropagation();
+                removeTag(tag);
+              }}
               disabled={disabled}
             >
               <IoClose className="h-3 w-3" />
@@ -163,7 +167,7 @@ export default function TagsInput({
         <input
           ref={inputRef}
           type="text"
-          className={`h-6 w-20 border-0 bg-transparent p-0 text-white outline-none placeholder:text-gray-400 focus:ring-0 ${inputClassName}`}
+          className={`h-6 min-w-[120px] flex-1 border-0 bg-transparent p-0 text-white outline-none placeholder:text-gray-400 focus:ring-0 ${inputClassName}`}
           placeholder={tags.length === 0 ? placeholder : ""}
           value={inputValue}
           onChange={handleInputChange}
@@ -172,7 +176,7 @@ export default function TagsInput({
           onBlur={handleInputBlur}
           disabled={disabled || tags.length >= maxItems}
         />
-      </div>
+      </label>
       {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
       {isFocused && filteredSuggestions.length > 0 && tags.length < maxItems && (
         <div className="relative">
