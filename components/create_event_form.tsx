@@ -273,7 +273,7 @@ const CreateEventForm = ({
         }
       }
 
-      const fileName = `${formData.title}_${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}`; // Changed to use random characters instead of title
       const { data: uploadResult, error: uploadError } = await supabase.storage
         .from("event-images")
         .upload(fileName, photoFile, {
