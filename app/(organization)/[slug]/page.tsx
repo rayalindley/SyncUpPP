@@ -43,17 +43,21 @@ export async function generateMetadata(
 
   const previousImages = (await parent).openGraph?.images || []
 
+  const faviconUrl = org.photo
+    ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${org.photo}`
+    : '/favicon.ico'; // Fallback to default favicon
+
   return {
     title: org.name,
     description: org.description,
     openGraph: {
-      title: `${org.name} - Organization Page`,
+      title: `${org.name} | SyncUp`,
       description: org.description,
       url: `${process.env.NEXT_PUBLIC_BASE_URL}/organization/${slug}`,
-      siteName: "Your Site Name",
+      siteName: "SyncUp",
       images: [
         {
-          url: org.photo
+          url: org.banner
             ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${org.banner}`
             : "",
           width: 1200,
@@ -67,13 +71,22 @@ export async function generateMetadata(
     },
     twitter: {
       card: "summary_large_image",
-      title: `${org.name} - Organization Page`,
+      title: `${org.name} - SyncUp`,
       description: org.description,
       images: [
-        org.photo
+        org.banner
           ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${org.banner}`
           : "",
       ],
+    },
+    icons: {
+      icon: faviconUrl,
+      shortcut: faviconUrl,
+      apple: faviconUrl,
+      other: {
+        rel: 'apple-touch-icon-precomposed',
+        url: faviconUrl,
+      },
     },
   };
 }
