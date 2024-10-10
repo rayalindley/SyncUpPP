@@ -9,6 +9,7 @@ import {
 } from "@heroicons/react/20/solid";
 import { Notifications } from "@/types/notifications";
 import { formatDistanceToNow } from "date-fns";
+import { timeAgo } from "@/lib/utils";
 
 interface NotificationDialogProps {
   isOpen: boolean;
@@ -281,9 +282,7 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
                               {notification.message}
                             </p>
                             <p className="mt-1 text-xs text-light">
-                              {formatDistanceToNow(new Date(notification.date_created), {
-                                addSuffix: true,
-                              })}
+                              {timeAgo(notification.date_created)}
                             </p>
                           </div>
                         </div>
