@@ -27,7 +27,7 @@ const membershipSchema = z.object({
       }
       return true;
     }),
-  description: z.string().nonempty("Description is required"),
+  description: z.string().nonempty("Description is required").max(250, "Description must be 250 characters or less"),
   organizationid: z.string(),
   features: z.array(z.string()).optional(),
   yearlydiscount: z
@@ -78,6 +78,7 @@ const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
     setValue,
     reset,
     formState: { errors },
+    watch,
   } = useForm<Membership>({
     resolver: zodResolver(membershipSchema),
     defaultValues: initialFormData,
@@ -117,7 +118,7 @@ const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-10" onClose={onClose}>
+      <Dialog as="div" className="relative z-100 space-y-120" onClose={onClose}>
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-300"
@@ -236,12 +237,16 @@ const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
                         Description:
                       </label>
                       <div className="mt-2">
-                        <input
-                          type="text"
+                        <textarea
                           id="description"
                           {...register("description")}
                           className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                          rows={4}
+                          maxLength={250}
                         />
+                        <p className="mt-1 text-xs text-gray-400">
+                          {watch("description")?.length || 0}/250 characters
+                        </p>
                         {errors.description && (
                           <p className="text-sm text-red-500">
                             {errors.description.message}
@@ -268,11 +273,15 @@ const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
                                   value={feature}
                                   onChange={(e) => {
                                     const newFeatures = [...(field.value ?? [])];
-                                    newFeatures[index] = e.target.value;
+                                    newFeatures[index] = e.target.value.slice(0, 50); // Limit to 100 characters
                                     field.onChange(newFeatures);
                                   }}
                                   className="block w-full rounded-md border-0 bg-white/5 py-1.5 pr-20 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                                  maxLength={50}
                                 />
+                                <p className="mt-1 text-xs text-gray-400">
+                                  {feature.length}/50 characters
+                                </p>
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -281,7 +290,7 @@ const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
                                     );
                                     field.onChange(newFeatures);
                                   }}
-                                  className="absolute right-2 top-2/4 size-5 -translate-y-2/4 rounded-md bg-red-500 text-xs text-white hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-opacity-50"
+                                  className="absolute right-2 top-3 size-5 -translate-y-1/4 rounded-md bg-red-500 text-xs text-white hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-opacity-50"
                                 >
                                   x
                                 </button>

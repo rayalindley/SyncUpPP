@@ -2,11 +2,17 @@
 
 import AdminAnalyticsDashboard from "@/components/dashboard/admin_analytics_dashboard";
 import OrganizationsSection from "@/components/dashboard/organizations_section";
+import { fetchOrganizationsJoinedByUser } from "@/lib/organization";
 import { createClient, getUser } from "@/lib/supabase/client";
+import { PlusCircleIcon } from "@heroicons/react/24/outline";
 import { User } from "@supabase/supabase-js";
 import { useEffect, useRef, useState } from "react";
 
 const supabase = createClient();
+
+function classNames(...classes: string[]) {
+  return classes.filter(Boolean).join(" ");
+}
 
 const DashboardPage = () => {
   const [organizations, setOrganizations] = useState<any[]>([]);
@@ -26,11 +32,21 @@ const DashboardPage = () => {
           .select("*");
         setOrganizations(organizations ?? []);
       } else {
-        const { data: organizations, error } = await supabase
-          .from("organization_summary")
-          .select("*")
-          .eq("adminid", user?.id);
-        setOrganizations(organizations ?? []);
+        // const { data: organizations, error } = await supabase
+        //   .from("organization_summary")
+        //   .select("*")
+        //   .eq("adminid", user?.id);
+
+          if (user) {
+            const { data: organizations, error } = await fetchOrganizationsJoinedByUser(
+              user.id
+            );
+
+            console.log(organizations);
+            setOrganizations(organizations ?? []);
+
+          }
+
       }
     };
 
@@ -102,6 +118,7 @@ const DashboardPage = () => {
     }
   }, [organizations]);
 
+  
   return (
     <div ref={dashboardRef}>
       <AdminAnalyticsDashboard user={user} />

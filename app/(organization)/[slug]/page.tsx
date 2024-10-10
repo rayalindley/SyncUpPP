@@ -12,6 +12,65 @@ import { User } from "@supabase/supabase-js";
 import { CalendarIcon, InboxIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 import { getVisiblePostsAndComments } from "@/lib/posts_tab"; // Import getVisiblePostsAndComments
 import { checkMembership } from "@/lib/events"; // Add this import
+import { Metadata, ResolvingMetadata } from 'next/types';
+import ShareButton from "@/components/share-button";
+
+// Add this type for the props
+type Props = {
+  params: { slug: string };
+  searchParams?: { [key: string]: string | string[] | undefined };
+}
+
+// Add this function to generate metadata
+export async function generateMetadata(
+  { params, searchParams }: Props,
+  parent: ResolvingMetadata
+): Promise<Metadata> {
+  const { slug } = params
+
+  const supabase = createClient();
+  const { data: org, error } = await supabase
+    .from("organization_summary")
+    .select("*")
+    .eq("slug", slug)
+    .single();
+
+  if (error || !org) {
+    return {
+      title: 'Organization Not Found',
+    }
+  }
+
+  const previousImages = (await parent).openGraph?.images || []
+
+  return {
+    title: org.name,
+    description: org.description,
+    openGraph: {
+      title: `${org.name} - Organization Page`,
+      description: org.description,
+      url: `${process.env.NEXT_PUBLIC_BASE_URL}/organization/${slug}`,
+      siteName: 'Your Site Name',
+      images: [
+        {
+          url: org.photo ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${org.photo}` : '',
+          width: 1200,
+          height: 630,
+          alt: `${org.name} logo`,
+        },
+        ...previousImages,
+      ],
+      locale: 'en_US',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${org.name} - Organization Page`,
+      description: org.description,
+      images: [org.photo ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${org.photo}` : ''],
+    },
+  }
+}
 
 const getInitials = (name: string) =>
   name
@@ -146,8 +205,8 @@ export default async function OrganizationUserView({
           </div>
           <div className="mt-12 space-y-4 px-4 sm:mt-16 sm:px-6 lg:mt-24 lg:px-8">
             <h1 className="text-2xl font-bold text-light sm:text-3xl lg:text-4xl">
-              {org.name}
-            </h1>
+              {org.name} <ShareButton />
+            </h1> 
             <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
               <div className="mb-2 flex items-center sm:mb-0 sm:mr-4">
                 <UserGroupIcon className="mr-1 h-5 w-5 text-primary" />
