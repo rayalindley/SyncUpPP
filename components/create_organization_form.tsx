@@ -194,7 +194,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
     resolver: zodResolver(OrganizationSchema),
     mode: "onChange",
     defaultValues: {
-      organizationAccess: "open", 
+      organizationAccess: "open", // Set default value for organizationAccess
     },
   });
 
