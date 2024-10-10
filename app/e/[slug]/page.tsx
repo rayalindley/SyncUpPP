@@ -36,6 +36,8 @@ import type { CreateInvoiceRequest, Invoice } from "xendit-node/invoice/models";
 import { QRCode } from "react-qrcode-logo";
 import Modal from "react-modal"; // Import modal library
 import { check_permissions } from "@/lib/organization";
+import ShareButton from "@/components/share-button";
+import Head from "next/head";
 
 const xenditClient = new Xendit({
   secretKey: process.env.NEXT_PUBLIC_XENDIT_SECRET_KEY!,
@@ -71,10 +73,12 @@ const EventPage = () => {
   const [canManageRegistrations, setCanManageRegistrations] = useState(false); // New state for managing event registrations permission
   const [attendanceStatus, setAttendanceStatus] = useState<string | null>(null);
 
+  const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
 
   const openModal = () => setModalIsOpen(true);
   const closeModal = () => setModalIsOpen(false);
 
+  
   async function checkUserRoleAndMembership(
     userId: string,
     organizationId: string,
@@ -154,6 +158,7 @@ const EventPage = () => {
             setCanManageRegistrations(hasPermission);
           }
         }
+
 
         if (eventData) {
           const { count } = await countRegisteredUsers(eventData.eventid);
@@ -563,11 +568,8 @@ const EventPage = () => {
     router.push(`/${organization?.slug}/dashboard/registrations?event=${event?.eventid}`);
   };
 
-
-
-  const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
-
   return (
+    <>
     <div className="flex min-h-screen flex-col bg-eerieblack text-light">
       <Header user={user} />
       <ToastContainer />
@@ -672,13 +674,13 @@ const EventPage = () => {
                 !event.privacy.allow_all_memberships && (
                   <div className="space-y-2">
                     <h3 className="text-lg font-semibold text-light">
-                      Permitted Roles and Membership Tiers
+                      Privacy
                     </h3>
                     <div className="flex flex-wrap gap-2">
                       {event.privacy.roles?.map((role) => (
                         <span
                           key={role}
-                          className="cursor-pointer rounded-full bg-charleston px-3 py-2 text-sm text-light transition-colors duration-300 hover:bg-raisinblack"
+                          className="cursor-pointer rounded-full bg-primary px-3 py-2 text-sm text-light transition-colors duration-300 hover:bg-primarydark"
                         >
                           {role}
                         </span>
@@ -686,7 +688,7 @@ const EventPage = () => {
                       {event.privacy.membership_tiers?.map((tier) => (
                         <span
                           key={tier}
-                          className="cursor-pointer rounded-full bg-charleston px-3 py-2 text-sm text-light transition-colors duration-300 hover:bg-raisinblack"
+                          className="cursor-pointer rounded-full bg-primary px-3 py-2 text-sm text-light transition-colors duration-300 hover:bg-primarydark"
                         >
                           {tier}
                         </span>
@@ -697,10 +699,9 @@ const EventPage = () => {
             </div>
 
             <div className="space-y-6">
-              <h1 className="text-3xl font-bold text-light sm:text-4xl lg:text-5xl">
-                {event.title}
+            <h1 className="text-2xl font-bold text-light sm:text-3xl lg:text-4xl">
+                {event.title} <ShareButton />
               </h1>
-
               <div className="space-y-4">
                 <div className="flex items-center space-x-2">
                   <CalendarIcon className="h-6 w-6 text-primary sm:h-8 sm:w-8" />
@@ -874,6 +875,7 @@ const EventPage = () => {
       </Modal>
 
     </div>
+    </>
   );
 };
 
