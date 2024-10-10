@@ -13,6 +13,7 @@ import { CalendarIcon, InboxIcon, UserGroupIcon } from "@heroicons/react/24/outl
 import { getVisiblePostsAndComments } from "@/lib/posts_tab"; // Import getVisiblePostsAndComments
 import { checkMembership } from "@/lib/events"; // Add this import
 import { Metadata, ResolvingMetadata } from 'next/types';
+import ShareButton from "@/components/share-button";
 
 // Add this type for the props
 type Props = {
@@ -204,8 +205,8 @@ export default async function OrganizationUserView({
           </div>
           <div className="mt-12 space-y-4 px-4 sm:mt-16 sm:px-6 lg:mt-24 lg:px-8">
             <h1 className="text-2xl font-bold text-light sm:text-3xl lg:text-4xl">
-              {org.name}
-            </h1>
+              {org.name} <ShareButton />
+            </h1> 
             <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
               <div className="mb-2 flex items-center sm:mb-0 sm:mr-4">
                 <UserGroupIcon className="mr-1 h-5 w-5 text-primary" />
