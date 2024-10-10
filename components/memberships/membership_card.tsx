@@ -10,26 +10,19 @@ import { recordActivity } from "@/lib/track";
 
 const supabase = createClient();
 
-interface Frequency {
-  value: string;
-  label: string;
-  priceSuffix: string;
-}
-
 interface MembershipCardProps {
   membership: Membership;
   index: number;
   totalMemberships: number;
   userid?: string;
-  isAuthenticated?: boolean;
+  isAuthenticated: boolean;
   userMemberships: string[];
   handleSubscribe: (membershipId: string, organizationid: string) => void;
   handleEditMembership: (membership: Membership, organizationid: string) => void;
   handleDeleteMembership: (membershipId: string) => void;
-  frequency: Frequency;
-  editable?: boolean;
+  editable: boolean;
   isCurrentPlan: boolean;
-  isProcessing: boolean; // Add this prop
+  isProcessing: boolean;
 }
 
 function classNames(...classes: string[]) {
@@ -46,10 +39,9 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
   handleSubscribe,
   handleEditMembership,
   handleDeleteMembership,
-  frequency,
   editable = false,
   isCurrentPlan,
-  isProcessing, // Destructure the new prop
+  isProcessing,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -57,36 +49,27 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
   const isPurchased = userMemberships.includes(membership.membershipid);
   const router = useRouter();
 
-  const calculateDiscountedRegistrationFee = () => {
-    const discountMultiplier = 1 - (membership.yearlydiscount ?? 0) / 100;
-    const yearlyFee = membership.registrationfee * 12 * discountMultiplier;
-    return frequency.value === "monthly" ? membership.registrationfee : yearlyFee;
-  };
-
-  const registrationFee = calculateDiscountedRegistrationFee();
+  const registrationFee = membership.registrationfee;
   const isFree = registrationFee <= 0;
 
   const handleCancelPlan = async () => {
-
     const { data, error } = await supabase
       .from('organizationmembers')
       .update({ membershipid: null })
       .eq('membershipid', membership.membershipid)
       .eq('userid', userid);
 
-    
-
     if (error) {
       console.error('Error updating membershipid to null:', error);
     } else {
-        await recordActivity({
-          activity_type: "membership_cancel",
-          description: `User has cancelled the ${membership.name} membership.`,
-        });
+      await recordActivity({
+        activity_type: "membership_cancel",
+        description: `User has cancelled the ${membership.name} membership.`,
+      });
     }
 
     window.location.reload();
-    setIsModalOpen(false); // Close modal after confirmation
+    setIsModalOpen(false);
   };
 
   return (
@@ -120,12 +103,12 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
           <span className="text-4xl font-bold tracking-tight text-white">Free</span>
         </p>
       ) : (
-        <p className="mt-6 flex items-baseline gap-x-1">
+        <p className="mt-6 flex items-baseline justify-center gap-x-2">
           <span className="text-4xl font-bold tracking-tight text-white">
             Php {registrationFee.toFixed(2)}
           </span>
           <span className="text-sm font-semibold leading-6 text-gray-300">
-            {frequency.priceSuffix}
+            /{membership.cycletype === 'monthly' ? 'month' : 'year'}
           </span>
         </p>
       )}
@@ -186,7 +169,7 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
             </div>
           </div>
         </div>,
-        document.body // Render modal in the body
+        document.body
       )}
 
       {editable ? (

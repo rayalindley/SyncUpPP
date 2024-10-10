@@ -26,21 +26,10 @@ const xenditInvoiceClient = new InvoiceClient({
 
 const supabase = createClient();
 
-interface Frequency {
-  value: string;
-  label: string;
-  priceSuffix: string;
-}
-
-const frequencies: Frequency[] = [
-  { value: "monthly", label: "Monthly", priceSuffix: "/month" },
-  { value: "annually", label: "Annually", priceSuffix: "/year" },
-];
-
 interface MembershipTiersProps {
   memberships: Membership[];
   userid?: string;
-  organizationid: string; // Add organizationid prop
+  organizationid: string;
   isAuthenticated?: boolean;
   onCreateClick?: () => void;
   onDelete?: (membershipId: string) => void;
@@ -55,7 +44,7 @@ function classNames(...classes: string[]) {
 const MembershipTiers: React.FC<MembershipTiersProps> = ({
   memberships,
   userid,
-  organizationid, // Destructure organizationid
+  organizationid,
   isAuthenticated = false,
   onCreateClick = undefined,
   onDelete = () => {},
@@ -64,7 +53,6 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
 }) => {
   const [userMemberships, setUserMemberships] = useState<string[]>([]);
   const [currentMembershipId, setCurrentMembershipId] = useState<string | null>(null);
-  const [frequency, setFrequency] = useState(frequencies[0]);
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [pendingMembershipId, setPendingMembershipId] = useState<string | null>(null);
@@ -156,7 +144,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
         }
       }
     },
-    [userid, userMemberships, frequency, router, organizationid, isProcessing]
+    [userid, userMemberships, router, organizationid, isProcessing]
   );
 
   const processSubscription = async (membershipId: string) => {
@@ -369,31 +357,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
           </div>
         )}
 
-        <div className="mt-16 flex justify-center">
-          <RadioGroup
-            value={frequency}
-            onChange={setFrequency}
-            className="grid grid-cols-2 gap-x-1 rounded-full p-1 text-center text-xs font-semibold leading-5 ring-1 ring-inset ring-gray-200"
-          >
-            <RadioGroup.Label className="sr-only">Payment frequency</RadioGroup.Label>
-            {frequencies.map((option) => (
-              <RadioGroup.Option
-                key={option.value}
-                value={option}
-                className={({ checked }) =>
-                  classNames(
-                    checked ? "bg-primary text-white" : "text-gray-500",
-                    "cursor-pointer rounded-full px-2.5 py-1"
-                  )
-                }
-              >
-                <span>{option.label}</span>
-              </RadioGroup.Option>
-            ))}
-          </RadioGroup>
-        </div>
-
-        <div className="isolate mx-8 mt-16 flex flex-wrap justify-center gap-x-8 gap-y-8 sm:mt-20 lg:max-w-none">
+        <div className="isolate mx-8 mt-8 flex flex-wrap justify-center gap-x-8 gap-y-8 sm:mt-10 lg:max-w-none">
           {memberships.length > 0 ? (
             memberships.map((membership, index) => (
               <MembershipCard
@@ -407,7 +371,6 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
                 handleSubscribe={handleSubscribe}
                 handleEditMembership={onEdit}
                 handleDeleteMembership={onDelete}
-                frequency={frequency}
                 editable={editable}
                 isCurrentPlan={currentMembershipId === membership.membershipid}
                 isProcessing={isProcessing}
