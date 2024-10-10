@@ -4,7 +4,7 @@ import { Menu, Transition } from "@headlessui/react";
 import { Fragment } from "react";
 import { BellIcon } from "@heroicons/react/24/outline";
 import { Notifications } from "@/types/notifications";
-import { formatDistanceToNow } from "date-fns";
+import { timeAgo } from "@/lib/utils";
 
 interface NotificationDropdownProps {
   notifications: Notifications[];
@@ -86,9 +86,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
                     <p className="text-sm font-medium text-light">{notification.title}</p>
                     <p className="mt-1 text-xs text-light">{notification.message}</p>
                     <p className="mt-1 text-xs text-light">
-                      {formatDistanceToNow(new Date(notification.date_created), {
-                        addSuffix: true,
-                      })}
+                      {timeAgo(notification.date_created)}
                     </p>
                   </div>
                 </div>
