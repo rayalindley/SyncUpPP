@@ -12,6 +12,64 @@ import { User } from "@supabase/supabase-js";
 import { CalendarIcon, InboxIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 import { getVisiblePostsAndComments } from "@/lib/posts_tab"; // Import getVisiblePostsAndComments
 import { checkMembership } from "@/lib/events"; // Add this import
+import { Metadata, ResolvingMetadata } from 'next/types';
+
+// Add this type for the props
+type Props = {
+  params: { slug: string };
+  searchParams?: { [key: string]: string | string[] | undefined };
+}
+
+// Add this function to generate metadata
+export async function generateMetadata(
+  { params, searchParams }: Props,
+  parent: ResolvingMetadata
+): Promise<Metadata> {
+  const { slug } = params
+
+  const supabase = createClient();
+  const { data: org, error } = await supabase
+    .from("organization_summary")
+    .select("*")
+    .eq("slug", slug)
+    .single();
+
+  if (error || !org) {
+    return {
+      title: 'Organization Not Found',
+    }
+  }
+
+  const previousImages = (await parent).openGraph?.images || []
+
+  return {
+    title: org.name,
+    description: org.description,
+    openGraph: {
+      title: `${org.name} - Organization Page`,
+      description: org.description,
+      url: `${process.env.NEXT_PUBLIC_BASE_URL}/organization/${slug}`,
+      siteName: 'Your Site Name',
+      images: [
+        {
+          url: org.photo ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${org.photo}` : '',
+          width: 1200,
+          height: 630,
+          alt: `${org.name} logo`,
+        },
+        ...previousImages,
+      ],
+      locale: 'en_US',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${org.name} - Organization Page`,
+      description: org.description,
+      images: [org.photo ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${org.photo}` : ''],
+    },
+  }
+}
 
 const getInitials = (name: string) =>
   name
