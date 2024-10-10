@@ -21,6 +21,7 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   MapPinIcon,
+  TagIcon,
   UsersIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
@@ -652,23 +653,6 @@ const EventPage = () => {
                 </div>
               )}
               <hr className="border-t border-fadedgrey opacity-50" />
-
-              {event.tags && (
-                <div className="space-y-2">
-                  <h3 className="text-lg font-semibold text-light">Tags</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {event.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="cursor-pointer rounded-full bg-charleston px-3 py-2 text-sm text-light transition-colors duration-300 hover:bg-raisinblack"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {event.privacy?.type === "private" &&
                 !event.privacy.allow_all_roles &&
                 !event.privacy.allow_all_memberships && (
@@ -698,10 +682,24 @@ const EventPage = () => {
                 )}
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4">
             <h1 className="text-2xl font-bold text-light sm:text-3xl lg:text-4xl">
                 {event.title} <ShareButton />
-              </h1>
+            </h1>
+            {event.tags && (
+                <div className="flex space-x-2">
+                  <div className="flex flex-wrap gap-2">
+                    {event.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="cursor-pointer rounded-full bg-charleston px-3 py-2 text-sm text-light transition-colors duration-300 hover:bg-raisinblack"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="space-y-4">
                 <div className="flex items-center space-x-2">
                   <CalendarIcon className="h-6 w-6 text-primary sm:h-8 sm:w-8" />
