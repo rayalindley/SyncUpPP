@@ -50,26 +50,32 @@ export async function generateMetadata(
       title: `${org.name} - Organization Page`,
       description: org.description,
       url: `${process.env.NEXT_PUBLIC_BASE_URL}/organization/${slug}`,
-      siteName: 'Your Site Name',
+      siteName: "Your Site Name",
       images: [
         {
-          url: org.photo ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${org.photo}` : '',
+          url: org.photo
+            ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${org.banner}`
+            : "",
           width: 1200,
           height: 630,
           alt: `${org.name} logo`,
         },
         ...previousImages,
       ],
-      locale: 'en_US',
-      type: 'website',
+      locale: "en_US",
+      type: "website",
     },
     twitter: {
-      card: 'summary_large_image',
+      card: "summary_large_image",
       title: `${org.name} - Organization Page`,
       description: org.description,
-      images: [org.photo ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${org.photo}` : ''],
+      images: [
+        org.photo
+          ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${org.banner}`
+          : "",
+      ],
     },
-  }
+  };
 }
 
 const getInitials = (name: string) =>
