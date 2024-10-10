@@ -47,7 +47,7 @@ interface PostsSectionProps {
 
 const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPosts }) => {
   const { user } = useUser();
-  const [currentPosts, setCurrentPosts] = useState<Posts[]>(initialPosts);
+  const [currentPosts, setCurrentPosts] = useState<Posts[]>(initialPosts || []);
 
   const [editingPost, setEditingPost] = useState<Posts | null>(null);
   const [isPublic, setIsPublic] = useState(false);
@@ -330,7 +330,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPost
     setTimeout(() => setCreationMessage(null), 3000);
   };
 
-  const filteredPosts = currentPosts
+  const filteredPosts = (currentPosts || [])
     .filter((post) => {
       const matchesSearch = post.content
         ?.toLowerCase()

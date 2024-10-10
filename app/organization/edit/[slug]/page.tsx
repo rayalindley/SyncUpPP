@@ -66,7 +66,11 @@ export default function Example() {
           }
 
           console.log("User is a member, checking permissions...");
-          const hasPermission = await check_permissions(user.id, org.organizationid, 'edit_organization');
+          const hasPermission = await check_permissions(
+            user.id,
+            org.organizationid,
+            "access_settings"
+          );
           console.log("Permission check result:", hasPermission);
           setIsAuthorized(hasPermission);
 

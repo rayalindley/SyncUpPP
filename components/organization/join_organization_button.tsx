@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
@@ -8,6 +8,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { useRouter } from "next/navigation";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { recordActivity } from "@/lib/track";
+import debounce from "lodash/debounce";
 
 interface JoinButtonProps {
   organizationId: string;
@@ -33,38 +34,48 @@ export default function JoinButton({
     return () => setMounted(false);
   }, []);
 
-  const handleAction = async () => {
-    setIsLoading(true);
-    const supabase = createClient();
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+  const handleAction = useCallback(
+    debounce(async () => {
+      if (isLoading) return;
+      setIsLoading(true);
+      const supabase = createClient();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-    if (userError || !user) {
-      router.push("/signin");
-      return;
-    }
+      if (userError || !user) {
+        router.push("/signin");
+        setIsLoading(false);
+        return;
+      }
 
-    switch (membershipStatus) {
-      case "member":
-        await handleLeave(supabase, user.id);
-        break;
-      case "pending":
-        await handleCancelRequest(supabase, user.id);
-        break;
-      case "none":
-        if (organizationAccess === "open") {
-          await handleJoin(supabase, user.id);
-        } else {
-          await handleJoinRequest(supabase, user.id);
+      try {
+        switch (membershipStatus) {
+          case "member":
+            await handleLeave(supabase, user.id);
+            break;
+          case "pending":
+            await handleCancelRequest(supabase, user.id);
+            break;
+          case "none":
+            if (organizationAccess === "open") {
+              await handleJoin(supabase, user.id);
+            } else {
+              await handleJoinRequest(supabase, user.id);
+            }
+            break;
         }
-        break;
-    }
-
-    setShowConfirmDialog(false);
-    setIsLoading(false);
-  };
+      } catch (error) {
+        console.error("Error performing action:", error);
+        toast.error("An error occurred. Please try again.");
+      } finally {
+        setShowConfirmDialog(false);
+        setIsLoading(false);
+      }
+    }, 300),
+    [membershipStatus, organizationAccess, router]
+  );
 
   const handleLeave = async (supabase: SupabaseClient, userId: string) => {
     setIsLoading(true);
@@ -217,7 +228,7 @@ export default function JoinButton({
         <p>Are you sure you want to {getButtonText().toLowerCase()} this organization?</p>
         <div className="mt-4 flex justify-end gap-2">
           <button
-            className="rounded-lg bg-gray-300 px-4 py-2 text-gray-800 hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-lg bg-gray-300 px-4 py-2 text-gray-800 hover:bg-gray-400 disabled:cursor-not-allowed disabled:opacity-50"
             onClick={() => setShowConfirmDialog(false)}
             disabled={isLoading}
           >
@@ -228,11 +239,11 @@ export default function JoinButton({
               membershipStatus === "member"
                 ? "bg-red-500 hover:bg-red-600"
                 : "bg-primary hover:bg-primarydark"
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
+            } disabled:cursor-not-allowed disabled:opacity-50`}
             onClick={handleAction}
             disabled={isLoading}
           >
-            Confirm
+            {isLoading ? "Processing..." : "Confirm"}
           </button>
         </div>
       </div>
@@ -246,11 +257,11 @@ export default function JoinButton({
           membershipStatus === "member"
             ? "bg-red-500 hover:bg-red-600"
             : "bg-primary hover:bg-primarydark"
-        } disabled:opacity-50 disabled:cursor-not-allowed`}
+        } disabled:cursor-not-allowed disabled:opacity-50`}
         onClick={() => setShowConfirmDialog(true)}
         disabled={isLoading}
       >
-        {getButtonText()}
+        {isLoading ? "Processing..." : getButtonText()}
       </button>
       {mounted && showConfirmDialog && createPortal(<ConfirmDialog />, document.body)}
     </>
