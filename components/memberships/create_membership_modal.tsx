@@ -30,15 +30,7 @@ const membershipSchema = z.object({
   description: z.string().nonempty("Description is required").max(250, "Description must be 250 characters or less"),
   organizationid: z.string(),
   features: z.array(z.string()).optional(),
-  yearlydiscount: z
-    .number()
-    .min(0, "Discount cannot be negative")
-    .refine((value) => {
-      if (!Number.isFinite(value) || Math.abs(value) > Number.MAX_SAFE_INTEGER) {
-        throw new Error("Discount Fee is too large");
-      }
-      return true;
-    }),
+  cycletype: z.enum(["monthly", "yearly"]),
 });
 
 const fetchData = async (organizationid: string) => {
@@ -68,7 +60,7 @@ const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
     registrationfee: 0,
     features: [],
     mostPopular: false,
-    yearlydiscount: 0,
+    cycletype: "monthly",
   };
 
   const {
@@ -182,6 +174,24 @@ const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
                       </div>
                     </div>
                     <div>
+                      <label htmlFor="cycletype" className="block text-sm font-medium leading-6 text-white">
+                        Membership Cycle:
+                      </label>
+                      <div className="mt-2">
+                        <select
+                          id="cycletype"
+                          {...register("cycletype")}
+                          className="block w-full rounded-md border-0 bg-charleston py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                        >
+                          <option value="monthly">Monthly</option>
+                          <option value="yearly">Yearly</option>
+                        </select>
+                        {errors.cycletype && (
+                          <p className="text-sm text-red-500">{errors.cycletype.message}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div>
                       <label
                         htmlFor="registrationfee"
                         className="block text-sm font-medium leading-6 text-white"
@@ -201,30 +211,6 @@ const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
                         {errors.registrationfee && (
                           <p className="text-sm text-red-500">
                             {errors.registrationfee.message}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div>
-                      <label
-                        htmlFor="yearlydiscount"
-                        className="block text-sm font-medium leading-6 text-white"
-                      >
-                        Yearly Discount (%):
-                      </label>
-                      <div className="relative mt-2">
-                        <input
-                          type="number"
-                          id="yearlydiscount"
-                          {...register("yearlydiscount", { valueAsNumber: true })}
-                          className="block w-full rounded-md border-0 bg-white/5 py-1.5 pr-12 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-                        />
-                        <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-sm text-white">
-                          %
-                        </span>
-                        {errors.yearlydiscount && (
-                          <p className="text-sm text-red-500">
-                            {errors.yearlydiscount.message}
                           </p>
                         )}
                       </div>
