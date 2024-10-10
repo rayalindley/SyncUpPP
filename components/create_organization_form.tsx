@@ -193,6 +193,9 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
   } = useForm<OrganizationFormValues>({
     resolver: zodResolver(OrganizationSchema),
     mode: "onChange",
+    defaultValues: {
+      organizationAccess: "open", 
+    },
   });
 
   const slugValue = watch("slug");
