@@ -147,7 +147,7 @@ export default function TagsInput({
         {tags.map((tag) => (
           <span
             key={tag}
-            className={`inline-flex items-center rounded-md bg-primary px-2 py-1 text-sm font-medium text-primary-foreground ${tagClassName}`}
+            className={`inline-flex items-center rounded-sm bg-primary px-2 py-1 text-sm font-medium text-primary-foreground ${tagClassName}`}
           >
             {tag}
             <button
@@ -181,12 +181,12 @@ export default function TagsInput({
       {isFocused && filteredSuggestions.length > 0 && tags.length < maxItems && (
         <div className="relative">
           <ul
-            className={`absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md border border-[#525252] bg-charleston shadow-sm ${dropdownClassName}`}
+            className={`absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-sm border border-[#525252] bg-charleston shadow-sm ${dropdownClassName}`}
           >
             {filteredSuggestions.map((suggestion) => (
               <li
                 key={suggestion}
-                className="cursor-pointer px-3 py-2 text-white hover:bg-primary/10"
+                className="cursor-pointer text-sm px-3 py-2 text-white hover:bg-primary"
                 onMouseDown={(e) => {
                   e.preventDefault();
                   debouncedAddTag(suggestion);
