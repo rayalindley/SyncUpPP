@@ -350,13 +350,38 @@ const deleteDiscount = (index: number) => {
   // Handle event data when editing
   useEffect(() => {
     if (event) {
+      const fetchDiscounts = async () => {
+        const supabase = createClient();
+        try {
+          // Fetch discounts for the event
+          const { data: discountData, error: discountError } = await supabase
+            .from("event_discounts")
+            .select("role, membership_tier, discount_percent")
+            .eq("eventid", event.eventid);
+  
+          if (discountError) {
+            console.error("Error fetching discounts:", discountError);
+          } else if (discountData) {
+            const formattedDiscounts = discountData.map((discount) => ({
+              roles: discount.role || [],
+              memberships: discount.membership_tier || [],
+              discount: discount.discount_percent,
+            }));
+            setDiscounts(formattedDiscounts);
+          }
+        } catch (error) {
+          console.error("Error fetching discounts:", error);
+        }
+      };
+  
+      fetchDiscounts();
       // Populate the roles and memberships when editing an event
       setSelectedRoles(event.privacy?.roles || []);
       setSelectedMemberships(event.privacy?.membership_tiers || []);
       setPrivacyType(event.privacy?.type || "public"); // Default to "public" if not set
       setAllowAllRoles(event.privacy?.allow_all_roles || false);
       setAllowAllMemberships(event.privacy?.allow_all_memberships || false);
-
+      
       // Set form values based on the event data
       (Object.keys(event) as (keyof typeof event)[]).forEach((key) => {
         if (key === "starteventdatetime" || key === "endeventdatetime") {
@@ -413,6 +438,15 @@ const deleteDiscount = (index: number) => {
       return;
     }
   }
+
+    // Prevent 0% discounts for selected roles or memberships
+    for (const discount of discounts) {
+      if ((discount.roles.length > 0 || discount.memberships.length > 0) && discount.discount === 0) {
+        toast.error("Discounts cannot be 0% if roles or membership tiers are selected.");
+        return;
+      }
+    }
+
     setIsLoading(true);
 
     const finalCapacityValue = capacityValue;
