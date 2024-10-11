@@ -1,10 +1,10 @@
 import { insertEvent, updateEvent } from "@/lib/events";
 import { getUser, createClient } from "@/lib/supabase/client";
-import { PhotoIcon } from "@heroicons/react/20/solid";
+import { PhotoIcon, PlusIcon, TrashIcon } from "@heroicons/react/20/solid";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Tagify from "@yaireo/tagify";
 import TagsInput from "./custom/tags-input";
-
+import Select, { MultiValue } from 'react-select';
 import "@yaireo/tagify/dist/tagify.css";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -76,6 +76,12 @@ type TagData = {
   value: string;
   [key: string]: any;
 };
+
+type OptionType = {
+  value: string;
+  label: string;
+};
+
 const CreateEventForm = ({
   organizationid,
   event,
@@ -117,6 +123,142 @@ const CreateEventForm = ({
   const [onsitePayment, setOnsitePayment] = useState<boolean | null>(
     event?.onsite || false
   );
+
+  const roleOptions: OptionType[] = roleSuggestions.map((role) => ({
+    value: role,
+    label: role,
+  }));
+  
+  const membershipOptions: OptionType[] = membershipSuggestions.map((membership) => ({
+    value: membership,
+    label: membership,
+  }));
+  
+
+  const [discounts, setDiscounts] = useState<Array<{
+    roles: string[];
+    memberships: string[];
+    discount: number;
+  }>>([
+    {
+      roles: [], // Allow multiple roles
+      memberships: [], // Allow multiple membership tiers
+      discount: 0,
+    },
+  ]);
+  
+
+  const customStyles = {
+    control: (provided: any, state: any) => ({
+      ...provided,
+      backgroundColor: '#2A2A2A',
+      color: '#E0E0E0',
+      fontSize: '14px', // Set font size for the input
+      borderColor: state.isFocused ? '#379a7b' : 'rgba(255, 255, 255, 0.1)', // Focus border color and unfocused border color
+      boxShadow: 'none', // Remove box shadow to eliminate blue border
+      '&:hover': {
+        borderColor: '#379a7b', // Hover border color when input is focused or hovered
+      },
+      '&:focus': {
+        outline: 'none', // Remove blue border on focus
+        boxShadow: 'none', // Remove blue focus shadow
+      },
+    }),
+    input: (provided: any) => ({
+      ...provided,
+      color: '#ffffff', // Set the text color in the input to white
+      '&:focus': {
+        outline: 'none', // Remove default focus outline
+        boxShadow: 'none', // Remove box shadow on focus
+      },
+    }),
+    menu: (provided: any) => ({
+      ...provided,
+      backgroundColor: '#2A2A2A',
+      fontSize: '14px', // Set font size for menu items
+    }),
+    option: (provided: any, state: any) => ({
+      ...provided,
+      backgroundColor: state.isFocused ? '#379a7b' : provided.backgroundColor,
+      color: state.isFocused ? '#ffffff' : '#E0E0E0', // Option text color on hover
+      fontSize: '14px', // Set font size for options
+    }),
+    multiValue: (provided: any) => ({
+      ...provided,
+      backgroundColor: '#379a7b',
+      fontSize: '14px', // Set font size for selected items
+      borderRadius: '4px',
+      padding: '1px 4px',
+    }),
+    multiValueLabel: (provided: any) => ({
+      ...provided,
+      color: '#ffffff', // Label color for multiValue items
+      fontSize: '14px', // Set font size for selected items
+      borderRadius: '6px',
+    }),
+    multiValueRemove: (provided: any, state: any) => ({
+      ...provided,
+      color: '#ffffff', // Color of the delete icon in selected items
+      fontSize: '14px', // Set font size for selected items
+      '&:hover': {
+        backgroundColor: '#379a7b', // Hover background color for delete button
+        color: '#bcbcbc', // Hover color for delete icon in selected items
+      },
+    }),
+    singleValue: (provided: any) => ({
+      ...provided,
+      color: '#E0E0E0',
+      fontSize: '14px', // Set font size for single value
+    }),
+  };
+  
+  
+// Function to handle discount changes
+const handleDiscountChange = (index: number, field: string, value: any) => {
+  const updatedDiscounts = discounts.map((discount, i) => {
+    if (i === index) {
+      // Handle the case where 'roles' are being updated
+      if (field === 'roles') {
+        // If "All Roles" is selected, clear other roles
+        if (value.includes("All Roles")) {
+          return { ...discount, roles: ["All Roles"] };
+        }
+      }
+
+      // Handle the case where 'memberships' are being updated
+      if (field === 'memberships') {
+        // If "All Membership Tiers" is selected, clear other memberships
+        if (value.includes("All Membership Tiers")) {
+          return { ...discount, memberships: ["All Membership Tiers"] };
+        }
+      }
+
+      // Update the specific field with the new value otherwise
+      return { ...discount, [field]: value };
+    }
+    return discount;
+  });
+  setDiscounts(updatedDiscounts);
+};
+
+// Function to add a new discount
+const addDiscount = () => {
+  setDiscounts([...discounts, { roles: [], memberships: [], discount: 0 }]);
+};
+
+// Function to delete a discount
+const deleteDiscount = (index: number) => {
+  if (discounts.length === 1) {
+    // If there's only one discount left, reset it instead of deleting
+    setDiscounts([{ roles: [], memberships: [], discount: 0 }]);
+  } else {
+    // Otherwise, filter out the discount at the given index
+    setDiscounts(discounts.filter((_, i) => i !== index));
+  }
+};
+
+  
+
 
   const router = useRouter();
 
@@ -244,6 +386,33 @@ const CreateEventForm = ({
       );
       return;
     }
+
+  // Validate discounts if privacy type is private
+  if (privacyType === "private") {
+    const disallowedRoles = discounts
+      .flatMap((discount) => discount.roles)
+      .filter(
+        (role) =>
+          role !== "All Roles" && // Allow "All Roles" when validating discounts
+          (!allowAllRoles && !selectedRoles.includes(role))
+      );
+
+    const disallowedMemberships = discounts
+      .flatMap((discount) => discount.memberships)
+      .filter(
+        (membership) =>
+          membership !== "All Membership Tiers" && // Allow "All Membership Tiers" when validating discounts
+          (!allowAllMemberships && !selectedMemberships.includes(membership))
+      );
+
+    if (disallowedRoles.length > 0 || disallowedMemberships.length > 0) {
+      toast.error(
+        `Invalid Discounts: The following roles/memberships assigned a discount are not allowed to access the event: 
+        ${disallowedRoles.join(", ")} ${disallowedMemberships.join(", ")}`
+      );
+      return;
+    }
+  }
     setIsLoading(true);
 
     const finalCapacityValue = capacityValue;
@@ -340,6 +509,7 @@ const CreateEventForm = ({
       slug: event ? event.eventslug : slug,
       privacy: privacySettings,
       onsite: onsitePayment,
+      discounts: discounts, // Add discounts array here
     };
 
     const { data, error } = event
@@ -496,7 +666,7 @@ const CreateEventForm = ({
 
   return (
     <>
-      <ToastContainer />
+      <ToastContainer autoClose={5000} />
       <form onSubmit={handleSubmit(onSubmit)}>
         <div className="flex items-center justify-center">
           <div className="relative w-full max-w-lg">
@@ -782,7 +952,7 @@ const CreateEventForm = ({
               {errors.registrationfee && (
                 <p className="text-sm text-red-500">{errors.registrationfee.message}</p>
               )}
-          <div className="pt-2 flex items-center">
+          <div className="py-2 flex items-center">
             <input
               type="checkbox"
               id="onsitePayment"
@@ -798,8 +968,87 @@ const CreateEventForm = ({
               Allow Onsite Payment
             </label>
           </div>
-              
+          <div>
+          <label className="mt-10 text-sm font-medium text-white">Discounts<span className="text-xs text-light"> (in percentage)</span></label>
+          {discounts.map((discount, index) => (
+            <div key={index} className="space-y-2 ">
+              <div className="flex items-start space-x-4 mt-2">
+                <div className="flex-1 space-y-2">
+                  <div className="w-full">
+                    <Select
+                      isMulti
+                      value={discount.roles.map((role) => ({ value: role, label: role }))}
+                      onChange={(selectedOptions: MultiValue<OptionType>) =>
+                        handleDiscountChange(
+                          index,
+                          'roles',
+                          selectedOptions.map((option) => option.value)
+                        )
+                      }
+                      options={roleOptions}
+                      placeholder="Select Roles"
+                      classNamePrefix="react-select"
+                      styles={customStyles}
+                    />
+                  </div>
+
+                  <div className="w-full">
+                    <Select
+                      isMulti
+                      value={discount.memberships.map((membership) => ({
+                        value: membership,
+                        label: membership,
+                      }))}
+                      onChange={(selectedOptions: MultiValue<OptionType>) =>
+                        handleDiscountChange(
+                          index,
+                          'memberships',
+                          selectedOptions.map((option) => option.value)
+                        )
+                      }
+                      options={membershipOptions}
+                      placeholder="Select Memberships"
+                      classNamePrefix="react-select"
+                      styles={customStyles}
+                    />
+                  </div>
+                </div>
+
+                {/* Discount Input and Buttons - Set same width */}
+                <div className="w-1/5 flex flex-col items-center space-y-2">
+                  <input
+                    type="number"
+                    value={discount.discount}
+                    onChange={(e) => handleDiscountChange(index, 'discount', parseFloat(e.target.value))}
+                    className="block w-full rounded-md border-0 bg-white/5 py-2 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary"
+                    placeholder="%"
+                  />
+
+                  <div className="flex w-full justify-between mt-2">
+                    <button
+                      type="button"
+                      onClick={() => deleteDiscount(index)}
+                      className="flex-1 flex items-center justify-center p-2 rounded-md bg-red-600 hover:bg-red-700 text-white mr-2"
+                      title="Remove Discount"
+                    >
+                      <TrashIcon className="h-5 w-5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={addDiscount}
+                      className="flex-1 flex items-center justify-center p-2 rounded-md bg-primary hover:bg-primarydark text-white"
+                      title="Add Discount"
+                    >
+                      <PlusIcon className="h-5 w-5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
+          ))}
+        </div>    
+        </div>
+        
           )}
         {/* Privacy Section */}
         <div className="space-y-1 text-light">
@@ -810,8 +1059,8 @@ const CreateEventForm = ({
             id="privacy"
             value={privacyType}
             onChange={(e) => setPrivacyType(e.target.value)}
-            className="block w-full rounded-md bg-charleston py-1.5 text-light shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-          >
+            className="block w-full rounded-md border-0 bg-charleston py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+            >
             <option value="public">Public</option>
             <option value="private">Private</option>
           </select>
