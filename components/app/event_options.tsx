@@ -19,6 +19,9 @@ import Swal from "sweetalert2";
 import { saveAs } from "file-saver"; // Install file-saver package if not already installed
 import { format } from "date-fns"; // For formatting the current date
 import { recordActivity } from "@/lib/track";
+import { DocumentTextIcon } from "@heroicons/react/24/outline"; // Use an appropriate icon
+import CertificatesTab from "./CertificatesTab";
+
 
 const jsonTheme = {
   main: "line-height:1.3;color:#383a42;background:#ffffff;overflow:hidden;word-wrap:break-word;white-space: pre-wrap;word-wrap: break-word;",
@@ -322,6 +325,27 @@ export default function EventOptions({
                   </a>
                 )}
               </Menu.Item>
+              <Menu.Item>
+                {({ active }) => (
+                  <a
+                    href="#"
+                    className={classNames(
+                      active ? "bg-raisinblack text-light" : "text-light",
+                      "group flex items-center px-4 py-2 text-sm"
+                    )}
+                    onClick={() => {
+                      setCurrentTab("Certificates");
+                      setOpen(true);
+                    }}
+                  >
+                    <DocumentTextIcon
+                      className="mr-3 h-5 w-5 text-light group-hover:text-light"
+                      aria-hidden="true"
+                    />
+                    Manage Certificates
+                  </a>
+                )}
+              </Menu.Item>
             </div>
             <div className="py-1">
               {canDeleteEvents && (
@@ -423,6 +447,17 @@ export default function EventOptions({
                             )}
                           >
                             Attendees
+                          </button>
+                          <button
+                            onClick={() => setCurrentTab("Certificates")}
+                            className={classNames(
+                              currentTab === "Certificates"
+                                ? "border-primary text-primary"
+                                : "border-transparent text-gray-400 hover:border-gray-300 hover:text-gray-300",
+                              "whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium"
+                            )}
+                          >
+                            Certificates
                           </button>
                         </nav>
                       </div>
@@ -661,6 +696,13 @@ export default function EventOptions({
                               <div>No attendees present for this event.</div>
                             )}
                           </div>
+                        )}
+                        {currentTab === "Certificates" && (
+                          <CertificatesTab
+                            eventId={selectedEvent.eventid}
+                            organizationId={selectedEvent.organizationid}
+                            userId={userId}
+                          />
                         )}
                       </div>
                     </div>
