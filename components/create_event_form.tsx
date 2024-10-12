@@ -1,3 +1,7 @@
+import SignaturePad from "react-signature-canvas";
+import { useRef } from "react";
+import * as htmlToImage from "html-to-image";
+import { fetchSignatoriesForEvent } from "@/lib/events";
 import { insertEvent, updateEvent } from "@/lib/events";
 import { getUser, createClient } from "@/lib/supabase/client";
 import { PhotoIcon } from "@heroicons/react/20/solid";
@@ -49,14 +53,35 @@ const EventSchema = z
       .optional()
       .nullable(),
     onsite: z.boolean().optional().nullable(),
+    certificate_enabled: z.boolean().optional(),
+    signatories: z
+      .array(
+        z.object({
+          name: z.string().min(1, "Name is required"),
+          signature: z.string().nullable(),
+        })
+      )
+      .optional(),
+    release_option: z
+      .enum(["disabled", "immediate", "after_event", "scheduled"])
+      .optional(),
+    scheduled_release_date: z.date().optional().nullable(),
   })
-  .refine((data) => isValidEventPeriod(data.starteventdatetime, data.endeventdatetime), {
-    message: "End Event Date & Time should be after Start Event Date & Time",
-    path: ["endeventdatetime"],
-  });
+  .refine(
+    (data) => {
+      if (data.certificate_enabled) {
+        return data.signatories && data.signatories.length > 0;
+      }
+      return true;
+    },
+    {
+      message: "At least one signatory is required when certificates are enabled.",
+      path: ["signatories"],
+    }
+  );
 
-interface EventFormValues {
-  eventid?: string; // Make eventid optional
+export interface EventFormValues {
+  eventid?: string;
   title: string;
   description: string;
   starteventdatetime: Date;
@@ -70,6 +95,13 @@ interface EventFormValues {
   tags: string[];
   eventslug?: string;
   onsite?: boolean | null;
+  certificate_enabled?: boolean;
+  release_option?: "disabled" | "immediate" | "after_event" | "scheduled";
+  scheduled_release_date?: Date | null;
+  signatories?: {
+    name: string;
+    signature: string | null;
+  }[];
 }
 
 type TagData = {
@@ -83,6 +115,14 @@ const CreateEventForm = ({
   organizationid: string;
   event?: EventFormValues;
 }) => {
+  type Signatory = {
+    name: string;
+    signature: string | null;
+  };
+
+  const [signatories, setSignatories] = useState<Signatory[]>([]);
+  const signaturePadRefs = useRef<SignaturePad[]>([]);
+
   const [eventphoto, setEventPhoto] = useState<string | null>(event?.eventphoto || null);
   const [previousPhotoUrl, setPreviousPhotoUrl] = useState<string | null>(
     event?.eventphoto || null
@@ -215,23 +255,86 @@ const CreateEventForm = ({
       setAllowAllRoles(event.privacy?.allow_all_roles || false);
       setAllowAllMemberships(event.privacy?.allow_all_memberships || false);
 
-      // Set form values based on the event data
-      (Object.keys(event) as (keyof typeof event)[]).forEach((key) => {
-        if (key === "starteventdatetime" || key === "endeventdatetime") {
-          const formattedDate = formatDateForInput(
-            new Date(event[key] as unknown as string)
-          );
-          setValue(key as keyof EventFormValues, formattedDate);
-        } else {
-          setValue(key as keyof EventFormValues, event[key] as any);
+      (["starteventdatetime", "endeventdatetime"] as (keyof EventFormValues)[]).forEach(
+        (key) => {
+          const formattedDate = formatDateForInput(new Date(event[key] as string));
+          setValue(key, formattedDate);
         }
-      });
-      setOnsitePayment(event.onsite || false); // Set the state for onsite payment
-      setValue("onsite", event.onsite || false); // Set form field value
+      );
+
+      setValue("title", event.title);
+      setValue("description", event.description);
+      setValue("location", event.location);
+      setValue("capacity", event.capacity);
+      setValue("registrationfee", event.registrationfee);
+      setValue("onsite", event.onsite);
+      setValue("tags", event.tags);
+
+      setValue("certificate_enabled", event.certificate_enabled);
+      setValue("release_option", event.release_option);
+      setValue("scheduled_release_date", event.scheduled_release_date);
+
+      setOnsitePayment(event.onsite || false);
+
       setPreviousPhotoUrl(event.eventphoto || null);
-      
+      setEventPhoto(
+        event.eventphoto
+          ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${event.eventphoto}`
+          : null
+      );
+
+      const fetchSignatories = async () => {
+        const supabase = createClient();
+        const { data: signatoriesData, error } = await supabase
+          .from("event_signatories")
+          .select("*")
+          .eq("event_id", event.eventid);
+        if (error) {
+          console.error("Error fetching signatories:", error);
+          toast.error("Error fetching signatories.");
+        } else {
+          const formattedSignatories = signatoriesData.map((signatory) => ({
+            name: signatory.name,
+            signature: signatory.signature
+              ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${signatory.signature}`
+              : null,
+          }));
+          setSignatories(formattedSignatories);
+          setValue("signatories", formattedSignatories);
+
+          formattedSignatories.forEach((signatory, index) => {
+            const signaturePad = signaturePadRefs.current[index];
+            if (signaturePad && signatory.signature) {
+              fetch(signatory.signature)
+                .then((res) => {
+                  if (!res.ok) {
+                    throw new Error(`Failed to fetch signature for ${signatory.name}`);
+                  }
+                  return res.blob();
+                })
+                .then((blob) => {
+                  const reader = new FileReader();
+                  reader.readAsDataURL(blob);
+                  reader.onloadend = () => {
+                    const dataUrl = reader.result as string;
+                    signaturePad.fromDataURL(dataUrl);
+                  };
+                })
+                .catch((err) => {
+                  console.error(`Error loading signature for ${signatory.name}:`, err);
+                });
+            }
+          });
+        }
+      };
+      fetchSignatories();
     }
   }, [event, setValue]);
+
+  useEffect(() => {
+    setValue("signatories", signatories);
+    trigger();
+  }, [signatories, setValue, trigger]);
 
   const onSubmit: SubmitHandler<EventFormValues> = async (formData) => {
     if (
@@ -329,6 +432,47 @@ const CreateEventForm = ({
       }
     }
 
+    const signatoriesData = [];
+    for (let i = 0; i < signatories.length; i++) {
+      const signatory = signatories[i];
+      const signatureData = signatory.signature;
+
+      if (signatureData) {
+        if (signatureData.startsWith("data:")) {
+          const response = await fetch(signatureData);
+          const blob = await response.blob();
+
+          const secureFileName = `${Date.now()}_${Math.random().toString(36).substring(2, 15)}.png`;
+          const fileName = `signatures/${secureFileName}`;
+          const { data: uploadResult, error: uploadError } = await supabase.storage
+            .from("signatures")
+            .upload(fileName, blob);
+
+          if (uploadError) {
+            console.error("Error uploading signature:", uploadError);
+            toast.error("Error uploading signature. Please try again.");
+            setIsLoading(false);
+            return;
+          }
+
+          const signatureUrl = `signatures/${uploadResult.path}`;
+          signatoriesData.push({
+            name: signatory.name,
+            signature: signatureUrl,
+          });
+        } else {
+          signatoriesData.push({
+            name: signatory.name,
+            signature: signatureData,
+          });
+        }
+      } else {
+        toast.error(`Signature for ${signatory.name} is empty. Please provide a signature.`);
+        setIsLoading(false);
+        return;
+      }
+    }
+
     const completeFormData = {
       ...formData,
       eventphoto: imageUrl,
@@ -340,6 +484,12 @@ const CreateEventForm = ({
       slug: event ? event.eventslug : slug,
       privacy: privacySettings,
       onsite: onsitePayment,
+      certificate_enabled: formData.certificate_enabled || false,
+      release_option: formData.release_option || "disabled",
+      scheduled_release_date: formData.scheduled_release_date
+        ? formData.scheduled_release_date.toISOString()
+        : null,
+      signatories: signatoriesData,
     };
 
     const { data, error } = event
@@ -347,6 +497,36 @@ const CreateEventForm = ({
       : await insertEvent(completeFormData, organizationid);
 
     if (data) {
+      const eventId = event ? event.eventid! : data[0].eventid;
+
+      if (event) {
+        const { error: deleteError } = await supabase
+          .from("event_signatories")
+          .delete()
+          .eq("event_id", eventId);
+        if (deleteError) {
+          console.error("Error deleting existing signatories:", deleteError);
+          toast.error("Error updating signatories. Please try again.");
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      for (const signatory of signatoriesData) {
+        const { error: signatoryError } = await supabase
+          .from("event_signatories")
+          .insert({
+            event_id: eventId,
+            name: signatory.name,
+            signature: signatory.signature,
+          });
+        if (signatoryError) {
+          console.error("Error saving signatory:", signatoryError);
+          toast.error("Error saving signatory. Please try again.");
+          setIsLoading(false);
+          return;
+        }
+      }
 
       if (!event) {
         const { user } = await getUser();
@@ -846,6 +1026,155 @@ const CreateEventForm = ({
             </div>
           </>
         )}
+
+          <div className="space-y-1 text-light">
+            <label
+              htmlFor="certificate_enabled"
+              className="text-sm font-medium text-white"
+            >
+              Enable Certificates
+            </label>
+            <input
+              type="checkbox"
+              id="certificate_enabled"
+              {...register("certificate_enabled")}
+              defaultChecked={event?.certificate_enabled || false}
+              className="mr-2 border-gray-300 text-primary focus:ring-primarydark"
+            />
+          </div>
+
+          {watch("certificate_enabled") && (
+            <>
+              <div className="space-y-1 text-light">
+                <label
+                  htmlFor="release_option"
+                  className="text-sm font-medium text-white"
+                >
+                  Certificate Release Option
+                </label>
+                <select
+                  id="release_option"
+                  {...register("release_option")}
+                  defaultValue={event?.release_option || "immediate"}
+                  className="block w-full rounded-md bg-charleston py-1.5 text-light shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                >
+                  <option value="immediate">Immediate</option>
+                  <option value="after_event">After Event</option>
+                  <option value="scheduled">Scheduled</option>
+                </select>
+              </div>
+
+              {watch("release_option") === "scheduled" && (
+                <div className="space-y-1 text-light">
+                  <label
+                    htmlFor="scheduled_release_date"
+                    className="text-sm font-medium text-white"
+                  >
+                    Scheduled Release Date
+                  </label>
+                  <input
+                    type="datetime-local"
+                    id="scheduled_release_date"
+                    {...register("scheduled_release_date", { valueAsDate: true })}
+                    className="block w-full rounded-md bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                  />
+                  {errors.scheduled_release_date && (
+                    <p className="text-sm text-red-500">
+                      {errors.scheduled_release_date.message}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div className="space-y-1 text-light">
+                <label className="text-sm font-medium text-white">Signatories</label>
+                {signatories.map((signatory, index) => (
+                  <div key={index} className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="text"
+                        placeholder="Name"
+                        value={signatory.name}
+                        onChange={(e) => {
+                          const updatedSignatories = [...signatories];
+                          updatedSignatories[index].name = e.target.value;
+                          setSignatories(updatedSignatories);
+                        }}
+                        className="block w-1/3 rounded-md border-0 bg-white/5 px-2 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updatedSignatories = signatories.filter(
+                            (_, i) => i !== index
+                          );
+                          setSignatories(updatedSignatories);
+                        }}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        Remove
+                      </button>
+                    </div>
+
+                    <div>
+                      <SignaturePad
+                        penColor="black"
+                        onEnd={() => {
+                          const signaturePad = signaturePadRefs.current[index];
+                          if (signaturePad) {
+                            const dataURL = signaturePad.toDataURL("image/png");
+                            const updatedSignatories = [...signatories];
+                            updatedSignatories[index].signature = dataURL;
+                            setSignatories(updatedSignatories);
+                          }
+                        }}
+                        canvasProps={{
+                          className: "signatureCanvas",
+                          style: {
+                            border: "1px solid #ccc",
+                            width: "100%",
+                            height: "200px",
+                          },
+                        }}
+                        ref={(ref) => {
+                          if (ref) {
+                            signaturePadRefs.current[index] = ref;
+                          }
+                        }}
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const signaturePad = signaturePadRefs.current[index];
+                          if (signaturePad) {
+                            signaturePad.clear();
+                            const updatedSignatories = [...signatories];
+                            updatedSignatories[index].signature = null;
+                            setSignatories(updatedSignatories);
+                          }
+                        }}
+                        className="mt-2 rounded-md bg-red-500 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-red-700"
+                      >
+                        Clear Signature
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSignatories([...signatories, { name: "", signature: null }])
+                  }
+                  className="mt-2 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-primarydark"
+                >
+                  Add Signatory
+                </button>
+              </div>
+            </>
+          )}
+
           <div className="space-y-1 text-light">
             <label htmlFor="tags" className="text-sm font-medium text-white">
               Tags

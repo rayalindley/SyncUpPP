@@ -5,9 +5,17 @@ import { Organization } from "@/types/organization";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
 import EventOptions from "./event_options";
-import DataTable from "react-data-table-component";
 import { TableColumn } from "react-data-table-component";
 import { useDebounce } from "use-debounce";
+
+
+// Import dynamic from Next.js
+import dynamic from 'next/dynamic';
+
+// Dynamically import DataTable with SSR disabled
+const DataTable = dynamic(() => import('react-data-table-component'), {
+  ssr: false,
+});
 
 export default function EventsTableUser({
   organization,

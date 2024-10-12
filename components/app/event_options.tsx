@@ -322,6 +322,27 @@ export default function EventOptions({
                   </a>
                 )}
               </Menu.Item>
+              <Menu.Item>
+                {({ active }: { active: boolean }) => (
+                  <a
+                    href="#"
+                    className={classNames(
+                      active ? "bg-raisinblack text-light" : "text-light",
+                      "group flex items-center px-4 py-2 text-sm"
+                    )}
+                    onClick={() => {
+                      setCurrentTab("CertificatePreview");
+                      setOpen(true);
+                    }}
+                  >
+                    <UserIcon
+                      className="mr-3 h-5 w-5 text-light group-hover:text-light"
+                      aria-hidden="true"
+                    />
+                    Preview Certificate
+                  </a>
+                )}
+              </Menu.Item>
             </div>
             <div className="py-1">
               {canDeleteEvents && (
@@ -380,7 +401,11 @@ export default function EventOptions({
                       <div className="px-4 sm:px-6">
                         <div className="flex items-start justify-between">
                           <Dialog.Title className="text-base font-semibold leading-6 text-light">
-                            View Event Info
+                            {currentTab === "Info"
+                              ? "Event Information"
+                              : currentTab === "Attendees"
+                              ? "Attendees"
+                              : "Certificate Preview"}
                           </Dialog.Title>
                           <div className="ml-3 flex h-7 items-center">
                             <button
@@ -423,6 +448,18 @@ export default function EventOptions({
                             )}
                           >
                             Attendees
+                          </button>
+                          {/* Add Certificate Preview Tab */}
+                          <button
+                            onClick={() => setCurrentTab("CertificatePreview")}
+                            className={classNames(
+                              currentTab === "CertificatePreview"
+                                ? "border-primary text-primary"
+                                : "border-transparent text-gray-400 hover:border-gray-300 hover:text-gray-300",
+                              "whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium"
+                            )}
+                          >
+                            Certificate Preview
                           </button>
                         </nav>
                       </div>
@@ -660,6 +697,18 @@ export default function EventOptions({
                             ) : (
                               <div>No attendees present for this event.</div>
                             )}
+                          </div>
+                        )}
+                       {currentTab === "CertificatePreview" && (
+                          <div className="space-y-4">
+                            {/* Ensure this API route for preview is properly implemented */}
+                            <iframe
+                              src={`/api/certificates/preview?event_id=${selectedEvent.eventid}`}
+                              width="100%"
+                              height="600px"
+                              className="border-none"
+                              title="Certificate Preview"
+                            ></iframe>
                           </div>
                         )}
                       </div>

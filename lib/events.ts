@@ -20,12 +20,33 @@ export async function insertEvent(formData: any, organizationid: string) {
 
   const supabase = createClient();
   try {
-    const { data, error } = await supabase.from("events").insert([insertValues]).select();
+    const { data: eventData, error } = await supabase
+      .from("events")
+      .insert([insertValues])
+      .select();
 
-    if (!error) {
-      return { data, error: null };
+    if (!error && eventData && eventData.length > 0) {
+      const eventId = eventData[0].eventid;
+
+      // Insert certificate settings if available
+      const certificateSettings = {
+        event_id: eventId,
+        certificate_enabled: formData.certificate_enabled,
+        release_option: formData.release_option,
+        scheduled_release_date: formData.scheduled_release_date,
+      };
+
+      const { error: certError } = await supabase
+        .from("event_certificate_settings")
+        .upsert(certificateSettings);
+
+      if (certError) {
+        return { data: null, error: { message: certError.message } };
+      }
+
+      return { data: eventData, error: null };
     } else {
-      return { data: null, error: { message: error.message } };
+      return { data: null, error: { message: error?.message || "An unknown error occurred" } };
     }
   } catch (e: any) {
     console.error("Unexpected error:", e);
@@ -48,7 +69,7 @@ export async function fetchEvents(organizationid: string) {
     if (!error) {
       return { data, error: null };
     } else {
-      return { data: null, error: { message: error.message } };
+      return { data: null, error: { message: error?.message || "An unknown error occurred" } };
     }
   } catch (e: any) {
     console.error("Unexpected error:", e);
@@ -76,16 +97,31 @@ export async function updateEvent(eventId: string, formData: any) {
 
   const supabase = createClient();
   try {
-    const { data, error } = await supabase
+    const { data: eventData, error } = await supabase
       .from("events")
       .update(updateValues)
       .eq("eventid", eventId)
       .select();
 
-    if (!error) {
-      return { data, error: null };
+    if (!error && eventData && eventData.length > 0) {
+      const certificateSettings = {
+        event_id: eventId,
+        certificate_enabled: formData.certificate_enabled,
+        release_option: formData.release_option,
+        scheduled_release_date: formData.scheduled_release_date,
+      };
+
+      const { error: certError } = await supabase
+        .from("event_certificate_settings")
+        .upsert(certificateSettings);
+
+      if (certError) {
+        return { data: null, error: { message: certError.message } };
+      }
+
+      return { data: eventData, error: null };
     } else {
-      return { data: null, error: { message: error.message } };
+      return { data: null, error: { message: error?.message || "An unknown error occurred" } };
     }
   } catch (e: any) {
     console.error("Unexpected error:", e);
@@ -95,17 +131,31 @@ export async function updateEvent(eventId: string, formData: any) {
     };
   }
 }
+
 export async function fetchEventById(eventId: string) {
   const supabase = createClient();
   try {
     const { data, error } = await supabase
       .from("events")
-      .select("*")
+      .select(`
+        *,
+        event_certificate_settings (
+          certificate_enabled,
+          release_option,
+          scheduled_release_date
+        )
+      `)
       .eq("eventid", eventId)
       .single(); // Use .single() to return only one record
 
     if (!error && data) {
-      return { data, error: null };
+      // Flatten the data
+      const flattenedData = {
+        ...data,
+        ...data.event_certificate_settings,
+      };
+      delete flattenedData.event_certificate_settings; // Remove nested object
+      return { data: flattenedData, error: null };
     } else {
       return { data: null, error: { message: error?.message || "Event not found" } };
     }
@@ -272,6 +322,24 @@ export async function registerForEvent(eventId: string, userId: string, paymentM
 
       if (registrationError) {
         return { data: null, error: { message: registrationError.message } };
+      }
+
+      if (registrationData) {
+        // Check if certificates are enabled and set to immediate release
+        const { data: certificateSettings, error: certSettingsError } = await supabase
+          .from("event_certificate_settings")
+          .select("*")
+          .eq("event_id", eventId)
+          .single();
+    
+        if (certificateSettings?.certificate_enabled && certificateSettings.release_option === 'immediate') {
+          // Insert certificate record
+          await supabase.from("certificates").insert({
+            event_id: eventId,
+            user_id: userId,
+            release_status: 'released',
+          });
+        }
       }
 
       return { data: registrationData, error: null };
@@ -583,5 +651,41 @@ export async function fetchEventsForUserAdmin(userId: string) {
       data: null,
       error: { message: error.message || "An unexpected error occurred" },
     };
+  }
+}
+
+export async function fetchCertificatesForUser(userId: string) {
+  const supabase = createClient();
+  try {
+    const { data, error } = await supabase
+      .from("certificates")
+      .select("*, events(title, starteventdatetime)")
+      .eq("user_id", userId)
+      .eq("release_status", "released");
+    if (!error) {
+      return { data, error: null };
+    } else {
+      return { data: null, error };
+    }
+  } catch (e: any) {
+    return { data: null, error: e };
+  }
+}
+
+
+export async function fetchSignatoriesForEvent(eventId: string) {
+  const supabase = createClient();
+  try {
+    const { data, error } = await supabase
+      .from('event_signatories')
+      .select('*')
+      .eq('event_id', eventId);
+    if (error) {
+      throw error;
+    }
+    return { data, error: null };
+  } catch (e: any) {
+    console.error('Error fetching signatories:', e);
+    return { data: null, error: { message: e.message || 'An unexpected error occurred' } };
   }
 }
