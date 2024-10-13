@@ -21,6 +21,7 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   MapPinIcon,
+  TagIcon,
   UsersIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
@@ -36,6 +37,8 @@ import type { CreateInvoiceRequest, Invoice } from "xendit-node/invoice/models";
 import { QRCode } from "react-qrcode-logo";
 import Modal from "react-modal"; // Import modal library
 import { check_permissions } from "@/lib/organization";
+import ShareButton from "@/components/share-button";
+import Head from "next/head";
 
 const xenditClient = new Xendit({
   secretKey: process.env.NEXT_PUBLIC_XENDIT_SECRET_KEY!,
@@ -70,10 +73,61 @@ const EventPage = () => {
   const [modalIsOpen, setModalIsOpen] = useState(false); // State for modal visibility
   const [canManageRegistrations, setCanManageRegistrations] = useState(false); // New state for managing event registrations permission
   const [attendanceStatus, setAttendanceStatus] = useState<string | null>(null);
+  const [discounts, setDiscounts] = useState<any[]>([]);
+  const [discountedFee, setDiscountedFee] = useState<number>(event?.registrationfee ?? 0);
+  const [discountLabel, setDiscountLabel] = useState<string>("");
 
+  const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
 
   const openModal = () => setModalIsOpen(true);
   const closeModal = () => setModalIsOpen(false);
+
+  async function calculateDiscountedPrice(userId: string, organizationId: string): Promise<{ discountedFee: number; discountLabel: string }> {
+    if (!event || !discounts || discounts.length === 0) {
+      return { discountedFee: event?.registrationfee ?? 0, discountLabel: "" };
+    }
+
+    let maxDiscount = 0;
+    let discountLabel = "";
+
+    try {
+      const supabase = createClient();
+
+      // Fetch user's roles and memberships from organization_members_roles table
+      const { data: memberData, error: memberError } = await supabase
+        .from("organization_members_roles")
+        .select("role, membership_name")
+        .eq("userid", userId)
+        .eq("organizationid", organizationId);
+
+      if (memberError || !memberData || memberData.length === 0) {
+        return { discountedFee: event?.registrationfee ?? 0, discountLabel: "" };
+      }
+
+      // Iterate through discounts and determine the highest applicable discount
+      discounts.forEach((discount) => {
+        const hasRoleDiscount = discount.role?.includes('All Roles') || (discount.role && discount.role.some((role: string) => memberData.some((member) => member.role === role)));
+        const hasMembershipDiscount = discount.membership_tier?.includes('All Membership Tiers') || (discount.membership_tier && discount.membership_tier.some((tier: string) => memberData.some((member) => member.membership_name === tier)));
+
+        // Give preference to higher discount regardless of the source (role or membership tier)
+        if (hasRoleDiscount || hasMembershipDiscount) {
+          if (discount.discount_percent > maxDiscount) {
+            maxDiscount = discount.discount_percent;
+            discountLabel = hasMembershipDiscount
+              ? (discount.membership_tier?.includes('All Membership Tiers') ? 'All Membership Tiers Discount' : `${discount.membership_tier.join(', ')} Discount`)
+              : (discount.role?.includes('All Roles') ? 'All Roles Discount' : `${discount.role.join(', ')} Discount`);
+          }
+        }
+      });
+
+      const discountedFee = event.registrationfee * ((100 - maxDiscount) / 100);
+      return { discountedFee, discountLabel };
+    } catch (error) {
+      console.error("Error calculating discounted price:", error);
+      return { discountedFee: event?.registrationfee ?? 0, discountLabel: "" };
+    }
+  }
+
 
   async function checkUserRoleAndMembership(
     userId: string,
@@ -134,6 +188,18 @@ const EventPage = () => {
         if (eventError) throw eventError;
         setEvent(eventData);
 
+        // Fetch the event's discount details
+        const { data: discountData, error: discountError } = await supabase
+          .from("event_discounts")
+          .select("*")
+          .eq("eventid", eventData.eventid);
+
+        if (discountError) throw discountError;
+
+        if (discountData) {
+          setDiscounts(discountData);
+        }
+
         if (eventData?.organizationid) {
           const { data: organizationData, error: orgError } = await supabase
             .from("organizations")
@@ -154,6 +220,7 @@ const EventPage = () => {
             setCanManageRegistrations(hasPermission);
           }
         }
+
 
         if (eventData) {
           const { count } = await countRegisteredUsers(eventData.eventid);
@@ -289,6 +356,18 @@ const EventPage = () => {
     checkAndGenerateQRCode();
   }, [user, isRegistered, event, qrCodeUrl]);
   
+  useEffect(() => {
+    async function fetchDiscountedPrice() {
+      if (user && event && discounts.length > 0) {
+        const { discountedFee, discountLabel } = await calculateDiscountedPrice(user.id, event.organizationid);
+        setDiscountedFee(discountedFee);
+        setDiscountLabel(discountLabel);
+      }
+    }
+
+    fetchDiscountedPrice();
+  }, [user, event, discounts]);
+
 
   if (loading) {
     return <Preloader />;
@@ -339,6 +418,9 @@ const EventPage = () => {
         return;
       }
     }
+
+    const registrationFeeToCharge = discountedFee && discountedFee < event.registrationfee ? discountedFee : event.registrationfee;
+
   
     if (event.onsite) {
       // Onsite payment flow
@@ -399,7 +481,7 @@ const EventPage = () => {
           // Online payment flow
           try {
             const data = {
-              amount: event.registrationfee,
+              amount: registrationFeeToCharge,
               payerEmail: user.email,
               externalId: `${event.eventid}-${event.title}-${new Date().toISOString()}`,
               description: `${organization?.name} Registration fee for ${event.title}: ${event.description}`,
@@ -410,7 +492,7 @@ const EventPage = () => {
   
             const { error: paymentError } = await supabase.from("payments").insert([
               {
-                amount: event.registrationfee,
+                amount: registrationFeeToCharge,
                 invoiceId: invoice.id,
                 type: "events",
                 target_id: event.eventid,
@@ -438,7 +520,7 @@ const EventPage = () => {
         // Direct registration without onsite payment
         if (event.registrationfee > 0) {
           const data = {
-            amount: event.registrationfee,
+            amount: registrationFeeToCharge,
             payerEmail: user.email,
             externalId: `${event.eventid}-${event.title}-${new Date().toISOString()}`,
             description: `${organization?.name} Registration fee for ${event.title}: ${event.description}`,
@@ -449,7 +531,7 @@ const EventPage = () => {
   
           const { error: paymentError } = await supabase.from("payments").insert([
             {
-              amount: event.registrationfee,
+              amount: registrationFeeToCharge,
               invoiceId: invoice.id,
               type: "events",
               target_id: event.eventid,
@@ -563,11 +645,8 @@ const EventPage = () => {
     router.push(`/${organization?.slug}/dashboard/registrations?event=${event?.eventid}`);
   };
 
-
-
-  const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
-
   return (
+    <>
     <div className="flex min-h-screen flex-col bg-eerieblack text-light">
       <Header user={user} />
       <ToastContainer />
@@ -650,10 +729,41 @@ const EventPage = () => {
                 </div>
               )}
               <hr className="border-t border-fadedgrey opacity-50" />
+              {event.privacy?.type === "private" &&
+                !event.privacy.allow_all_roles &&
+                !event.privacy.allow_all_memberships && (
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-semibold text-light">
+                      Privacy
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {event.privacy.roles?.map((role) => (
+                        <span
+                          key={role}
+                          className="cursor-pointer rounded-full bg-primary px-3 py-2 text-sm text-light transition-colors duration-300 hover:bg-primarydark"
+                        >
+                          {role}
+                        </span>
+                      ))}
+                      {event.privacy.membership_tiers?.map((tier) => (
+                        <span
+                          key={tier}
+                          className="cursor-pointer rounded-full bg-primary px-3 py-2 text-sm text-light transition-colors duration-300 hover:bg-primarydark"
+                        >
+                          {tier}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+            </div>
 
-              {event.tags && (
-                <div className="space-y-2">
-                  <h3 className="text-lg font-semibold text-light">Tags</h3>
+            <div className="space-y-4">
+            <h1 className="text-2xl font-bold text-light sm:text-3xl lg:text-4xl">
+                {event.title} <ShareButton />
+            </h1>
+            {event.tags && (
+                <div className="flex space-x-2">
                   <div className="flex flex-wrap gap-2">
                     {event.tags.map((tag) => (
                       <span
@@ -666,41 +776,6 @@ const EventPage = () => {
                   </div>
                 </div>
               )}
-
-              {event.privacy?.type === "private" &&
-                !event.privacy.allow_all_roles &&
-                !event.privacy.allow_all_memberships && (
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-semibold text-light">
-                      Permitted Roles and Membership Tiers
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {event.privacy.roles?.map((role) => (
-                        <span
-                          key={role}
-                          className="cursor-pointer rounded-full bg-charleston px-3 py-2 text-sm text-light transition-colors duration-300 hover:bg-raisinblack"
-                        >
-                          {role}
-                        </span>
-                      ))}
-                      {event.privacy.membership_tiers?.map((tier) => (
-                        <span
-                          key={tier}
-                          className="cursor-pointer rounded-full bg-charleston px-3 py-2 text-sm text-light transition-colors duration-300 hover:bg-raisinblack"
-                        >
-                          {tier}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-            </div>
-
-            <div className="space-y-6">
-              <h1 className="text-3xl font-bold text-light sm:text-4xl lg:text-5xl">
-                {event.title}
-              </h1>
-
               <div className="space-y-4">
                 <div className="flex items-center space-x-2">
                   <CalendarIcon className="h-6 w-6 text-primary sm:h-8 sm:w-8" />
@@ -766,20 +841,49 @@ const EventPage = () => {
               </div>
 
               <div className="rounded-lg bg-raisinblack p-4 shadow-md">
-                <h2 className="mb-2 text-lg font-medium text-light">Registration</h2>
+                <h2 className="mb-2 text-lg font-semibold text-light">Registration</h2>
                 <p className="mb-4 text-sm text-light">
                   Hello! To join the event, please register below:
                 </p>
                 <p className="mb-4 text-light">
                   {event.registrationfee ? (
                     <>
-                      <span>Registration Fee:</span> Php{" "}
-                      {event.registrationfee.toFixed(2)}
+                      {discountedFee && discountedFee < event.registrationfee ? (
+                        <>
+                          <span>Registration Fee: </span>
+                          <span className="line-through mr-2">Php {event.registrationfee.toFixed(2)}</span>
+                          <span>Php {discountedFee.toFixed(2)} </span>
+                          <span className="text-primary">({discountLabel})</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Registration Fee:</span> Php {event.registrationfee.toFixed(2)}
+                        </>
+                      )}
                     </>
                   ) : (
-                    "Free Registration"
+                    <span className="mb-4 text-light">Free Registration</span>
                   )}
                 </p>
+                {discounts.length > 0 && (
+                  <div className="mb-4">
+                  <h3 className="text-md font-medium text-primary">Available Discounts!</h3>
+                  {discounts.map((discount) => (
+                    <p key={discount.discountid} className="text-sm text-light">
+                      {discount.role?.length > 0 && (
+                        <>
+                          {discount.role.join(", ")} - {discount.discount_percent}%
+                        </>
+                      )}
+                      {discount.membership_tier?.length > 0 && (
+                        <>
+                          {discount.membership_tier.join(", ")} - {discount.discount_percent}%
+                        </>
+                      )}
+                    </p>
+                  ))}
+                </div>
+                )}
                 <button
                   className={`w-full rounded-md px-6 py-3 text-white ${
                     eventFinished ||
@@ -874,6 +978,7 @@ const EventPage = () => {
       </Modal>
 
     </div>
+    </>
   );
 };
 

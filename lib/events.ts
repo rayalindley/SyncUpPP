@@ -11,7 +11,7 @@ export async function insertEvent(formData: any, organizationid: string) {
     capacity: formData.capacity,
     registrationfee: formData.registrationfee,
     privacy: formData.privacy,
-    organizationid: organizationid, // Include organizationid in the insertValues object
+    organizationid: organizationid,
     eventphoto: formData.eventphoto,
     tags: formData.tags,
     eventslug: formData.slug,
@@ -22,10 +22,31 @@ export async function insertEvent(formData: any, organizationid: string) {
   try {
     const { data, error } = await supabase.from("events").insert([insertValues]).select();
 
-    if (!error) {
+    if (!error && data && data.length > 0) {
+      // Insert discounts after event is created
+      if (formData.discounts && formData.discounts.length > 0) {
+        const eventId = data[0].eventid; // Assuming eventid is returned by Supabase
+
+        const discountInserts = formData.discounts.map((discount: any) => ({
+          eventid: eventId,
+          role: discount.roles, // Store roles here (adjust if you need to store them differently)
+          membership_tier: discount.memberships, // Store memberships here
+          discount_percent: discount.discount,
+        }));
+
+        const { error: discountError } = await supabase
+          .from("event_discounts")
+          .insert(discountInserts);
+
+        if (discountError) {
+          console.error('Error inserting discounts:', discountError);
+          return { data: null, error: { message: discountError.message } };
+        }
+      }
+
       return { data, error: null };
     } else {
-      return { data: null, error: { message: error.message } };
+      return { data: null, error: { message: error?.message } };
     }
   } catch (e: any) {
     console.error("Unexpected error:", e);
@@ -35,6 +56,7 @@ export async function insertEvent(formData: any, organizationid: string) {
     };
   }
 }
+
 
 export async function fetchEvents(organizationid: string) {
   const supabase = createClient();
@@ -82,10 +104,40 @@ export async function updateEvent(eventId: string, formData: any) {
       .eq("eventid", eventId)
       .select();
 
-    if (!error) {
+    if (!error && data && data.length > 0) {
+      // Delete existing discounts for the event
+      const { error: deleteError } = await supabase
+        .from("event_discounts")
+        .delete()
+        .eq("eventid", eventId);
+
+      if (deleteError) {
+        console.error('Error deleting old discounts:', deleteError);
+        return { data: null, error: { message: deleteError.message } };
+      }
+
+      // Insert the updated discounts
+      if (formData.discounts && formData.discounts.length > 0) {
+        const discountInserts = formData.discounts.map((discount: any) => ({
+          eventid: eventId,
+          role: discount.roles,
+          membership_tier: discount.memberships,
+          discount_percent: discount.discount,
+        }));
+
+        const { error: discountError } = await supabase
+          .from("event_discounts")
+          .insert(discountInserts);
+
+        if (discountError) {
+          console.error('Error inserting new discounts:', discountError);
+          return { data: null, error: { message: discountError.message } };
+        }
+      }
+
       return { data, error: null };
     } else {
-      return { data: null, error: { message: error.message } };
+      return { data: null, error: { message: error?.message } };
     }
   } catch (e: any) {
     console.error("Unexpected error:", e);
@@ -95,6 +147,7 @@ export async function updateEvent(eventId: string, formData: any) {
     };
   }
 }
+
 export async function fetchEventById(eventId: string) {
   const supabase = createClient();
   try {
