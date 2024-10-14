@@ -49,7 +49,7 @@ interface OrganizationMember {
     features: any | null;
     description: string | null;
     membershipid: string | null;
-    yearlydiscount: number | null;
+    cycletype: string;
     registrationfee: number | null;
   };
   role: {
@@ -544,10 +544,10 @@ const MembersTable: React.FC<MembersTableProps> = ({ members, organization }) =>
                                   <div className="mt-4 space-y-2">
                                     <div className="flex justify-between">
                                       <span className="font-semibold text-gray-300">
-                                        Yearly Discount:
+                                        Cycle:
                                       </span>
                                       <span className="text-light">
-                                        {selectedMember.membership.yearlydiscount}%
+                                        {selectedMember.membership.cycletype.charAt(0).toUpperCase() + selectedMember.membership.cycletype.slice(1)}
                                       </span>
                                     </div>
                                     <div className="flex justify-between">
