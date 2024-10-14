@@ -7,6 +7,6 @@ export interface Memberships {
   registrationfee: any;
   features?: any;
   mostPopular?: boolean;
-  yearlydiscount?: any;
+  cycletype?: string;
   organizations?: Organizations;
 }

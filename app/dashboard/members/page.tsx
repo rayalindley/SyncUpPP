@@ -34,7 +34,7 @@ interface OrganizationMember {
     features: any | null;
     description: string | null;
     membershipid: string | null;
-    yearlydiscount: number | null;
+    cycletype: string;
     registrationfee: number | null;
   };
   role: {
