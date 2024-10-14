@@ -78,7 +78,6 @@ export async function updateEvent(eventId: string, formData: any) {
   const supabase = createClient();
   try {
     const { data: eventData, error } = await supabase
-    const { data: eventData, error } = await supabase
       .from("events")
       .update(updateValues)
       .eq("eventid", eventId)
