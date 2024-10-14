@@ -226,8 +226,6 @@
 }
 
 /* Remove the blue border from all input elements when focused */
-input:focus,
-textarea:focus,
 .select__control--is-focused {
   outline: none !important; /* Override default outline */
   box-shadow: none !important; /* Remove the box-shadow */
