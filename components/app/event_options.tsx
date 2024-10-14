@@ -19,6 +19,11 @@ import Swal from "sweetalert2";
 import { saveAs } from "file-saver"; // Install file-saver package if not already installed
 import { format } from "date-fns"; // For formatting the current date
 import { recordActivity } from "@/lib/track";
+import { CertificateSettings } from "@/types/event";
+import { fetchCertificateSettings } from "@/lib/events";
+import { FaCertificate } from "react-icons/fa";
+import { releaseCertificatesNow } from "@/lib/events";
+
 
 const jsonTheme = {
   main: "line-height:1.3;color:#383a42;background:#ffffff;overflow:hidden;word-wrap:break-word;white-space: pre-wrap;word-wrap: break-word;",
@@ -65,6 +70,70 @@ export default function EventOptions({
   const [canDeleteEvents, setCanDeleteEvents] = useState(false);
   const [filteredAttendees, setFilteredAttendees] = useState<UserProfile[] | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [certificateSettings, setCertificateSettings] = useState<CertificateSettings | null>(null);
+  const [loadingCertificateSettings, setLoadingCertificateSettings] = useState<boolean>(false);
+  const [certificateError, setCertificateError] = useState<string | null>(null);
+
+  const releaseCertificatesHandler = async () => {
+    // Perform necessary checks here
+    // For example, check if the user is authenticated and has permissions
+  
+    // Then call the API route
+    Swal.fire({
+      title: "Are you sure?",
+      text: "This will release certificates to all attendees.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, release certificates!",
+      cancelButtonText: "No, cancel!",
+      reverseButtons: true,
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const response = await fetch(`/api/events/${selectedEvent.eventid}/release_certificates`, {
+            method: "POST",
+          });
+          const data = await response.json();
+          if (response.ok) {
+            Swal.fire({
+              title: "Success!",
+              text: "Certificates have been released to all attendees.",
+              icon: "success",
+            });
+          } else {
+            Swal.fire({
+              title: "Error!",
+              text: data.error || "Failed to release certificates.",
+              icon: "error",
+            });
+          }
+        } catch (error) {
+          Swal.fire({
+            title: "Error!",
+            text: error instanceof Error ? error.message : "An unexpected error occurred.",
+            icon: "error",
+          });
+        }
+      }
+    });
+  };
+  
+
+
+  useEffect(() => {
+    const fetchCertSettings = async () => {
+      setLoadingCertificateSettings(true);
+      const { data, error } = await fetchCertificateSettings(selectedEvent.eventid);
+      setLoadingCertificateSettings(false);
+      if (error) {
+        setCertificateError("Failed to load certificate settings.");
+      } else {
+        setCertificateSettings(data);
+      }
+    };
+    fetchCertSettings();
+  }, [selectedEvent.eventid]);  
+
 
   const deleteBtn = () => {
     Swal.fire({
@@ -322,27 +391,57 @@ export default function EventOptions({
                   </a>
                 )}
               </Menu.Item>
-              <Menu.Item>
-                {({ active }: { active: boolean }) => (
-                  <a
+              {/* Certificate Preview - Conditional Rendering */}
+              <Menu.Item disabled={!certificateSettings?.certificate_enabled}>
+                {({ active, disabled }: { active: boolean; disabled: boolean }) => (
+                    <a
                     href="#"
                     className={classNames(
-                      active ? "bg-raisinblack text-light" : "text-light",
+                      active && !disabled ? "bg-raisinblack text-light" : "text-light",
+                      disabled ? "cursor-not-allowed opacity-50" : "",
                       "group flex items-center px-4 py-2 text-sm"
                     )}
                     onClick={() => {
+                      if (certificateSettings?.certificate_enabled) {
                       setCurrentTab("CertificatePreview");
                       setOpen(true);
+                      }
                     }}
-                  >
-                    <UserIcon
+                    >
+                    <FaCertificate
                       className="mr-3 h-5 w-5 text-light group-hover:text-light"
                       aria-hidden="true"
                     />
                     Preview Certificate
-                  </a>
+                    </a>
                 )}
               </Menu.Item>
+              {canEditEvents && (
+                <Menu.Item disabled={!certificateSettings?.certificate_enabled}>
+                  {({ active, disabled }: { active: boolean; disabled: boolean }) => (
+                    <a
+                      href="#"
+                      className={classNames(
+                        active && !disabled ? "bg-raisinblack text-light" : "text-light",
+                        disabled ? "cursor-not-allowed opacity-50" : "",
+                        "group flex items-center px-4 py-2 text-sm"
+                      )}
+                      onClick={async () => {
+                        if (certificateSettings?.certificate_enabled) {
+                          await releaseCertificatesHandler();
+                        }
+                      }}
+                    >
+                      <FaCertificate
+                        className="mr-3 h-5 w-5 text-light group-hover:text-light"
+                        aria-hidden="true"
+                      />
+                      Release Certificates Now
+                    </a>
+                  )}
+                </Menu.Item>
+              )}
+
             </div>
             <div className="py-1">
               {canDeleteEvents && (
@@ -699,18 +798,46 @@ export default function EventOptions({
                             )}
                           </div>
                         )}
-                       {currentTab === "CertificatePreview" && (
+                        {/* Certificate Preview Tab */}
+                        {currentTab === "CertificatePreview" && (
                           <div className="space-y-4">
-                            {/* Ensure this API route for preview is properly implemented */}
-                            <iframe
-                              src={`/api/certificates/preview?event_id=${selectedEvent.eventid}`}
-                              width="100%"
-                              height="600px"
-                              className="border-none"
-                              title="Certificate Preview"
-                            ></iframe>
+                            {loadingCertificateSettings ? (
+                              <Preloader />
+                            ) : certificateError ? (
+                              <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+                                <p className="font-semibold">Error</p>
+                                <p className="mt-2">{certificateError}</p>
+                              </div>
+                            ) : certificateSettings?.certificate_enabled ? (
+                              <iframe
+                                src={`/api/certificates/preview?event_id=${selectedEvent.eventid}`}
+                                width="100%"
+                                height="600px"
+                                className="border-none"
+                                title="Certificate Preview"
+                              ></iframe>
+                            ) : (
+                              <div className="p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded">
+                                <p className="font-semibold">Certificates Disabled</p>
+                                <p className="mt-2">
+                                  Certificates are not enabled for this event. To enable certificates, please{" "}
+                                  {canEditEvents ? (
+                                    <Link
+                                      href={`/events/edit/${selectedEvent.eventid}`}
+                                      className="text-primary underline hover:text-primarydark"
+                                    >
+                                      edit the event
+                                    </Link>
+                                  ) : (
+                                    "contact your administrator"
+                                  )}{" "}
+                                  and enable certificates in the Preview tab.
+                                </p>
+                              </div>
+                            )}
                           </div>
                         )}
+
                       </div>
                     </div>
                   </Dialog.Panel>

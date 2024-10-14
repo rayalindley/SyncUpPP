@@ -38,6 +38,7 @@
     "mailparser": "^3.7.1",
     "next": "14.1.4",
     "node-cache": "^5.1.2",
+    "node-fetch": "^3.3.2",
     "nodemailer": "^6.9.15",
     "or": "^0.2.0",
     "pdfkit": "^0.15.0",

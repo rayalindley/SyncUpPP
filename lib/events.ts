@@ -3,47 +3,34 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function insertEvent(formData: any, organizationid: string) {
   const insertValues = {
-    title: formData.title,
-    description: formData.description,
-    starteventdatetime: formData.starteventdatetime,
-    endeventdatetime: formData.endeventdatetime,
-    location: formData.location,
-    capacity: formData.capacity,
-    registrationfee: formData.registrationfee,
-    privacy: formData.privacy,
-    organizationid: organizationid, // Include organizationid in the insertValues object
-    eventphoto: formData.eventphoto,
-    tags: formData.tags,
-    eventslug: formData.slug,
     onsite: formData.onsite,
+    privacy: formData.privacy,
+    eventslug: formData.slug,
+    tags: formData.tags,
   };
-
   const supabase = createClient();
   try {
     const { data: eventData, error } = await supabase
       .from("events")
       .insert([insertValues])
       .select();
-
     if (!error && eventData && eventData.length > 0) {
       const eventId = eventData[0].eventid;
-
-      // Insert certificate settings if available
-      const certificateSettings = {
-        event_id: eventId,
-        certificate_enabled: formData.certificate_enabled,
-        release_option: formData.release_option,
-        scheduled_release_date: formData.scheduled_release_date,
-      };
-
-      const { error: certError } = await supabase
-        .from("event_certificate_settings")
-        .upsert(certificateSettings);
-
-      if (certError) {
-        return { data: null, error: { message: certError.message } };
+      if (formData.certificate_enabled) {
+        const certificateSettings = {
+          event_id: eventId,
+          certificate_enabled: formData.certificate_enabled,
+          release_option: formData.release_option,
+          scheduled_release_date: formData.scheduled_release_date,
+          certificate_background: formData.certificate_background, // Add this line
+        };
+        const { error: certError } = await supabase
+          .from("event_certificate_settings")
+          .upsert(certificateSettings);
+        if (certError) {
+          return { data: null, error: { message: certError.message } };
+        }
       }
-
       return { data: eventData, error: null };
     } else {
       return { data: null, error: { message: error?.message || "An unknown error occurred" } };
@@ -81,20 +68,11 @@ export async function fetchEvents(organizationid: string) {
 }
 export async function updateEvent(eventId: string, formData: any) {
   const updateValues = {
-    title: formData.title,
-    description: formData.description,
-    starteventdatetime: formData.starteventdatetime,
-    endeventdatetime: formData.endeventdatetime,
-    location: formData.location,
-    capacity: formData.capacity,
-    registrationfee: formData.registrationfee,
-    privacy: formData.privacy,
-    eventphoto: formData.eventphoto,
-    tags: formData.tags,
-    eventslug: formData.slug,
     onsite: formData.onsite,
+    privacy: formData.privacy,
+    eventslug: formData.slug,
+    tags: formData.tags,
   };
-
   const supabase = createClient();
   try {
     const { data: eventData, error } = await supabase
@@ -102,23 +80,30 @@ export async function updateEvent(eventId: string, formData: any) {
       .update(updateValues)
       .eq("eventid", eventId)
       .select();
-
     if (!error && eventData && eventData.length > 0) {
-      const certificateSettings = {
-        event_id: eventId,
-        certificate_enabled: formData.certificate_enabled,
-        release_option: formData.release_option,
-        scheduled_release_date: formData.scheduled_release_date,
-      };
-
-      const { error: certError } = await supabase
-        .from("event_certificate_settings")
-        .upsert(certificateSettings);
-
-      if (certError) {
-        return { data: null, error: { message: certError.message } };
+      if (formData.certificate_enabled) {
+        const certificateSettings = {
+          event_id: eventId,
+          certificate_enabled: formData.certificate_enabled,
+          release_option: formData.release_option,
+          scheduled_release_date: formData.scheduled_release_date,
+          certificate_background: formData.certificate_background, // Add this line
+        };
+        const { error: certError } = await supabase
+          .from("event_certificate_settings")
+          .upsert(certificateSettings);
+        if (certError) {
+          return { data: null, error: { message: certError.message } };
+        }
+      } else {
+        const { error: certDeleteError } = await supabase
+          .from("event_certificate_settings")
+          .delete()
+          .eq("event_id", eventId);
+        if (certDeleteError) {
+          return { data: null, error: { message: certDeleteError.message } };
+        }
       }
-
       return { data: eventData, error: null };
     } else {
       return { data: null, error: { message: error?.message || "An unknown error occurred" } };
@@ -142,17 +127,29 @@ export async function fetchEventById(eventId: string) {
         event_certificate_settings (
           certificate_enabled,
           release_option,
-          scheduled_release_date
+          scheduled_release_date,
+          certificate_background
         )
       `)
       .eq("eventid", eventId)
-      .single(); // Use .single() to return only one record
+      .single();
 
     if (!error && data) {
-      // Flatten the data
-      const flattenedData = {
+      type EventData = typeof data & {
+        event_certificate_settings?: {
+          certificate_enabled?: boolean;
+          release_option?: string;
+          scheduled_release_date?: string;
+          certificate_background?: string;
+        };
+      };
+
+      const flattenedData: EventData = {
         ...data,
-        ...data.event_certificate_settings,
+        certificate_enabled: data.event_certificate_settings?.certificate_enabled || false,
+        release_option: data.event_certificate_settings?.release_option || null,
+        scheduled_release_date: data.event_certificate_settings?.scheduled_release_date || null,
+        certificate_background: data.event_certificate_settings?.certificate_background || null,
       };
       delete flattenedData.event_certificate_settings; // Remove nested object
       return { data: flattenedData, error: null };
@@ -687,5 +684,61 @@ export async function fetchSignatoriesForEvent(eventId: string) {
   } catch (e: any) {
     console.error('Error fetching signatories:', e);
     return { data: null, error: { message: e.message || 'An unexpected error occurred' } };
+  }
+}
+
+/**
+ * Fetch certificate settings for a given event ID.
+ * @param eventId - The UUID of the event.
+ * @returns An object containing certificate_enabled and other settings.
+ */
+export const fetchCertificateSettings = async (eventId: string) => {
+  const supabase = createClient();
+  console.log(`Fetching certificate settings for event ID: ${eventId}`);
+  const { data, error } = await supabase
+    .from("event_certificate_settings")
+    .select("certificate_enabled, release_option, scheduled_release_date")
+    .eq("event_id", eventId)
+    .single();
+
+  if (error) {
+    console.error("Error fetching certificate settings:", error);
+    return { error };
+  }
+
+  console.log("Fetched certificate settings:", data);
+  return { data };
+};
+
+
+export async function releaseCertificatesNow(eventId: string) {
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/events/${eventId}/release_certificates`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    const contentType = response.headers.get("Content-Type");
+
+    let data;
+    if (contentType && contentType.includes("application/json")) {
+      data = await response.json();
+    } else {
+      const text = await response.text();
+      throw new Error(`Unexpected response format: ${text}`);
+    }
+
+    if (!response.ok) {
+      return { success: false, error: data.error || "Failed to release certificates" };
+    }
+
+    console.log("Input JSON:", JSON.stringify(data, null, 2));
+
+    return { success: true };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+    return { success: false, error: errorMessage };
   }
 }
