@@ -370,6 +370,11 @@ const CreateEventForm = ({
     trigger();
   }, [signatories, setValue, trigger]);
 
+  useEffect(() => {
+    setValue("signatories", signatories);
+    trigger();
+  }, [signatories, setValue, trigger]);
+
   const onSubmit: SubmitHandler<EventFormValues> = async (formData) => {
     setIsLoading(true);
     try {

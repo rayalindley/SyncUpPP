@@ -505,6 +505,11 @@ export default function EventOptions({
                               : currentTab === "Attendees"
                               ? "Attendees"
                               : "Certificate Preview"}
+                            {currentTab === "Info"
+                              ? "Event Information"
+                              : currentTab === "Attendees"
+                              ? "Attendees"
+                              : "Certificate Preview"}
                           </Dialog.Title>
                           <div className="ml-3 flex h-7 items-center">
                             <button
@@ -547,6 +552,18 @@ export default function EventOptions({
                             )}
                           >
                             Attendees
+                          </button>
+                          {/* Add Certificate Preview Tab */}
+                          <button
+                            onClick={() => setCurrentTab("CertificatePreview")}
+                            className={classNames(
+                              currentTab === "CertificatePreview"
+                                ? "border-primary text-primary"
+                                : "border-transparent text-gray-400 hover:border-gray-300 hover:text-gray-300",
+                              "whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium"
+                            )}
+                          >
+                            Certificate Preview
                           </button>
                           {/* Add Certificate Preview Tab */}
                           <button

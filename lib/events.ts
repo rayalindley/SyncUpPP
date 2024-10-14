@@ -34,6 +34,7 @@ export async function insertEvent(formData: any, organizationid: string) {
       return { data: eventData, error: null };
     } else {
       return { data: null, error: { message: error?.message || "An unknown error occurred" } };
+      return { data: null, error: { message: error?.message || "An unknown error occurred" } };
     }
   } catch (e: any) {
     console.error("Unexpected error:", e);
@@ -57,6 +58,7 @@ export async function fetchEvents(organizationid: string) {
       return { data, error: null };
     } else {
       return { data: null, error: { message: error?.message || "An unknown error occurred" } };
+      return { data: null, error: { message: error?.message || "An unknown error occurred" } };
     }
   } catch (e: any) {
     console.error("Unexpected error:", e);
@@ -75,6 +77,7 @@ export async function updateEvent(eventId: string, formData: any) {
   };
   const supabase = createClient();
   try {
+    const { data: eventData, error } = await supabase
     const { data: eventData, error } = await supabase
       .from("events")
       .update(updateValues)
@@ -107,6 +110,7 @@ export async function updateEvent(eventId: string, formData: any) {
       return { data: eventData, error: null };
     } else {
       return { data: null, error: { message: error?.message || "An unknown error occurred" } };
+      return { data: null, error: { message: error?.message || "An unknown error occurred" } };
     }
   } catch (e: any) {
     console.error("Unexpected error:", e);
@@ -116,6 +120,7 @@ export async function updateEvent(eventId: string, formData: any) {
     };
   }
 }
+
 
 export async function fetchEventById(eventId: string) {
   const supabase = createClient();
@@ -319,6 +324,24 @@ export async function registerForEvent(eventId: string, userId: string, paymentM
 
       if (registrationError) {
         return { data: null, error: { message: registrationError.message } };
+      }
+
+      if (registrationData) {
+        // Check if certificates are enabled and set to immediate release
+        const { data: certificateSettings, error: certSettingsError } = await supabase
+          .from("event_certificate_settings")
+          .select("*")
+          .eq("event_id", eventId)
+          .single();
+    
+        if (certificateSettings?.certificate_enabled && certificateSettings.release_option === 'immediate') {
+          // Insert certificate record
+          await supabase.from("certificates").insert({
+            event_id: eventId,
+            user_id: userId,
+            release_status: 'released',
+          });
+        }
       }
 
       if (registrationData) {
