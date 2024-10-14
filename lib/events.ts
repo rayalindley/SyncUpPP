@@ -34,7 +34,6 @@ export async function insertEvent(formData: any, organizationid: string) {
       return { data: eventData, error: null };
     } else {
       return { data: null, error: { message: error?.message || "An unknown error occurred" } };
-      return { data: null, error: { message: error?.message || "An unknown error occurred" } };
     }
   } catch (e: any) {
     console.error("Unexpected error:", e);
@@ -57,7 +56,6 @@ export async function fetchEvents(organizationid: string) {
     if (!error) {
       return { data, error: null };
     } else {
-      return { data: null, error: { message: error?.message || "An unknown error occurred" } };
       return { data: null, error: { message: error?.message || "An unknown error occurred" } };
     }
   } catch (e: any) {
@@ -108,7 +106,6 @@ export async function updateEvent(eventId: string, formData: any) {
       }
       return { data: eventData, error: null };
     } else {
-      return { data: null, error: { message: error?.message || "An unknown error occurred" } };
       return { data: null, error: { message: error?.message || "An unknown error occurred" } };
     }
   } catch (e: any) {
