@@ -61,7 +61,7 @@
     "react-responsive-carousel": "^3.2.23",
     "react-select": "^5.8.1",
     "react-step-builder": "^3.0.6",
-    "react-sweetalert2": "^0.5.2",
+    "react-sweetalert2": "^0.6.0",
     "react-toastify": "^10.0.5",
     "recharts": "^2.12.7",
     "remark-gfm": "^4.0.0",
