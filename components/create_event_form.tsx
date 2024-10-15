@@ -443,7 +443,7 @@ const deleteDiscount = (index: number) => {
           );
           setValue(key as keyof EventFormValues, formattedDate);
         } else if (key === "scheduled_release_date" && event[key]) {
-          const date = new Date(event[key] as string);
+          const date = new Date(event[key] as Date);
           const formattedDate = formatDateForInput(date);
           setValue(key as keyof EventFormValues, formattedDate);
           // console.log("Formatted Date 2:", formattedDate);
