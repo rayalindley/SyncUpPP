@@ -20,6 +20,15 @@ const DataTable = dynamic(() => import('react-data-table-component'), {
 
 const supabase = createClient(); // Initialize Supabase client
 
+
+// Import dynamic from Next.js
+import dynamic from 'next/dynamic';
+
+// Dynamically import DataTable with SSR disabled
+const DataTable = dynamic(() => import('react-data-table-component'), {
+  ssr: false,
+});
+
 export default function EventsTableUser({
   organization,
   events,

@@ -3,50 +3,66 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function insertEvent(formData: any, organizationid: string) {
   const insertValues = {
-    title: formData.title,
-    description: formData.description,
-    starteventdatetime: formData.starteventdatetime,
-    endeventdatetime: formData.endeventdatetime,
-    location: formData.location,
-    capacity: formData.capacity,
-    registrationfee: formData.registrationfee,
+    onsite: formData.onsite,
     privacy: formData.privacy,
     organizationid: organizationid,
     eventphoto: formData.eventphoto,
     tags: formData.tags,
     eventslug: formData.slug,
-    onsite: formData.onsite,
   };
-
   const supabase = createClient();
   try {
-    const { data, error } = await supabase.from("events").insert([insertValues]).select();
+    const { data: eventData, error } = await supabase
+  .from("events")
+  .insert([insertValues])
+  .select();
 
-    if (!error && data && data.length > 0) {
-      // Insert discounts after event is created
-      if (formData.discounts && formData.discounts.length > 0) {
-        const eventId = data[0].eventid; // Assuming eventid is returned by Supabase
+if (!error && eventData && eventData.length > 0) {
+  const eventId = eventData[0].eventid; // Assuming eventid is returned by Supabase
 
-        const discountInserts = formData.discounts.map((discount: any) => ({
-          eventid: eventId,
-          role: discount.roles, // Store roles here (adjust if you need to store them differently)
-          membership_tier: discount.memberships, // Store memberships here
-          discount_percent: discount.discount,
-        }));
+  // Insert discounts after event is created
+  if (formData.discounts && formData.discounts.length > 0) {
+    const discountInserts = formData.discounts.map((discount: any) => ({
+      eventid: eventId,
+      role: discount.roles, // Store roles here (adjust if needed)
+      membership_tier: discount.memberships, // Store memberships here
+      discount_percent: discount.discount,
+    }));
 
-        const { error: discountError } = await supabase
-          .from("event_discounts")
-          .insert(discountInserts);
+    const { error: discountError } = await supabase
+      .from("event_discounts")
+      .insert(discountInserts);
 
-        if (discountError) {
-          console.error('Error inserting discounts:', discountError);
-          return { data: null, error: { message: discountError.message } };
-        }
-      }
+    if (discountError) {
+      console.error("Error inserting discounts:", discountError);
+      return { data: null, error: { message: discountError.message } };
+    }
+  }
 
-      return { data, error: null };
+  // Insert or update certificate settings if enabled
+  if (formData.certificate_enabled) {
+    const certificateSettings = {
+      event_id: eventId,
+      certificate_enabled: formData.certificate_enabled,
+      release_option: formData.release_option,
+      scheduled_release_date: formData.scheduled_release_date,
+      certificate_background: formData.certificate_background, // Certificate background
+    };
+
+    const { error: certError } = await supabase
+      .from("event_certificate_settings")
+      .upsert(certificateSettings);
+
+    if (certError) {
+      console.error("Error inserting certificate settings:", certError);
+      return { data: null, error: { message: certError.message } };
+    }
+  }
+
+  // If everything is successful, return the event data
+  return { data: eventData, error: null };
     } else {
-      return { data: null, error: { message: error?.message } };
+      return { data: null, error: { message: error?.message || "An unknown error occurred" } };
     }
   } catch (e: any) {
     console.error("Unexpected error:", e);
@@ -70,7 +86,7 @@ export async function fetchEvents(organizationid: string) {
     if (!error) {
       return { data, error: null };
     } else {
-      return { data: null, error: { message: error.message } };
+      return { data: null, error: { message: error?.message || "An unknown error occurred" } };
     }
   } catch (e: any) {
     console.error("Unexpected error:", e);
@@ -82,62 +98,87 @@ export async function fetchEvents(organizationid: string) {
 }
 export async function updateEvent(eventId: string, formData: any) {
   const updateValues = {
-    title: formData.title,
-    description: formData.description,
-    starteventdatetime: formData.starteventdatetime,
-    endeventdatetime: formData.endeventdatetime,
-    location: formData.location,
-    capacity: formData.capacity,
-    registrationfee: formData.registrationfee,
-    privacy: formData.privacy,
-    eventphoto: formData.eventphoto,
-    tags: formData.tags,
-    eventslug: formData.slug,
     onsite: formData.onsite,
+    privacy: formData.privacy,
+    eventslug: formData.slug,
+    tags: formData.tags,
   };
-
   const supabase = createClient();
   try {
-    const { data, error } = await supabase
+    const { data: eventData, error } = await supabase
       .from("events")
       .update(updateValues)
       .eq("eventid", eventId)
       .select();
 
-    if (!error && data && data.length > 0) {
-      // Delete existing discounts for the event
-      const { error: deleteError } = await supabase
-        .from("event_discounts")
-        .delete()
-        .eq("eventid", eventId);
-
-      if (deleteError) {
-        console.error('Error deleting old discounts:', deleteError);
-        return { data: null, error: { message: deleteError.message } };
-      }
-
-      // Insert the updated discounts
-      if (formData.discounts && formData.discounts.length > 0) {
-        const discountInserts = formData.discounts.map((discount: any) => ({
-          eventid: eventId,
-          role: discount.roles,
-          membership_tier: discount.memberships,
-          discount_percent: discount.discount,
-        }));
-
-        const { error: discountError } = await supabase
+      if (!error && eventData && eventData.length > 0) {
+        const eventId = eventData[0].eventid; // Assuming eventid is returned by Supabase
+      
+        // Delete existing discounts for the event
+        const { error: deleteError } = await supabase
           .from("event_discounts")
-          .insert(discountInserts);
-
-        if (discountError) {
-          console.error('Error inserting new discounts:', discountError);
-          return { data: null, error: { message: discountError.message } };
+          .delete()
+          .eq("eventid", eventId);
+      
+        if (deleteError) {
+          console.error("Error deleting old discounts:", deleteError);
+          return { data: null, error: { message: deleteError.message } };
         }
-      }
-
-      return { data, error: null };
+      
+        // Insert updated discounts
+        if (formData.discounts && formData.discounts.length > 0) {
+          const discountInserts = formData.discounts.map((discount: any) => ({
+            eventid: eventId,
+            role: discount.roles,
+            membership_tier: discount.memberships,
+            discount_percent: discount.discount,
+          }));
+      
+          const { error: discountError } = await supabase
+            .from("event_discounts")
+            .insert(discountInserts);
+      
+          if (discountError) {
+            console.error("Error inserting new discounts:", discountError);
+            return { data: null, error: { message: discountError.message } };
+          }
+        }
+      
+        // Handle certificate settings
+        if (formData.certificate_enabled) {
+          const certificateSettings = {
+            event_id: eventId,
+            certificate_enabled: formData.certificate_enabled,
+            release_option: formData.release_option,
+            scheduled_release_date: formData.scheduled_release_date,
+            certificate_background: formData.certificate_background, // Certificate background
+          };
+      
+          const { error: certError } = await supabase
+            .from("event_certificate_settings")
+            .upsert(certificateSettings);
+      
+          if (certError) {
+            console.error("Error inserting/updating certificate settings:", certError);
+            return { data: null, error: { message: certError.message } };
+          }
+        } else {
+          // Delete certificate settings if certificate is not enabled
+          const { error: certDeleteError } = await supabase
+            .from("event_certificate_settings")
+            .delete()
+            .eq("event_id", eventId);
+      
+          if (certDeleteError) {
+            console.error("Error deleting certificate settings:", certDeleteError);
+            return { data: null, error: { message: certDeleteError.message } };
+          }
+        }
+      
+        // If everything is successful, return the event data
+        return { data: eventData, error: null };
     } else {
-      return { data: null, error: { message: error?.message } };
+      return { data: null, error: { message: error?.message || "An unknown error occurred" } };
     }
   } catch (e: any) {
     console.error("Unexpected error:", e);
@@ -147,18 +188,42 @@ export async function updateEvent(eventId: string, formData: any) {
     };
   }
 }
-
 export async function fetchEventById(eventId: string) {
   const supabase = createClient();
   try {
     const { data, error } = await supabase
       .from("events")
-      .select("*")
+      .select(`
+        *,
+        event_certificate_settings (
+          certificate_enabled,
+          release_option,
+          scheduled_release_date,
+          certificate_background
+        )
+      `)
       .eq("eventid", eventId)
-      .single(); // Use .single() to return only one record
+      .single();
 
     if (!error && data) {
-      return { data, error: null };
+      type EventData = typeof data & {
+        event_certificate_settings?: {
+          certificate_enabled?: boolean;
+          release_option?: string;
+          scheduled_release_date?: string;
+          certificate_background?: string;
+        };
+      };
+
+      const flattenedData: EventData = {
+        ...data,
+        certificate_enabled: data.event_certificate_settings?.certificate_enabled || false,
+        release_option: data.event_certificate_settings?.release_option || null,
+        scheduled_release_date: data.event_certificate_settings?.scheduled_release_date || null,
+        certificate_background: data.event_certificate_settings?.certificate_background || null,
+      };
+      delete flattenedData.event_certificate_settings; // Remove nested object
+      return { data: flattenedData, error: null };
     } else {
       return { data: null, error: { message: error?.message || "Event not found" } };
     }
@@ -325,6 +390,42 @@ export async function registerForEvent(eventId: string, userId: string, paymentM
 
       if (registrationError) {
         return { data: null, error: { message: registrationError.message } };
+      }
+
+      if (registrationData) {
+        // Check if certificates are enabled and set to immediate release
+        const { data: certificateSettings, error: certSettingsError } = await supabase
+          .from("event_certificate_settings")
+          .select("*")
+          .eq("event_id", eventId)
+          .single();
+    
+        if (certificateSettings?.certificate_enabled && certificateSettings.release_option === 'immediate') {
+          // Insert certificate record
+          await supabase.from("certificates").insert({
+            event_id: eventId,
+            user_id: userId,
+            release_status: 'released',
+          });
+        }
+      }
+
+      if (registrationData) {
+        // Check if certificates are enabled and set to immediate release
+        const { data: certificateSettings, error: certSettingsError } = await supabase
+          .from("event_certificate_settings")
+          .select("*")
+          .eq("event_id", eventId)
+          .single();
+    
+        if (certificateSettings?.certificate_enabled && certificateSettings.release_option === 'immediate') {
+          // Insert certificate record
+          await supabase.from("certificates").insert({
+            event_id: eventId,
+            user_id: userId,
+            release_status: 'released',
+          });
+        }
       }
 
       return { data: registrationData, error: null };
@@ -636,5 +737,97 @@ export async function fetchEventsForUserAdmin(userId: string) {
       data: null,
       error: { message: error.message || "An unexpected error occurred" },
     };
+  }
+}
+
+export async function fetchCertificatesForUser(userId: string) {
+  const supabase = createClient();
+  try {
+    const { data, error } = await supabase
+      .from("certificates")
+      .select("*, events(title, starteventdatetime)")
+      .eq("user_id", userId)
+      .eq("release_status", "released");
+    if (!error) {
+      return { data, error: null };
+    } else {
+      return { data: null, error };
+    }
+  } catch (e: any) {
+    return { data: null, error: e };
+  }
+}
+
+
+export async function fetchSignatoriesForEvent(eventId: string) {
+  const supabase = createClient();
+  try {
+    const { data, error } = await supabase
+      .from('event_signatories')
+      .select('*')
+      .eq('event_id', eventId);
+    if (error) {
+      throw error;
+    }
+    return { data, error: null };
+  } catch (e: any) {
+    console.error('Error fetching signatories:', e);
+    return { data: null, error: { message: e.message || 'An unexpected error occurred' } };
+  }
+}
+
+/**
+ * Fetch certificate settings for a given event ID.
+ * @param eventId - The UUID of the event.
+ * @returns An object containing certificate_enabled and other settings.
+ */
+export const fetchCertificateSettings = async (eventId: string) => {
+  const supabase = createClient();
+  console.log(`Fetching certificate settings for event ID: ${eventId}`);
+  const { data, error } = await supabase
+    .from("event_certificate_settings")
+    .select("certificate_enabled, release_option, scheduled_release_date")
+    .eq("event_id", eventId)
+    .single();
+
+  if (error) {
+    console.error("Error fetching certificate settings:", error);
+    return { error };
+  }
+
+  console.log("Fetched certificate settings:", data);
+  return { data };
+};
+
+
+export async function releaseCertificatesNow(eventId: string) {
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/events/${eventId}/release_certificates`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    const contentType = response.headers.get("Content-Type");
+
+    let data;
+    if (contentType && contentType.includes("application/json")) {
+      data = await response.json();
+    } else {
+      const text = await response.text();
+      throw new Error(`Unexpected response format: ${text}`);
+    }
+
+    if (!response.ok) {
+      return { success: false, error: data.error || "Failed to release certificates" };
+    }
+
+    console.log("Input JSON:", JSON.stringify(data, null, 2));
+
+    return { success: true };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+    return { success: false, error: errorMessage };
   }
 }
