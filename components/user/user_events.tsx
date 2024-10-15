@@ -9,7 +9,7 @@ interface UserEventsProps {
 
 const UserEvents: React.FC<UserEventsProps> = ({ events }) => {
   const [currentPage, setCurrentPage] = useState(1);
-  const eventsPerPage = 3; // Set the number of events per page to 3
+  const eventsPerPage = 4; // Set the number of events per page to 3
 
   const indexOfLastEvent = currentPage * eventsPerPage;
   const indexOfFirstEvent = indexOfLastEvent - eventsPerPage;
@@ -26,7 +26,7 @@ const UserEvents: React.FC<UserEventsProps> = ({ events }) => {
           My Events
         </p>
       </div>
-      <div className="isolate mx-auto mt-8 grid max-w-md grid-cols-1 gap-x-4 gap-y-8 sm:mt-12 lg:mx-0 lg:max-w-none lg:grid-cols-3">
+      <div className="isolate mx-auto mt-8 grid max-w-md grid-cols-1 gap-x-4 gap-y-8 sm:mt-12 lg:mx-0 lg:max-w-none lg:grid-cols-4">
         {currentEvents.map((event, index) => (
           <EventsCard
             key={index}

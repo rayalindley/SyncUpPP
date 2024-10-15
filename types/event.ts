@@ -14,8 +14,8 @@ export interface Event {
   title: string;
   description: string;
   registrationfee: number;
-  starteventdatetime: Date;
-  endeventdatetime: Date;
+  starteventdatetime: string;
+  endeventdatetime: string;
   location: string;
   capacity: number;
   organizationid: string;

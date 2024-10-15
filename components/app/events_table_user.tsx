@@ -10,16 +10,6 @@ import { useDebounce } from "use-debounce";
 import dynamic from 'next/dynamic';
 import Preloader from "../preloader";
 
-// Dynamically import DataTable
-const DataTable = dynamic(() => import('react-data-table-component'), {
-  ssr: false,
-});
-
-
-
-// Import dynamic from Next.js
-import dynamic from 'next/dynamic';
-
 // Dynamically import DataTable with SSR disabled
 const DataTable = dynamic(() => import('react-data-table-component'), {
   ssr: false,

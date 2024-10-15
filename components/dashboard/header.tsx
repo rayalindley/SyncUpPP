@@ -120,7 +120,7 @@ function Header({ user }: { user: User }) {
       loadNotifications();
     }
     if (link) {
-      console.log("Navigating to:", link); // Debugging line
+      // console.log("Navigating to:", link); // Debugging line
       window.location.href = link; // Use window.location.href for navigation
     }
   };
@@ -369,15 +369,31 @@ function Header({ user }: { user: User }) {
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Menu.Items className="absolute right-0 z-20 mt-2 w-48 origin-top-right rounded-md bg-[#151718] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                {/* Menu Items */}
+              <Menu.Items className="absolute right-0 z-10 mt-2 w-56 origin-top-right divide-y divide-[#525252] rounded-md bg-charleston shadow-lg ring-1 ring-light ring-opacity-5 focus:outline-none">
+                <div className="px-4 py-3">
+                  <p className="text-sm text-light">Signed in as</p>
+                  <p className="truncate text-sm font-medium text-light">{user.email}</p>
+                </div>
                 <div className="py-1">
                   <Menu.Item>
                     {({ active }) => (
                       <Link
-                        href={`/user/profile/${user.id}`}
+                        href={`/dashboard`}
                         className={classNames(
-                          active ? "bg-[#23af90] text-white" : "text-gray-300",
+                          active ? "bg-[#383838] text-light" : "text-light",
+                          "block px-4 py-2 text-sm"
+                        )}
+                      >
+                        Dashboard
+                      </Link>
+                    )}
+                  </Menu.Item>
+                  <Menu.Item>
+                    {({ active }) => (
+                      <Link
+                        href={`/user/profile/${user?.id}`}
+                        className={classNames(
+                          active ? "bg-[#383838] text-light" : "text-light",
                           "block px-4 py-2 text-sm"
                         )}
                       >
@@ -385,45 +401,18 @@ function Header({ user }: { user: User }) {
                       </Link>
                     )}
                   </Menu.Item>
-                  <Menu.Item>
-                    {({ active }) => (
-                      <Link
-                        href="/support"
-                        className={classNames(
-                          active ? "bg-[#23af90] text-white" : "text-gray-300",
-                          "block px-4 py-2 text-sm"
-                        )}
-                      >
-                        Support
-                      </Link>
-                    )}
-                  </Menu.Item>
-                  <Menu.Item>
-                    {({ active }) => (
-                      <Link
-                        href="/license"
-                        className={classNames(
-                          active ? "bg-[#23af90] text-white" : "text-gray-300",
-                          "block px-4 py-2 text-sm"
-                        )}
-                      >
-                        License
-                      </Link>
-                    )}
-                  </Menu.Item>
                 </div>
-                <div className="border-t border-gray-700"></div>
                 <div className="py-1">
                   <Menu.Item>
                     {({ active }) => (
                       <button
+                        className={classNames(
+                          active ? "bg-[#383838] text-light" : "text-light",
+                          "block w-full px-4 py-2 text-left text-sm"
+                        )}
                         onClick={async () => {
                           await signOut();
                         }}
-                        className={classNames(
-                          active ? "bg-[#23af90] text-white" : "text-gray-300",
-                          "block w-full px-4 py-2 text-left text-sm"
-                        )}
                       >
                         Sign out
                       </button>

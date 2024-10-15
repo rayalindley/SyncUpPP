@@ -40,9 +40,9 @@ export async function recordActivity({
     .from('activities')
     .insert([activityData]);
 
-  console.log(data, error);
+  // console.log(data, error);
 
-    console.log(data, error);
+    // console.log(data, error);
 
   if (error) {
     throw new Error(`Failed to insert activity: ${error.message}`);
