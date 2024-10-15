@@ -28,7 +28,7 @@ export default async function RegistrationsPageUser({ params }: { params: { slug
 
   // Check if the user has permission to view the dashboard and registrations
   const hasViewDashboardPermission = await check_permissions(user.id, organization.organizationid, "view_dashboard");
-  const hasViewRegistrationsPermission = await check_permissions(user.id, organization.organizationid, "view_registrations");
+  const hasViewRegistrationsPermission = await check_permissions(user.id, organization.organizationid, "manage_event_registrations");
 
   if (!hasViewDashboardPermission || !hasViewRegistrationsPermission) {
     return (

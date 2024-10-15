@@ -27,18 +27,10 @@ const membershipSchema = z.object({
       }
       return true;
     }),
-  description: z.string().nonempty("Description is required"),
+  description: z.string().nonempty("Description is required").max(250, "Description must be 250 characters or less"),
   organizationid: z.string(),
   features: z.array(z.string()).optional(),
-  yearlydiscount: z
-    .number()
-    .min(0, "Discount cannot be negative")
-    .refine((value) => {
-      if (!Number.isFinite(value) || Math.abs(value) > Number.MAX_SAFE_INTEGER) {
-        throw new Error("Discount Fee is too large");
-      }
-      return true;
-    }),
+  cycletype: z.enum(["monthly", "yearly"]),
 });
 
 const fetchData = async (organizationid: string) => {
@@ -68,7 +60,7 @@ const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
     registrationfee: 0,
     features: [],
     mostPopular: false,
-    yearlydiscount: 0,
+    cycletype: "monthly",
   };
 
   const {
@@ -78,6 +70,7 @@ const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
     setValue,
     reset,
     formState: { errors },
+    watch,
   } = useForm<Membership>({
     resolver: zodResolver(membershipSchema),
     defaultValues: initialFormData,
@@ -117,7 +110,7 @@ const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-10" onClose={onClose}>
+      <Dialog as="div" className="relative z-100 space-y-120" onClose={onClose}>
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-300"
@@ -181,6 +174,24 @@ const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
                       </div>
                     </div>
                     <div>
+                      <label htmlFor="cycletype" className="block text-sm font-medium leading-6 text-white">
+                        Membership Cycle:
+                      </label>
+                      <div className="mt-2">
+                        <select
+                          id="cycletype"
+                          {...register("cycletype")}
+                          className="block w-full rounded-md border-0 bg-charleston py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                        >
+                          <option value="monthly">Monthly</option>
+                          <option value="yearly">Yearly</option>
+                        </select>
+                        {errors.cycletype && (
+                          <p className="text-sm text-red-500">{errors.cycletype.message}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div>
                       <label
                         htmlFor="registrationfee"
                         className="block text-sm font-medium leading-6 text-white"
@@ -206,42 +217,22 @@ const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
                     </div>
                     <div>
                       <label
-                        htmlFor="yearlydiscount"
-                        className="block text-sm font-medium leading-6 text-white"
-                      >
-                        Yearly Discount (%):
-                      </label>
-                      <div className="relative mt-2">
-                        <input
-                          type="number"
-                          id="yearlydiscount"
-                          {...register("yearlydiscount", { valueAsNumber: true })}
-                          className="block w-full rounded-md border-0 bg-white/5 py-1.5 pr-12 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-                        />
-                        <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-sm text-white">
-                          %
-                        </span>
-                        {errors.yearlydiscount && (
-                          <p className="text-sm text-red-500">
-                            {errors.yearlydiscount.message}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div>
-                      <label
                         htmlFor="description"
                         className="block text-sm font-medium leading-6 text-white"
                       >
                         Description:
                       </label>
                       <div className="mt-2">
-                        <input
-                          type="text"
+                        <textarea
                           id="description"
                           {...register("description")}
                           className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                          rows={4}
+                          maxLength={250}
                         />
+                        <p className="mt-1 text-xs text-gray-400">
+                          {watch("description")?.length || 0}/250 characters
+                        </p>
                         {errors.description && (
                           <p className="text-sm text-red-500">
                             {errors.description.message}
@@ -268,11 +259,15 @@ const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
                                   value={feature}
                                   onChange={(e) => {
                                     const newFeatures = [...(field.value ?? [])];
-                                    newFeatures[index] = e.target.value;
+                                    newFeatures[index] = e.target.value.slice(0, 50); // Limit to 100 characters
                                     field.onChange(newFeatures);
                                   }}
                                   className="block w-full rounded-md border-0 bg-white/5 py-1.5 pr-20 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                                  maxLength={50}
                                 />
+                                <p className="mt-1 text-xs text-gray-400">
+                                  {feature.length}/50 characters
+                                </p>
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -281,7 +276,7 @@ const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
                                     );
                                     field.onChange(newFeatures);
                                   }}
-                                  className="absolute right-2 top-2/4 size-5 -translate-y-2/4 rounded-md bg-red-500 text-xs text-white hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-opacity-50"
+                                  className="absolute right-2 top-3 size-5 -translate-y-1/4 rounded-md bg-red-500 text-xs text-white hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-opacity-50"
                                 >
                                   x
                                 </button>

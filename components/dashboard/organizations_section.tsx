@@ -1,5 +1,5 @@
 "use client";
-import { ArrowLongLeftIcon, ArrowLongRightIcon } from "@heroicons/react/24/outline";
+import { ArrowLongLeftIcon, ArrowLongRightIcon, PlusCircleIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
 import OrganizationCard from "../app/organization_card";
 import { Organizations } from "@/types/organizations";
@@ -12,6 +12,11 @@ interface OrgSummary extends Organizations {
 
 interface OrganizationSectionProps {
   organizations: OrgSummary[];
+}
+
+
+function classNames(...classes: string[]) {
+  return classes.filter(Boolean).join(" ");
 }
 
 export default function OrganizationSection({ organizations }: OrganizationSectionProps) {
@@ -33,12 +38,6 @@ export default function OrganizationSection({ organizations }: OrganizationSecti
 
   return (
     <div className="mt-10">
-      <a
-        href="/organization/create"
-        className="border-1 rounded-md border border-primary bg-primarydark p-1 px-2 text-sm text-gray-100 hover:cursor-pointer"
-      >
-        Create Organization
-      </a>
       <h3 className="mt-5 text-base font-semibold leading-6 text-gray-300">
         Organizations
       </h3>
@@ -61,7 +60,52 @@ export default function OrganizationSection({ organizations }: OrganizationSecti
             />
           ))
         )}
+
+        {/* Buttons to create and search organization */}
+        <div className="flex h-full min-h-[350px] w-full flex-col space-y-4  rounded-lg">
+          <a
+            href="/organization/create"
+            className="flex flex-1 flex-col items-center justify-center rounded-md border-2 border-dashed border-charleston px-4 py-6 text-sm font-medium text-gray-600  text-light transition duration-150 ease-in-out hover:bg-charleston focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+          >
+            <svg
+              className="mb-2 h-6 w-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            Create Organization
+          </a>
+          <a
+            href="/organizations"
+            className="flex flex-1 flex-col items-center justify-center rounded-md  border-2 border-dashed border-charleston px-4 py-6 text-sm font-medium text-light transition duration-150 ease-in-out hover:bg-charleston focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+          >
+            <svg
+              className="mb-2 h-6 w-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+            Find Organizations
+          </a>
+        </div>
       </div>
+
       {/* Pagination */}
       <nav className="mt-8 flex w-full items-center justify-between border-t border-gray-200 px-4 sm:px-0">
         {/* Previous button */}

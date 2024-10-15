@@ -11,9 +11,10 @@ import { toast, ToastContainer } from "react-toastify";
 import Swal from "sweetalert2";
 import { fetchOrgMemBySlug } from "@/lib/memberships";
 import { check_permissions } from "@/lib/organization"; // Import the check_permissions function
+import { Membership } from "@/types/membership";
 
 interface MembershipTiersClientProps {
-  memberships: Memberships[];
+  memberships: Membership[];
   members: UserMembershipInfo[];
   organization: Organizations;
 }
@@ -25,7 +26,7 @@ export default function MembershipTiersClient({
 }: MembershipTiersClientProps) {
   const [memberships, setMemberships] = useState(initialMemberships);
   const [showModal, setShowModal] = useState(false);
-  const [selectedMembership, setSelectedMembership] = useState<Memberships | undefined>(
+  const [selectedMembership, setSelectedMembership] = useState<Membership | undefined>(
     undefined
   );
 
@@ -93,7 +94,7 @@ export default function MembershipTiersClient({
       return;
     }
 
-    setSelectedMembership(membership);
+    setSelectedMembership(membership as Membership);
     setShowModal(true);
   };
 

@@ -8,7 +8,8 @@ export async function getMemberships(id: string) {
   const { data: memberships, error } = await supabase
     .from("memberships")
     .select("*")
-    .eq("organizationid", id);
+    .eq("organizationid", id)
+    .order("registrationfee", { ascending: true }); // Order by registrationfee in ascending order
 
   if (error) {
     console.error("memberships.ts: Failed to fetch memberships:", error.message);
@@ -173,7 +174,8 @@ export async function fetchOrgMemBySlug(slug: string | string[]) {
   let { data: org_memberships, error } = await supabase
     .from("organization_memberships")
     .select("*")
-    .eq("slug", slug);
+    .eq("slug", slug)
+    .order("registrationfee", { ascending: true }); // Order by registrationfee in ascending order
 
   if (error) {
     console.error("memberships.ts: Failed to fetch organization memberships by slug:", error.message);
@@ -181,7 +183,7 @@ export async function fetchOrgMemBySlug(slug: string | string[]) {
   }
 
   // console.log("memberships.ts: Fetched organization memberships by slug:", org_memberships);
-  return org_memberships ;
+  return org_memberships;
 }
 
 export async function fetchMembersBySlug(slug: string) {

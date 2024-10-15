@@ -47,7 +47,7 @@ interface PostsSectionProps {
 
 const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPosts }) => {
   const { user } = useUser();
-  const [currentPosts, setCurrentPosts] = useState<Posts[]>(initialPosts);
+  const [currentPosts, setCurrentPosts] = useState<Posts[]>(initialPosts || []);
 
   const [editingPost, setEditingPost] = useState<Posts | null>(null);
   const [isPublic, setIsPublic] = useState(false);
@@ -330,7 +330,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPost
     setTimeout(() => setCreationMessage(null), 3000);
   };
 
-  const filteredPosts = currentPosts
+  const filteredPosts = (currentPosts || [])
     .filter((post) => {
       const matchesSearch = post.content
         ?.toLowerCase()
@@ -413,9 +413,9 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPost
                 <div className="w-full">
                   <div className="flex w-full items-center border-b border-gray-600">
                     <div className="w-full">
-                        <div className="w-full flex items-center">
+                      <div className="flex w-full items-center">
                         {!watch("content") && (
-                          <PencilIcon className="h-5 w-5 text-gray-400 mr-2" />
+                          <PencilIcon className="mr-2 h-5 w-5 text-gray-400" />
                         )}
                         <textarea
                           placeholder="Let your organization know what's happening..."
@@ -425,14 +425,14 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPost
                           rows={1}
                           {...register("content")}
                           onInput={(e) => {
-                          e.currentTarget.style.height = "auto";
-                          e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
+                            e.currentTarget.style.height = "auto";
+                            e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
                           }}
                         />
-                        </div>
+                      </div>
                       {/* Photo previews */}
                       {photos.length > 0 && (
-                        <div className="mt-4 grid w-full grid-cols-3 gap-2 mb-4">
+                        <div className="mb-4 mt-4 grid w-full grid-cols-3 gap-2">
                           {photos.map((photo, index) => (
                             <div
                               key={index}
@@ -512,6 +512,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPost
                               }}
                               suggestions={availableRoles.map((role) => role.name)}
                               placeholder="Roles"
+                              allowCustomTags={false} // Disallow custom tags
                             />
                           )}
                         />
@@ -532,6 +533,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPost
                                 (membership) => membership.name
                               )}
                               placeholder="Memberships"
+                              allowCustomTags={false} // Disallow custom tags
                             />
                           )}
                         />
@@ -601,24 +603,24 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPost
       )}
 
       <div className="mt-8 space-y-4">
-        {(filteredPosts.length <= 0 && !isLoading) && (
+        {filteredPosts.length <= 0 && !isLoading && (
           <div
-        className="mb-4 rounded-lg bg-gray-800 p-4 text-center text-sm text-blue-400"
-        role="alert"
+            className="mb-4 rounded-lg bg-gray-800 p-4 text-center text-sm text-blue-400"
+            role="alert"
           >
-        The organization has no posts available for you at the moment.
+            The organization has no posts available for you at the moment.
           </div>
         )}
         {filteredPosts.map((post) => (
           <PostCard
-        key={post.postid}
-        post={post}
-        setPosts={setCurrentPosts}
-        setEditingPost={setEditingPost}
-        availableRoles={availableRoles}
-        availableMemberships={availableMemberships}
-        canDelete={canDelete}
-        organizationId={organizationId}
+            key={post.postid}
+            post={post}
+            setPosts={setCurrentPosts}
+            setEditingPost={setEditingPost}
+            availableRoles={availableRoles}
+            availableMemberships={availableMemberships}
+            canDelete={canDelete}
+            organizationId={organizationId}
           />
         ))}
       </div>

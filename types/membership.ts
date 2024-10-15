@@ -1,4 +1,3 @@
-
 export interface Membership {
   membershipid: string;
   name: string;
@@ -7,7 +6,7 @@ export interface Membership {
   duration?: string;
   organizationid?: string;
   registrationfee: number;
-  yearlydiscount?: number;
   mostPopular?: boolean;
   features?: string[];
+  cycletype: 'monthly' | 'yearly';
 }

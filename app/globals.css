@@ -224,3 +224,10 @@
   background-color: #32805c !important;
   color: #32805c !important;
 }
+
+/* Remove the blue border from all input elements when focused */
+.select__control--is-focused {
+  outline: none !important; /* Override default outline */
+  box-shadow: none !important; /* Remove the box-shadow */
+  border: none !important; /* Remove any border styling */
+}

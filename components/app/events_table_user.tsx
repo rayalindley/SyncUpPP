@@ -7,6 +7,14 @@ import { useEffect, useState, useMemo } from "react";
 import EventOptions from "./event_options";
 import { TableColumn } from "react-data-table-component";
 import { useDebounce } from "use-debounce";
+import dynamic from 'next/dynamic';
+import Preloader from "../preloader";
+
+// Dynamically import DataTable
+const DataTable = dynamic(() => import('react-data-table-component'), {
+  ssr: false,
+});
+
 
 
 // Import dynamic from Next.js
@@ -27,7 +35,7 @@ export default function EventsTableUser({
   userId: string;
 }) {
   const router = useRouter();
-  const [canCreateEvents, setCanCreateEvents] = useState(false);
+  const [canCreateEvents, setCanCreateEvents] = useState<boolean | null>(null); // Start with null to indicate loading state
   const [filterText, setFilterText] = useState<string>("");
   const [debouncedFilterText] = useDebounce(filterText, 300);
 
@@ -44,14 +52,24 @@ export default function EventsTableUser({
           organization.organizationid,
           "create_events"
         );
-        setCanCreateEvents(permission);
+        setCanCreateEvents(permission); // Permission check resolves
       } catch (error) {
         console.error("Failed to check permissions", error);
+        setCanCreateEvents(false); // On error, fallback to false
       }
     };
 
+    // Fallback for cases where the permission check might hang
+    const fallbackTimeout = setTimeout(() => {
+      if (canCreateEvents === null) {
+        setCanCreateEvents(false); // Assume no permission if no response within timeout
+      }
+    }, 100); // 5 seconds timeout
+
     checkPermissions();
-  }, [userId, organization.organizationid]);
+
+    return () => clearTimeout(fallbackTimeout); // Cleanup the timeout
+  }, [userId, organization.organizationid, canCreateEvents]);
 
   // Convert event datetime to PST
   const formattedDateTime = (utcDateString: string) => {
@@ -119,8 +137,8 @@ export default function EventsTableUser({
         <EventOptions selectedEvent={row} userId={userId} />
       ),
       ignoreRowClick: true,
-      allowOverflow: true,
-      button: true,
+      allowoverflow: true,
+      button: true.toString(),
     },
   ];
 
@@ -157,6 +175,10 @@ export default function EventsTableUser({
       </div>
     </div>
   );
+
+  if (canCreateEvents === null) {
+    return <Preloader/>; // Optional loading state
+  }
 
   return (
     <div className="py-4 sm:px-6 lg:px-8">

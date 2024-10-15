@@ -39,7 +39,7 @@ interface Membership {
   description: string;
   membershipid: string;
   total_members: number;
-  yearlydiscount: number;
+  cycletype: string;
   registrationfee: number;
   open?: boolean; // Make these properties optional
   setOpen?: (open: boolean) => void; // Make these properties optional

@@ -108,96 +108,94 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ organizationid,
     ? analyticsData[0].total_events
     : 0;
 
-  return (
-    <div className="container mx-auto py-8">
-      <div className="grid grid-cols-3 gap-4">
-        {/* Left side - Member Growth Over Time */}
-        <div className="col-span-2">
-          <div className="rounded-lg bg-charleston p-4 text-light">
-            <h2 className="mb-4 text-lg font-bold">Member Growth Over Time</h2>
-            <ResponsiveContainer width="100%" height={325}>
-              <LineChart data={uniqueMemberGrowthData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="day_joined" tick={{ fill: "#E0E0E0" }} />
-                <YAxis tick={{ fill: "#E0E0E0" }} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: "#525252", color: "#E0E0E0" }}
-                />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="members_joined"
-                  name="Members Joined"
-                  stroke="#37996b"
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Event Registrations Over Time */}
-          <div className="rounded-lg bg-charleston p-4 mt-4">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-light">
-                Event Registrations Over Time
-              </h2>
-              <select
-                onChange={handleEventChange}
-                value={eventFilter || ""}
-                className="rounded border border-raisinblack bg-fadedgrey p-2 text-light"
-              >
-                <option value="">Select an Event</option>
-                {uniqueEvents.map((event) => (
-                  <option key={event.eventid} value={event.eventid}>
-                    {event.event_title}
-                  </option>
-                ))}
-              </select>
+    return (
+      <div className="container mx-auto py-8">
+        {/* Mobile: Totals -> Charts -> Recent Activities */}
+        {/* Desktop: Charts on the left (2 cols), Totals above Recent Activities on the right */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          {/* Totals section (Top on mobile, Right on desktop) */}
+          <div className="order-1 md:order-2 md:col-span-1">
+            <SummaryCard title="Total Members" value={totalMembers} icon={<FaUsers />} />
+            <SummaryCard title="Total Posts" value={totalPosts} icon={<FaRegFileAlt />} />
+            <SummaryCard title="Total Events" value={totalEvents} icon={<FaCalendarAlt />} />
+  
+            {/* Recent Activities (below totals on desktop, last on mobile) */}
+            <div className="rounded-lg bg-charleston p-4 text-light mt-4 md:mt-4">
+              <h2 className="mb-4 text-lg font-bold">Recent Activities</h2>
+              {activities && activities.length > 0 ? (
+                <ActivityFeed activities={activities} />
+              ) : (
+                <p>No activities yet</p>
+              )}
             </div>
-            {eventFilter && (
+          </div>
+  
+          {/* Charts section (Second on mobile, Left on desktop) */}
+          <div className="order-2 md:order-1 md:col-span-2">
+            <div className="rounded-lg bg-charleston p-4 text-light mb-4">
+              <h2 className="mb-4 text-lg font-bold">Member Growth Over Time</h2>
               <ResponsiveContainer width="100%" height={325}>
-                <LineChart data={filteredRegistrations}>
+                <LineChart data={uniqueMemberGrowthData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="day_registered" tick={{ fill: "#E0E0E0" }} />
+                  <XAxis dataKey="day_joined" tick={{ fill: "#E0E0E0" }} />
                   <YAxis tick={{ fill: "#E0E0E0" }} />
                   <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#525252",
-                      color: "#E0E0E0",
-                    }}
+                    contentStyle={{ backgroundColor: "#525252", color: "#E0E0E0" }}
                   />
                   <Legend />
                   <Line
                     type="monotone"
-                    dataKey="registrations_count"
-                    name="Registrations Count"
-                    stroke="#82ca9d"
+                    dataKey="members_joined"
+                    name="Members Joined"
+                    stroke="#37996b"
                   />
                 </LineChart>
               </ResponsiveContainer>
-            )}
-          </div>
-        </div>
-
-        {/* Right side - Total Stats and Recent Activities */}
-        <div className="col-span-1">
-          {/* Top Stats using SummaryCard */}
-          <SummaryCard title="Total Members" value={totalMembers} icon={<FaUsers />} />
-          <SummaryCard title="Total Posts" value={totalPosts} icon={<FaRegFileAlt />} />
-          <SummaryCard title="Total Events" value={totalEvents} icon={<FaCalendarAlt />} />
-
-          {/* Recent Activities */}
-          <div className="rounded-lg bg-charleston p-4 text-light mt-4">
-            <h2 className="mb-4 text-lg font-bold">Recent Activities</h2>
-            {activities && activities.length > 0 ? (
-              <ActivityFeed activities={activities} />
-            ) : (
-              <p>No activities yet</p>
-            )}
+            </div>
+  
+            <div className="rounded-lg bg-charleston p-4">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-bold text-light">Event Registrations Over Time</h2>
+                <select
+                  onChange={handleEventChange}
+                  value={eventFilter || ""}
+                  className="rounded border border-raisinblack bg-fadedgrey p-2 text-light"
+                >
+                  <option value="">Select an Event</option>
+                  {uniqueEvents.map((event) => (
+                    <option key={event.eventid} value={event.eventid}>
+                      {event.event_title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {eventFilter && (
+                <ResponsiveContainer width="100%" height={325}>
+                  <LineChart data={filteredRegistrations}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="day_registered" tick={{ fill: "#E0E0E0" }} />
+                    <YAxis tick={{ fill: "#E0E0E0" }} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#525252",
+                        color: "#E0E0E0",
+                      }}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="registrations_count"
+                      name="Registrations Count"
+                      stroke="#82ca9d"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
 export default AnalyticsDashboard;
