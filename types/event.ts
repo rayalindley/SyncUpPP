@@ -20,4 +20,5 @@ export interface Event {
   createdat: Date;
   selected?: boolean;
   onsite?: boolean;
+  status?: string;
 }

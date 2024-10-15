@@ -3,7 +3,7 @@ import Footer from "@/components/footer";
 import Header from "@/components/header";
 import EventsCard from "@/components/organization/events_card";
 import { createClient, getUser } from "@/lib/supabase/client";
-import { User } from "@/node_modules/@supabase/auth-js/src/lib/types";
+import { User } from "@supabase/auth-js/src/lib/types";
 import { Event } from "@/types/event";
 import { Menu, Popover } from "@headlessui/react";
 import {
@@ -65,68 +65,56 @@ export default function EventsPublicView() {
     fetchEvents();
   }, []);
 
-  const now = new Date();
-
   // Filter and sort events based on search query and filters
   const filteredEvents = events
-  .filter((event: any) => {
-    const matchesSearchQuery = event.title
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
+    .filter((event: any) => {
+      const matchesSearchQuery = event.title
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
 
-    const isUpcoming =
-      eventStatusFilter === "Open" && new Date(event.starteventdatetime) > now;
-    const isOngoing =
-      eventStatusFilter === "Ongoing" &&
-      new Date(event.starteventdatetime) <= now &&
-      new Date(event.endeventdatetime) > now;
-    const isCompleted =
-      eventStatusFilter === "Closed" && new Date(event.endeventdatetime) < now;
+      const matchesStatus =
+        eventStatusFilter === "" || event.status === eventStatusFilter;
 
-    const matchesStatus =
-      eventStatusFilter === "" || isUpcoming || isOngoing || isCompleted;
+      // Adjusted privacy logic based on the new structure of the privacy object
+      const eventPrivacy = event.privacy || {};
+      const isPublic = eventPrivacy.type === "public";
+      const isPrivate = eventPrivacy.type === "private";
 
-    // Adjusted privacy logic based on the new structure of the privacy object
-    const eventPrivacy = event.privacy || {};
-    const isPublic = eventPrivacy.type === "public";
-    const isPrivate = eventPrivacy.type === "private";
+      let matchesPrivacy = false;
 
-    let matchesPrivacy = false;
+      if (eventPrivacyFilter === "") {
+        // No privacy filter applied, so show all events
+        matchesPrivacy = true;
+      } else if (eventPrivacyFilter === "public") {
+        // Match public events
+        matchesPrivacy = isPublic;
+      } else if (eventPrivacyFilter === "private") {
+        // Match private events (check if it's private and if roles or memberships match)
+        matchesPrivacy = isPrivate;
+      }
 
-    if (eventPrivacyFilter === "") {
-      // No privacy filter applied, so show all events
-      matchesPrivacy = true;
-    } else if (eventPrivacyFilter === "public") {
-      // Match public events
-      matchesPrivacy = isPublic;
-    } else if (eventPrivacyFilter === "private") {
-      // Match private events (check if it's private and if roles or memberships match)
-      matchesPrivacy = isPrivate;
-    }
-
-    return matchesSearchQuery && matchesStatus && matchesPrivacy;
-  })
-  .sort((a: any, b: any) => {
-    switch (sortOption) {
-      case "title-asc":
-        return a.title.localeCompare(b.title);
-      case "title-desc":
-        return b.title.localeCompare(a.title);
-      case "date-asc":
-        return (
-          new Date(a.starteventdatetime).getTime() -
-          new Date(b.starteventdatetime).getTime()
-        );
-      case "date-desc":
-        return (
-          new Date(b.starteventdatetime).getTime() -
-          new Date(a.starteventdatetime).getTime()
-        );
-      default:
-        return 0;
-    }
-  });
-
+      return matchesSearchQuery && matchesStatus && matchesPrivacy;
+    })
+    .sort((a: any, b: any) => {
+      switch (sortOption) {
+        case "title-asc":
+          return a.title.localeCompare(b.title);
+        case "title-desc":
+          return b.title.localeCompare(a.title);
+        case "date-asc":
+          return (
+            new Date(a.starteventdatetime).getTime() -
+            new Date(b.starteventdatetime).getTime()
+          );
+        case "date-desc":
+          return (
+            new Date(b.starteventdatetime).getTime() -
+            new Date(a.starteventdatetime).getTime()
+          );
+        default:
+          return 0;
+      }
+    });
 
   // Pagination
   const indexOfLastEvent = currentPage * eventsPerPage;
@@ -267,6 +255,7 @@ export default function EventsPublicView() {
                     tags: event.tags,
                     createdat: event.createdat,
                     privacy: event.privacy,
+                    status: event.status, // Ensure status is passed
                   }}
                 />
               ))}
