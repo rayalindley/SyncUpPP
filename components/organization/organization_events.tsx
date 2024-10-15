@@ -48,10 +48,10 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
   const [isAdmin, setIsAdmin] = useState(false);
   const [organizationSlug, setOrganizationSlug] = useState<string | null>(null);
   const [canCreateEvents, setCanCreateEvents] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(""); // Search query state
-  const [eventStatusFilter, setEventStatusFilter] = useState(""); // Event status filter state
-  const [eventPrivacyFilter, setEventPrivacyFilter] = useState(""); // Privacy filter state
-  const [sortOption, setSortOption] = useState("title-asc"); // Sort option state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [eventStatusFilter, setEventStatusFilter] = useState("");
+  const [eventPrivacyFilter, setEventPrivacyFilter] = useState("");
+  const [sortOption, setSortOption] = useState("title-asc");
   const eventsPerPage = 8;
   const supabase = createClient();
   const router = useRouter();
@@ -100,8 +100,6 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
     checkPermissions();
   }, [userid, organizationId]);
 
-  const now = new Date();
-
   // Filter and sort events based on search query and filters
   const filteredEvents = events
     .filter((event: any) => {
@@ -109,19 +107,9 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
         .toLowerCase()
         .includes(searchQuery.toLowerCase());
 
-      const isUpcoming =
-        eventStatusFilter === "Open" && new Date(event.starteventdatetime) > now;
-      const isOngoing =
-        eventStatusFilter === "Ongoing" &&
-        new Date(event.starteventdatetime) <= now &&
-        new Date(event.endeventdatetime) > now;
-      const isCompleted =
-        eventStatusFilter === "Closed" && new Date(event.endeventdatetime) < now;
-
       const matchesStatus =
-        eventStatusFilter === "" || isUpcoming || isOngoing || isCompleted;
+        eventStatusFilter === "" || event.status === eventStatusFilter;
 
-      // Adjusted privacy logic based on the new structure of the privacy object
       const eventPrivacy = event.privacy || {};
       const isPublic = eventPrivacy.type === "public";
       const isPrivate = eventPrivacy.type === "private";
@@ -129,13 +117,10 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
       let matchesPrivacy = false;
 
       if (eventPrivacyFilter === "") {
-        // No privacy filter applied, so show all events
         matchesPrivacy = true;
       } else if (eventPrivacyFilter === "public") {
-        // Match public events
         matchesPrivacy = isPublic;
       } else if (eventPrivacyFilter === "private") {
-        // Match private events (check if it's private and if roles or memberships match)
         matchesPrivacy = isPrivate;
       }
 
@@ -306,6 +291,7 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
               tags: event.tags,
               privacy: event.privacy,
               createdat: event.createdat,
+              status: event.status, // Ensure status is passed
             }}
           />
         ))}

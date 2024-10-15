@@ -1,9 +1,10 @@
 import EventsTable from "@/components/app/events_table";
-import { fetchAllOrganizations, fetchOrganizationsForUser } from "@/lib/organization";
+import { fetchAllOrganizations, fetchOrganizationsForUser, fetchOrganizationsForUserWithViewPermission } from "@/lib/organization";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { Event } from "@/types/event";
 import { Organization } from "@/types/organization";
 import { redirect } from "next/navigation";
+import { ToastContainer } from "react-toastify";
 
 export default async function DashboardPage() {
   const { user } = await getUser();
@@ -23,7 +24,7 @@ export default async function DashboardPage() {
     events = eventsData || [];
   } else {
     // Fetch organizations that the user is part of
-    const organizationsData = await fetchOrganizationsForUser(user.id);
+    const organizationsData = await fetchOrganizationsForUserWithViewPermission(user.id);
     organizations = organizationsData.data || [];
 
     // Extract organization IDs
@@ -46,6 +47,7 @@ export default async function DashboardPage() {
 
   return (
     <>
+    <ToastContainer/>
       <EventsTable organizations={organizations} events={events} userId={user.id} />
     </>
   );

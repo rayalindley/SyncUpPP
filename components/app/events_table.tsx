@@ -8,12 +8,16 @@ import EventOptions from "./event_options"; // Assuming you have EventOptions co
 import dynamic from 'next/dynamic';
 import { useDebounce } from "use-debounce";
 import { TableColumn } from "react-data-table-component";
+import { createClient } from "@/lib/supabase/client"; // Import Supabase client
+import { toast } from "react-toastify"; // Import toast for notifications
+import "react-toastify/dist/ReactToastify.css"; // Import toast styles
 
 // Dynamically import DataTable
 const DataTable = dynamic(() => import('react-data-table-component'), {
   ssr: false,
 });
 
+const supabase = createClient(); // Initialize Supabase client
 
 export default function EventsTable({
   organizations,
@@ -27,17 +31,18 @@ export default function EventsTable({
   const [selectedOrgId, setSelectedOrgId] = useState("");
   const router = useRouter();
   const [canCreateEvents, setCanCreateEvents] = useState(false);
+  const [canEditEvents, setCanEditEvents] = useState(false); // State for edit permission
   const [filterText, setFilterText] = useState<string>("");
   const [debouncedFilterText] = useDebounce(filterText, 300);
+  const [tableData, setTableData] = useState<Event[]>(events);
 
   // Filter events based on the selected organization ID
   const filteredEvents = selectedOrgId
-    ? events.filter((event) => event.organizationid === selectedOrgId)
-    : events; // If no organization is selected, show all events
+    ? tableData.filter((event) => event.organizationid === selectedOrgId)
+    : tableData; // Use tableData instead of events
 
   // Redirect to the create event page for the selected organization
   const handleCreateEvent = () => {
-    // Find the slug for the selected organization
     const selectedOrgSlug = organizations.find(
       (org) => org.organizationid === selectedOrgId
     )?.slug;
@@ -48,22 +53,70 @@ export default function EventsTable({
 
   useEffect(() => {
     const checkPermissions = async () => {
+      if (!selectedOrgId) {
+        setCanCreateEvents(false);
+        setCanEditEvents(false);
+        return; // Exit if no organization is selected
+      }
+  
       try {
-        const permission = await check_permissions(
+        const createPermission = await check_permissions(
           userId || "",
           selectedOrgId,
           "create_events"
         );
-        setCanCreateEvents(permission);
+        setCanCreateEvents(createPermission);
+  
+        const editPermission = await check_permissions(
+          userId || "",
+          selectedOrgId,
+          "edit_events"
+        );
+        setCanEditEvents(editPermission);
       } catch (error) {
         console.error("Failed to check permissions", error);
+        setCanCreateEvents(false);
+        setCanEditEvents(false);
       }
     };
-
+  
     checkPermissions();
   }, [userId, selectedOrgId]);
+  
 
-  // Convert event datetime to PST
+  const handleStatusChange = async (id: string, newStatus: string) => {
+    if (!selectedOrgId) {
+      toast.error("Please select an organization to edit the event status.");
+      return;
+    }
+  
+    if (!canEditEvents) {
+      toast.error("You do not have permission to edit this event.");
+      return;
+    }
+  
+    const { error } = await supabase
+      .from("events")
+      .update({ 
+        status: newStatus, 
+        manualstatus: true 
+      })
+      .eq("eventid", id);
+  
+    if (error) {
+      toast.error("Failed to update status. Please try again.");
+    } else {
+      toast.success("Status updated successfully!");
+  
+      // Update filteredEvents directly
+      setTableData((prevData) =>
+        prevData.map((event) =>
+          event.eventid === id ? { ...event, status: newStatus, manualstatus: true } : event
+        )
+      );
+    }
+  };
+
   const formattedDateTime = (utcDateString: string) => {
     const date = new Date(utcDateString);
     return date.toLocaleString("en-US", {
@@ -76,7 +129,7 @@ export default function EventsTable({
     });
   };
 
-  // Define columns for the data table
+  // Define columns for the data table, including the new Status column
   const columns = [
     {
       name: "Title",
@@ -95,7 +148,6 @@ export default function EventsTable({
       selector: (row: Event) => row.endeventdatetime,
       sortable: true,
       cell: (row: Event) => new Date(row.endeventdatetime).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true }),
-
     },
     {
       name: "Location",
@@ -115,12 +167,46 @@ export default function EventsTable({
     {
       name: "Privacy",
       selector: (row: Event) => {
-        const privacyInfo =
-          row.privacy && typeof row.privacy === "object" && row.privacy.type === "public"
-            ? "Public"
-            : "Private";
+        const privacyInfo = row.privacy && typeof row.privacy === "object" && row.privacy.type === "public" ? "Public" : "Private";
         return privacyInfo;
       },
+      sortable: true,
+    },
+{
+      name: "Status",
+      selector: (row: Event) => row.status,
+      cell: (row: Event) => (
+        <div className="relative">
+        <select
+          value={row.status}
+          onChange={(e) => handleStatusChange(row.eventid, e.target.value)}
+          className={`text-center bg-charleston cursor-pointer rounded-2xl border-2 px-4 py-1  text-xs 
+            ${row.status === "Ongoing"
+                ? "bg-yellow-600/25 text-yellow-300 border-yellow-500 focus:border-yellow-500 focus:outline-none focus:ring-yellow-500"
+                : row.status === "Open"
+                  ? "bg-green-600/25 text-green-300 border-green-700 focus:border-green-700 focus:outline-none focus:ring-green-700"
+                  : "bg-red-600/25 text-red-300 border-red-700  focus:border-red-700 focus:outline-none focus:ring-red-700"
+            }`}        >
+          <option value="Open">Open</option>
+          <option value="Ongoing">Ongoing</option>
+          <option value="Closed">Closed</option>
+        </select>
+        <style jsx>{`
+                select {
+                  appearance: none; /* Removes default styling including arrow */
+                  background-image: none; /* Ensures no background images like arrow */
+                  outline: none; /* Removes the blue outline */
+                }
+
+                select option {
+                  background-color: #2a2a2a; /* Option background color */
+                  color: #ffffff; /* Option text color */
+                  text-align: center; /* Ensures text alignment inside the option */
+                  margin: 0; /* Removes any default margin */
+                }
+            `}</style>
+        </div>
+      ),
       sortable: true,
     },
     {
@@ -142,47 +228,45 @@ export default function EventsTable({
           event.title.toLowerCase().includes(debouncedFilterText.toLowerCase())
         );
       }),
-    [debouncedFilterText, filteredEvents]
+    [debouncedFilterText, tableData]
   );
 
   const subHeaderComponent = (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full">
-          <input
-      type="text"
-      placeholder="Search..."
-      value={filterText}
-      onChange={(e) => setFilterText(e.target.value)}
-      className="block rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
-    />
-
-    <div className="mt-4 sm:flex sm:items-center sm:space-x-2">
-    {/* Dropdown for selecting organization */}
-    <select
-      value={selectedOrgId}
-      onChange={(e) => setSelectedOrgId(e.target.value)}
-      className="rounded-md bg-charleston text-sm text-light shadow-sm ring-primary hover:bg-raisinblack focus:ring-2 focus:ring-primary"
-    >
-      <option value="">All Organizations</option>
-      {organizations.map((org) => (
-        <option key={org.organizationid} value={org.organizationid}>
-          {org.name}
-        </option>
-      ))}
-    </select>
-    {canCreateEvents && (
-      <button
-        onClick={handleCreateEvent}
-        disabled={!selectedOrgId} // Button is disabled if no organization is selected
-        className={`rounded-md px-4 py-2 text-sm text-white ${
-          selectedOrgId
-            ? "bg-primary hover:bg-primarydark"
-            : "cursor-not-allowed bg-gray-500"
-        }`}
-      >
-        Create Event
-      </button>
-    )}
-  </div>
+      <input
+        type="text"
+        placeholder="Search..."
+        value={filterText}
+        onChange={(e) => setFilterText(e.target.value)}
+        className="block rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+      />
+      <div className="mt-4 sm:flex sm:items-center sm:space-x-2">
+        <select
+          value={selectedOrgId}
+          onChange={(e) => setSelectedOrgId(e.target.value)}
+          className="rounded-md bg-charleston text-sm text-light shadow-sm ring-primary hover:bg-raisinblack focus:ring-2 focus:ring-primary"
+        >
+          <option value="">All Organizations</option>
+          {organizations.map((org) => (
+            <option key={org.organizationid} value={org.organizationid}>
+              {org.name}
+            </option>
+          ))}
+        </select>
+        {canCreateEvents && (
+          <button
+            onClick={handleCreateEvent}
+            disabled={!selectedOrgId} // Button is disabled if no organization is selected
+            className={`rounded-md px-4 py-2 text-sm text-white ${
+              selectedOrgId
+                ? "bg-primary hover:bg-primarydark"
+                : "cursor-not-allowed bg-gray-500"
+            }`}
+          >
+            Create Event
+          </button>
+        )}
+      </div>
     </div>
   );
 
