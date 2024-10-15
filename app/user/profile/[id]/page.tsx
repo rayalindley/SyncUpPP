@@ -4,7 +4,7 @@ import Footer from "@/components/footer";
 import Header from "@/components/header";
 import UserEvents from "@/components/user/user_events";
 import UserOrganizations from "@/components/user/user_organizations";
-import { fetchEventsForUser } from "@/lib/events";
+import { fetchCertificatesForUser, fetchEventsForUser } from "@/lib/events";
 import { createClient, getUser } from "@/lib/supabase/client";
 import { Event } from "@/types/event";
 import { Organization } from "@/types/organization";
@@ -17,6 +17,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getUserMembership } from "@/lib/memberships";
 import { fetchOrganizationsForUser, fetchOrganizationsJoinedByUser } from "@/lib/organization";
+import UserCertificates from "@/components/user/user_certificates";
 
 export default function ProfilePage() {
   const { id } = useParams() as { id: string };
@@ -27,6 +28,7 @@ export default function ProfilePage() {
   const [userEvents, setUserEvents] = useState<Event[]>([]);
   const [userOrganizations, setUserOrganizations] = useState<Organization[]>([]);
   const router = useRouter();
+  const [certificates, setCertificates] = useState<any[]>([]);
 
   useEffect(() => {
     async function fetchData() {
@@ -62,6 +64,18 @@ export default function ProfilePage() {
         } else {
           console.error("Error fetching user organizations:", organizationsError);
         }
+        
+        // Fetch certificates
+        const { data: certificatesData, error: certificatesError } = await fetchCertificatesForUser(
+          user.id
+        );
+        if (certificatesError) {
+          console.error("Error fetching certificates:", certificatesError);
+        } else {
+          if (certificatesData) {
+            setCertificates(certificatesData);
+          }
+        }
       }
     }
 
@@ -78,6 +92,8 @@ export default function ProfilePage() {
         return <UserEvents events={userEvents} />;
       case "organizations":
         return <UserOrganizations organizations={userOrganizations} />;
+      case "certificates":
+          return <UserCertificates certificates={certificates} />;
       default:
         return null;
     }
@@ -140,6 +156,16 @@ export default function ProfilePage() {
                     }`}
                   >
                     Organizations
+                  </button>
+                  <button
+                    onClick={() => handleTabChange("certificates")}
+                    className={`whitespace-nowrap border-b-2 px-1 py-4 text-base font-medium ${
+                      activeTab === "certificates"
+                        ? "border-primary text-primary"
+                        : "border-transparent text-light hover:border-gray-300 hover:text-gray-300"
+                    }`}
+                  >
+                    Certificates
                   </button>
                 </nav>
               </div>

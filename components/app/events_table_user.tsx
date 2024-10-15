@@ -9,12 +9,16 @@ import { TableColumn } from "react-data-table-component";
 import { useDebounce } from "use-debounce";
 import dynamic from 'next/dynamic';
 import Preloader from "../preloader";
+import { createClient } from "@/lib/supabase/client"; // Import Supabase client
+import { toast } from "react-toastify"; // Import toast for notifications
+import "react-toastify/dist/ReactToastify.css"; // Import toast styles
 
-// Dynamically import DataTable
+const supabase = createClient(); // Initialize Supabase client
+
+// Dynamically import DataTable with SSR disabled
 const DataTable = dynamic(() => import('react-data-table-component'), {
   ssr: false,
 });
-
 
 export default function EventsTableUser({
   organization,
@@ -26,11 +30,12 @@ export default function EventsTableUser({
   userId: string;
 }) {
   const router = useRouter();
-  const [canCreateEvents, setCanCreateEvents] = useState<boolean | null>(null); // Start with null to indicate loading state
+  const [canCreateEvents, setCanCreateEvents] = useState<boolean | null>(null);
+  const [canEditEvents, setCanEditEvents] = useState<boolean | null>(null); // New state for edit permission
   const [filterText, setFilterText] = useState<string>("");
   const [debouncedFilterText] = useDebounce(filterText, 300);
+  const [tableData, setTableData] = useState<Event[]>(events);
 
-  // Redirect to the create event page for the selected organization
   const handleCreateEvent = () => {
     router.push(`/events/create/${organization.slug}`);
   };
@@ -38,31 +43,66 @@ export default function EventsTableUser({
   useEffect(() => {
     const checkPermissions = async () => {
       try {
-        const permission = await check_permissions(
+        const createPermission = await check_permissions(
           userId || "",
           organization.organizationid,
           "create_events"
         );
-        setCanCreateEvents(permission); // Permission check resolves
+        setCanCreateEvents(createPermission);
+
+        const editPermission = await check_permissions(
+          userId || "",
+          organization.organizationid,
+          "edit_events" // Check for edit permission
+        );
+        setCanEditEvents(editPermission);
       } catch (error) {
         console.error("Failed to check permissions", error);
-        setCanCreateEvents(false); // On error, fallback to false
+        setCanCreateEvents(false);
+        setCanEditEvents(false); // Set edit permission to false on error
       }
     };
 
-    // Fallback for cases where the permission check might hang
     const fallbackTimeout = setTimeout(() => {
       if (canCreateEvents === null) {
-        setCanCreateEvents(false); // Assume no permission if no response within timeout
+        setCanCreateEvents(false);
       }
-    }, 100); // 5 seconds timeout
+      if (canEditEvents === null) {
+        setCanEditEvents(false);
+      }
+    }, 5000);
 
     checkPermissions();
 
-    return () => clearTimeout(fallbackTimeout); // Cleanup the timeout
-  }, [userId, organization.organizationid, canCreateEvents]);
+    return () => clearTimeout(fallbackTimeout);
+  }, [userId, organization.organizationid, canCreateEvents, canEditEvents]);
 
-  // Convert event datetime to PST
+  const handleStatusChange = async (id: string, newStatus: string) => {
+    if (!canEditEvents) {
+      toast.error("You do not have permission to edit this event.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("events")
+      .update({ 
+        status: newStatus, 
+        manualstatus: true 
+      })
+      .eq("eventid", id);
+  
+    if (error) {
+      toast.error("Failed to update status. Please try again.");
+    } else {
+      toast.success("Status updated successfully!");
+      setTableData((prevData) =>
+        prevData.map((event) =>
+          event.eventid === id ? { ...event, status: newStatus, manualstatus: true } : event
+        )
+      );
+    }
+  };
+  
   const formattedDateTime = (utcDateString: string) => {
     const date = new Date(utcDateString);
     return date.toLocaleString("en-US", {
@@ -75,7 +115,6 @@ export default function EventsTableUser({
     });
   };
 
-  // Define columns for the data table
   const columns = [
     {
       name: "Title",
@@ -94,7 +133,6 @@ export default function EventsTableUser({
       selector: (row: Event) => row.endeventdatetime,
       sortable: true,
       cell: (row: Event) => new Date(row.endeventdatetime).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true }),
-
     },
     {
       name: "Location",
@@ -114,12 +152,46 @@ export default function EventsTableUser({
     {
       name: "Privacy",
       selector: (row: Event) => {
-        const privacyInfo =
-          row.privacy && typeof row.privacy === "object" && row.privacy.type === "public"
-            ? "Public"
-            : "Private";
+        const privacyInfo = row.privacy && typeof row.privacy === "object" && row.privacy.type === "public" ? "Public" : "Private";
         return privacyInfo;
       },
+      sortable: true,
+    },
+    {
+      name: "Status",
+      selector: (row: Event) => row.status,
+      cell: (row: Event) => (
+        <div className="relative">
+        <select
+          value={row.status}
+          onChange={(e) => handleStatusChange(row.eventid, e.target.value)}
+          className={`text-center bg-charleston cursor-pointer rounded-2xl border-2 px-4 py-1  text-xs 
+            ${row.status === "Ongoing"
+                ? "bg-yellow-600/25 text-yellow-300 border-yellow-500 focus:border-yellow-500 focus:outline-none focus:ring-yellow-500"
+                : row.status === "Open"
+                  ? "bg-green-600/25 text-green-300 border-green-700 focus:border-green-700 focus:outline-none focus:ring-green-700"
+                  : "bg-red-600/25 text-red-300 border-red-700  focus:border-red-700 focus:outline-none focus:ring-red-700"
+            }`}        >
+          <option value="Open">Open</option>
+          <option value="Ongoing">Ongoing</option>
+          <option value="Closed">Closed</option>
+        </select>
+        <style jsx>{`
+                select {
+                  appearance: none; /* Removes default styling including arrow */
+                  background-image: none; /* Ensures no background images like arrow */
+                  outline: none; /* Removes the blue outline */
+                }
+
+                select option {
+                  background-color: #2a2a2a; /* Option background color */
+                  color: #ffffff; /* Option text color */
+                  text-align: center; /* Ensures text alignment inside the option */
+                  margin: 0; /* Removes any default margin */
+                }
+            `}</style>
+        </div>
+      ),
       sortable: true,
     },
     {
@@ -128,20 +200,20 @@ export default function EventsTableUser({
         <EventOptions selectedEvent={row} userId={userId} />
       ),
       ignoreRowClick: true,
-      allowoverflow: true,
-      button: true.toString(),
+      allowOverflow: true,
+      button: true,
     },
   ];
 
   const filteredData = useMemo(
     () =>
-      events.filter((event) => {
+      tableData.filter((event) => {
         if (!debouncedFilterText) return true;
         return (
           event.title.toLowerCase().includes(debouncedFilterText.toLowerCase())
         );
       }),
-    [debouncedFilterText, events]
+    [debouncedFilterText, tableData]
   );
 
   const subHeaderComponent = (
@@ -153,8 +225,7 @@ export default function EventsTableUser({
         onChange={(e) => setFilterText(e.target.value)}
         className="block rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
       />
-
-      <div className="mt-4 sm:mt-0 flex space-x-2"> {/* Adjusted container to align buttons */}
+      <div className="mt-4 sm:mt-0 flex space-x-2">
         {canCreateEvents && (
           <button
             onClick={handleCreateEvent}
@@ -167,8 +238,8 @@ export default function EventsTableUser({
     </div>
   );
 
-  if (canCreateEvents === null) {
-    return <Preloader/>; // Optional loading state
+  if (canCreateEvents === null || canEditEvents === null) {
+    return <Preloader />;
   }
 
   return (

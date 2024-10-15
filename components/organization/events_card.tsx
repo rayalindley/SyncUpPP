@@ -24,6 +24,7 @@ const EventsCard = ({ event }: { event: Event }) => {
     capacity,
     eventslug,
     privacy,
+    status, // Add status from the event
   } = event;
   const hasImageUrl = !!imageUrl;
   const truncatedDescription =
@@ -123,23 +124,8 @@ const EventsCard = ({ event }: { event: Event }) => {
     fetchRegisteredCount();
   }, []);
 
-  const getEventStatus = () => {
-    const now = new Date();
-    const start = new Date(starteventdatetime);
-    const end = new Date(endeventdatetime);
-
-    if (now < start) {
-      return "Open";
-    } else if (now >= start && now <= end) {
-      return "Ongoing";
-    } else {
-      return "Closed";
-    }
-  };
-
-  const handleCardClick = () => {
-    router.push(`/e/${event.eventslug}`);
-  };
+  // Use the status fetched from the database directly
+  const eventStatus = status;
 
   return (
     <Link
@@ -173,14 +159,14 @@ const EventsCard = ({ event }: { event: Event }) => {
           {/* Event Status Tag */}
           <span
             className={`rounded-full bg-opacity-75 px-2 py-1 text-xs font-medium shadow-2xl ${
-              getEventStatus() === "Open"
+              eventStatus === "Open"
                 ? "bg-green-500 text-white"
-                : getEventStatus() === "Ongoing"
+                : eventStatus === "Ongoing"
                   ? "bg-yellow-500 text-white"
                   : "bg-red-500 text-white"
             }`}
           >
-            {getEventStatus()}
+            {eventStatus}
           </span>
         </div>
       </div>
