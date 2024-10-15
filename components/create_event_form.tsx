@@ -77,7 +77,7 @@ const EventSchema = z
       message: "Scheduled release date must be in the future.",
       path: ["scheduled_release_date"],
     }
-  );
+  )  
 
 export interface EventFormValues {
   eventid?: string;
@@ -769,10 +769,15 @@ const CreateEventForm = ({
     setValue("certificate_enabled", e.target.checked);
   };
 
+  const onError = (errors: any) => {
+    console.error('Form errors:', errors);
+    toast.error('Please fix the errors in the form before submitting. Check for blank or invalid fields.');
+  };
+
   return (
     <>
       <ToastContainer />
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(onSubmit, onError)}>
         <div className="flex items-center justify-center">
           <div className="relative w-full max-w-lg">
             <div className="relative h-64 w-full overflow-hidden rounded-md border-2 border-primary font-semibold">
@@ -1359,18 +1364,20 @@ const CreateEventForm = ({
                   </div>
                 ))}
                 {/* Add Signatory Button */}
-                <button
-                  type="button"
-                  onClick={() =>
-                    setSignatories([
-                      ...signatories,
-                      { name: "", signature: null, position: "" },
-                    ])
-                  }
-                  className="mt-2 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-primarydark"
-                >
-                  Add Signatory
-                </button>
+                {signatories.length < 3 && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSignatories([
+                        ...signatories,
+                        { name: "", signature: null, position: "" },
+                      ])
+                    }
+                    className="mt-2 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-primarydark"
+                  >
+                    Add Signatory
+                  </button>
+                )}
               </div>
             </>
           )}
@@ -1392,7 +1399,7 @@ const CreateEventForm = ({
           <div className="flex justify-end">
             <button
               type="submit"
-              disabled={!isValid || isLoading}
+              disabled={isLoading}
               className="flex justify-end rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:bg-charleston"
             >
               {isLoading ? "Submitting..." : "Submit"}
