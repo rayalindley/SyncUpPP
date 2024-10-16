@@ -117,23 +117,6 @@ export default function MembershipOptions({
               </Menu.Item>
               <Menu.Item>
                 {({ active }) => (
-                  <Link
-                    className={classNames(
-                      active ? "bg-raisinblack text-light" : "text-light",
-                      "group flex items-center px-4 py-2 text-sm"
-                    )}
-                    href={`/dashboard/memberships/edit/${selectedTier.membershipid}`}
-                  >
-                    <FaRegEdit
-                      className="mr-3 h-5 w-5 text-light group-hover:text-light"
-                      aria-hidden="true"
-                    />
-                    Edit Membership
-                  </Link>
-                )}
-              </Menu.Item>
-              <Menu.Item>
-                {({ active }) => (
                   <a
                     href="#"
                     className={classNames(
@@ -146,7 +129,7 @@ export default function MembershipOptions({
                       className="mr-3 h-5 w-5 text-light group-hover:text-light"
                       aria-hidden="true"
                     />
-                    Create/Edit Membership
+                    Edit Membership
                   </a>
                 )}
               </Menu.Item>
@@ -285,12 +268,12 @@ export default function MembershipOptions({
                           >
                             Visit Page
                           </Link> */}
-                          <Link
+                          <button
                             className="group flex items-center rounded-md bg-blue-500 px-4 py-2 text-sm font-semibold text-light text-white shadow-sm hover:bg-opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                            href={`/dashboard/memberships/edit/${selectedTier.membershipid}`}
+                            onClick={() => {setIsCreateModalOpen(true); setOpen(false)}}
                           >
                             Edit
-                          </Link>
+                          </button>
 
                           <button
                             className="group flex items-center rounded-md bg-rose-500 px-4 py-2 text-sm font-semibold text-light text-white shadow-sm hover:bg-opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
