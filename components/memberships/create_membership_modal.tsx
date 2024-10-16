@@ -7,6 +7,7 @@ import { z } from "zod";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Membership } from "@/types/membership";
+import { useRouter } from "next/navigation";
 
 interface CreateMembershipModalProps {
   organizationid: string;
@@ -76,6 +77,8 @@ const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
     defaultValues: initialFormData,
   });
 
+  const router = useRouter();
+
   useEffect(() => {
     if (membership) {
       reset(membership);
@@ -94,6 +97,7 @@ const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({
           .eq("membershipid", membership.membershipid);
         if (error) throw error;
         toast.success("Membership updated successfully");
+        router.refresh();
       } else {
         const { error } = await supabase.from("memberships").insert([data]);
         if (error) throw error;
