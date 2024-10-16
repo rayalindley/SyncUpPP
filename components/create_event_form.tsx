@@ -1561,9 +1561,13 @@ const CreateEventForm = ({
                   <div className="relative h-64 w-full overflow-hidden rounded-md border-2 border-primary font-semibold">
                     {certificateBackground ? (
                       <img
-                        src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${certificateBackground}`}
-                        alt="Certificate Background Preview"
-                        className="h-full w-full object-cover"
+                      src={
+                        certificateBackground.startsWith('blob:')
+                        ? certificateBackground
+                        : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${certificateBackground}`
+                      }
+                      alt="Certificate Background Preview"
+                      className="h-full w-full object-cover"
                       />
                     ) : (
                       <div className="h-full w-full bg-gray-300"></div>
