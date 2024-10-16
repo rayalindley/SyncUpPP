@@ -120,7 +120,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
     ? `${SUPABASE_STORAGE_URL}${eventCertificateSettings.certificate_background}`
     : null;
 
-  console.log("backgroundImageUrl:", backgroundImageUrl);
+  // console.log("backgroundImageUrl:", backgroundImageUrl);
 
   if (backgroundImageUrl) {
     try {

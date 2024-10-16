@@ -74,7 +74,7 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
         .eq("organizationid", organizationid)
         .single(); // Use .single() to get a single record
 
-      console.log("fetchmemberships", userMembershipsData);
+      // console.log("fetchmemberships", userMembershipsData);
 
       // Removed error handling for no rows found
       if (error && error.code !== 'PGRST116') { // Check for specific error code for no rows

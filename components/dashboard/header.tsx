@@ -120,7 +120,7 @@ function Header({ user }: { user: User }) {
       loadNotifications();
     }
     if (link) {
-      console.log("Navigating to:", link); // Debugging line
+      // console.log("Navigating to:", link); // Debugging line
       window.location.href = link; // Use window.location.href for navigation
     }
   };
@@ -372,9 +372,7 @@ function Header({ user }: { user: User }) {
               <Menu.Items className="absolute right-0 z-10 mt-2 w-56 origin-top-right divide-y divide-[#525252] rounded-md bg-charleston shadow-lg ring-1 ring-light ring-opacity-5 focus:outline-none">
                 <div className="px-4 py-3">
                   <p className="text-sm text-light">Signed in as</p>
-                  <p className="truncate text-sm font-medium text-light">
-                    {user.email}
-                  </p>
+                  <p className="truncate text-sm font-medium text-light">{user.email}</p>
                 </div>
                 <div className="py-1">
                   <Menu.Item>
