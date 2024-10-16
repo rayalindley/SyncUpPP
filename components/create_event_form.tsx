@@ -499,6 +499,22 @@ const CreateEventForm = ({
 
       // Set form values based on the event data
       // Since defaultValues are already set correctly, no need to setValue here
+<!--       (Object.keys(event) as (keyof typeof event)[]).forEach((key) => {
+        if (key === "starteventdatetime" || key === "endeventdatetime") {
+          const formattedDate = formatDateForInput(
+            new Date(event[key] as unknown as string)
+          );
+          setValue(key as keyof EventFormValues, formattedDate);
+        } else if (key === "scheduled_release_date" && event[key]) {
+          const date = new Date(event[key] as Date);
+          const formattedDate = formatDateForInput(date);
+          setValue(key as keyof EventFormValues, formattedDate);
+          // console.log("Formatted Date 2:", formattedDate);
+        } else {
+          setValue(key as keyof EventFormValues, event[key] as any);
+        }
+      }); -->
+
 
       setOnsitePayment(event.onsite || false);
 

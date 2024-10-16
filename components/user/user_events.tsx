@@ -47,6 +47,7 @@ const UserEvents: React.FC<UserEventsProps> = ({ events }) => {
               tags: event.tags,
               privacy: event.privacy,
               createdat: event.createdat,
+              status: event.status,
             }}
           />
         ))}
