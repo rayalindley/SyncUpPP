@@ -16,7 +16,7 @@ export async function sendEmail({ name, email, message }: { name: string; email:
       subject: `Contact Form Submission from ${name}`,
       html: `<p>${message}</p><p>From: ${name} (${email})</p>`,
     });
-    console.log("Email response:", response); // Log the response
+    // console.log("Email response:", response); // Log the response
     return response;
   } catch (error) {
     console.error("Error sending email:", error); // Log any errors

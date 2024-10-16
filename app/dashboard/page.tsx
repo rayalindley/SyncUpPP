@@ -42,7 +42,7 @@ const DashboardPage = () => {
               user.id
             );
 
-            console.log(organizations);
+            // console.log(organizations);
             setOrganizations(organizations ?? []);
 
           }

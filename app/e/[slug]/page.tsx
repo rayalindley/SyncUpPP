@@ -326,7 +326,7 @@ const EventPage = () => {
     
       // Check if the event location is a URL (indicating an online event)
       if (isUrl(eventData.location)) {
-        console.log("Event is online. No QR code generation needed.");
+        // console.log("Event is online. No QR code generation needed.");
         return; // Exit the function, no QR code generation needed
       }
     

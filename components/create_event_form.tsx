@@ -1,43 +1,34 @@
+// Filename: D:\Repositories\SyncUp\components\create_event_form.tsx
+
+import React, { useRef, useEffect, useState } from "react";
 import SignaturePad from "react-signature-canvas";
-import { useRef } from "react";
-import * as htmlToImage from "html-to-image";
-import { insertEvent, updateEvent } from "@/lib/events";
-import { getUser, createClient } from "@/lib/supabase/client";
-import { PhotoIcon, PlusIcon, TrashIcon } from "@heroicons/react/20/solid";
+import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import Tagify from "@yaireo/tagify";
 import TagsInput from "./custom/tags-input";
-import Select, { MultiValue } from 'react-select';
+import Select, { MultiValue } from "react-select";
 import "@yaireo/tagify/dist/tagify.css";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { SubmitHandler, useForm } from "react-hook-form";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { z } from "zod";
-import "../app/tags.css";
+import { PhotoIcon, PlusIcon, TrashIcon } from "@heroicons/react/20/solid";
+import { insertEvent, updateEvent } from "@/lib/events";
+import { getUser, createClient } from "@/lib/supabase/client";
 import { recordActivity } from "@/lib/track";
 
-const isFutureDate = (value: Date) => {
-  if (value instanceof Date) {
-    const now = new Date();
-    return value > now;
-  }
-  return false;
-};
-
-const isValidEventPeriod = (start: Date, end: Date) => {
-  return start < end;
+// Validation Schema
+const isFutureDate = (date: Date): boolean => {
+  return date > new Date();
 };
 
 const EventSchema = z
   .object({
     title: z.string().min(3, "Event Title is required"),
     description: z.string().min(3, "Description is required"),
-    starteventdatetime: z.date().refine((value) => isFutureDate(value), {
+    starteventdatetime: z.string().refine((val) => isFutureDate(new Date(val)), {
       message: "Start Event Date & Time should be in the future",
     }),
-    endeventdatetime: z.date(),
+    endeventdatetime: z.string(),
     location: z.string().min(3, "Location is required"),
     capacity: z
       .number()
@@ -46,13 +37,13 @@ const EventSchema = z
       .refine((value) => value !== 0, "Capacity cannot be zero")
       .optional()
       .nullable(),
-    registrationfee: z
+    registrationfee: z.coerce
       .number()
       .nonnegative("Registration Fee cannot be negative")
       .optional()
       .nullable(),
+
     onsite: z.boolean().optional().nullable(),
-    certificate_enabled: z.boolean().optional(),
     signatories: z
       .array(
         z.object({
@@ -61,30 +52,64 @@ const EventSchema = z
           position: z.string().min(1, "Position is required"),
         })
       )
-      .optional(),
-    release_option: z.enum(["disabled", "after_event", "scheduled"]).optional(),
-    scheduled_release_date: z.date().optional().nullable(),
+      .optional()
+      .default([]),
+    certificate_enabled: z.boolean().optional(),
+    release_option: z.enum(["after_event", "scheduled"]).optional(),
+    scheduled_release_date: z.string().optional().nullable(),
     certificate_background: z.string().optional().nullable(),
+    discounts: z
+      .array(
+        z.object({
+          roles: z.array(z.string()).nonempty("At least one role is required"),
+          memberships: z
+            .array(z.string())
+            .nonempty("At least one membership tier is required"),
+          discount: z.number().min(0, "Discount must be at least 0%"),
+        })
+      )
+      .optional()
+      .default([]),
   })
-  .refine(
-    (data) => {
-      if (data.release_option === "scheduled" && data.scheduled_release_date) {
-        return data.scheduled_release_date > new Date();
-      }
-      return true;
-    },
-    {
-      message: "Scheduled release date must be in the future.",
-      path: ["scheduled_release_date"],
-    }
-  )  
+  .superRefine((data, ctx) => {
+    const startDate = new Date(data.starteventdatetime);
+    const endDate = new Date(data.endeventdatetime);
 
+    if (endDate <= startDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "End Event Date & Time must be after the Start Date & Time",
+        path: ["endeventdatetime"],
+      });
+    }
+
+    if (data.release_option === "scheduled") {
+      if (!data.scheduled_release_date) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Scheduled release date is required when release option is scheduled.",
+          path: ["scheduled_release_date"],
+        });
+      } else {
+        const scheduledDate = new Date(data.scheduled_release_date);
+        if (scheduledDate <= new Date()) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Scheduled release date must be in the future.",
+            path: ["scheduled_release_date"],
+          });
+        }
+      }
+    }
+  });
+
+// Type Definitions
 export interface EventFormValues {
   eventid?: string;
   title: string;
   description: string;
-  starteventdatetime: Date;
-  endeventdatetime: Date;
+  starteventdatetime: string; // Changed to string
+  endeventdatetime: string; // Changed to string
   location: string;
   capacity?: number | null;
   registrationfee?: number | null;
@@ -94,15 +119,20 @@ export interface EventFormValues {
   tags: string[];
   eventslug?: string;
   onsite?: boolean | null;
-  certificate_enabled?: boolean;
-  release_option?: "disabled" | "after_event" | "scheduled";
-  scheduled_release_date?: Date | null;
   signatories?: {
     name: string;
     signature: string | null;
     position: string;
   }[];
+  certificate_enabled?: boolean;
+  release_option?: "after_event" | "scheduled";
+  scheduled_release_date?: string | null; // Changed to string
   certificate_background?: string | null;
+  discounts?: Array<{
+    roles: string[];
+    memberships: string[];
+    discount: number;
+  }>;
 }
 
 type TagData = {
@@ -115,6 +145,7 @@ type OptionType = {
   label: string;
 };
 
+// Component
 const CreateEventForm = ({
   organizationid,
   event,
@@ -122,8 +153,8 @@ const CreateEventForm = ({
   organizationid: string;
   event?: EventFormValues;
 }) => {
+  // Refs and States
   const certificateInputRef = useRef<HTMLInputElement>(null);
-
   const [certificateBackgroundFile, setCertificateBackgroundFile] = useState<File | null>(
     null
   );
@@ -147,30 +178,23 @@ const CreateEventForm = ({
   const [capacityValue, setCapacityValue] = useState<number | null>(
     event?.capacity || null
   );
-  const [registrationFeeValue, setRegistrationFeeValue] = useState<number | null>(
-    event?.registrationfee || null
-  );
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [removeImageFlag, setRemoveImageFlag] = useState(false);
   const [imageError, setImageError] = useState("");
-
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [selectedMemberships, setSelectedMemberships] = useState<string[]>([]);
   const [privacyType, setPrivacyType] = useState<string>(event?.privacy.type || "public");
-
   const [roleSuggestions, setRoleSuggestions] = useState<string[]>([]);
   const [membershipSuggestions, setMembershipSuggestions] = useState<string[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(true); // Loading state for suggestions
   const [privacyValue, setPrivacyValue] = useState<string>(event?.privacy || "public");
-
   const [allowAllRoles, setAllowAllRoles] = useState<boolean>(
     event?.privacy.allow_all_roles || false
   );
   const [allowAllMemberships, setAllowAllMemberships] = useState<boolean>(
     event?.privacy.allow_all_memberships || false
   );
-
   const [onsitePayment, setOnsitePayment] = useState<boolean | null>(
     event?.onsite || false
   );
@@ -179,155 +203,183 @@ const CreateEventForm = ({
     value: role,
     label: role,
   }));
-  
+
   const membershipOptions: OptionType[] = membershipSuggestions.map((membership) => ({
     value: membership,
     label: membership,
   }));
-  
 
-  const [discounts, setDiscounts] = useState<Array<{
-    roles: string[];
-    memberships: string[];
-    discount: number;
-  }>>([
+  const [discounts, setDiscounts] = useState<
+    Array<{
+      roles: string[];
+      memberships: string[];
+      discount: number;
+    }>
+  >([
     {
-      roles: [], // Allow multiple roles
-      memberships: [], // Allow multiple membership tiers
+      roles: [],
+      memberships: [],
       discount: 0,
     },
   ]);
-  
 
   const customStyles = {
     control: (provided: any, state: any) => ({
       ...provided,
-      backgroundColor: '#2A2A2A',
-      color: '#E0E0E0',
-      fontSize: '14px', // Set font size for the input
-      borderColor: state.isFocused ? '#379a7b' : 'rgba(255, 255, 255, 0.1)', // Focus border color and unfocused border color
-      boxShadow: 'none', // Remove box shadow to eliminate blue border
-      '&:hover': {
-        borderColor: '#379a7b', // Hover border color when input is focused or hovered
+      backgroundColor: "#2A2A2A",
+      color: "#E0E0E0",
+      fontSize: "14px",
+      borderColor: state.isFocused ? "#379a7b" : "rgba(255, 255, 255, 0.1)",
+      boxShadow: "none",
+      "&:hover": {
+        borderColor: "#379a7b",
       },
-      '&:focus': {
-        outline: 'none', // Remove blue border on focus
-        boxShadow: 'none', // Remove blue focus shadow
+      "&:focus": {
+        outline: "none",
+        boxShadow: "none",
       },
     }),
     input: (provided: any) => ({
       ...provided,
-      color: '#ffffff', // Set the text color in the input to white
-      '&:focus': {
-        outline: 'none', // Remove default focus outline
-        boxShadow: 'none', // Remove box shadow on focus
+      color: "#ffffff",
+      "&:focus": {
+        outline: "none",
+        boxShadow: "none",
       },
     }),
     menu: (provided: any) => ({
       ...provided,
-      backgroundColor: '#2A2A2A',
-      fontSize: '14px', // Set font size for menu items
+      backgroundColor: "#2A2A2A",
+      fontSize: "14px",
     }),
     option: (provided: any, state: any) => ({
       ...provided,
-      backgroundColor: state.isFocused ? '#379a7b' : provided.backgroundColor,
-      color: state.isFocused ? '#ffffff' : '#E0E0E0', // Option text color on hover
-      fontSize: '14px', // Set font size for options
+      backgroundColor: state.isFocused ? "#379a7b" : provided.backgroundColor,
+      color: state.isFocused ? "#ffffff" : "#E0E0E0",
+      fontSize: "14px",
     }),
     multiValue: (provided: any) => ({
       ...provided,
-      backgroundColor: '#379a7b',
-      fontSize: '14px', // Set font size for selected items
-      borderRadius: '4px',
-      padding: '1px 4px',
+      backgroundColor: "#379a7b",
+      fontSize: "14px",
+      borderRadius: "4px",
+      padding: "1px 4px",
     }),
     multiValueLabel: (provided: any) => ({
       ...provided,
-      color: '#ffffff', // Label color for multiValue items
-      fontSize: '14px', // Set font size for selected items
-      borderRadius: '6px',
+      color: "#ffffff",
+      fontSize: "14px",
+      borderRadius: "6px",
     }),
     multiValueRemove: (provided: any, state: any) => ({
       ...provided,
-      color: '#ffffff', // Color of the delete icon in selected items
-      fontSize: '14px', // Set font size for selected items
-      '&:hover': {
-        backgroundColor: '#379a7b', // Hover background color for delete button
-        color: '#bcbcbc', // Hover color for delete icon in selected items
+      color: "#ffffff",
+      fontSize: "14px",
+      "&:hover": {
+        backgroundColor: "#379a7b",
+        color: "#bcbcbc",
       },
     }),
     singleValue: (provided: any) => ({
       ...provided,
-      color: '#E0E0E0',
-      fontSize: '14px', // Set font size for single value
+      color: "#E0E0E0",
+      fontSize: "14px",
     }),
   };
-  
-  
-// Function to handle discount changes
-const handleDiscountChange = (index: number, field: string, value: any) => {
-  const updatedDiscounts = discounts.map((discount, i) => {
-    if (i === index) {
-      // Handle the case where 'roles' are being updated
-      if (field === 'roles') {
-        // If "All Roles" is selected, clear other roles
-        if (value.includes("All Roles")) {
-          return { ...discount, roles: ["All Roles"] };
-        }
-      }
 
-      // Handle the case where 'memberships' are being updated
-      if (field === 'memberships') {
-        // If "All Membership Tiers" is selected, clear other memberships
-        if (value.includes("All Membership Tiers")) {
-          return { ...discount, memberships: ["All Membership Tiers"] };
+  // Handle Discount Changes
+  const handleDiscountChange = (index: number, field: string, value: any) => {
+    const updatedDiscounts = discounts.map((discount, i) => {
+      if (i === index) {
+        if (field === "roles") {
+          if (value.includes("All Roles")) {
+            return { ...discount, roles: ["All Roles"] };
+          }
         }
+        if (field === "memberships") {
+          if (value.includes("All Membership Tiers")) {
+            return { ...discount, memberships: ["All Membership Tiers"] };
+          }
+        }
+        return { ...discount, [field]: value };
       }
+      return discount;
+    });
+    setDiscounts(updatedDiscounts);
+  };
 
-      // Update the specific field with the new value otherwise
-      return { ...discount, [field]: value };
+  const addDiscount = () => {
+    setDiscounts([...discounts, { roles: [], memberships: [], discount: 0 }]);
+  };
+
+  const deleteDiscount = (index: number) => {
+    if (discounts.length === 1) {
+      setDiscounts([{ roles: [], memberships: [], discount: 0 }]);
+    } else {
+      setDiscounts(discounts.filter((_, i) => i !== index));
     }
-    return discount;
-  });
-  setDiscounts(updatedDiscounts);
-};
+  };
 
-// Function to add a new discount
-const addDiscount = () => {
-  setDiscounts([...discounts, { roles: [], memberships: [], discount: 0 }]);
-};
+  const formatDateForInput = (date: Date) => {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const day = date.getDate().toString().padStart(2, "0");
+    const hours = date.getHours().toString().padStart(2, "0");
+    const minutes = date.getMinutes().toString().padStart(2, "0");
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
 
-// Function to delete a discount
-const deleteDiscount = (index: number) => {
-  if (discounts.length === 1) {
-    // If there's only one discount left, reset it instead of deleting
-    setDiscounts([{ roles: [], memberships: [], discount: 0 }]);
-  } else {
-    // Otherwise, filter out the discount at the given index
-    setDiscounts(discounts.filter((_, i) => i !== index));
-  }
-};
+  // Form Initialization
+  const formOptions = event
+    ? {
+        defaultValues: {
+          ...event,
+          starteventdatetime: formatDateForInput(new Date(event.starteventdatetime)),
+          endeventdatetime: formatDateForInput(new Date(event.endeventdatetime)),
+          scheduled_release_date: event.scheduled_release_date
+            ? formatDateForInput(new Date(event.scheduled_release_date))
+            : null,
+        },
+      }
+    : {
+        defaultValues: {
+          title: "",
+          description: "",
+          starteventdatetime: "",
+          endeventdatetime: "",
+          location: "",
+          capacity: null,
+          registrationfee: null,
+          privacy: "public",
+          organizationid: organizationid,
+          eventphoto: null,
+          tags: [],
+          eventslug: "",
+          onsite: false,
+          signatories: [],
+          certificate_enabled: false,
+          release_option: "after_event" as "after_event" | "scheduled",
+          scheduled_release_date: null,
+          certificate_background: null,
+          discounts: [],
+        },
+      };
 
-  
-
-
-  const router = useRouter();
-
-  const formOptions = event ? { defaultValues: event } : {};
   const {
     register,
     handleSubmit,
-    formState: { errors, isValid },
+    formState: { errors, isValid, isSubmitted },
     reset,
     setValue,
     trigger,
     watch,
   } = useForm<EventFormValues>({
     resolver: zodResolver(EventSchema),
-    mode: "onChange",
+    mode: "onSubmit",
     ...formOptions,
   });
 
+  // Slug Generation
   function generateRandomSlug(length = 8) {
     const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     let result = "";
@@ -344,7 +396,6 @@ const deleteDiscount = (index: number) => {
       .select("eventslug")
       .eq("eventslug", slug)
       .maybeSingle();
-
     if (error) {
       console.error("Error fetching slug:", error);
       return {
@@ -352,30 +403,32 @@ const deleteDiscount = (index: number) => {
         error: error.message,
       };
     }
-
     return {
       isAvailable: !data,
       error: null,
     };
   }
 
+  // Fetch Roles and Memberships for Suggestions
   useEffect(() => {
     if (organizationid) {
       const fetchRolesAndMemberships = async () => {
         const supabase = createClient();
         try {
-          // Fetch roles
-          const { data: rolesData } = await supabase
+          const { data: rolesData, error: rolesError } = await supabase
             .from("organization_roles")
             .select("role")
             .eq("org_id", organizationid);
-
-          // Fetch membership tiers
-          const { data: membershipsData } = await supabase
-            .from("organization_memberships")
+          if (rolesError) {
+            throw rolesError;
+          }
+          const { data: membershipsData, error: membershipsError } = await supabase
+            .from("memberships")
             .select("name")
             .eq("organizationid", organizationid);
-
+          if (membershipsError) {
+            throw membershipsError;
+          }
           const fetchedRoleSuggestions = [
             "All Roles",
             ...(rolesData?.map((role) => role.role) || []),
@@ -384,14 +437,10 @@ const deleteDiscount = (index: number) => {
             "All Membership Tiers",
             ...(membershipsData?.map((membership) => membership.name) || []),
           ];
-
-          // console.log("Fetched Role Suggestions:", fetchedRoleSuggestions);
-          // console.log("Fetched Membership Suggestions:", fetchedMembershipSuggestions);
-
           setRoleSuggestions(fetchedRoleSuggestions);
           setMembershipSuggestions(fetchedMembershipSuggestions);
-          setLoadingSuggestions(false); // Set loading to false after fetching
-        } catch (error) {
+          setLoadingSuggestions(false);
+        } catch (error: any) {
           toast.error("Error fetching roles or memberships. Please try again.");
           setLoadingSuggestions(false);
         }
@@ -400,74 +449,88 @@ const deleteDiscount = (index: number) => {
     }
   }, [organizationid]);
 
-  // Handle event data when editing
+  // Fetch Discounts for Existing Event
   useEffect(() => {
     if (event) {
       const fetchDiscounts = async () => {
         const supabase = createClient();
         try {
-          // Fetch discounts for the event
           const { data: discountData, error: discountError } = await supabase
             .from("event_discounts")
             .select("role, membership_tier, discount_percent")
             .eq("eventid", event.eventid);
-  
           if (discountError) {
             console.error("Error fetching discounts:", discountError);
           } else if (discountData) {
             const formattedDiscounts = discountData.map((discount) => ({
-              roles: discount.role || [],
-              memberships: discount.membership_tier || [],
+              roles: Array.isArray(discount.role) ? discount.role : [discount.role],
+              memberships: Array.isArray(discount.membership_tier)
+                ? discount.membership_tier
+                : [discount.membership_tier],
               discount: discount.discount_percent,
             }));
             setDiscounts(formattedDiscounts);
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error("Error fetching discounts:", error);
         }
       };
-  
       fetchDiscounts();
-      // Populate the roles and memberships when editing an event
-      setSelectedRoles(event.privacy?.roles || []);
-      setSelectedMemberships(event.privacy?.membership_tiers || []);
-      setPrivacyType(event.privacy?.type || "public"); // Default to "public" if not set
+
+      // Set Privacy Settings
+      setSelectedRoles(
+        event.privacy?.allow_all_roles ? ["All Roles"] : event.privacy?.roles || []
+      );
+      setSelectedMemberships(
+        event.privacy?.allow_all_memberships
+          ? ["All Membership Tiers"]
+          : event.privacy?.membership_tiers || []
+      );
+      setPrivacyType(event.privacy?.type || "public");
       setAllowAllRoles(event.privacy?.allow_all_roles || false);
       setAllowAllMemberships(event.privacy?.allow_all_memberships || false);
 
-      // Set form values based on the event data
-      (Object.keys(event) as (keyof typeof event)[]).forEach((key) => {
-        if (key === "starteventdatetime" || key === "endeventdatetime") {
-          const formattedDate = formatDateForInput(
-            new Date(event[key] as unknown as string)
-          );
-          setValue(key as keyof EventFormValues, formattedDate);
-        } else if (key === "scheduled_release_date" && event[key]) {
-          const date = new Date(event[key] as Date);
-          const formattedDate = formatDateForInput(date);
-          setValue(key as keyof EventFormValues, formattedDate);
-          // console.log("Formatted Date 2:", formattedDate);
-        } else {
-          setValue(key as keyof EventFormValues, event[key] as any);
-        }
-      });
+      // console.log(
+      //   "Dates: ",
+      //   event.starteventdatetime,
+      //   event.endeventdatetime,
+      //   event.scheduled_release_date
+      // );
 
-      setOnsitePayment(event.onsite || false); // Set the state for onsite payment
-      setValue("onsite", event.onsite || false); // Set form field value
-      setPreviousPhotoUrl(event.eventphoto || null);
+      // Set form values based on the event data
+      // Since defaultValues are already set correctly, no need to setValue here
+      // (Object.keys(event) as (keyof typeof event)[]).forEach((key) => {
+      //   if (key === "starteventdatetime" || key === "endeventdatetime") {
+      //     const formattedDate = formatDateForInput(
+      //       new Date(event[key] as unknown as string)
+      //     );
+      //     setValue(key as keyof EventFormValues, formattedDate);
+      //   } else if (key === "scheduled_release_date" && event[key]) {
+      //     const date = new Date(event[key] as Date);
+      //     const formattedDate = formatDateForInput(date);
+      //     setValue(key as keyof EventFormValues, formattedDate);
+      //     // console.log("Formatted Date 2:", formattedDate);
+      //   } else {
+      //     setValue(key as keyof EventFormValues, event[key] as any);
+      //   }
+      // }); 
+
+
+      setOnsitePayment(event.onsite || false);
+
+      // Set Event Photo URL
       setEventPhoto(
         event.eventphoto
           ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${event.eventphoto}`
           : null
       );
 
-      // Set certificate background state
+      // Set Certificate Background URL
       setCertificateBackground(
-        event.certificate_background
-          ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${event.certificate_background}`
-          : null
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${event.certificate_background}`
       );
 
+      // Fetch Signatories
       const fetchSignatories = async () => {
         const supabase = createClient();
         const { data: signatoriesData, error } = await supabase
@@ -481,15 +544,13 @@ const deleteDiscount = (index: number) => {
         } else {
           const formattedSignatories = signatoriesData.map((signatory) => ({
             name: signatory.name,
-            position: signatory.position, // Add the position property
+            position: signatory.position,
             signature: signatory.signature
               ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${signatory.signature}`
               : null,
           }));
           setSignatories(formattedSignatories);
-          setValue("signatories", formattedSignatories);
-          // console.log("Formatted Signatories:", formattedSignatories);
-
+          // No need to setValue here as defaultValues already include signatories
           formattedSignatories.forEach((signatory, index) => {
             const signaturePad = signaturePadRefs.current[index];
             if (signaturePad && signatory.signature) {
@@ -516,22 +577,39 @@ const deleteDiscount = (index: number) => {
         }
       };
       fetchSignatories();
+
+      // Fetch Certificate Settings
+      const fetchCertificateSettings = async () => {
+        const supabase = createClient();
+        const { data: certData, error: certError } = await supabase
+          .from("event_certificate_settings")
+          .select("*")
+          .eq("event_id", event.eventid)
+          .maybeSingle();
+        if (certError) {
+          console.error("Error fetching certificate settings:", certError);
+          toast.error("Error fetching certificate settings.");
+        } else if (certData) {
+          setCertificateEnabled(certData.certificate_enabled);
+          // No need to setValue as defaultValues are already set
+          setCertificateBackground(certData.certificate_background);
+        }
+      };
+      fetchCertificateSettings();
     }
   }, [event, setValue]);
 
+  // Update Form Values when Signatories Change
   useEffect(() => {
     setValue("signatories", signatories);
-    trigger();
-  }, [signatories, setValue, trigger]);
+    // console.log("Signatories:", signatories);
+  }, [signatories, setValue]);
 
-  useEffect(() => {
-    setValue("signatories", signatories);
-    trigger();
-  }, [signatories, setValue, trigger]);
-
+  // Handle Form Submission
   const onSubmit: SubmitHandler<EventFormValues> = async (formData) => {
     setIsLoading(true);
     try {
+      // Validation for Private Events
       if (
         privacyType === "private" &&
         selectedRoles.length === 0 &&
@@ -543,77 +621,78 @@ const deleteDiscount = (index: number) => {
         return;
       }
 
-  // Validate discounts if privacy type is private
-  if (privacyType === "private") {
-    const disallowedRoles = discounts
-      .flatMap((discount) => discount.roles)
-      .filter(
-        (role) =>
-          role !== "All Roles" && // Allow "All Roles" when validating discounts
-          (!allowAllRoles && !selectedRoles.includes(role))
-      );
-
-    const disallowedMemberships = discounts
-      .flatMap((discount) => discount.memberships)
-      .filter(
-        (membership) =>
-          membership !== "All Membership Tiers" && // Allow "All Membership Tiers" when validating discounts
-          (!allowAllMemberships && !selectedMemberships.includes(membership))
-      );
-
-    if (disallowedRoles.length > 0 || disallowedMemberships.length > 0) {
-      toast.error(
-        `Invalid Discounts: The following roles/memberships assigned a discount are not allowed to access the event: 
-        ${disallowedRoles.join(", ")} ${disallowedMemberships.join(", ")}`
-      );
-      return;
-    }
-  }
-
-    // Prevent 0% discounts for selected roles or memberships
-    for (const discount of discounts) {
-      if ((discount.roles.length > 0 || discount.memberships.length > 0) && discount.discount === 0) {
-        toast.error("Discounts cannot be 0% if roles or membership tiers are selected.");
-        return;
-      }
-    }
-
-
-      const finalCapacityValue = capacityValue;
-      const finalRegistrationFeeValue = registrationFeeValue;
-
-      const privacySettings = {
-        type: privacyType,
-        roles: allowAllRoles ? [] : selectedRoles,
-        membership_tiers: allowAllMemberships ? [] : selectedMemberships,
-        allow_all_roles: allowAllRoles,
-        allow_all_memberships: allowAllMemberships,
-      };
-
-      const supabase = createClient();
-
-    let imageUrl = event?.eventphoto || null;
-    if (photoFile) {
-      if (previousPhotoUrl && previousPhotoUrl !== event?.eventphoto) {
-        const { error: deleteError } = await supabase.storage
-          .from("event-images")
-          .remove([previousPhotoUrl]);
-        if (deleteError) {
-          console.error("Error removing previous image:", deleteError);
-          toast.error("Error removing previous image. Please try again.");
-          setIsLoading(false);
+      // Validation for Discounts
+      if (privacyType === "private") {
+        const disallowedRoles = discounts
+          .flatMap((discount) => discount.roles)
+          .filter(
+            (role) =>
+              role !== "All Roles" && !allowAllRoles && !selectedRoles.includes(role)
+          );
+        const disallowedMemberships = discounts
+          .flatMap((discount) => discount.memberships)
+          .filter(
+            (membership) =>
+              membership !== "All Membership Tiers" &&
+              !allowAllMemberships &&
+              !selectedMemberships.includes(membership)
+          );
+        if (disallowedRoles.length > 0 || disallowedMemberships.length > 0) {
+          toast.error(
+            `Invalid Discounts: The following roles/memberships assigned a discount are not allowed to access the event: 
+            ${disallowedRoles.join(", ")} ${disallowedMemberships.join(", ")}`
+          );
           return;
         }
       }
 
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}`; // Changed to use random characters instead of title
-      const { data: uploadResult, error: uploadError } = await supabase.storage
-        .from("event-images")
-        .upload(fileName, photoFile, {
-          cacheControl: "3600",
-          upsert: false,
-        });
+      for (const discount of discounts) {
+        if (
+          (discount.roles.length > 0 || discount.memberships.length > 0) &&
+          discount.discount === 0
+        ) {
+          toast.error(
+            "Discounts cannot be 0% if roles or membership tiers are selected."
+          );
+          return;
+        }
+      }
 
+      // Privacy Settings
+      const privacySettings = {
+        type: privacyType,
+        roles: allowAllRoles ? [] : selectedRoles,
+        membership_tiers: allowAllMemberships ? [] : selectedMemberships,
+        allow_all_roles:
+          allowAllRoles || (privacyType === "private" && selectedRoles.length === 0),
+        allow_all_memberships:
+          allowAllMemberships ||
+          (privacyType === "private" && selectedMemberships.length === 0),
+      };
+
+      const supabase = createClient();
+
+      // Handle Event Photo Upload
+      let imageUrl = event?.eventphoto || null;
+      if (photoFile) {
+        if (previousPhotoUrl && previousPhotoUrl !== event?.eventphoto) {
+          const { error: deleteError } = await supabase.storage
+            .from("event-images")
+            .remove([previousPhotoUrl]);
+          if (deleteError) {
+            console.error("Error removing previous image:", deleteError);
+            toast.error("Error removing previous image. Please try again.");
+            setIsLoading(false);
+            return;
+          }
+        }
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
+        const { data: uploadResult, error: uploadError } = await supabase.storage
+          .from("event-images")
+          .upload(fileName, photoFile, {
+            cacheControl: "3600",
+            upsert: false,
+          });
         if (uploadResult) {
           imageUrl = `event-images/${uploadResult.path}`;
           setPreviousPhotoUrl(imageUrl);
@@ -624,7 +703,6 @@ const deleteDiscount = (index: number) => {
         }
       } else if (removeImageFlag && previousPhotoUrl) {
         const fileName = previousPhotoUrl?.split("/").pop() ?? "";
-
         const { error } = await supabase.storage.from("event-images").remove([fileName]);
         if (error) {
           console.error("Error removing image:", error);
@@ -635,24 +713,29 @@ const deleteDiscount = (index: number) => {
         setPreviousPhotoUrl(null);
       }
 
+      // Convert date strings to ISO strings
       const startEventDateTimeWithTimezone = new Date(
         formData.starteventdatetime
       ).toISOString();
       const endEventDateTimeWithTimezone = new Date(
         formData.endeventdatetime
       ).toISOString();
-      const formattedTags = `{${tags.map((tag) => `"${tag}"`).join(",")}}`;
+      const scheduledReleaseDateWithTimezone = formData.scheduled_release_date
+        ? new Date(formData.scheduled_release_date).toISOString()
+        : null;
 
+      // Format Tags
+      const formattedTags = tags;
+
+      // Slug Generation for New Events
       let slug;
       if (!event) {
         slug = generateRandomSlug();
         let slugCheck = await checkSlugAvailability(slug);
-
         while (!slugCheck.isAvailable) {
           slug = generateRandomSlug();
           slugCheck = await checkSlugAvailability(slug);
         }
-
         if (slugCheck.error) {
           toast.error("Error checking slug availability. Please try again.");
           setIsLoading(false);
@@ -660,59 +743,60 @@ const deleteDiscount = (index: number) => {
         }
       }
 
-      const signatoriesData = [];
-    const basePublicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/`;
+      // Handle Signatories
+      const signatoriesData: Array<{
+        name: string;
+        signature: string;
+        position: string;
+      }> = [];
+      const basePublicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/`;
 
-    for (let i = 0; i < signatories.length; i++) {
-      const signatory = signatories[i];
-      const signatureData = signatory.signature;
-
-      if (signatureData) {
-        if (signatureData.startsWith("data:")) {
-          // Upload the signature and store the path
-          const response = await fetch(signatureData);
-          const blob = await response.blob();
-          const secureFileName = `${Date.now()}_${Math.random()
-            .toString(36)
-            .substring(2, 15)}.png`;
-          const fileName = `signatures/${secureFileName}`;
-          const { data: uploadResult, error: uploadError } = await supabase.storage
-            .from("signatures")
-            .upload(fileName, blob);
-
-          if (uploadResult) {
-            const signaturePath = `signatures/${uploadResult.path}`;
+      for (let i = 0; i < signatories.length; i++) {
+        const signatory = signatories[i];
+        const signatureData = signatory.signature;
+        if (signatureData) {
+          if (signatureData.startsWith("data:")) {
+            const response = await fetch(signatureData);
+            const blob = await response.blob();
+            const secureFileName = `${Date.now()}_${Math.random()
+              .toString(36)
+              .substring(2, 15)}.png`;
+            const fileName = `signatures/${secureFileName}`;
+            const { data: uploadResult, error: uploadError } = await supabase.storage
+              .from("signatures")
+              .upload(fileName, blob);
+            if (uploadResult) {
+              const signaturePath = `signatures/${uploadResult.path}`;
+              signatoriesData.push({
+                name: signatory.name,
+                signature: signaturePath,
+                position: signatory.position,
+              });
+            } else {
+              console.error("Error uploading signature:", uploadError);
+              toast.error("Error uploading signature. Please try again.");
+              return;
+            }
+          } else {
+            let signaturePath = signatureData;
+            if (signatureData.startsWith(basePublicUrl)) {
+              signaturePath = signatureData.replace(basePublicUrl, "");
+            }
             signatoriesData.push({
               name: signatory.name,
               signature: signaturePath,
               position: signatory.position,
             });
-          } else {
-            console.error("Error uploading signature:", uploadError);
-            toast.error("Error uploading signature. Please try again.");
-            return;
           }
         } else {
-          // If signatureData is a full URL, extract the path
-          let signaturePath = signatureData;
-          if (signatureData.startsWith(basePublicUrl)) {
-            signaturePath = signatureData.replace(basePublicUrl, "");
-          }
-          signatoriesData.push({
-            name: signatory.name,
-            signature: signaturePath,
-            position: signatory.position,
-          });
+          toast.error(
+            `Signature for ${signatory.name || "Signatory"} is empty. Please provide a signature.`
+          );
+          return;
         }
-      } else {
-        toast.error(
-          `Signature for ${signatory.name} is empty. Please provide a signature.`
-        );
-        return;
-      }
       }
 
-      // Handle certificate background upload/removal
+      // Handle Certificate Background Upload
       let certificateBackgroundUrl = event?.certificate_background || null;
       if (certificateBackgroundFile) {
         const fileName = `certificate_background_${formData.title}_${Date.now()}-${Math.random()
@@ -744,26 +828,25 @@ const deleteDiscount = (index: number) => {
         certificateBackgroundUrl = null;
       }
 
-    const completeFormData = {
-      ...formData,
-      eventphoto: imageUrl,
-      starteventdatetime: startEventDateTimeWithTimezone,
-      endeventdatetime: endEventDateTimeWithTimezone,
-      capacity: finalCapacityValue,
-      registrationfee: finalRegistrationFeeValue,
-      tags: formattedTags,
-      slug: event ? event.eventslug : slug,
-      privacy: privacySettings,
-      onsite: onsitePayment,
-      discounts: discounts, // Add discounts array here
-      certificate_enabled: certificateEnabled,
-        release_option: formData.release_option || "disabled",
-        scheduled_release_date: formData.scheduled_release_date
-          ? formData.scheduled_release_date.toISOString()
-          : null,
+      // Prepare Complete Form Data
+      const completeFormData = {
+        ...formData,
+        eventphoto: imageUrl,
+        starteventdatetime: startEventDateTimeWithTimezone,
+        endeventdatetime: endEventDateTimeWithTimezone,
+        scheduled_release_date: scheduledReleaseDateWithTimezone,
+        capacity: capacityValue,
+        registrationfee: formData.registrationfee, // Use formData directly
+        tags: formattedTags,
+        eventslug: event ? event.eventslug : slug,
+        privacy: privacySettings,
+        onsite: onsitePayment,
+        discounts: discounts || [],
         signatories: signatoriesData,
-        certificate_background: certificateBackgroundUrl || "default-certificate-bg/default-cert-bg.png",
-    };
+        certificate_background: certificateBackgroundUrl,
+      };
+
+      // console.log("Complete Form Data:", completeFormData);
 
       const { data, error } = event
         ? await updateEvent(event.eventid!, completeFormData)
@@ -772,6 +855,7 @@ const deleteDiscount = (index: number) => {
       if (data) {
         const eventId = event ? event.eventid! : data[0].eventid;
 
+        // Delete existing signatories if updating
         if (event) {
           const { error: deleteError } = await supabase
             .from("event_signatories")
@@ -784,6 +868,7 @@ const deleteDiscount = (index: number) => {
           }
         }
 
+        // Insert new signatories
         for (const signatory of signatoriesData) {
           const { error: signatoryError } = await supabase
             .from("event_signatories")
@@ -800,28 +885,51 @@ const deleteDiscount = (index: number) => {
           }
         }
 
+        // Auto-register creator if creating a new event
         if (!event) {
           const { user } = await getUser();
-          const userId = user?.id; // Get the current user's ID
+          const userId = user?.id;
           if (userId) {
             await supabase.from("eventregistrations").insert([
               {
-                eventid: data[0].eventid, // Use the newly created event ID
+                eventid: data[0].eventid,
                 userid: userId,
-                status: "registered", // Set the registration status
-                attendance: "present", // Set the attendance status
+                status: "registered",
+                attendance: "present",
               },
             ]);
           }
         }
 
+        // Handle Certificate Settings Upsert
+        const certificateSettings = {
+          event_id: eventId,
+          certificate_enabled: formData.certificate_enabled || false,
+          release_option: formData.release_option || "after_event",
+          scheduled_release_date:
+            formData.release_option === "scheduled" && formData.scheduled_release_date
+              ? formData.scheduled_release_date
+              : null,
+          certificate_background:
+            certificateBackgroundUrl || "default-certificate-bg/default-cert-bg.png",
+        };
+        const { error: certError } = await supabase
+          .from("event_certificate_settings")
+          .upsert(certificateSettings, { onConflict: "event_id" });
+        if (certError) {
+          console.error("Error inserting/updating certificate settings:", certError);
+          toast.error("Error saving certificate settings. Please try again.");
+          return;
+        }
+
+        // Record Activity
         await recordActivity({
           activity_type: event ? "event_update" : "event_create",
           organization_id: organizationid,
           description: `${completeFormData.title} was ${event ? "updated" : "created"}`,
           activity_details: {
             event_title: completeFormData.title,
-            event_slug: completeFormData.slug,
+            event_slug: completeFormData.eventslug,
             event_description: completeFormData.description,
             event_capacity: completeFormData.capacity,
             event_registration_fee: completeFormData.registrationfee,
@@ -830,11 +938,11 @@ const deleteDiscount = (index: number) => {
           },
         });
 
+        // Success Message and Redirection
         toast.success(
           event ? "Event was updated successfully." : "Event was created successfully."
         );
-
-        router.push(`/e/${event ? event.eventslug : completeFormData.slug}`);
+        window.location.href = `/e/${event ? event.eventslug : completeFormData.eventslug}`;
         reset();
       } else if (error) {
         toast.error(
@@ -855,37 +963,35 @@ const deleteDiscount = (index: number) => {
     }
   };
 
-  const formatDateForInput = (date: Date) => {
-    const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, "0");
-    const day = date.getDate().toString().padStart(2, "0");
-    const hours = date.getHours().toString().padStart(2, "0");
-    const minutes = date.getMinutes().toString().padStart(2, "0");
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-  };
-
+  // Initialize Tagify for Tags Input
   useEffect(() => {
     const input = document.querySelector("input[name=tags]");
-    const tagify = new Tagify(input as HTMLInputElement, {
-      originalInputValueFormat: (valuesArr: TagData[]) =>
-        valuesArr.map((item) => item.value).join(","), // Change made here
-    });
+    if (input) {
+      const tagify = new Tagify(input as HTMLInputElement, {
+        originalInputValueFormat: (valuesArr: TagData[]) =>
+          valuesArr.map((item) => item.value).join(","),
+      });
 
-    tagify.on("change", (e) => {
-      const tagsArray = e.detail.value.split(",").map((tag) => tag.trim());
-      setTags(tagsArray);
-    });
+      tagify.on("change", (e: any) => {
+        const tagsArray = e.detail.value
+          .split(",")
+          .map((tag: string) => tag.trim())
+          .filter((tag: string) => tag !== "");
+        setTags(tagsArray);
+      });
 
-    if (event?.tags) {
-      setTags(event.tags);
-      tagify.addTags(event.tags);
+      if (event?.tags) {
+        setTags(event.tags);
+        tagify.addTags(event.tags);
+      }
+
+      return () => {
+        tagify.destroy();
+      };
     }
-
-    return () => {
-      tagify.destroy();
-    };
   }, [event]);
 
+  // Set Event Photo URL
   useEffect(() => {
     if (event && event.eventphoto) {
       const imageUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${event.eventphoto}`;
@@ -893,6 +999,7 @@ const deleteDiscount = (index: number) => {
     }
   }, [event]);
 
+  // States for Toggles and Limits
   const [enabled, setEnabled] = useState(false);
   const [hasCapacityLimit, setHasCapacityLimit] = useState(
     event?.capacity ? event.capacity > 0 : false
@@ -901,10 +1008,10 @@ const deleteDiscount = (index: number) => {
     event?.registrationfee ? event.registrationfee > 0 : false
   );
 
+  // Handlers for Capacity and Registration Fee Toggles
   const handleRegistrationFeeChange = (hasFee: boolean) => {
     setHasRegistrationFee(hasFee);
     if (!hasFee) {
-      setRegistrationFeeValue(null);
       setValue("registrationfee", null);
       trigger("registrationfee");
     }
@@ -919,21 +1026,25 @@ const deleteDiscount = (index: number) => {
     }
   };
 
+  // Get Current Date and Time in Local Format for min Attribute
   const now = new Date();
   const currentDateTimeLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}T${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 
+  // Handler to Remove Event Photo
   const removeImage = () => {
     setEventPhoto(null);
     setPhotoFile(null);
     setRemoveImageFlag(true);
   };
 
+  // State for Tags
   const [tags, setTags] = useState<string[]>(event?.tags || []);
 
+  // Handlers for Roles and Memberships Changes
   const handleRolesChange = (roles: string[]) => {
     if (roles.includes("All Roles")) {
       setAllowAllRoles(true);
-      setSelectedRoles(["All Roles"]); // Make sure "All Roles" is added as a tag
+      setSelectedRoles(["All Roles"]);
     } else {
       setAllowAllRoles(false);
       setSelectedRoles(roles);
@@ -943,33 +1054,36 @@ const deleteDiscount = (index: number) => {
   const handleMembershipsChange = (memberships: string[]) => {
     if (memberships.includes("All Membership Tiers")) {
       setAllowAllMemberships(true);
-      setSelectedMemberships(["All Membership Tiers"]); // Make sure "All Membership Tiers" is added as a tag
+      setSelectedMemberships(["All Membership Tiers"]);
     } else {
       setAllowAllMemberships(false);
       setSelectedMemberships(memberships);
     }
   };
 
-  // Initialize certificate settings state
+  // State and Handler for Certificate Enable Toggle
   const [certificateEnabled, setCertificateEnabled] = useState<boolean>(
     event?.certificate_enabled || false
   );
 
-  // Function to handle certificate_enabled change
   const handleCertificateEnabledChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCertificateEnabled(e.target.checked);
     setValue("certificate_enabled", e.target.checked);
   };
 
+  // Error Handler for Form Submission
   const onError = (errors: any) => {
-    console.error('Form errors:', errors);
-    toast.error('Please fix the errors in the form before submitting. Check for blank or invalid fields.');
+    console.error("Form errors:", errors);
+    toast.error(
+      "Please fix the errors in the form before submitting. Check for blank or invalid fields."
+    );
   };
 
   return (
     <>
       <ToastContainer autoClose={5000} />
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(onSubmit, onError)}>
+        {/* Event Photo Upload Section */}
         <div className="flex items-center justify-center">
           <div className="relative w-full max-w-lg">
             <div className="relative h-64 w-full overflow-hidden rounded-md border-2 border-primary font-semibold">
@@ -984,7 +1098,7 @@ const deleteDiscount = (index: number) => {
               )}
               <div className="absolute bottom-0 right-0 mb-2 mr-2 flex items-center gap-1 ">
                 {!eventphoto && (
-                  <div className="flex items-center space-x-2 rounded-lg bg-black bg-opacity-25 px-3  text-white hover:cursor-pointer hover:bg-gray-600 hover:bg-opacity-25">
+                  <div className="flex items-center space-x-2 rounded-lg bg-black bg-opacity-25 px-3 text-white hover:cursor-pointer hover:bg-gray-600 hover:bg-opacity-25">
                     <PhotoIcon className="h-5 w-5 text-white " />
                     <label
                       htmlFor="file-input"
@@ -1054,7 +1168,10 @@ const deleteDiscount = (index: number) => {
             </div>
           </div>
         </div>
+
+        {/* Rest of the form fields */}
         <div className="mt-4 space-y-4">
+          {/* Event Title */}
           <div className="space-y-1 text-light">
             <label htmlFor="title" className="text-sm font-medium text-white">
               Event Title
@@ -1065,10 +1182,12 @@ const deleteDiscount = (index: number) => {
               {...register("title")}
               className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
             />
-            {errors.title && (
+            {errors.title && isSubmitted && (
               <p className="text-sm text-red-500">{errors.title.message}</p>
             )}
           </div>
+
+          {/* Description */}
           <div className="space-y-1 text-light">
             <label htmlFor="description" className="text-sm font-medium text-white">
               Description
@@ -1078,10 +1197,12 @@ const deleteDiscount = (index: number) => {
               {...register("description")}
               className="block max-h-[300px] min-h-[150px] w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
             />
-            {errors.description && (
+            {errors.description && isSubmitted && (
               <p className="text-sm text-red-500">{errors.description.message}</p>
             )}
           </div>
+
+          {/* Start and End Date & Time */}
           <div className="col-span-6 flex flex-wrap gap-4">
             <div className="min-w-[200px] flex-1">
               <label
@@ -1097,15 +1218,9 @@ const deleteDiscount = (index: number) => {
                 className={`mt-1 block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm ${
                   errors.starteventdatetime ? "border-red-500" : ""
                 }`}
-                {...register("starteventdatetime", {
-                  valueAsDate: true,
-                  setValueAs: (value) => new Date(value),
-                })}
-                defaultValue={
-                  event ? formatDateForInput(new Date(event.starteventdatetime)) : ""
-                }
+                {...register("starteventdatetime")} // Removed valueAsDate: true
               />
-              {errors.starteventdatetime && (
+              {errors.starteventdatetime && isSubmitted && (
                 <p className="mt-2 text-sm text-red-600">
                   {errors.starteventdatetime.message}
                 </p>
@@ -1125,15 +1240,9 @@ const deleteDiscount = (index: number) => {
                 className={`mt-1 block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm ${
                   errors.endeventdatetime ? "border-red-500" : ""
                 }`}
-                {...register("endeventdatetime", {
-                  valueAsDate: true,
-                  setValueAs: (value) => new Date(value),
-                })}
-                defaultValue={
-                  event ? formatDateForInput(new Date(event.endeventdatetime)) : ""
-                }
+                {...register("endeventdatetime")} // Removed valueAsDate: true
               />
-              {errors.endeventdatetime && (
+              {errors.endeventdatetime && isSubmitted && (
                 <p className="mt-2 text-sm text-red-600">
                   {errors.endeventdatetime.message}
                 </p>
@@ -1141,6 +1250,7 @@ const deleteDiscount = (index: number) => {
             </div>
           </div>
 
+          {/* Location */}
           <div className="space-y-1 text-light">
             <label htmlFor="location" className="text-sm font-medium text-white">
               Location
@@ -1152,10 +1262,12 @@ const deleteDiscount = (index: number) => {
               {...register("location")}
               className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
             />
-            {errors.location && (
+            {errors.location && isSubmitted && (
               <p className="text-sm text-red-500">{errors.location.message}</p>
             )}
           </div>
+
+          {/* Capacity Limit */}
           <div className="space-y-1 text-light">
             <label htmlFor="hasCapacityLimit" className="text-sm font-medium text-white">
               Does the event have limited capacity?
@@ -1200,11 +1312,13 @@ const deleteDiscount = (index: number) => {
                 onChange={(e) => setCapacityValue(parseFloat(e.target.value))}
                 className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
               />
-              {errors.capacity && (
+              {errors.capacity && isSubmitted && (
                 <p className="text-red-500">{errors.capacity.message}</p>
               )}
             </div>
           )}
+
+          {/* Registration Fee */}
           <div className="space-y-1 text-light">
             <label
               htmlFor="hasRegistrationFee"
@@ -1218,7 +1332,10 @@ const deleteDiscount = (index: number) => {
                 id="noFee"
                 value="noFee"
                 checked={!hasRegistrationFee}
-                onChange={() => handleRegistrationFeeChange(false)}
+                onChange={() => {
+                  handleRegistrationFeeChange(false);
+                  setValue("registrationfee", null); // Explicitly set to null
+                }}
                 className="mr-2 border-gray-300 text-primary focus:ring-primarydark"
               />
               <label htmlFor="noFee" className="text-sm font-medium text-white">
@@ -1237,6 +1354,7 @@ const deleteDiscount = (index: number) => {
               </label>
             </div>
           </div>
+
           {hasRegistrationFee && (
             <div className="space-y-1 text-light">
               <label htmlFor="registrationfee" className="text-sm font-medium text-white">
@@ -1245,137 +1363,150 @@ const deleteDiscount = (index: number) => {
               <input
                 type="number"
                 id="registrationfee"
-                defaultValue={0}
-                step="0.01"
                 {...register("registrationfee", { valueAsNumber: true })}
-                onChange={(e) => setRegistrationFeeValue(parseFloat(e.target.value))}
-                className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                className={`block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6 ${
+                  errors.registrationfee ? "border-red-500" : ""
+                }`}
               />
               {errors.registrationfee && (
                 <p className="text-sm text-red-500">{errors.registrationfee.message}</p>
               )}
-          <div className="py-2 flex items-center">
-            <input
-              type="checkbox"
-              id="onsitePayment"
-              {...register("onsite")}
-              checked={onsitePayment || false}
-              onChange={(e) => {
-                setOnsitePayment(e.target.checked);
-                setValue("onsite", e.target.checked);
-              }}
-              className="mr-2 border-gray-300 text-primary focus:ring-primarydark"
-            />
-            <label htmlFor="onsitePayment" className="text-sm font-medium text-white">
-              Allow Onsite Payment
-            </label>
-          </div>
-          <div>
-          <label className="mt-10 text-sm font-medium text-white">Discounts<span className="text-xs text-light"> (in percentage)</span></label>
-          {discounts.map((discount, index) => (
-            <div key={index} className="space-y-2 ">
-              <div className="flex items-start space-x-4 mt-2">
-                <div className="flex-1 space-y-2">
-                  <div className="w-full">
-                    <Select
-                      isMulti
-                      value={discount.roles.map((role) => ({ value: role, label: role }))}
-                      onChange={(selectedOptions: MultiValue<OptionType>) =>
-                        handleDiscountChange(
-                          index,
-                          'roles',
-                          selectedOptions.map((option) => option.value)
-                        )
-                      }
-                      options={roleOptions}
-                      placeholder="Select Roles"
-                      classNamePrefix="react-select"
-                      styles={customStyles}
-                    />
-                  </div>
+              {/* Onsite Payment Checkbox */}
+              <div className="flex items-center py-2">
+                <input
+                  type="checkbox"
+                  id="onsitePayment"
+                  {...register("onsite")}
+                  checked={onsitePayment || false}
+                  onChange={(e) => {
+                    setOnsitePayment(e.target.checked);
+                    setValue("onsite", e.target.checked);
+                  }}
+                  className="mr-2 border-gray-300 text-primary focus:ring-primarydark"
+                />
+                <label htmlFor="onsitePayment" className="text-sm font-medium text-white">
+                  Allow Onsite Payment
+                </label>
+              </div>
+              {/* Discounts Section */}
+              <div>
+                <label className="mt-10 text-sm font-medium text-white">
+                  Discounts<span className="text-xs text-light"> (in percentage)</span>
+                </label>
+                {discounts.map((discount, index) => (
+                  <div key={index} className="space-y-2 ">
+                    <div className="mt-2 flex items-start space-x-4">
+                      <div className="flex-1 space-y-2">
+                        <div className="w-full">
+                          <Select
+                            isMulti
+                            value={discount.roles.map((role) => ({
+                              value: role,
+                              label: role,
+                            }))}
+                            onChange={(selectedOptions: MultiValue<OptionType>) =>
+                              handleDiscountChange(
+                                index,
+                                "roles",
+                                selectedOptions.map((option) => option.value)
+                              )
+                            }
+                            options={roleOptions}
+                            placeholder="Select Roles"
+                            classNamePrefix="react-select"
+                            styles={customStyles}
+                          />
+                        </div>
 
-                  <div className="w-full">
-                    <Select
-                      isMulti
-                      value={discount.memberships.map((membership) => ({
-                        value: membership,
-                        label: membership,
-                      }))}
-                      onChange={(selectedOptions: MultiValue<OptionType>) =>
-                        handleDiscountChange(
-                          index,
-                          'memberships',
-                          selectedOptions.map((option) => option.value)
-                        )
-                      }
-                      options={membershipOptions}
-                      placeholder="Select Memberships"
-                      classNamePrefix="react-select"
-                      styles={customStyles}
-                    />
-                  </div>
-                </div>
+                        <div className="w-full">
+                          <Select
+                            isMulti
+                            value={discount.memberships.map((membership) => ({
+                              value: membership,
+                              label: membership,
+                            }))}
+                            onChange={(selectedOptions: MultiValue<OptionType>) =>
+                              handleDiscountChange(
+                                index,
+                                "memberships",
+                                selectedOptions.map((option) => option.value)
+                              )
+                            }
+                            options={membershipOptions}
+                            placeholder="Select Memberships"
+                            classNamePrefix="react-select"
+                            styles={customStyles}
+                          />
+                        </div>
+                      </div>
 
-                {/* Discount Input and Buttons - Set same width */}
-                <div className="w-1/5 flex flex-col items-center space-y-2">
-                  <input
-                    type="number"
-                    value={discount.discount}
-                    onChange={(e) => handleDiscountChange(index, 'discount', parseFloat(e.target.value))}
-                    className="block w-full rounded-md border-0 bg-white/5 py-2 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary"
-                    placeholder="%"
-                  />
+                      {/* Discount Input and Buttons - Set same width */}
+                      <div className="flex w-1/5 flex-col items-center space-y-2">
+                        <input
+                          type="number"
+                          value={discount.discount}
+                          onChange={(e) =>
+                            handleDiscountChange(
+                              index,
+                              "discount",
+                              parseFloat(e.target.value)
+                            )
+                          }
+                          className="block w-full rounded-md border-0 bg-white/5 py-2 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary"
+                          placeholder="%"
+                        />
 
-                  <div className="flex w-full justify-between mt-2">
-                    <button
-                      type="button"
-                      onClick={() => deleteDiscount(index)}
-                      className="flex-1 flex items-center justify-center p-2 rounded-md bg-red-600 hover:bg-red-700 text-white mr-2"
-                      title="Remove Discount"
-                    >
-                      <TrashIcon className="h-5 w-5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={addDiscount}
-                      className="flex-1 flex items-center justify-center p-2 rounded-md bg-primary hover:bg-primarydark text-white"
-                      title="Add Discount"
-                    >
-                      <PlusIcon className="h-5 w-5" />
-                    </button>
+                        <div className="mt-2 flex w-full justify-between">
+                          <button
+                            type="button"
+                            onClick={() => deleteDiscount(index)}
+                            className="mr-2 flex flex-1 items-center justify-center rounded-md bg-red-600 p-2 text-white hover:bg-red-700"
+                            title="Remove Discount"
+                          >
+                            <TrashIcon className="h-5 w-5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={addDiscount}
+                            className="flex flex-1 items-center justify-center rounded-md bg-primary p-2 text-white hover:bg-primarydark"
+                            title="Add Discount"
+                          >
+                            <PlusIcon className="h-5 w-5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
             </div>
-          ))}
-        </div>    
-        </div>
-        
           )}
-        {/* Privacy Section */}
-        <div className="space-y-1 text-light">
-          <label htmlFor="privacy" className="text-sm font-medium text-white">
-            Privacy
-          </label>
-          <select
-            id="privacy"
-            value={privacyType}
-            onChange={(e) => setPrivacyType(e.target.value)}
-            className="block w-full rounded-md border-0 bg-charleston py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-            >
-            <option value="public">Public</option>
-            <option value="private">Private</option>
-          </select>
-        </div>
 
+          {/* Privacy Section */}
+          <div className="space-y-1 text-light">
+            <label htmlFor="privacy" className="text-sm font-medium text-white">
+              Privacy
+            </label>
+            <select
+              id="privacy"
+              value={privacyType}
+              onChange={(e) => setPrivacyType(e.target.value)}
+              className="block w-full rounded-md border-0 bg-charleston py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+            >
+              <option value="public">Public</option>
+              <option value="private">Private</option>
+            </select>
+          </div>
+
+          {/* Conditional Privacy Fields */}
           {privacyType === "private" && (
             <>
               {/* Roles */}
               <div className="mt-4 space-y-1 text-light">
                 <label className="text-sm font-medium text-white">Select Roles</label>
                 <TagsInput
-                  key={event ? event.eventid : "new-event"} // Force re-render on event change
-                  value={selectedRoles}
+                  key={event ? event.eventid : "new-event"}
+                  value={allowAllRoles ? ["All Roles"] : selectedRoles}
                   onChange={handleRolesChange}
                   suggestions={roleSuggestions}
                   allowCustomTags={false}
@@ -1388,8 +1519,10 @@ const deleteDiscount = (index: number) => {
                   Select Membership Tiers
                 </label>
                 <TagsInput
-                  key={event ? event.eventid : "new-event"} // Force re-render on event change
-                  value={selectedMemberships}
+                  key={event ? event.eventid : "new-event"}
+                  value={
+                    allowAllMemberships ? ["All Membership Tiers"] : selectedMemberships
+                  }
                   onChange={handleMembershipsChange}
                   suggestions={membershipSuggestions}
                   allowCustomTags={false}
@@ -1398,6 +1531,7 @@ const deleteDiscount = (index: number) => {
             </>
           )}
 
+          {/* Enable Certificates */}
           <div className="space-y-1 text-light">
             <input
               type="checkbox"
@@ -1418,127 +1552,122 @@ const deleteDiscount = (index: number) => {
           {/* Certificate Settings */}
           {watch("certificate_enabled") && (
             <>
-              {watch("certificate_enabled") && (
-                <>
-                  {/* Updated Certificate Background Upload */}
-                  <div className="flex items-center justify-center">
-                    <div className="relative w-full max-w-lg">
-                        <label className="text-sm font-medium text-white">
-                          Certificate Background
-                        </label>
-                      <div className="relative h-64 w-full overflow-hidden rounded-md border-2 border-primary font-semibold">
-                        {certificateBackground ? (
-                          <img
-                            src={certificateBackground}
-                            alt="Certificate Background Preview"
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <div className="h-full w-full bg-gray-300"></div>
-                        )}
-                        <div className="absolute bottom-0 right-0 mb-2 mr-2 flex items-center gap-1">
-                          {/* Hidden File Input */}
-                          <input
-                            type="file"
-                            accept="image/*"
-                            ref={certificateInputRef}
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                if (!file.type.startsWith("image/")) {
-                                  setImageError("Please upload an image file");
-                                  return;
-                                }
-                                setImageError("");
-                                setCertificateBackgroundFile(file);
-                                setCertificateBackground(URL.createObjectURL(file));
-                              }
-                            }}
-                            className="hidden"
-                          />
-
-                          {/* Add Button */}
-                          {!certificateBackground ? (
-                            <button
-                              type="button"
-                              onClick={() => certificateInputRef.current?.click()}
-                              className="flex items-center space-x-2 rounded-lg bg-black bg-opacity-25 px-3 py-2 text-white hover:cursor-pointer hover:bg-gray-600 hover:bg-opacity-25"
-                            >
-                              <PhotoIcon className="h-5 w-5 text-white" />
-                              <span className="text-sm font-medium">Add</span>
-                            </button>
-                          ) : (
-                            <>
-                              {/* Change Button */}
-                              <button
-                                type="button"
-                                onClick={() => certificateInputRef.current?.click()}
-                                className="flex items-center space-x-2 rounded-lg bg-black bg-opacity-25 px-3 py-2 text-white hover:cursor-pointer hover:bg-gray-500 hover:bg-opacity-25"
-                              >
-                                <PhotoIcon className="h-5 w-5 text-white" />
-                                <span className="text-sm font-medium">Change</span>
-                              </button>
-
-                              {/* Remove Button */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setCertificateBackground(null);
-                                  setCertificateBackgroundFile(null);
-                                  setRemoveImageFlag(true);
-                                }}
-                                className="cursor-pointer rounded-lg bg-red-600 bg-opacity-75 px-2 py-2 text-sm font-medium text-light hover:bg-red-700 hover:bg-opacity-50"
-                              >
-                                Remove
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Release Option */}
-                  <div className="space-y-1 text-light">
-                    <label
-                      htmlFor="release_option"
-                      className="text-sm font-medium text-white"
-                    >
-                      Certificate Release Option
-                    </label>
-                    <select
-                      id="release_option"
-                      {...register("release_option")}
-                      defaultValue={event?.release_option || "after_event"}
-                      className="block w-full rounded-md bg-charleston py-1.5 text-light shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-                    >
-                      <option value="after_event">After Event</option>
-                      <option value="scheduled">Scheduled</option>
-                    </select>
-                  </div>
-                  {/* Scheduled Release Date */}
-                  {watch("release_option") === "scheduled" && (
-                    <div className="space-y-1 text-light">
-                      <label
-                        htmlFor="scheduled_release_date"
-                        className="text-sm font-medium text-white"
-                      >
-                        Scheduled Release Date
-                      </label>
-                      <input
-                        type="datetime-local"
-                        id="scheduled_release_date"
-                        {...register("scheduled_release_date", { valueAsDate: true })}
-                        className="block w-full rounded-md bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+              {/* Certificate Background Upload */}
+              <div className="flex items-center justify-center">
+                <div className="relative w-full max-w-lg">
+                  <label className="text-sm font-medium text-white">
+                    Certificate Background
+                  </label>
+                  <div className="relative h-64 w-full overflow-hidden rounded-md border-2 border-primary font-semibold">
+                    {certificateBackground ? (
+                      <img
+                        src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${certificateBackground}`}
+                        alt="Certificate Background Preview"
+                        className="h-full w-full object-cover"
                       />
-                      {errors.scheduled_release_date && (
-                        <p className="text-sm text-red-500">
-                          {errors.scheduled_release_date.message}
-                        </p>
+                    ) : (
+                      <div className="h-full w-full bg-gray-300"></div>
+                    )}
+                    <div className="absolute bottom-0 right-0 mb-2 mr-2 flex items-center gap-1">
+                      {/* Hidden File Input */}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        ref={certificateInputRef}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (!file.type.startsWith("image/")) {
+                              setImageError("Please upload an image file");
+                              return;
+                            }
+                            setImageError("");
+                            setCertificateBackgroundFile(file);
+                            setCertificateBackground(URL.createObjectURL(file));
+                          }
+                        }}
+                        className="hidden"
+                      />
+                      {/* Add/Change Button */}
+                      {!certificateBackground ? (
+                        <button
+                          type="button"
+                          onClick={() => certificateInputRef.current?.click()}
+                          className="flex items-center space-x-2 rounded-lg bg-black bg-opacity-25 px-3 py-2 text-white hover:cursor-pointer hover:bg-gray-600 hover:bg-opacity-25"
+                        >
+                          <PhotoIcon className="h-5 w-5 text-white" />
+                          <span className="text-sm font-medium">Add</span>
+                        </button>
+                      ) : (
+                        <>
+                          {/* Change Button */}
+                          <button
+                            type="button"
+                            onClick={() => certificateInputRef.current?.click()}
+                            className="flex items-center space-x-2 rounded-lg bg-black bg-opacity-25 px-3 py-2 text-white hover:cursor-pointer hover:bg-gray-500 hover:bg-opacity-25"
+                          >
+                            <PhotoIcon className="h-5 w-5 text-white" />
+                            <span className="text-sm font-medium">Change</span>
+                          </button>
+                          {/* Remove Button */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCertificateBackground(null);
+                              setCertificateBackgroundFile(null);
+                              setRemoveImageFlag(true);
+                            }}
+                            className="cursor-pointer rounded-lg bg-red-600 bg-opacity-75 px-2 py-2 text-sm font-medium text-light hover:bg-red-700 hover:bg-opacity-50"
+                          >
+                            Remove
+                          </button>
+                        </>
                       )}
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Certificate Release Option */}
+              <div className="space-y-1 text-light">
+                <label
+                  htmlFor="release_option"
+                  className="text-sm font-medium text-white"
+                >
+                  Certificate Release Option
+                </label>
+                <select
+                  id="release_option"
+                  {...register("release_option")}
+                  defaultValue={event?.release_option || "after_event"}
+                  className="block w-full rounded-md bg-charleston py-1.5 text-light shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                >
+                  <option value="after_event">After Event</option>
+                  <option value="scheduled">Scheduled</option>
+                </select>
+              </div>
+
+              {/* Scheduled Release Date */}
+              {watch("release_option") === "scheduled" && (
+                <div className="space-y-1 text-light">
+                  <label
+                    htmlFor="scheduled_release_date"
+                    className="text-sm font-medium text-white"
+                  >
+                    Scheduled Release Date
+                  </label>
+                  <input
+                    type="datetime-local"
+                    id="scheduled_release_date"
+                    {...register("scheduled_release_date")}
+                    className="block w-full rounded-md bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                  />
+                  {errors.scheduled_release_date && isSubmitted && (
+                    <p className="text-sm text-red-500">
+                      {errors.scheduled_release_date.message}
+                    </p>
                   )}
-                </>
+                </div>
               )}
 
               {/* Signatories Section */}
@@ -1654,6 +1783,7 @@ const deleteDiscount = (index: number) => {
             </>
           )}
 
+          {/* Tags Input */}
           <div className="space-y-1 text-light">
             <label htmlFor="tags" className="text-sm font-medium text-white">
               Tags
@@ -1662,12 +1792,18 @@ const deleteDiscount = (index: number) => {
               name="tags"
               value={tags.join(",")}
               onChange={(e) =>
-                setTags(e.target.value.split(",").map((tag) => tag.trim()))
+                setTags(
+                  e.target.value
+                    .split(",")
+                    .map((tag) => tag.trim())
+                    .filter((tag) => tag !== "")
+                )
               }
               className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-charleston focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
             />
           </div>
 
+          {/* Submit Button */}
           <div className="flex justify-end">
             <button
               type="submit"

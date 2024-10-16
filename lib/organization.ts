@@ -105,7 +105,7 @@ export async function updateOrganization(organizationid: string, formData: any) 
 export async function fetchOrganizationBySlug(slug: string) {
   const supabase = createClient();
 
-  console.log('Fetching organization with slug:', slug);
+  // console.log('Fetching organization with slug:', slug);
 
   try {
     const { data, error } = await supabase
@@ -114,16 +114,16 @@ export async function fetchOrganizationBySlug(slug: string) {
       .eq("slug", slug)
       .single();
 
-    console.log('Supabase response:', { data, error });
+    // console.log('Supabase response:', { data, error });
 
     if (error) {
       console.error("Error fetching organization:", error);
       return { data: null, error: { message: error.message } };
     } else if (!data) {
-      console.log('No organization found with the given slug');
+      // console.log('No organization found with the given slug');
       return { data: null, error: { message: 'Organization not found' } };
     } else {
-      console.log('Organization found:', data);
+      // console.log('Organization found:', data);
       return { data, error: null };
     }
   } catch (e: any) {

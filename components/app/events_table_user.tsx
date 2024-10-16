@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/client"; // Import Supabase client
 import { toast } from "react-toastify"; // Import toast for notifications
 import "react-toastify/dist/ReactToastify.css"; // Import toast styles
 
+
 const supabase = createClient(); // Initialize Supabase client
 
 // Dynamically import DataTable with SSR disabled

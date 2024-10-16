@@ -21,29 +21,29 @@ export default function Example() {
   useEffect(() => {
     const checkAuthorization = async () => {
       try {
-        console.log("Starting authorization check...");
+        // console.log("Starting authorization check...");
         
         const { user } = await getUser();
         if (!user) {
-          console.log("Authorization failed: User not logged in");
+          // console.log("Authorization failed: User not logged in");
           router.back();
           return;
         }
-        console.log("User logged in:", user.id);
+        // console.log("User logged in:", user.id);
 
         if (user.user_metadata.role === 'superadmin') {
-          console.log("User is superadmin, authorization granted");
+          // console.log("User is superadmin, authorization granted");
           setIsAuthorized(true);
         } else {
-          console.log("User is not superadmin, checking organization membership...");
+          // console.log("User is not superadmin, checking organization membership...");
           
           const { data: org, error: orgError } = await fetchOrganizationBySlug(slug as string);
           if (orgError) {
-            console.log("Error fetching organization", orgError);
+            // console.log("Error fetching organization", orgError);
             router.back();
             return;
           }
-          console.log("Organization fetched:", org.organizationid);
+          // console.log("Organization fetched:", org.organizationid);
 
           // Check if user is a member of the organization
           const { data: membership, error: membershipError } = await supabase
@@ -54,31 +54,31 @@ export default function Example() {
             .single();
 
           if (membershipError) {
-            console.log("Error checking organization membership", membershipError);
+            // console.log("Error checking organization membership", membershipError);
             router.back();
             return;
           }
 
           if (!membership) {
-            console.log("User is not a member of this organization");
+            // console.log("User is not a member of this organization");
             router.back();
             return;
           }
 
-          console.log("User is a member, checking permissions...");
+          // console.log("User is a member, checking permissions...");
           const hasPermission = await check_permissions(
             user.id,
             org.organizationid,
             "access_settings"
           );
-          console.log("Permission check result:", hasPermission);
+          // console.log("Permission check result:", hasPermission);
           setIsAuthorized(hasPermission);
 
           if (hasPermission) {
-            console.log("User is authorized, setting form values");
+            // console.log("User is authorized, setting form values");
             setFormValues(org);
           } else {
-            console.log("Authorization failed: User doesn't have permission to edit this organization");
+            // console.log("Authorization failed: User doesn't have permission to edit this organization");
             router.back();
             return;
           }
