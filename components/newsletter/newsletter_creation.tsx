@@ -319,12 +319,6 @@ const NewsletterCreation: React.FC<NewsletterCreationProps> = ({
                       minHeight: "200px",
                       height: "auto",
                     },
-                    content: {
-                      minHeight: "200px",
-                      height: "auto",
-                      maxHeight: "60vh", // Adjust as needed
-                      overflowY: "auto", // Enables scrolling when content exceeds maxHeight
-                    },
                     toolbar: {
                       backgroundColor: "#2a2a2a",
                       borderColor: "#444444",
