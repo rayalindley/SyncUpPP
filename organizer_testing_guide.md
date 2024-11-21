@@ -25,6 +25,15 @@ As a token of appreciation, all participating organizers will be entered into a 
 
 ---
 
+## Usability Testing Survey
+
+After completing your testing, please take a few minutes to fill out the **Usability Testing Survey**:  
+**[SyncUp Usability Testing Survey](https://forms.gle/PtbirJBF1JbLYcUi7)**
+
+Your feedback is essential to improving SyncUp!
+
+---
+
 ## Testing Objectives for Organizers
 
 As an organizer, your primary objectives are to:
