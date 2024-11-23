@@ -561,11 +561,11 @@ export default function RolesClientComponent({
   };
 
   return (
-    <div className="bg-eerieblack p-6 text-white">
+    <div className="bg-eerieblack py-6 px-0 text-white">
       <ToastContainer autoClose={3000} />
       <h1 className="mb-2 text-xl font-medium">Roles</h1>
       <p className="mb-4 text-sm">Manage and configure roles for your organization.</p>
-      <div className="mb-4 flex gap-1">
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:gap-1">
         <input
           type="text"
           placeholder="Search roles..."
@@ -575,14 +575,14 @@ export default function RolesClientComponent({
         />
         {canCreateRoles && (
           <button
-            className="rounded-md bg-primary p-2 px-4 text-sm hover:bg-primarydark"
+            className="rounded-md bg-primary p-2 px-4 text-sm hover:bg-primarydark sm:w-auto"
             onClick={handleAddRole}
           >
             Create Role
           </button>
         )}
       </div>
-      <div className="rounded py-4">
+      <div className={`rounded py-4 ${selectedRole ? "hidden md:block" : ""}`}>
         <table className="w-full table-auto">
           <thead>
             <tr>
@@ -661,17 +661,17 @@ export default function RolesClientComponent({
         </table>
       </div>
       {selectedRole && (
-        <div className="fixed inset-y-0 right-0 z-50 flex w-[calc(100%-18rem)] bg-eerieblack">
-          <div className="w-64 border-r border-[#525252] bg-eerieblack p-4">
-            <div className="flex items-center justify-between">
+        <div className="fixed inset-y-0 right-0 z-50 flex w-full flex-col md:w-[calc(100%-18rem)] md:flex-row ">
+          <div className="w-full border-r border-[#525252] bg-eerieblack p-4 md:w-64">
+            <div className="flex items-center justify-between ">
               <button
                 onClick={handleSidebarClose}
-                className="mb-4 mt-2 flex items-center text-white"
+                className="flex items-center text-white"
               >
                 <ArrowLeftIcon className="mr-2 h-5 w-5" />
                 <span>Back</span>
               </button>
-              <div>
+              <div className="hidden md:block">
                 {canCreateRoles && (
                   <button
                     className="rounded-sm p-1 hover:bg-charleston"
@@ -682,28 +682,28 @@ export default function RolesClientComponent({
                 )}
               </div>
             </div>
-            {rolesData?.map((role) => (
-              <div
-                key={role.role_id}
-                className={`mb-2 flex cursor-pointer items-center rounded p-2 ${
-                  selectedRole.role_id === role.role_id
-                    ? "bg-charleston"
-                    : "hover:bg-charleston"
-                }`}
-                onClick={() => handleRoleClick(role)}
-              >
-                <span
-                  className="mr-2 inline-block h-4 w-4 rounded-full"
-                  style={{ backgroundColor: role.color }}
-                />
-                <span className="text-sm">{role.role}</span>
-              </div>
-            ))}
+            <div className="mt-4 hidden md:block">
+              {rolesData?.map((role) => (
+                <div
+                  key={role.role_id}
+                  className={`mb-2 flex cursor-pointer items-center rounded p-2  ${
+                    selectedRole.role_id === role.role_id
+                      ? "bg-charleston"
+                      : "hover:bg-charleston"
+                  } hidden md:flex`} // Added hidden class for mobile
+                  onClick={() => handleRoleClick(role)}
+                >
+                  <span
+                    className="mr-2 inline-block h-4 w-4 rounded-full"
+                    style={{ backgroundColor: role.color }}
+                  />
+                  <span className="text-sm">{role.role}</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="flex-grow overflow-y-auto bg-raisinblack py-6 pl-10 pr-10">
-            <h2 className="mb-4 text-lg font-medium">
-              EDIT ROLE - {selectedRole.role}
-            </h2>
+          <div className="flex-grow overflow-y-auto bg-raisinblack p-4 md:p-10">
+            <h2 className="mb-4 text-lg font-medium">EDIT ROLE - {selectedRole.role}</h2>
             {canEditRoles ? (
               <Tab.Group selectedIndex={selectedTab} onChange={setSelectedTab}>
                 <Tab.List className="border-b border-gray-700">
@@ -731,49 +731,48 @@ export default function RolesClientComponent({
                     />
                   </Tab.Panel>
                   <Tab.Panel>
-                    {Object.entries(groupedPermissions).map(
-                      ([category, permissions]) => (
-                        <div key={category}>
-                          <h3 className="mb-4 mt-10 text-base font-medium">
-                            {category.toUpperCase()}
-                          </h3>
-                          {permissions.map((perm) => (
-                            <div
-                              key={perm.perm_key}
-                              className="mb-6 flex items-center justify-between border-b border-[#525252] pb-4"
-                            >
-                              <div className="flex-grow">
-                                <p className="mb-2 text-base">{perm.name}</p>
-                                <p className="text-sm text-gray-400">
-                                  {perm.description}
-                                </p>
-                              </div>
-                              <Switch
-                                checked={
-                                  permissionsEnabled[selectedRole.role_id]?.[perm.perm_key] ||
-                                  false
-                                }
-                                onChange={() => handlePermissionToggle(perm.perm_key)}
-                                className={`${
-                                  permissionsEnabled[selectedRole.role_id]?.[perm.perm_key]
-                                    ? "bg-primary"
-                                    : "bg-gray-200"
-                                } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2`}
-                              >
-                                <span className="sr-only">Use setting</span>
-                                <span
-                                  className={`${
-                                    permissionsEnabled[selectedRole.role_id]?.[perm.perm_key]
-                                      ? "translate-x-5"
-                                      : "translate-x-0"
-                                  } pointer-events-none relative inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
-                                />
-                              </Switch>
+                    {Object.entries(groupedPermissions).map(([category, permissions]) => (
+                      <div key={category}>
+                        <h3 className="mb-4 mt-10 text-base font-medium">
+                          {category.toUpperCase()}
+                        </h3>
+                        {permissions.map((perm) => (
+                          <div
+                            key={perm.perm_key}
+                            className="mb-6 flex items-center justify-between border-b border-[#525252] pb-4"
+                          >
+                            <div className="flex-grow">
+                              <p className="mb-2 text-base">{perm.name}</p>
+                              <p className="text-sm text-gray-400">{perm.description}</p>
                             </div>
-                          ))}
-                        </div>
-                      )
-                    )}
+                            <Switch
+                              checked={
+                                permissionsEnabled[selectedRole.role_id]?.[
+                                  perm.perm_key
+                                ] || false
+                              }
+                              onChange={() => handlePermissionToggle(perm.perm_key)}
+                              className={`${
+                                permissionsEnabled[selectedRole.role_id]?.[perm.perm_key]
+                                  ? "bg-primary"
+                                  : "bg-gray-200"
+                              } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2`}
+                            >
+                              <span className="sr-only">Use setting</span>
+                              <span
+                                className={`${
+                                  permissionsEnabled[selectedRole.role_id]?.[
+                                    perm.perm_key
+                                  ]
+                                    ? "translate-x-5"
+                                    : "translate-x-0"
+                                } pointer-events-none relative inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+                              />
+                            </Switch>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
                   </Tab.Panel>
                   <Tab.Panel>
                     {selectedRole && orgID && (

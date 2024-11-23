@@ -26,7 +26,7 @@ const SummaryCard: React.FC<{
   value: string | number;
   icon: React.ReactNode;
 }> = ({ title, value, icon }) => (
-  <div className="flex items-center rounded-lg bg-charleston p-6 shadow-md mb-4">
+  <div className="flex items-center rounded-lg bg-charleston p-6 shadow-md">
     <div className="mr-4 text-3xl text-primary">{icon}</div>
     <div>
       <h3 className="text-lg font-semibold text-white">{title}</h3>

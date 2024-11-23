@@ -69,7 +69,7 @@ export const RoleDisplay = ({
 
   return (
     <div className="p-4">
-      <div className="mt-4">
+      <div className="mt-4 w-full md:w-64">
         <label htmlFor="roleName" className="block text-sm font-medium text-light">
           ROLE NAME
         </label>
@@ -78,7 +78,7 @@ export const RoleDisplay = ({
           placeholder="Role Name"
           value={roleName}
           onChange={handleNameChange}
-          className="mt-2 w-64 flex-grow rounded-md border-b border-raisinblack bg-charleston text-sm text-light placeholder-opacity-50 placeholder:text-light "
+          className="mt-2 w-full rounded-md border-b border-raisinblack bg-charleston text-sm text-light placeholder-opacity-50 placeholder:text-light"
           disabled={!selectedRole.editable}
         />
         {errors.role && <p className="mt-2 text-sm text-red-600">{errors.role}</p>}
@@ -90,14 +90,17 @@ export const RoleDisplay = ({
         <label htmlFor="roleColor" className="mb-6 block text-sm font-medium text-light">
           ROLE COLOR
         </label>
-        <CirclePicker color={roleColor} onChangeComplete={handleColorChange} />
+        <div className="w-full overflow-x-auto">
+          <CirclePicker color={roleColor} onChangeComplete={handleColorChange} />
+        </div>
       </div>
 
       <hr className="my-8 border-[#525252]" />
-      <div className="flex items-center gap-2">
+      
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         {hasChanges && (
           <button
-            className=" rounded-md bg-blue-600 px-4 py-2 text-sm"
+            className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm sm:w-auto"
             onClick={handleSave}
           >
             Save Changes
@@ -105,7 +108,7 @@ export const RoleDisplay = ({
         )}
         {selectedRole?.deletable && (
           <button
-            className="rounded-md bg-red-600 px-4 py-2 text-sm"
+            className="w-full rounded-md bg-red-600 px-4 py-2 text-sm sm:w-auto"
             onClick={() => handleDeleteRole(selectedRole)}
           >
             Remove Role
