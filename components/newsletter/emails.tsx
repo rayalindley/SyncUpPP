@@ -285,7 +285,7 @@ const Emails: React.FC<EmailsProps> = ({
   };
 
   return (
-    <div className="mx-auto max-w-6xl rounded-lg bg-[#1f1f1f] p-4 shadow-lg">
+    <div className="mx-auto w-full max-w-6xl rounded-lg bg-[#1f1f1f] p-2 sm:p-4 shadow-lg">
       {!hasPermission ? (
         <div className="text-center text-lg font-semibold text-red-500">
           You do not have permission to view emails.
@@ -297,7 +297,7 @@ const Emails: React.FC<EmailsProps> = ({
             <Disclosure>
               {({ open }) => (
                 <>
-                  <Disclosure.Button className="flex w-full items-center justify-between rounded bg-[#333333] px-3 py-2 text-left text-sm font-medium text-white focus:outline-none focus-visible:ring focus-visible:ring-opacity-75">
+                  <Disclosure.Button className="flex w-full items-center justify-between rounded bg-[#333333] px-2 sm:px-3 py-2 text-left text-sm font-medium text-white focus:outline-none focus-visible:ring focus-visible:ring-opacity-75">
                     <span>Outgoing Emails</span>
                     {open ? (
                       <ChevronUpIcon className="h-4 w-4 text-white" />
@@ -306,7 +306,7 @@ const Emails: React.FC<EmailsProps> = ({
                     )}
                   </Disclosure.Button>
                   <Disclosure.Panel className="mt-2 space-y-2">
-                    <div className="relative border-b-2">
+                    <div className="relative border-b-2 w-full">
                       <svg
                         className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400"
                         fill="none"
@@ -329,14 +329,14 @@ const Emails: React.FC<EmailsProps> = ({
                         className="w-full rounded-md border-gray-500 border-transparent bg-charleston p-2 pl-10 text-sm text-white placeholder-gray-400 focus:border-primary focus:ring-0"
                       />
                     </div>
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto -mx-2 sm:mx-0">
                       <DataTable
                         keyField="id"
                         columns={outgoingEmailColumns}
                         data={filteredSentEmails}
                         pagination
                         fixedHeader
-                        fixedHeaderScrollHeight="400px"
+                        fixedHeaderScrollHeight="calc(50vh - 200px)"
                         customStyles={customStyles}
                         noDataComponent={
                           <div className="text-center text-white">
@@ -345,6 +345,7 @@ const Emails: React.FC<EmailsProps> = ({
                         }
                         defaultSortFieldId="date"
                         defaultSortAsc={false}
+                        responsive
                       />
                     </div>
                   </Disclosure.Panel>
@@ -415,7 +416,7 @@ const Emails: React.FC<EmailsProps> = ({
             <Transition appear show={isPreviewOpen} as={Fragment}>
               <Dialog
                 as="div"
-                className="fixed inset-0 z-50 overflow-y-auto"
+                className="fixed inset-0 z-50 overflow-y-auto p-2 sm:p-4"
                 onClose={() => setIsPreviewOpen(false)}
               >
                 <Transition.Child
@@ -449,11 +450,11 @@ const Emails: React.FC<EmailsProps> = ({
                       {/* Header */}
                       <div
                         className={classNames(
-                          "flex items-center justify-between border-b p-4",
+                          "flex items-center justify-between border-b p-2 sm:p-4",
                           isLightMode ? "border-gray-300" : "border-gray-700"
                         )}
                       >
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-2 overflow-hidden">
                           <button
                             className={classNames(
                               "hover:text-gray-700",
@@ -463,11 +464,11 @@ const Emails: React.FC<EmailsProps> = ({
                           >
                             <ArrowLeftIcon className="h-5 w-5" />
                           </button>
-                          <Dialog.Title as="h3" className="text-lg font-semibold">
+                          <Dialog.Title as="h3" className="text-sm sm:text-lg font-semibold truncate">
                             {selectedEmail.subject}
                           </Dialog.Title>
                         </div>
-                        <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-2 sm:space-x-4 shrink-0">
                           {/* **Toggle Switch for Light Mode** */}
                           <Switch
                             checked={isLightMode}
@@ -503,7 +504,7 @@ const Emails: React.FC<EmailsProps> = ({
                         </div>
                       </div>
                       {/* Email Body */}
-                      <div className="space-y-4 p-6 text-left">
+                      <div className="space-y-4 p-2 sm:p-6 text-left overflow-x-auto">
                         <div className="flex flex-col space-y-1">
                           {selectedEmail.from &&
                           organizationName &&

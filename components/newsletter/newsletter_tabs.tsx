@@ -30,9 +30,9 @@ const NewsletterTabs: React.FC<NewsletterTabsProps> = ({
   hasPermission,
 }) => {
   return (
-    <div className="bg-raisin rounded-lg font-sans text-white">
+    <div className="bg-raisin rounded-lg font-sans text-white w-full overflow-x-hidden">
       <Tab.Group>
-        <Tab.List className="mb-6 flex space-x-1 rounded-xl bg-[#333333] p-1">
+        <Tab.List className="mb-6 flex space-x-1 rounded-xl bg-[#333333] p-1 overflow-x-auto">
           <Tab
             className={({ selected }) =>
               classNames(
@@ -58,7 +58,7 @@ const NewsletterTabs: React.FC<NewsletterTabsProps> = ({
             Emails
           </Tab>
         </Tab.List>
-        <Tab.Panels>
+        <Tab.Panels className="px-2 sm:px-4">
           <Tab.Panel>
             <NewsletterCreation
               organizationName={organizationName}

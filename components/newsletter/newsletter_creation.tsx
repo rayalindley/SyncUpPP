@@ -253,14 +253,14 @@ const NewsletterCreation: React.FC<NewsletterCreationProps> = ({
   }, [users, usersSearch]);
 
   return (
-    <div className="mx-auto max-w-6xl rounded-lg bg-[#1f1f1f] p-4 shadow-lg">
+    <div className="mx-auto w-full max-w-6xl rounded-lg bg-[#1f1f1f] p-2 sm:p-4 shadow-lg">
       {!hasPermission ? (
         <div className="text-center text-lg font-semibold text-red-500">
           You do not have permission to send newsletters.
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="flex flex-col space-y-4">
               <input
                 className="focus:ring-primary-light w-full rounded border border-primary bg-charleston p-3 text-sm text-white placeholder-gray-400 focus:ring"
@@ -269,10 +269,7 @@ const NewsletterCreation: React.FC<NewsletterCreationProps> = ({
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
               />
-              <div
-                className="flex flex-col space-y-4"
-                style={{ minHeight: "200px", height: "auto" }}
-              >
+              <div className="flex flex-col space-y-4 min-h-[200px] h-auto">
                 <RichTextEditor
                   value={editorState}
                   onChange={setEditorState}
@@ -283,6 +280,8 @@ const NewsletterCreation: React.FC<NewsletterCreationProps> = ({
                       color: "#ffffff",
                       minHeight: "200px",
                       height: "auto",
+                      width: '100%',
+                      overflowX: 'auto',
                     },
                     toolbar: {
                       backgroundColor: "#2a2a2a",
@@ -331,14 +330,14 @@ const NewsletterCreation: React.FC<NewsletterCreationProps> = ({
               <div className="mt-4 flex justify-end">
                 <button
                   onClick={handleSendNewsletter}
-                  className="hover:bg-primary-dark focus:ring-primary-light w-40 rounded bg-primary py-2 text-sm text-white focus:outline-none focus:ring disabled:opacity-50"
+                  className="hover:bg-primary-dark focus:ring-primary-light w-full sm:w-40 rounded bg-primary py-2 text-sm text-white focus:outline-none focus:ring disabled:opacity-50"
                   disabled={sending}
                 >
                   {sending ? "Sending..." : "Send Newsletter"}
                 </button>
               </div>
             </div>
-            <div className="flex flex-col space-y-4 rounded-lg bg-[#2a2a2a] p-4">
+            <div className="flex flex-col space-y-4 rounded-lg bg-[#2a2a2a] p-2 sm:p-4">
               <h2 className="text-lg font-semibold text-white">Select Recipients</h2>
               <Disclosure>
                 {({ open }) => (
@@ -388,13 +387,14 @@ const NewsletterCreation: React.FC<NewsletterCreationProps> = ({
                           }
                           pagination
                           fixedHeader
-                          fixedHeaderScrollHeight="200px"
+                          fixedHeaderScrollHeight="calc(50vh - 200px)"
                           customStyles={customStyles}
                           noDataComponent={
                             <div className="text-center">No events found.</div>
                           }
                           defaultSortFieldId="startDate"
                           defaultSortAsc={false}
+                          responsive
                         />
                       </div>
                     </Disclosure.Panel>
@@ -449,13 +449,14 @@ const NewsletterCreation: React.FC<NewsletterCreationProps> = ({
                           }
                           pagination
                           fixedHeader
-                          fixedHeaderScrollHeight="200px"
+                          fixedHeaderScrollHeight="calc(50vh - 200px)"
                           customStyles={customStyles}
                           noDataComponent={
                             <div className="text-center">No users found.</div>
                           }
                           defaultSortFieldId="email"
                           defaultSortAsc={false}
+                          responsive
                         />
                       </div>
                     </Disclosure.Panel>
