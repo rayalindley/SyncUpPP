@@ -542,7 +542,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                       />
                     </div>
                   </div>
-                  <div className="absolute bottom-0 right-2/3 -translate-x-1/2 translate-y-1/2 transform">
+                  <div className="absolute bottom-0 left-[5%] translate-y-1/2 ">
                     <div className="relative">
                       {photo ? (
                         <img
@@ -553,7 +553,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                       ) : (
                         <div className="block h-24 w-24 rounded-lg border-4 border-eerieblack bg-charleston"></div>
                       )}
-                      <div className="absolute bottom-0 left-2/3 mb-2">
+                      <div className="absolute bottom-0 left-2/3 mb-2 ">
                         <label htmlFor="file-input" className="">
                           <CameraIcon className="mr-2 inline-block h-5 w-5 cursor-pointer text-white hover:bg-opacity-25 hover:text-gray-500" />
                         </label>

@@ -320,7 +320,6 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
                   -moz-appearance: none !important;
                   background-image: none !important;
                   outline: none;
-                  padding-right: 4px !important;
                 }
 
                 /* Remove dropdown arrow in IE/Edge */
@@ -441,7 +440,6 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
                 -moz-appearance: none !important;
                 background-image: none !important;
                 outline: none;
-                padding-right: 4px !important;
               }
 
               /* Remove dropdown arrow in IE/Edge */
@@ -487,7 +485,6 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
                 -moz-appearance: none !important;
                 background-image: none !important;
                 outline: none;
-                padding-right: 4px !important;
               }
 
               /* Remove dropdown arrow in IE/Edge */
