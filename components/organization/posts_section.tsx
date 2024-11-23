@@ -382,7 +382,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPost
   }, [photos]);
 
   return (
-    <div className="mx-auto max-w-3xl px-6 lg:px-8">
+    <div className="mx-auto max-w-3xl  lg:px-8">
       <div className="mb-5 w-full text-center">
         <p className="mt-2 w-full text-2xl font-bold tracking-tight text-light sm:text-2xl">
           Posts Section

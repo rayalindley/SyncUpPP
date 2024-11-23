@@ -157,17 +157,32 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
   const isFirstPage = currentPage === 1;
   const isLastPage = indexOfLastEvent >= filteredEvents.length;
 
+  // Add these helper functions at the component level
+  const getSelectedSortLabel = (value: string) => {
+    return sortOptions.find(option => option.value === value)?.name || 'Sort by';
+  };
+
+  const getSelectedStatusLabel = (value: string) => {
+    return eventStatusFilters.find(filter => filter.value === value)?.name || 'Status';
+  };
+
+  const getSelectedPrivacyLabel = (value: string) => {
+    return eventPrivacyFilters.find(filter => filter.value === value)?.name || 'Privacy';
+  };
+
   return (
-    <div className="mx-auto max-w-7xl px-6 lg:px-8">
+    <div className="mx-auto max-w-7xl lg:px-8">
+      {/* Title */}
       <div className="mx-auto max-w-7xl text-center">
-        <p className="mt-2 text-2xl font-bold tracking-tight text-light sm:text-2xl lg:mx-32 lg:px-96 whitespace-nowrap">
+        <p className="mt-2 text-2xl font-bold tracking-tight text-light">
           Our Events
         </p>
       </div>
 
       {/* Search, Sort, Filter, and Create Event Button */}
-      <div className="mx-auto mt-6 flex max-w-3xl justify-between ">
-        <div className="relative flex-grow">
+      <div className="mx-auto mt-4 flex flex-col space-y-2 sm:space-y-4 max-w-3xl">
+        {/* Search Bar */}
+        <div className="relative w-full">
           <input
             type="text"
             placeholder="Search events..."
@@ -180,88 +195,111 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
           </div>
         </div>
 
-        <div className="flex items-center space-x-4 pl-8">
-          {/* Sort Menu */}
-          <Menu as="div" className="relative">
-            <Menu.Button className="flex items-center text-sm font-medium text-light">
-              Sort by
-              <ChevronDownIcon className="ml-1 h-5 w-5" />
-            </Menu.Button>
-            <Menu.Items className="absolute right-0 z-50 mt-2 w-44 rounded-md bg-charleston shadow-lg">
-              {sortOptions.map((option) => (
-                <Menu.Item key={option.value}>
-                  {({ active }) => (
-                    <div
-                      onClick={() => setSortOption(option.value)}
-                      className={`cursor-pointer px-4 py-2 text-sm ${
-                        sortOption === option.value
-                          ? "bg-primary text-white"
-                          : active
-                          ? "bg-[#383838] text-light"
-                          : "text-light"
-                      }`}
-                    >
-                      {option.name}
-                    </div>
-                  )}
-                </Menu.Item>
-              ))}
-            </Menu.Items>
-          </Menu>
+        {/* Filters and Create Button Container */}
+        <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+          {/* Sort and Filters Group */}
+          <div className="flex flex-wrap gap-2">
+            {/* Sort Menu */}
+            <Menu as="div" className="relative">
+              {({ close }) => (
+                <>
+                  <Menu.Button className="flex items-center rounded-md bg-charleston px-3 py-1.5 text-sm font-medium text-light">
+                    {getSelectedSortLabel(sortOption)}
+                    <ChevronDownIcon className="ml-1 h-5 w-5" />
+                  </Menu.Button>
+                  <Menu.Items className="absolute right-0 z-50 mt-2 w-44 rounded-md bg-charleston shadow-lg">
+                    {sortOptions.map((option) => (
+                      <Menu.Item key={option.value}>
+                        {({ active }) => (
+                          <div
+                            onClick={() => {
+                              setSortOption(option.value);
+                              close(); // Close menu after selection
+                            }}
+                            className={`cursor-pointer px-4 py-2 text-sm ${
+                              sortOption === option.value
+                                ? "bg-primary text-white"
+                                : active
+                                ? "bg-[#383838] text-light"
+                                : "text-light"
+                            }`}
+                          >
+                            {option.name}
+                          </div>
+                        )}
+                      </Menu.Item>
+                    ))}
+                  </Menu.Items>
+                </>
+              )}
+            </Menu>
 
-          {/* Filter Popovers */}
-          <Popover.Group className="flex items-center space-x-4">
+            {/* Status Filter */}
             <Popover className="relative">
-              <Popover.Button className="flex items-center text-sm font-medium text-light">
-                Status
-                <ChevronDownIcon className="ml-1 h-5 w-5" />
-              </Popover.Button>
-
-              <Popover.Panel className="absolute right-0 z-50 mt-2 w-36 rounded-md bg-charleston shadow-lg">
-                {eventStatusFilters.map((filter) => (
-                  <div
-                    key={filter.value}
-                    onClick={() => setEventStatusFilter(filter.value)}
-                    className={`cursor-pointer px-4 py-2 text-sm ${
-                      eventStatusFilter === filter.value
-                        ? "bg-primary text-white"
-                        : "text-light hover:bg-[#383838]"
-                    }`}
-                  >
-                    {filter.name}
-                  </div>
-                ))}
-              </Popover.Panel>
+              {({ close }) => (
+                <>
+                  <Popover.Button className="flex items-center rounded-md bg-charleston px-3 py-1.5 text-sm font-medium text-light">
+                    {getSelectedStatusLabel(eventStatusFilter)}
+                    <ChevronDownIcon className="ml-1 h-5 w-5" />
+                  </Popover.Button>
+                  <Popover.Panel className="absolute right-0 z-50 mt-2 w-36 rounded-md bg-charleston shadow-lg">
+                    {eventStatusFilters.map((filter) => (
+                      <div
+                        key={filter.value}
+                        onClick={() => {
+                          setEventStatusFilter(filter.value);
+                          close(); // Close popover after selection
+                        }}
+                        className={`cursor-pointer px-4 py-2 text-sm ${
+                          eventStatusFilter === filter.value
+                            ? "bg-primary text-white"
+                            : "text-light hover:bg-[#383838]"
+                        }`}
+                      >
+                        {filter.name}
+                      </div>
+                    ))}
+                  </Popover.Panel>
+                </>
+              )}
             </Popover>
 
+            {/* Privacy Filter */}
             <Popover className="relative">
-              <Popover.Button className="flex items-center text-sm font-medium text-light">
-                Privacy
-                <ChevronDownIcon className="ml-1 h-5 w-5" />
-              </Popover.Button>
-              <Popover.Panel className="absolute right-0 z-50 mt-2 w-36 rounded-md bg-charleston shadow-lg">
-                {eventPrivacyFilters.map((filter) => (
-                  <div
-                    key={filter.value}
-                    onClick={() => setEventPrivacyFilter(filter.value)}
-                    className={`cursor-pointer px-4 py-2 text-sm ${
-                      eventPrivacyFilter === filter.value
-                        ? "bg-primary text-white"
-                        : "text-light hover:bg-[#383838]"
-                    }`}
-                  >
-                    {filter.name}
-                  </div>
-                ))}
-              </Popover.Panel>
+              {({ close }) => (
+                <>
+                  <Popover.Button className="flex items-center rounded-md bg-charleston px-3 py-1.5 text-sm font-medium text-light">
+                    {getSelectedPrivacyLabel(eventPrivacyFilter)}
+                    <ChevronDownIcon className="ml-1 h-5 w-5" />
+                  </Popover.Button>
+                  <Popover.Panel className="absolute right-0 z-50 mt-2 w-36 rounded-md bg-charleston shadow-lg">
+                    {eventPrivacyFilters.map((filter) => (
+                      <div
+                        key={filter.value}
+                        onClick={() => {
+                          setEventPrivacyFilter(filter.value);
+                          close(); // Close popover after selection
+                        }}
+                        className={`cursor-pointer px-4 py-2 text-sm ${
+                          eventPrivacyFilter === filter.value
+                            ? "bg-primary text-white"
+                            : "text-light hover:bg-[#383838]"
+                        }`}
+                      >
+                        {filter.name}
+                      </div>
+                    ))}
+                  </Popover.Panel>
+                </>
+              )}
             </Popover>
-          </Popover.Group>
+          </div>
 
           {/* Create Event Button */}
           {canCreateEvents && (
             <Link
               href={`/events/create/${organizationSlug}`}
-              className="hover:bg-primary-dark ml-4 rounded-lg bg-primary px-4 py-2 text-white"
+              className="mt-2 sm:mt-0 inline-flex justify-center rounded-lg bg-primary px-4 py-1.5 text-white hover:bg-primary-dark"
             >
               Create Event
             </Link>
@@ -270,7 +308,7 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
       </div>
 
       {/* Event Cards */}
-      <div className="isolate mx-auto mt-8 grid max-w-lg grid-cols-1 justify-items-center gap-x-16 gap-y-12 sm:mt-12 md:mx-auto md:max-w-lg md:grid-cols-2 md:gap-x-12 lg:mx-0 lg:max-w-none lg:grid-cols-4">
+      <div className="isolate mx-auto mt-8 grid max-w-lg grid-cols-1 justify-items-center gap-4 sm:mt-8 md:mx-auto md:max-w-lg md:grid-cols-2 md:gap-6 lg:mx-0 lg:max-w-none lg:grid-cols-4">
         {currentEvents.map((event: any, index: number) => (
           <EventsCard
             key={index}
