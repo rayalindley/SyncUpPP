@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useDebounce } from "use-debounce";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -51,6 +51,9 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
   const [attendanceFilter, setAttendanceFilter] = useState<string>("");
 
   const [showQrScanner, setShowQrScanner] = useState(false); // State to toggle QR scanner dialog
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Unique organizations and events for filter options
   const uniqueOrganizations = Array.from(
@@ -250,7 +253,7 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
             onChange={(e) =>
               handleStatusChange(row.eventregistrationid, e.target.value)
             }
-            className={`text-center bg-charleston cursor-pointer rounded-2xl border-2 px-4 py-1 text-xs
+            className={`text-center bg-charleston cursor-pointer rounded-2xl border-2 !px-4 py-1 text-xs
               ${row.status === "pending"
                 ? "border-yellow-500 text-yellow-300"
                 : "border-green-700 text-green-300"
@@ -266,7 +269,6 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
                   -moz-appearance: none !important;
                   background-image: none !important;
                   outline: none;
-                  padding-right: 4px !important;
                 }
 
                 /* Remove dropdown arrow in IE/Edge */
@@ -419,11 +421,11 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
         </div>
         <div>
           <span className="text-gray-400">Status:</span>{" "}
-          <div className="relative inline-block">
+          <div className="relative inline-block ml-2">
             <select
               value={row.status}
               onChange={(e) => handleStatusChange(row.eventregistrationid, e.target.value)}
-              className={`text-center bg-charleston cursor-pointer rounded-2xl border-2 px-4 py-1 text-xs ml-2
+              className={`text-center bg-charleston cursor-pointer rounded-2xl border-2 px-4 py-1 text-xs
                 ${row.status === "pending"
                   ? "border-yellow-500 text-yellow-300"
                   : "border-green-700 text-green-300"
@@ -432,15 +434,38 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
               <option value="registered">Registered</option>
               <option value="pending">Pending</option>
             </select>
+            <style jsx>{`
+              select {
+                appearance: none !important;
+                -webkit-appearance: none !important;
+                -moz-appearance: none !important;
+                background-image: none !important;
+                outline: none;
+                padding-right: 4px !important;
+              }
+
+              /* Remove dropdown arrow in IE/Edge */
+              select::-ms-expand {
+                display: none;
+              }
+
+              select option {
+                background-color: #2a2a2a !important;
+                color: #ffffff !important;
+                text-align: center;
+                margin: 0;
+                padding: 8px;
+              }
+            `}</style>
           </div>
         </div>
         <div>
           <span className="text-gray-400">Attendance:</span>{" "}
-          <div className="relative inline-block">
+          <div className="relative inline-block ml-2">
             <select
               value={row.attendance || "Set"}
               onChange={(e) => handleAttendanceChange(row.eventregistrationid, e.target.value)}
-              className={`text-center bg-charleston cursor-pointer rounded-2xl border-2 px-4 py-1 text-xs ml-2
+              className={`text-center bg-charleston cursor-pointer rounded-2xl border-2 px-4 py-1 text-xs
                 ${row.attendance === "present"
                   ? "border-green-700 text-green-300"
                   : row.attendance === "absent"
@@ -455,9 +480,62 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
               <option value="absent">Absent</option>
               <option value="late">Late</option>
             </select>
+            <style jsx>{`
+              select {
+                appearance: none !important;
+                -webkit-appearance: none !important;
+                -moz-appearance: none !important;
+                background-image: none !important;
+                outline: none;
+                padding-right: 4px !important;
+              }
+
+              /* Remove dropdown arrow in IE/Edge */
+              select::-ms-expand {
+                display: none;
+              }
+
+              select option {
+                background-color: #2a2a2a !important;
+                color: #ffffff !important;
+                text-align: center;
+                margin: 0;
+                padding: 8px;
+              }
+            `}</style>
           </div>
         </div>
       </div>
+    </div>
+  );
+
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    return filteredData.slice(start, end);
+  }, [filteredData, currentPage]);
+
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+
+  const CustomPagination = ({ currentPage, totalPages, onPageChange }: any) => (
+    <div className="flex items-center justify-between px-4 py-3 bg-charleston sm:hidden rounded-lg">
+      <button
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-eerieblack rounded-md hover:bg-opacity-80 disabled:opacity-50"
+      >
+        Previous
+      </button>
+      <span className="text-sm text-gray-300">
+        Page {currentPage} of {totalPages}
+      </span>
+      <button
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-eerieblack rounded-md hover:bg-opacity-80 disabled:opacity-50"
+      >
+        Next
+      </button>
     </div>
   );
 
@@ -544,9 +622,14 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
       <div className="mt-8">
         {/* Mobile view */}
         <div className="block sm:hidden">
-          {filteredData.map((row, index) => (
+          {paginatedData.map((row, index) => (
             <div key={index}>{mobileCard(row)}</div>
           ))}
+          <CustomPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
         </div>
 
         {/* Desktop view */}

@@ -24,6 +24,28 @@ interface RequestsTableProps {
   requests: OrganizationRequest[];
 }
 
+const CustomPagination = ({ currentPage, totalPages, onPageChange }: any) => (
+  <div className="flex items-center justify-between px-4 py-3 bg-charleston sm:hidden rounded-lg">
+    <button
+      onClick={() => onPageChange(currentPage - 1)}
+      disabled={currentPage === 1}
+      className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-eerieblack rounded-md hover:bg-opacity-80 disabled:opacity-50"
+    >
+      Previous
+    </button>
+    <span className="text-sm text-gray-300">
+      Page {currentPage} of {totalPages}
+    </span>
+    <button
+      onClick={() => onPageChange(currentPage + 1)}
+      disabled={currentPage === totalPages}
+      className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-eerieblack rounded-md hover:bg-opacity-80 disabled:opacity-50"
+    >
+      Next
+    </button>
+  </div>
+);
+
 const RequestsTable: React.FC<RequestsTableProps> = ({ requests }) => {
   const [tableData, setTableData] = useState<OrganizationRequest[]>(requests);
   const [filterText, setFilterText] = useState<string>("");
@@ -154,14 +176,14 @@ const RequestsTable: React.FC<RequestsTableProps> = ({ requests }) => {
           <select
             value={row.status}
             onChange={(e) => handleStatusChange(row.id, e.target.value)}
-            className={`mt-1 text-center cursor-pointer bg-charleston rounded-2xl border-2 px-4 py-1 text-xs w-full sm:w-auto
-            ${row.status === "pending"
-              ? "bg-yellow-600/25 text-yellow-300 border-yellow-500"
-              : row.status === "approved"
-                ? "bg-green-600/25 text-green-300 border-green-700"
-                : "bg-red-600/25 text-red-300 border-red-700"
-            }`}
-            style={{ backgroundColor: 'transparent' }} // Ensures background color is not affected
+            className={`mt-1 text-center cursor-pointer rounded-2xl border-2 px-4 py-1 text-xs w-full sm:w-auto
+              ${row.status === "pending"
+                ? "bg-yellow-600/25 text-yellow-300 border-yellow-500"
+                : row.status === "approved"
+                  ? "bg-green-600/25 text-green-300 border-green-700"
+                  : "bg-red-600/25 text-red-300 border-red-700"
+              }`}
+            style={{ backgroundColor: 'transparent' }}
           >
             <option value="approved">Approved</option>
             <option value="pending">Pending</option>
@@ -222,6 +244,11 @@ const RequestsTable: React.FC<RequestsTableProps> = ({ requests }) => {
           {filteredData.map((row) => (
             <div key={row.id}>{mobileCard(row)}</div>
           ))}
+          <CustomPagination 
+            currentPage={1} // Replace with actual pagination state if needed
+            totalPages={Math.ceil(filteredData.length / 10)} // Adjust per your needs
+            onPageChange={(page: number) => {/* Handle page change */}}
+          />
         </div>
 
         {/* Desktop view */}
@@ -249,6 +276,12 @@ const RequestsTable: React.FC<RequestsTableProps> = ({ requests }) => {
               },
               pagination: {
                 style: { backgroundColor: "rgb(33, 33, 33)", color: "rgb(255, 255, 255)" },
+              },
+              cells: {
+                style: {
+                  backgroundColor: "rgb(33, 33, 33)",
+                  color: "rgb(255, 255, 255)",
+                },
               },
             }}
           />

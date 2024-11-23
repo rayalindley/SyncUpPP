@@ -65,6 +65,8 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({
   const [isMounted, setIsMounted] = useState(false);
   const [selectedTransaction, setSelectedTransaction] =
     useState<TransactionTableData | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     setIsMounted(true);
@@ -208,6 +210,28 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({
     </div>
   );
 
+  const CustomPagination = ({ currentPage, totalPages, onPageChange }: any) => (
+    <div className="flex items-center justify-between px-4 py-3 bg-charleston sm:hidden rounded-lg">
+      <button
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-eerieblack rounded-md hover:bg-opacity-80 disabled:opacity-50"
+      >
+        Previous
+      </button>
+      <span className="text-sm text-gray-300">
+        Page {currentPage} of {totalPages}
+      </span>
+      <button
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-eerieblack rounded-md hover:bg-opacity-80 disabled:opacity-50"
+      >
+        Next
+      </button>
+    </div>
+  );
+
   if (!isMounted) {
     return <Preloader />;
   }
@@ -240,9 +264,16 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({
           <>
             {/* Mobile view */}
             <div className="block sm:hidden">
-              {filteredData.map((row, index) => (
-                <div key={index}>{mobileCard(row)}</div>
-              ))}
+              {filteredData
+                .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                .map((row, index) => (
+                  <div key={index}>{mobileCard(row)}</div>
+                ))}
+              <CustomPagination 
+                currentPage={currentPage}
+                totalPages={Math.ceil(filteredData.length / itemsPerPage)}
+                onPageChange={(page: number) => setCurrentPage(page)}
+              />
             </div>
 
             {/* Desktop view */}

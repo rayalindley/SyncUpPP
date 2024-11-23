@@ -69,6 +69,28 @@ interface MembershipsTableProps {
   orgsMemView: OrganizationMembershipsView[];
 }
 
+const CustomPagination = ({ currentPage, totalPages, onPageChange }: any) => (
+  <div className="flex items-center justify-between px-4 py-3 bg-charleston sm:hidden rounded-lg">
+    <button
+      onClick={() => onPageChange(currentPage - 1)}
+      disabled={currentPage === 1}
+      className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-eerieblack rounded-md hover:bg-opacity-80 disabled:opacity-50"
+    >
+      Previous
+    </button>
+    <span className="text-sm text-gray-300">
+      Page {currentPage} of {totalPages}
+    </span>
+    <button
+      onClick={() => onPageChange(currentPage + 1)}
+      disabled={currentPage === totalPages}
+      className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-eerieblack rounded-md hover:bg-opacity-80 disabled:opacity-50"
+    >
+      Next
+    </button>
+  </div>
+);
+
 export default function MembershipsTable({ orgsMemView = [] }: MembershipsTableProps) {
   const [selectedOrgId, setSelectedOrgId] = useState<string>("");
   const [tableData, setTableData] = useState<Membership[]>([]);
@@ -241,6 +263,11 @@ export default function MembershipsTable({ orgsMemView = [] }: MembershipsTableP
               {filteredData.map((row, index) => (
                 <div key={index}>{mobileCard(row)}</div>
               ))}
+              <CustomPagination 
+                currentPage={1} // Replace with actual pagination state
+                totalPages={Math.ceil(filteredData.length / 10)} // Adjust per your needs
+                onPageChange={(page: number) => {/* Handle page change */}}
+              />
             </div>
 
             {/* Desktop view */}

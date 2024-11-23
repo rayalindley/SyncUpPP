@@ -7,18 +7,13 @@ import "react-toastify/dist/ReactToastify.css";
 import { format } from "date-fns";
 import { createClient } from "@/lib/supabase/client";
 import dynamic from "next/dynamic";
-import { TableColumn } from "react-data-table-component";
+import DataTable, { TableColumn } from "react-data-table-component";
 import { saveAs } from "file-saver";
 import { check_permissions } from "@/lib/organization";
 import { Dialog } from "@headlessui/react";
 import QrScannerComponent from "@/components/qrscanner"; // Import QR Scanner component
 import { useRouter } from "next/navigation";
 import { recordActivity } from "@/lib/track";
-
-// Dynamically import DataTable
-const DataTable = dynamic(() => import("react-data-table-component"), {
-  ssr: false,
-});
 
 interface Registration {
   eventregistrationid: string;
@@ -56,6 +51,8 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
   const [attendanceFilter, setAttendanceFilter] = useState<string>("");
   const [canManageRegistrations, setCanManageRegistrations] = useState(false); // State for permissions
   const [showQrScanner, setShowQrScanner] = useState(false); // State for QR scanner modal
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Capture event ID from the query params on component mount
   useEffect(() => {
@@ -501,6 +498,44 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
     </div>
   );
 
+  // Add the CustomPagination component
+  const CustomPagination = ({ currentPage, totalPages, onPageChange }: any) => (
+    <div className="flex items-center justify-between px-4 py-3 bg-charleston sm:hidden rounded-lg">
+      <button
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-eerieblack rounded-md hover:bg-opacity-80 disabled:opacity-50"
+      >
+        Previous
+      </button>
+      <span className="text-sm text-gray-300">
+        Page {currentPage} of {totalPages}
+      </span>
+      <button
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-eerieblack rounded-md hover:bg-opacity-80 disabled:opacity-50"
+      >
+        Next
+      </button>
+    </div>
+  );
+
+  // Update the mobile view section in your return statement
+  // Replace the existing mobile view with:
+  <div className="block sm:hidden">
+    {filteredData
+      .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+      .map((row, index) => (
+        <div key={index}>{mobileCard(row)}</div>
+      ))}
+    <CustomPagination
+      currentPage={currentPage}
+      totalPages={Math.ceil(filteredData.length / itemsPerPage)}
+      onPageChange={(page: number) => setCurrentPage(page)}
+    />
+  </div>
+
   // Update the return statement to include responsive layout
   return (
     <>
@@ -587,16 +622,23 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
         </div>
 
         {/* Mobile view */}
-        <div className="block sm:hidden mt-8">
-          {filteredData.map((row, index) => (
-            <div key={index}>{mobileCard(row)}</div>
-          ))}
+        <div className="block sm:hidden">
+          {filteredData
+            .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+            .map((row, index) => (
+              <div key={index}>{mobileCard(row)}</div>
+            ))}
+          <CustomPagination
+            currentPage={currentPage}
+            totalPages={Math.ceil(filteredData.length / itemsPerPage)}
+            onPageChange={(page: number) => setCurrentPage(page)}
+          />
         </div>
 
         {/* Desktop view */}
         <div className="hidden sm:block mt-8">
           <DataTable
-            columns={columns}
+            columns={columns as TableColumn<Registration>[]}
             data={filteredData}
             pagination
             highlightOnHover

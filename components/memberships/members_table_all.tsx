@@ -92,6 +92,8 @@ const MembersTableAll: React.FC<MembersTableAllProps> = ({
   );
   const router = useRouter();
   const [userActivities, setUserActivities] = useState<Activity[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 10;
 
   useEffect(() => {
     const fetchMemberStatus = async () => {
@@ -391,6 +393,28 @@ const MembersTableAll: React.FC<MembersTableAllProps> = ({
     }
   };
 
+  const CustomPagination = ({ currentPage, totalPages, onPageChange }: any) => (
+    <div className="flex items-center justify-between px-4 py-3 bg-charleston sm:hidden rounded-lg">
+      <button
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-eerieblack rounded-md hover:bg-opacity-80 disabled:opacity-50"
+      >
+        Previous
+      </button>
+      <span className="text-sm text-gray-300">
+        Page {currentPage} of {totalPages}
+      </span>
+      <button
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-eerieblack rounded-md hover:bg-opacity-80 disabled:opacity-50"
+      >
+        Next
+      </button>
+    </div>
+  );
+
   if (!isMounted) {
     return <Preloader />;
   }
@@ -415,9 +439,16 @@ const MembersTableAll: React.FC<MembersTableAllProps> = ({
           <>
             {/* Mobile View */}
             <div className="md:hidden mt-4">
-              {filteredData.map((item) => (
-                <MobileCard key={item.organizationmemberid} data={item} />
-              ))}
+              {filteredData
+                .slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage)
+                .map((item) => (
+                  <MobileCard key={item.organizationmemberid} data={item} />
+                ))}
+              <CustomPagination 
+                currentPage={currentPage}
+                totalPages={Math.ceil(filteredData.length / rowsPerPage)}
+                onPageChange={(page: number) => setCurrentPage(page)}
+              />
             </div>
 
             {/* Desktop View */}

@@ -21,6 +21,29 @@ const DataTable = dynamic(() => import('react-data-table-component'), {
   ssr: false,
 });
 
+// Add this new component near the top of the file
+const CustomPagination = ({ currentPage, totalPages, onPageChange }: any) => (
+  <div className="flex items-center justify-between px-4 py-3 bg-charleston sm:hidden rounded-lg">
+    <button
+      onClick={() => onPageChange(currentPage - 1)}
+      disabled={currentPage === 1}
+      className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-eerieblack rounded-md hover:bg-opacity-80 disabled:opacity-50"
+    >
+      Previous
+    </button>
+    <span className="text-sm text-gray-300">
+      Page {currentPage} of {totalPages}
+    </span>
+    <button
+      onClick={() => onPageChange(currentPage + 1)}
+      disabled={currentPage === totalPages}
+      className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-eerieblack rounded-md hover:bg-opacity-80 disabled:opacity-50"
+    >
+      Next
+    </button>
+  </div>
+);
+
 export default function EventsTableUser({
   organization,
   events,
@@ -36,6 +59,8 @@ export default function EventsTableUser({
   const [filterText, setFilterText] = useState<string>("");
   const [debouncedFilterText] = useDebounce(filterText, 300);
   const [tableData, setTableData] = useState<Event[]>(events);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const handleCreateEvent = () => {
     router.push(`/events/create/${organization.slug}`);
@@ -204,7 +229,7 @@ export default function EventsTableUser({
       allowOverflow: true,
       button: true,
     },
-  ];
+  ] as TableColumn<Event>[];
 
   const filteredData = useMemo(
     () =>
@@ -216,6 +241,12 @@ export default function EventsTableUser({
       }),
     [debouncedFilterText, tableData]
   );
+
+  // Update the mobile view section to include pagination
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedData = filteredData.slice(startIndex, endIndex);
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
   // Add mobile card rendering function
   const mobileCard = (row: Event) => (
@@ -346,17 +377,23 @@ export default function EventsTableUser({
 
         {/* Mobile View */}
         <div className="block sm:hidden">
-          {filteredData.map((row, index) => (
+          {paginatedData.map((row, index) => (
             <div key={index}>{mobileCard(row)}</div>
           ))}
+          <CustomPagination 
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={(page: number) => setCurrentPage(page)}
+          />
         </div>
 
         {/* Desktop View */}
         <div className="hidden sm:block">
           <DataTable
-            columns={columns}
+            columns={columns as unknown as TableColumn<unknown>[]}
             data={filteredData}
             pagination
+            highlightOnHover
             customStyles={{
               header: {
                 style: {
@@ -398,7 +435,6 @@ export default function EventsTableUser({
                 },
               },
             }}
-            highlightOnHover
           />
         </div>
       </div>
