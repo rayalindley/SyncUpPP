@@ -171,10 +171,9 @@ export default function OrganizationUserView() {
               <p>Browse and view organizations that fit your interests.</p>
             </div>
 
-            {/* Search Input with Sort and Filters */}
-            <div className="mx-auto mt-6 flex max-w-3xl flex-col space-y-4 px-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 sm:px-0">
+            <div className="mx-auto mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-center gap-4 sm:gap-6">
               {/* Search Bar */}
-              <div className="relative w-full sm:max-w-md">
+              <div className="relative w-full sm:w-1/3">
                 <input
                   type="text"
                   placeholder="Search organizations..."
@@ -183,101 +182,53 @@ export default function OrganizationUserView() {
                   className="w-full rounded-lg border border-charleston bg-charleston p-2 pl-10 pr-4 text-sm text-light focus:border-primary focus:ring-primary"
                 />
                 <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
-                  <MagnifyingGlassIcon
-                    className="h-5 w-5 text-gray-500"
-                    aria-hidden="true"
-                  />
+                  <MagnifyingGlassIcon className="h-5 w-5 text-gray-500" aria-hidden="true" />
                 </div>
               </div>
 
-              {/* Sort and Filters */}
-              <div className="flex flex-wrap items-center gap-4 sm:pl-4">
-                {/* Sort Menu */}
-                <Menu as="div" className="relative">
-                  <Menu.Button className="flex items-center whitespace-nowrap text-sm font-medium text-light">
-                    Sort by
-                    <ChevronDownIcon className="ml-1 h-5 w-5" />
-                  </Menu.Button>
-                  <Menu.Items className="absolute right-0 z-50 mt-2 w-44 rounded-md bg-charleston shadow-lg">
-                    {sortOptions.map((option) => (
-                      <Menu.Item key={option.value}>
-                        {({ active }) => (
-                          <div
-                            onClick={() => handleSort(option.value)}
-                            className={`cursor-pointer px-4 py-2 text-sm ${
-                              sortOption === option.value
-                                ? "bg-primary text-white"
-                                : active
-                                  ? "bg-[#383838] text-light"
-                                  : "text-light"
-                            }`}
-                          >
-                            {option.name}
-                          </div>
-                        )}
-                      </Menu.Item>
-                    ))}
-                  </Menu.Items>
-                </Menu>
+              {/* Filters Container */}
+              <div className="flex w-full justify-center gap-4 sm:w-auto">
+                {/* Sort Dropdown */}
+                <select
+                  value={sortOption}
+                  onChange={(e) => handleSort(e.target.value)}
+                  className="w-full sm:w-auto rounded-lg border border-charleston bg-charleston p-2 text-sm text-light focus:border-primary focus:ring-primary"
+                >
+                  {sortOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.name}
+                    </option>
+                  ))}
+                </select>
 
-                {/* Organization Type Filter */}
-                <Menu as="div" className="relative">
-                  <Menu.Button className="flex items-center whitespace-nowrap text-sm font-medium text-light">
-                    Type
-                    <ChevronDownIcon className="ml-1 h-5 w-5" />
-                  </Menu.Button>
-                  <Menu.Items className="absolute right-0 z-50 mt-2 w-52 rounded-md bg-charleston shadow-lg">
-                    {organizationTypeFilters.map((option) => (
-                      <Menu.Item key={option.value}>
-                        {({ active }) => (
-                          <div
-                            onClick={() => handleOrganizationTypeFilter(option.value)}
-                            className={`cursor-pointer px-4 py-2 text-sm ${
-                              organizationTypeFilter === option.value
-                                ? "bg-primary text-white"
-                                : active
-                                  ? "bg-[#383838] text-light"
-                                  : "text-light"
-                            }`}
-                          >
-                            {option.name}
-                          </div>
-                        )}
-                      </Menu.Item>
-                    ))}
-                  </Menu.Items>
-                </Menu>
+                {/* Type Dropdown */}
+                <select
+                  value={organizationTypeFilter}
+                  onChange={(e) => handleOrganizationTypeFilter(e.target.value)}
+                  className="w-full sm:w-auto rounded-lg border border-charleston bg-charleston p-2 text-sm text-light focus:border-primary focus:ring-primary"
+                >
+                  {organizationTypeFilters.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.name}
+                    </option>
+                  ))}
+                </select>
 
-                {/* Industry Filter */}
-                <Menu as="div" className="relative">
-                  <Menu.Button className="flex items-center whitespace-nowrap text-sm font-medium text-light">
-                    Industry
-                    <ChevronDownIcon className="ml-1 h-5 w-5" />
-                  </Menu.Button>
-                  <Menu.Items className="absolute right-0 z-50 mt-2 w-64 rounded-md bg-charleston shadow-lg">
-                    {industryFilters.map((option) => (
-                      <Menu.Item key={option.value}>
-                        {({ active }) => (
-                          <div
-                            onClick={() => handleIndustryFilter(option.value)}
-                            className={`cursor-pointer px-4 py-2 text-sm ${
-                              industryFilter === option.value
-                                ? "bg-primary text-white"
-                                : active
-                                  ? "bg-[#383838] text-light"
-                                  : "text-light"
-                            }`}
-                          >
-                            {option.name}
-                          </div>
-                        )}
-                      </Menu.Item>
-                    ))}
-                  </Menu.Items>
-                </Menu>
+                {/* Industry Dropdown */}
+                <select
+                  value={industryFilter}
+                  onChange={(e) => handleIndustryFilter(e.target.value)}
+                  className="w-full sm:w-auto rounded-lg border border-charleston bg-charleston p-2 text-sm text-light focus:border-primary focus:ring-primary"
+                >
+                  {industryFilters.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
-
+            
             {/* Organization Cards */}
             <div className="mt-6 grid w-full grid-cols-1 gap-4 sm:mt-8 sm:grid-cols-2 md:mt-10 md:gap-6 lg:grid-cols-3 xl:gap-8">
               {currentOrganizations.map((org) => (
