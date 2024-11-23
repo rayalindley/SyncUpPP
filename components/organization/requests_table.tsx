@@ -176,19 +176,32 @@ const RequestsTable: React.FC<RequestsTableProps> = ({ requests }) => {
           <select
             value={row.status}
             onChange={(e) => handleStatusChange(row.id, e.target.value)}
-            className={`mt-1 text-center cursor-pointer rounded-2xl border-2 px-4 py-1 text-xs w-full sm:w-auto
-              ${row.status === "pending"
-                ? "bg-yellow-600/25 text-yellow-300 border-yellow-500"
+            className={`mt-1 text-center cursor-pointer rounded-2xl border-2 px-4 py-1 text-xs w-28 sm:w-auto
+            ${row.status === "pending"
+                ? "bg-yellow-600/25 text-yellow-300 border-yellow-500 focus:border-yellow-500 focus:outline-none focus:ring-yellow-500"
                 : row.status === "approved"
-                  ? "bg-green-600/25 text-green-300 border-green-700"
-                  : "bg-red-600/25 text-red-300 border-red-700"
-              }`}
-            style={{ backgroundColor: 'transparent' }}
+                  ? "bg-green-600/25 text-green-300 border-green-700 focus:border-green-700 focus:outline-none focus:ring-green-700"
+                  : "bg-red-600/25 text-red-300 border-red-700  focus:border-red-700 focus:outline-none focus:ring-red-700"
+            }`}
           >
             <option value="approved">Approved</option>
             <option value="pending">Pending</option>
             <option value="rejected">Rejected</option>
           </select>
+          <style jsx>{`
+                select {
+                  appearance: none; /* Removes default styling including arrow */
+                  background-image: none; /* Ensures no background images like arrow */
+                  outline: none; /* Removes the blue outline */
+                }
+
+                select option {
+                  background-color: #2a2a2a; /* Option background color */
+                  color: #ffffff; /* Option text color */
+                  text-align: center; /* Ensures text alignment inside the option */
+                  margin: 0; /* Removes any default margin */
+                }
+            `}</style>
         </div>
         <div>
           <span className="text-gray-400">Requested At:</span>{" "}

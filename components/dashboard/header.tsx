@@ -149,7 +149,7 @@ function Header({ user }: { user: User }) {
       {/* Main Content Area */}
       <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
         <div className="flex flex-1 items-center"></div>
-        <div className="flex items-center gap-x-4 lg:gap-x-6">
+        <div className="flex items-center">
           {/* Notification Dropdown */}
           <NotificationDropdown
             notifications={notifications}
