@@ -6,7 +6,7 @@ Welcome to the SyncUp Organizer Testing Program! As an organizer, your role is v
 
 This guide will help you navigate the platform, personalize your organization, and prepare for the upcoming **beta testing phase** with real users. During this time, we aim to test performance, usability, and functionality.
 
-Visit the SyncUp website here: **[SyncUp Website](https://syncup-org.vercel.app/)** to begin your testing journey.
+Visit the SyncUp website here: **[SyncUp](https://syncup-org.vercel.app/)** to begin your testing journey.
 
 ---
 
