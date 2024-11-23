@@ -16,7 +16,7 @@ import { recordActivity } from "@/lib/track";
 // Dynamically import DataTable
 const DataTable = dynamic(() => import('react-data-table-component'), {
   ssr: false,
-});
+}) as any;
 
 interface Registration {
   eventregistrationid: string;

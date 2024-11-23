@@ -15,9 +15,32 @@ import "react-toastify/dist/ReactToastify.css"; // Import toast styles
 // Dynamically import DataTable
 const DataTable = dynamic(() => import('react-data-table-component'), {
   ssr: false,
-});
+}) as any;
 
 const supabase = createClient(); // Initialize Supabase client
+
+// Add this new component near the top of the file
+const CustomPagination = ({ currentPage, totalPages, onPageChange }: any) => (
+  <div className="flex items-center justify-between px-4 py-3 bg-charleston sm:hidden rounded-lg">
+    <button
+      onClick={() => onPageChange(currentPage - 1)}
+      disabled={currentPage === 1}
+      className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-eerieblack rounded-md hover:bg-opacity-80 disabled:opacity-50"
+    >
+      Previous
+    </button>
+    <span className="text-sm text-gray-300">
+      Page {currentPage} of {totalPages}
+    </span>
+    <button
+      onClick={() => onPageChange(currentPage + 1)}
+      disabled={currentPage === totalPages}
+      className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-eerieblack rounded-md hover:bg-opacity-80 disabled:opacity-50"
+    >
+      Next
+    </button>
+  </div>
+);
 
 export default function EventsTable({
   organizations,
@@ -360,29 +383,6 @@ export default function EventsTable({
       <div className="absolute bottom-4 right-4">
         <EventOptions selectedEvent={row} userId={userId} />
       </div>
-    </div>
-  );
-
-  // Add this component inside EventsTable before the return statement
-  const CustomPagination = ({ currentPage, totalPages, onPageChange }: any) => (
-    <div className="flex items-center justify-between px-4 py-3 bg-charleston sm:hidden rounded-lg">
-      <button
-        onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage === 1}
-        className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-eerieblack rounded-md hover:bg-opacity-80 disabled:opacity-50"
-      >
-        Previous
-      </button>
-      <span className="text-sm text-gray-300">
-        Page {currentPage} of {totalPages}
-      </span>
-      <button
-        onClick={() => onPageChange(currentPage + 1)}
-        disabled={currentPage === totalPages}
-        className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-eerieblack rounded-md hover:bg-opacity-80 disabled:opacity-50"
-      >
-        Next
-      </button>
     </div>
   );
 
