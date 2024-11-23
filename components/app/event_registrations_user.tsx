@@ -396,7 +396,7 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
 
   // Add mobileCard rendering function
   const mobileCard = (row: Registration) => (
-    <div className="bg-charleston p-4 rounded-lg mb-4 border border-[#525252] relative">
+    <div className="mt-4 bg-charleston p-4 rounded-lg mb-4 border border-[#525252] relative">
       <div className="space-y-2">
         <div>
           <span className="text-gray-400">Name:</span>{" "}
