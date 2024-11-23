@@ -702,7 +702,7 @@ const MembersTable: React.FC<MembersTableProps> = ({ members, organization }) =>
                                       </div>
                                       <div className="mb-1 flex items-center justify-between">
                                         <span className="text-lg font-bold text-light">
-                                          ${payment.amount}
+                                          ₱{payment.amount}
                                         </span>
                                         <span className="text-sm capitalize text-gray-400">
                                           {payment.type}

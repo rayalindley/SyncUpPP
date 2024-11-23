@@ -75,12 +75,12 @@ const TransactionSummary: React.FC<TransactionSummaryProps> = ({ summary }) => {
         />
         <SummaryCard
           title="Total Amount Paid"
-          value={`$${overallSummary.total_amount_paid.toFixed(2)}`}
+          value={`₱${overallSummary.total_amount_paid.toFixed(2)}`}
           icon={<FaChartLine />}
         />
         <SummaryCard
           title="Average Payment"
-          value={`$${overallSummary.average_payment_amount.toFixed(2)}`}
+          value={`₱${overallSummary.average_payment_amount.toFixed(2)}`}
           icon={<FaChartLine />}
         />
         <SummaryCard

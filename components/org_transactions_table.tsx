@@ -96,7 +96,7 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({
       name: "Amount",
       selector: (row: TransactionTableData) => row.amount,
       sortable: true,
-      cell: (row: TransactionTableData) => `$${row.amount.toFixed(2)}`,
+      cell: (row: TransactionTableData) => `₱${row.amount.toFixed(2)}`,
     },
     {
       name: "Type",
@@ -175,7 +175,7 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({
         </div>
         <div>
           <span className="text-gray-400">Amount:</span>{" "}
-          <span className="text-white">${row.amount.toFixed(2)}</span>
+          <span className="text-white">₱${row.amount.toFixed(2)}</span>
         </div>
         <div>
           <span className="text-gray-400">Type:</span>{" "}
@@ -250,93 +250,84 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({
         </div>
       </div>
       <div className="mt-8">
-        <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4 mb-4">
+        {/* Mobile view */}
+        <div className="block sm:hidden">
           <input
             type="text"
             placeholder="Search transactions..."
             value={filterText}
             onChange={(e) => setFilterText(e.target.value)}
-            className="w-full sm:w-auto rounded-md border border-[#525252] bg-charleston px-3 py-2 text-light shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+            className="w-full rounded-md border border-[#525252] bg-charleston px-3 py-2 text-light shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm mb-4"
+          />
+          {filteredData
+            .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+            .map((row, index) => (
+              <div key={index}>{mobileCard(row)}</div>
+            ))}
+          <CustomPagination 
+            currentPage={currentPage}
+            totalPages={Math.ceil(filteredData.length / itemsPerPage)}
+            onPageChange={(page: number) => setCurrentPage(page)}
           />
         </div>
 
-        {tableData.length > 0 ? (
-          <>
-            {/* Mobile view */}
-            <div className="block sm:hidden">
-              {filteredData
-                .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-                .map((row, index) => (
-                  <div key={index}>{mobileCard(row)}</div>
-                ))}
-              <CustomPagination 
-                currentPage={currentPage}
-                totalPages={Math.ceil(filteredData.length / itemsPerPage)}
-                onPageChange={(page: number) => setCurrentPage(page)}
-              />
-            </div>
-
-            {/* Desktop view */}
-            <div className="hidden sm:block">
-              <DataTable
-                columns={columns as TableColumn<unknown>[]}
-                data={filteredData}
-                pagination
-                highlightOnHover
-                subHeader
-                subHeaderComponent={subHeaderComponent}
-                customStyles={{
-                  header: {
-                    style: {
-                      backgroundColor: "rgb(36, 36, 36)",
-                      color: "rgb(255, 255, 255)",
-                    },
-                  },
-                  subHeader: {
-                    style: {
-                      backgroundColor: "none",
-                      color: "rgb(255, 255, 255)",
-                      padding: 0,
-                      marginBottom: 10,
-                    },
-                  },
-                  rows: {
-                    style: {
-                      minHeight: "6vh",
-                      backgroundColor: "rgb(33, 33, 33)",
-                      color: "rgb(255, 255, 255)",
-                    },
-                  },
-                  headCells: {
-                    style: {
-                      backgroundColor: "rgb(36, 36, 36)",
-                      color: "rgb(255, 255, 255)",
-                    },
-                  },
-                  cells: {
-                    style: {
-                      backgroundColor: "rgb(33, 33, 33)",
-                      color: "rgb(255, 255, 255)",
-                    },
-                  },
-                  pagination: {
-                    style: {
-                      backgroundColor: "rgb(33, 33, 33)",
-                      color: "rgb(255, 255, 255)",
-                    },
-                  },
-                }}
-                onRowClicked={(row) => handleRowClick(row as TransactionTableData)}
-                pointerOnHover
-                noDataComponent={
-                  <div className="p-4 text-center text-light">No transactions found</div>
-                }
-              />
-            </div>
-          </>
-        ) : (
-          <div className="p-4 text-center text-light">No transactions found</div>
-        )}
+        {/* Desktop view */}
+        <div className="hidden sm:block">
+          <DataTable
+            columns={columns as TableColumn<unknown>[]}
+            data={filteredData}
+            pagination
+            highlightOnHover
+            subHeader
+            subHeaderComponent={subHeaderComponent}
+            customStyles={{
+              header: {
+                style: {
+                  backgroundColor: "rgb(36, 36, 36)",
+                  color: "rgb(255, 255, 255)",
+                },
+              },
+              subHeader: {
+                style: {
+                  backgroundColor: "none",
+                  color: "rgb(255, 255, 255)",
+                  padding: 0,
+                  marginBottom: 10,
+                },
+              },
+              rows: {
+                style: {
+                  minHeight: "6vh",
+                  backgroundColor: "rgb(33, 33, 33)",
+                  color: "rgb(255, 255, 255)",
+                },
+              },
+              headCells: {
+                style: {
+                  backgroundColor: "rgb(36, 36, 36)",
+                  color: "rgb(255, 255, 255)",
+                },
+              },
+              cells: {
+                style: {
+                  backgroundColor: "rgb(33, 33, 33)",
+                  color: "rgb(255, 255, 255)",
+                },
+              },
+              pagination: {
+                style: {
+                  backgroundColor: "rgb(33, 33, 33)",
+                  color: "rgb(255, 255, 255)",
+                },
+              },
+            }}
+            onRowClicked={(row) => handleRowClick(row as TransactionTableData)}
+            pointerOnHover
+            noDataComponent={
+              <div className="p-4 text-center text-light">No transactions found</div>
+            }
+          />
+        </div>
       </div>
 
       <Transition.Root show={!!selectedTransaction} as={Fragment}>
@@ -401,7 +392,7 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({
                                   {selectedTransaction.invoiceId}
                                 </p>
                                 <p>
-                                  <span className="font-semibold">Amount:</span> $
+                                  <span className="font-semibold">Amount:</span> ₱
                                   {selectedTransaction.amount.toFixed(2)}
                                 </p>
                                 <p>

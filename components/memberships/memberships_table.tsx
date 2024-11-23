@@ -150,7 +150,7 @@ export default function MembershipsTable({ orgsMemView = [] }: MembershipsTableP
       name: "Fee",
       selector: (row) =>
         row.registrationfee !== null && row.registrationfee !== undefined
-          ? `$ ${row.registrationfee.toFixed(2)}`
+          ? `₱ ${row.registrationfee.toFixed(2)}`
           : "",
       sortable: true,
     },
@@ -203,7 +203,7 @@ export default function MembershipsTable({ orgsMemView = [] }: MembershipsTableP
           <span className="text-gray-400">Fee:</span>{" "}
           <span className="text-white">
             {row.registrationfee !== null && row.registrationfee !== undefined
-              ? `$ ${row.registrationfee.toFixed(2)}`
+              ? `₱ ${row.registrationfee.toFixed(2)}`
               : "-"}
           </span>
         </div>

@@ -399,47 +399,17 @@ export default function EventsTable({
 
   return (
     <div className="px-4 sm:px-6 lg:px-8">
-      <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:space-y-0 sm:justify-between">
-        <div className="flex-1">
+      <div className="flex flex-col space-y-4">
+        <div>
           <h1 className="text-base font-semibold leading-6 text-light">Events</h1>
           <p className="mt-2 text-sm text-light">
             A list of all the events including their title, date and time, location,
             registration fee, capacity, and privacy.
           </p>
         </div>
-        <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
-          <input
-            type="text"
-            placeholder="Search..."
-            value={filterText}
-            onChange={(e) => setFilterText(e.target.value)}
-            className="w-full sm:w-auto rounded-md border border-[#525252] text-light bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary text-sm"
-          />
-          <select
-            value={selectedOrgId}
-            onChange={(e) => setSelectedOrgId(e.target.value)}
-            className="w-full sm:w-auto rounded-md border border-[#525252] bg-charleston px-3 py-2 text-white shadow-sm focus:border-primary focus:outline-none focus:ring-primary text-sm"
-          >
-            <option value="">All Organizations</option>
-            {organizations.map((org) => (
-              <option key={org.organizationid} value={org.organizationid}>
-                {org.name}
-              </option>
-            ))}
-          </select>
-          {canCreateEvents && (
-            <button
-              onClick={handleCreateEvent}
-              disabled={!selectedOrgId}
-              className={`w-full sm:w-auto rounded-md px-4 py-2 text-sm text-white ${
-                selectedOrgId
-                  ? "bg-primary hover:bg-primarydark"
-                  : "cursor-not-allowed bg-gray-500"
-              }`}
-            >
-              Create Event
-            </button>
-          )}
+        {/* Mobile filters - show only on mobile */}
+        <div className="block sm:hidden">
+          {subHeaderComponent}
         </div>
       </div>
 
@@ -450,8 +420,8 @@ export default function EventsTable({
             <div key={index}>{mobileCard(row)}</div>
           ))}
           <CustomPagination 
-            currentPage={1} // Replace with actual pagination state
-            totalPages={Math.ceil(filteredData.length / 10)} // Adjust per your needs
+            currentPage={1}
+            totalPages={Math.ceil(filteredData.length / 10)}
             onPageChange={(page: number) => {/* Handle page change */}}
           />
         </div>

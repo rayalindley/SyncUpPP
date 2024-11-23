@@ -229,7 +229,7 @@ export default function MembershipOptions({
                               <td className="p-2 font-bold text-gray-400">
                                 Registration Fee:
                               </td>
-                              <td className="p-2">{selectedTier.registrationfee}</td>
+                              <td className="p-2">{selectedTier.registrationfee ? `₱ ${selectedTier.registrationfee.toFixed(2)}` : "N/A"}</td>
                             </tr>
                             <tr>
                               <td className="p-2 align-top font-bold text-gray-400">

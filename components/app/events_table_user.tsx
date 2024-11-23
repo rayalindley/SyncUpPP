@@ -369,13 +369,13 @@ export default function EventsTableUser({
         </div>
 
         {/* Search and Create Event Section */}
-        <div className="flex flex-col space-y-4">
+        <div className="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4">
           <input
             type="text"
             placeholder="Search..."
             value={filterText}
             onChange={(e) => setFilterText(e.target.value)}
-            className="w-full rounded-md border border-[#525252] bg-charleston px-3 py-2 text-light shadow-sm focus:border-primary focus:outline-none focus:ring-primary text-sm"
+            className="flex-1 rounded-md border border-[#525252] bg-charleston px-3 py-2 text-light shadow-sm focus:border-primary focus:outline-none focus:ring-primary text-sm"
           />
           {canCreateEvents && (
             <button

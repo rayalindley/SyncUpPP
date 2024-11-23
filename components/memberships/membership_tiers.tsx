@@ -357,29 +357,31 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
           </div>
         )}
 
-        <div className="mt-4 sm:mt-8 grid grid-cols-1 gap-4 sm:gap-6 px-2 sm:px-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="mt-4 sm:mt-8 grid grid-cols-1 gap-4 sm:gap-6 px-2 sm:px-6 md:grid-cols-2 lg:grid-cols-3">
           {memberships.length > 0 ? (
-            memberships.map((membership, index) => (
-              <MembershipCard
-                key={membership.membershipid}
-                membership={membership}
-                index={index + 1}
-                totalMemberships={memberships.length}
-                userid={userid}
-                isAuthenticated={isAuthenticated}
-                userMemberships={userMemberships}
-                handleSubscribe={handleSubscribe}
-                handleEditMembership={onEdit}
-                handleDeleteMembership={onDelete}
-                editable={editable}
-                isCurrentPlan={currentMembershipId === membership.membershipid}
-                isProcessing={isProcessing}
-              />
-            ))
+            <div className="md:col-span-2 lg:col-span-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {memberships.map((membership, index) => (
+                <MembershipCard
+                  key={membership.membershipid}
+                  membership={membership}
+                  index={index + 1}
+                  totalMemberships={memberships.length}
+                  userid={userid}
+                  isAuthenticated={isAuthenticated}
+                  userMemberships={userMemberships}
+                  handleSubscribe={handleSubscribe}
+                  handleEditMembership={onEdit}
+                  handleDeleteMembership={onDelete}
+                  editable={editable}
+                  isCurrentPlan={currentMembershipId === membership.membershipid}
+                  isProcessing={isProcessing}
+                />
+              ))}
+            </div>
           ) : (
             <p className="col-span-full text-center text-white">
               No memberships available. Create one to get started!
-            </p>
+p            </p>
           )}
           {editable && (
             <div className="w-full h-full min-h-[300px] sm:min-h-[400px]">

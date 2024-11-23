@@ -4,6 +4,13 @@ import { fetchOrganizationBySlug, check_permissions } from "@/lib/organization";
 import { createClient, getUser } from "@/lib/supabase/server"; // Use the server-side version of Supabase client
 import { Organizations } from "@/types/organizations";
 
+const Header = () => (
+  <div className=" p-4 text-white">
+    <h1 className="text-2xl font-bold">Memberships</h1>
+    <p className="text-lg">Manage your organization’s memberships and tiers.</p>
+  </div>
+);
+
 export default async function MembershipsPage({ params }: { params: { slug: string } }) {
   const { slug } = params;
   
@@ -53,6 +60,7 @@ export default async function MembershipsPage({ params }: { params: { slug: stri
   // Render the page with the fetched data
   return (
     <div className="mt-8 ">
+      <Header />
       {organization && (
         <MembershipTiersClient
           memberships={memberships ?? []}
