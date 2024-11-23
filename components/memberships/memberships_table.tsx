@@ -164,30 +164,64 @@ export default function MembershipsTable({ orgsMemView = [] }: MembershipsTableP
     [filterText, tableData, selectedOrgId]
   );
 
-  const subHeaderComponent = (
-    <input
-      type="text"
-      placeholder="Search..."
-      value={filterText}
-      onChange={(e) => setFilterText(e.target.value)}
-      className="block rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
-    />
+  const mobileCard = (row: Membership) => (
+    <div className="bg-charleston p-4 rounded-lg mb-4 border border-[#525252] relative">
+      <div className="space-y-2">
+        <div>
+          <span className="text-gray-400">Membership:</span>{" "}
+          <span className="text-white">{row.name}</span>
+        </div>
+        {!selectedOrgId && (
+          <div>
+            <span className="text-gray-400">Organization:</span>{" "}
+            <span className="text-white">{row.orgname}</span>
+          </div>
+        )}
+        <div>
+          <span className="text-gray-400">Fee:</span>{" "}
+          <span className="text-white">
+            {row.registrationfee !== null && row.registrationfee !== undefined
+              ? `$ ${row.registrationfee.toFixed(2)}`
+              : "-"}
+          </span>
+        </div>
+        <div>
+          <span className="text-gray-400">Members:</span>{" "}
+          <span className="text-white">{row.total_members}</span>
+        </div>
+      </div>
+      <div className="absolute bottom-4 right-4">
+        <MembershipOptions
+          selectedTier={row}
+          open={row.open ?? false}
+          setOpen={row.setOpen ?? (() => {})}
+          TierMembers={row.members || []}
+        />
+      </div>
+    </div>
   );
 
   return (
     <div className="px-4 sm:px-6 lg:px-8">
-      <div className="sm:flex sm:items-center">
-        <div className="sm:flex-auto">
+      <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:space-y-0 sm:justify-between">
+        <div className="flex-1">
           <h1 className="text-base font-semibold leading-6 text-light">Memberships</h1>
           <p className="mt-2 text-sm text-light">
             A list of all the memberships in your organization
           </p>
         </div>
-        <div className="relative mt-2 sm:mt-0">
+        <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
+          <input
+            type="text"
+            placeholder="Search..."
+            value={filterText}
+            onChange={(e) => setFilterText(e.target.value)}
+            className="w-full sm:w-auto rounded-md border border-[#525252] text-light bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary text-sm"
+          />
           <select
             value={selectedOrgId}
             onChange={(e) => setSelectedOrgId(e.target.value)}
-            className="block w-full appearance-none rounded-full border border-solid border-gray-500 bg-raisinblack px-3 py-2 pr-8 text-base font-normal text-light transition ease-in-out hover:border-emerald-500 focus:border-emerald-500 focus:bg-charleston focus:text-light focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="w-full sm:w-auto rounded-md border border-[#525252] bg-charleston px-3 py-2 text-white shadow-sm focus:border-primary focus:outline-none focus:ring-primary text-sm"
           >
             <option value="">All Organizations</option>
             {organizations.map((org) => (
@@ -198,58 +232,47 @@ export default function MembershipsTable({ orgsMemView = [] }: MembershipsTableP
           </select>
         </div>
       </div>
+
       <div className="mt-8">
         {tableData.length > 0 ? (
-          <DataTable
-            columns={columns}
-            data={filteredData}
-            defaultSortFieldId="membershipname"
-            pagination
-            highlightOnHover
-            subHeader
-            subHeaderComponent={subHeaderComponent}
-            customStyles={{
-              header: {
-                style: {
-                  backgroundColor: "rgb(36, 36, 36)",
-                  color: "rgb(255, 255, 255)",
-                },
-              },
-              subHeader: {
-                style: {
-                  backgroundColor: "none",
-                  color: "rgb(255, 255, 255)",
-                  padding: 0,
-                  marginBottom: 10,
-                },
-              },
-              rows: {
-                style: {
-                  minHeight: "6vh",
-                  backgroundColor: "rgb(33, 33, 33)",
-                  color: "rgb(255, 255, 255)",
-                },
-              },
-              headCells: {
-                style: {
-                  backgroundColor: "rgb(36, 36, 36)",
-                  color: "rgb(255, 255, 255)",
-                },
-              },
-              cells: {
-                style: {
-                  backgroundColor: "rgb(33, 33, 33)",
-                  color: "rgb(255, 255, 255)",
-                },
-              },
-              pagination: {
-                style: {
-                  backgroundColor: "rgb(33, 33, 33)",
-                  color: "rgb(255, 255, 255)",
-                },
-              },
-            }}
-          />
+          <>
+            {/* Mobile view */}
+            <div className="block sm:hidden">
+              {filteredData.map((row, index) => (
+                <div key={index}>{mobileCard(row)}</div>
+              ))}
+            </div>
+
+            {/* Desktop view */}
+            <div className="hidden sm:block">
+              <DataTable
+                columns={columns}
+                data={filteredData}
+                pagination
+                highlightOnHover
+                customStyles={{
+                  table: { style: { backgroundColor: "rgb(33, 33, 33)" } },
+                  headRow: { style: { backgroundColor: "rgb(36, 36, 36)" } },
+                  headCells: { style: { color: "rgb(255, 255, 255)" } },
+                  rows: {
+                    style: { backgroundColor: "rgb(33, 33, 33)", color: "rgb(255, 255, 255)" },
+                    highlightOnHoverStyle: {
+                      backgroundColor: "rgb(44, 44, 44)",
+                      color: "rgb(255, 255, 255)",
+                      transitionDuration: "0.15s",
+                      transitionProperty: "background-color",
+                      zIndex: 1,
+                      position: "relative",
+                      overflow: "visible",
+                    },
+                  },
+                  pagination: {
+                    style: { backgroundColor: "rgb(33, 33, 33)", color: "rgb(255, 255, 255)" },
+                  },
+                }}
+              />
+            </div>
+          </>
         ) : (
           <Preloader />
         )}

@@ -5,10 +5,10 @@ import OrganizationCard from "./app/organization_card";
 export default function OrgSection({ organizations }: { organizations: Organization[] }) {
   return (
     <div className="bg-eerieblack py-14 sm:py-20">
-      <div className="mx-auto max-w-2xl lg:text-center">
+      <div className="mx-auto max-w-2xl px-6 lg:text-center">
         <p
           id="community"
-          className="mt-2 text-3xl font-bold tracking-tight text-light sm:text-4xl"
+          className=" mt-2 text-3xl font-bold tracking-tight text-light sm:text-4xl"
         >
           Explore Our Community
         </p>

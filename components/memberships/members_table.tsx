@@ -10,15 +10,14 @@ import { Fragment } from "react";
 import Swal from 'sweetalert2';
 import { createClient, getUser } from "@/lib/supabase/client";
 import { useRouter } from 'next/navigation';
-import { TableColumn } from "react-data-table-component";
+import { TableColumn, TableProps } from "react-data-table-component";
 import ActivityFeed from "@/components/activity_feed";
 import { Activity } from "@/types/activities";
 import { recordActivity, isActiveMember } from "@/lib/track";
 import { check_permissions } from "@/lib/organization";
+import DataTable from "react-data-table-component";
 
 const supabase = createClient();
-
-const DataTable = dynamic(() => import('react-data-table-component'), { ssr: false });
 
 interface OrganizationMember {
   organizationmemberid: string;
@@ -150,7 +149,7 @@ const MembersTable: React.FC<MembersTableProps> = ({ members, organization }) =>
     }
   };
 
-  const columns = [
+  const columns: TableColumn<MemberTableData>[] = [
     {
       name: "Name",
       selector: (row: MemberTableData) => `${row.user.first_name} ${row.user.last_name}`,
@@ -189,7 +188,7 @@ const MembersTable: React.FC<MembersTableProps> = ({ members, organization }) =>
         </span>
       ),
     },
-  ];
+  ] as TableColumn<MemberTableData>[];
 
   const handleRowClick = (row: MemberTableData) => {
     setSelectedMember(row);
@@ -209,14 +208,75 @@ const MembersTable: React.FC<MembersTableProps> = ({ members, organization }) =>
     [debouncedFilterText, tableData]
   );
 
-  const subHeaderComponent = (
-    <input
-      type="text"
-      placeholder="Search..."
-      value={filterText}
-      onChange={(e) => setFilterText(e.target.value)}
-      className="block rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
-    />
+  const mobileCard = (row: MemberTableData) => (
+    <div 
+      onClick={(e) => handleRowClick(row)}
+      className="bg-charleston p-4 rounded-lg mb-4 border border-[#525252] relative cursor-pointer hover:bg-opacity-80 transition-colors duration-200"
+    >
+      <div className="space-y-2">
+        <div>
+          <span className="text-gray-400">Name:</span>{" "}
+          <span className="text-white">{`${row.user.first_name} ${row.user.last_name}`}</span>
+        </div>
+        <div>
+          <span className="text-gray-400">Role:</span>{" "}
+          <span className={`inline-block border-2 rounded-2xl px-4 py-1 text-xs`} 
+            style={{ 
+              borderColor: row.role.color, 
+              backgroundColor: `${row.role.color}33`, 
+              color: row.role.color 
+            }}>
+            {row.role.role}
+          </span>
+        </div>
+        <div>
+          <span className="text-gray-400">Join Date:</span>{" "}
+          <span className="text-white">
+            {new Date(row.joindate).toLocaleString('en-US', { 
+              month: 'short', 
+              day: 'numeric', 
+              year: 'numeric' 
+            })}
+          </span>
+        </div>
+        <div>
+          <span className="text-gray-400">Membership:</span>{" "}
+          <span className="text-white">{row.membership.name ?? "N/A"}</span>
+        </div>
+        <div>
+          <span className="text-gray-400">Status:</span>{" "}
+          <span className={`inline-block w-20 text-center rounded-2xl border-2 px-2 py-1 text-xs ${
+            row.status === 'Active' 
+              ? 'bg-green-600/25 text-green-300 border-green-700' 
+              : 'bg-red-600/25 text-red-300 border-red-700'
+          }`}>
+            {row.status}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+
+  const CustomPagination = ({ currentPage, totalPages, onPageChange }: any) => (
+    <div className="flex items-center justify-between px-4 py-3 bg-charleston sm:hidden rounded-lg">
+      <button
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-eerieblack rounded-md hover:bg-opacity-80 disabled:opacity-50"
+      >
+        Previous
+      </button>
+      <span className="text-sm text-gray-300">
+        Page {currentPage} of {totalPages}
+      </span>
+      <button
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-eerieblack rounded-md hover:bg-opacity-80 disabled:opacity-50"
+      >
+        Next
+      </button>
+    </div>
   );
 
   const handleRemoveMember = async (organizationMemberId: string, userIdToRemove: string, role: string) => {
@@ -341,59 +401,87 @@ const MembersTable: React.FC<MembersTableProps> = ({ members, organization }) =>
           </p>
         </div>
       </div>
+
+      <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-2">
+        <input
+          type="text"
+          placeholder="Search..."
+          value={filterText}
+          onChange={(e) => setFilterText(e.target.value)}
+          className="w-full sm:w-auto rounded-md border border-[#525252] bg-charleston px-3 py-2 text-light shadow-sm focus:border-primary focus:outline-none focus:ring-primary text-sm"
+        />
+        {/* Add additional filters here if needed */}
+      </div>
+
       <div className="mt-8">
         {tableData.length > 0 ? (
-          <DataTable
-            columns={columns as TableColumn<unknown>[]}
-            data={filteredData}
-            pagination
-            highlightOnHover
-            subHeader
-            subHeaderComponent={subHeaderComponent}
-            customStyles={{
-              header: {
-                style: {
-                  backgroundColor: "rgb(36, 36, 36)",
-                  color: "rgb(255, 255, 255)",
-                },
-              },
-              subHeader: {
-                style: {
-                  backgroundColor: "none",
-                  color: "rgb(255, 255, 255)",
-                  padding: 0,
-                  marginBottom: 10,
-                },
-              },
-              rows: {
-                style: {
-                  minHeight: "6vh",
-                  backgroundColor: "rgb(33, 33, 33)",
-                  color: "rgb(255, 255, 255)",
-                },
-              },
-              headCells: {
-                style: {
-                  backgroundColor: "rgb(36, 36, 36)",
-                  color: "rgb(255, 255, 255)",
-                },
-              },
-              cells: {
-                style: {
-                  backgroundColor: "rgb(33, 33, 33)",
-                  color: "rgb(255, 255, 255)",
-                },
-              },
-              pagination: {
-                style: {
-                  backgroundColor: "rgb(33, 33, 33)",
-                  color: "rgb(255, 255, 255)",
-                },
-              },
-            }}
-            onRowClicked={(row, e) => handleRowClick(row as MemberTableData)}
-            pointerOnHover
-          />
+          <>
+            {/* Mobile view */}
+            <div className="block sm:hidden space-y-4">
+              {filteredData.map((row, index) => (
+                <div key={index}>{mobileCard(row)}</div>
+              ))}
+              <CustomPagination 
+                currentPage={1} // Replace with actual pagination state
+                totalPages={Math.ceil(filteredData.length / 10)} // Adjust per your needs
+                onPageChange={(page: number) => {/* Handle page change */}}
+              />
+            </div>
+
+            {/* Desktop view */}
+            <div className="hidden sm:block">
+              <DataTable<MemberTableData>
+                columns={columns}
+                data={filteredData}
+                pagination
+                highlightOnHover
+                subHeader
+                customStyles={{
+                  header: {
+                    style: {
+                      backgroundColor: "rgb(36, 36, 36)",
+                      color: "rgb(255, 255, 255)",
+                    },
+                  },
+                  subHeader: {
+                    style: {
+                      backgroundColor: "none",
+                      color: "rgb(255, 255, 255)",
+                      padding: 0,
+                      marginBottom: 10,
+                    },
+                  },
+                  rows: {
+                    style: {
+                      minHeight: "6vh",
+                      backgroundColor: "rgb(33, 33, 33)",
+                      color: "rgb(255, 255, 255)",
+                    },
+                  },
+                  headCells: {
+                    style: {
+                      backgroundColor: "rgb(36, 36, 36)",
+                      color: "rgb(255, 255, 255)",
+                    },
+                  },
+                  cells: {
+                    style: {
+                      backgroundColor: "rgb(33, 33, 33)",
+                      color: "rgb(255, 255, 255)",
+                    },
+                  },
+                  pagination: {
+                    style: {
+                      backgroundColor: "rgb(33, 33, 33)",
+                      color: "rgb(255, 255, 255)",
+                    },
+                  },
+                }}
+                onRowClicked={handleRowClick}
+                pointerOnHover
+              />
+            </div>
+          </>
         ) : (
           <Preloader />
         )}

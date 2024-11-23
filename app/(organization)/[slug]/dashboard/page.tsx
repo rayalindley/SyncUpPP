@@ -48,7 +48,7 @@ export default async function SettingsPage({ params }: { params: { slug: string 
   const activities = await fetchOrganizationActivities(organization.organizationid);
 
   return (
-    <div className="min-h-full flex-1 flex-col justify-center bg-eerieblack px-6  lg:px-8">
+    <div className="min-h-full flex-1 flex-col justify-center bg-eerieblack   lg:px-8">
       <AnalyticsDashboard organizationid={organization.organizationid} activities={activities} />
       <div className="mt-4 flex gap-2">
         <a

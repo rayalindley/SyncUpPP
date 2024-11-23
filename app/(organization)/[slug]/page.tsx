@@ -181,7 +181,7 @@ export default async function OrganizationUserView({
             <div className="h-48 w-full rounded-lg bg-zinc-200 sm:h-64 lg:h-80"></div>
           )}
           <div className="absolute w-full -translate-y-1/2 transform px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col items-end gap-4 sm:flex-row sm:justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:justify-between">
               <div className="h-24 w-24 rounded-xl border-4 border-primary sm:h-32 sm:w-32">
                 {org.photo ? (
                   <img
@@ -191,14 +191,21 @@ export default async function OrganizationUserView({
                     style={{ objectFit: "cover" }}
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center rounded-lg bg-zinc-700">
+                  <div className="flex h-full w-full items-center justify-center rounded-lg bg-zinc-700 ">
                     <span className="text-5xl font-medium uppercase text-light">
                       {getInitials(org.name)}
                     </span>
                   </div>
                 )}
               </div>
-              <div className="mt-4 flex flex-col gap-2 sm:mt-0 sm:flex-row">
+            </div>
+          </div>
+          <div className="mt-12 space-y-4 px-4 sm:mt-16 sm:px-6 lg:mt-24 lg:px-8">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <h1 className="text-2xl font-bold text-light sm:text-3xl lg:text-4xl">
+                {org.name} <ShareButton />
+              </h1>
+              <div className="flex flex-row gap-2">
                 {membershipStatus !== "admin" && (
                   <JoinButton
                     organizationId={org.organizationid}
@@ -207,37 +214,37 @@ export default async function OrganizationUserView({
                     initialMembershipStatus={membershipStatus}
                   />
                 )}
-                {(await check_permissions(
-                  user?.id || "",
-                  org.organizationid,
-                  "view_dashboard"
-                )) && (
+                {(await check_permissions(user?.id || "", org.organizationid, "view_dashboard")) && (
                   <Link
                     className="rounded-lg bg-primary px-4 py-2 text-white hover:bg-primarydark"
-                    href={`${slug}/dashboard`}
+                    href={`${slug}/dashboard}`}
                   >
                     Manage
                   </Link>
                 )}
               </div>
             </div>
-          </div>
-          <div className="mt-12 space-y-4 px-4 sm:mt-16 sm:px-6 lg:mt-24 lg:px-8">
-            <h1 className="text-2xl font-bold text-light sm:text-3xl lg:text-4xl">
-              {org.name} <ShareButton />
-            </h1> 
-            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-              <div className="mb-2 flex items-center sm:mb-0 sm:mr-4">
+            <div className="flex flex-row gap-4 overflow-x-auto pb-2 sm:flex-wrap sm:overflow-visible">
+              <div className="flex min-w-fit items-center whitespace-nowrap">
                 <UserGroupIcon className="mr-1 h-5 w-5 text-primary" />
-                <p className="text-sm text-light">{org.total_members} members</p>
+                <p className="text-sm text-light">
+                  <span>{org.total_members}</span>
+                  <span className="ml-1 hidden sm:inline">members</span>
+                </p>
               </div>
-              <div className="mb-2 flex items-center sm:mb-0 sm:mr-4">
+              <div className="flex min-w-fit items-center whitespace-nowrap">
                 <InboxIcon className="mr-1 h-5 w-5 text-primary" />
-                <p className="text-sm text-light">{org.total_posts} posts</p>
+                <p className="text-sm text-light">
+                  <span>{org.total_posts}</span>
+                  <span className="ml-1 hidden sm:inline">posts</span>
+                </p>
               </div>
-              <div className="mb-2 flex items-center sm:mb-0 sm:mr-4">
+              <div className="flex min-w-fit items-center whitespace-nowrap">
                 <CalendarIcon className="mr-1 h-5 w-5 text-primary" />
-                <p className="text-sm text-light">{org.total_events} events</p>
+                <p className="text-sm text-light">
+                  <span>{org.total_events}</span>
+                  <span className="ml-1 hidden sm:inline">events</span>
+                </p>
               </div>
             </div>
             <div className="text-sm text-light sm:text-base">{org.description}</div>
@@ -251,7 +258,7 @@ export default async function OrganizationUserView({
               memberships={memberships}
               events={events}
               id={user?.id ?? ""}
-              posts={postsData} // Pass postsData as posts prop
+              posts={postsData}
             />
           </div>
         </div>

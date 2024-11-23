@@ -138,10 +138,50 @@ const RequestsTable: React.FC<RequestsTableProps> = ({ requests }) => {
     );
   });
 
+  const mobileCard = (row: OrganizationRequest) => (
+    <div className="bg-charleston p-4 rounded-lg mb-4 border border-[#525252]">
+      <div className="space-y-2">
+        <div>
+          <span className="text-gray-400">Name:</span>{" "}
+          <span className="text-white">{`${row.first_name} ${row.last_name}`}</span>
+        </div>
+        <div>
+          <span className="text-gray-400">Email:</span>{" "}
+          <span className="text-white">{row.email}</span>
+        </div>
+        <div>
+          <span className="text-gray-400">Status:</span>{" "}
+          <select
+            value={row.status}
+            onChange={(e) => handleStatusChange(row.id, e.target.value)}
+            className={`mt-1 text-center cursor-pointer bg-charleston rounded-2xl border-2 px-4 py-1 text-xs w-full sm:w-auto
+            ${row.status === "pending"
+              ? "bg-yellow-600/25 text-yellow-300 border-yellow-500"
+              : row.status === "approved"
+                ? "bg-green-600/25 text-green-300 border-green-700"
+                : "bg-red-600/25 text-red-300 border-red-700"
+            }`}
+            style={{ backgroundColor: 'transparent' }} // Ensures background color is not affected
+          >
+            <option value="approved">Approved</option>
+            <option value="pending">Pending</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </div>
+        <div>
+          <span className="text-gray-400">Requested At:</span>{" "}
+          <span className="text-white">
+            {format(new Date(row.created_at), "MMM d, yyyy h:mma")}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="px-4 sm:px-6 lg:px-8">
-      <div className="sm:flex sm:items-center">
-        <div className="sm:flex-auto">
+      <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:space-y-0 sm:justify-between">
+        <div className="flex-1">
           <h1 className="text-base font-semibold leading-6 text-light">
             Organization Requests
           </h1>
@@ -149,18 +189,18 @@ const RequestsTable: React.FC<RequestsTableProps> = ({ requests }) => {
             A list of all the requests to join this organization.
           </p>
         </div>
-        <div className="sm:flex sm:items-center sm:justify-end">
+        <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
           <input
             type="text"
             placeholder="Search..."
             value={filterText}
             onChange={(e) => setFilterText(e.target.value)}
-            className="block rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+            className="w-full sm:w-auto rounded-md border border-[#525252] text-light bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary text-sm"
           />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="ml-2 block rounded-md border border-[#525252] bg-charleston px-3 py-2 text-white shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+            className="w-full sm:w-auto rounded-md border border-[#525252] bg-charleston px-3 py-2 text-white shadow-sm focus:border-primary focus:outline-none focus:ring-primary text-sm"
           >
             <option value="">All</option>
             <option value="pending">Pending</option>
@@ -169,39 +209,50 @@ const RequestsTable: React.FC<RequestsTableProps> = ({ requests }) => {
           </select>
           <button
             onClick={handleAcceptAll}
-            className="ml-2 rounded-md bg-primary px-3 py-2 text-sm text-white hover:bg-primarydark"
+            className="w-full sm:w-auto rounded-md bg-primary px-3 py-2 text-sm text-white hover:bg-primarydark"
           >
             Accept All
           </button>
         </div>
       </div>
+
       <div className="mt-8">
-        <DataTable
-          columns={columns}
-          data={filteredData}
-          pagination
-          highlightOnHover
-          customStyles={{
-            table: { style: { backgroundColor: "rgb(33, 33, 33)" } },
-            headRow: { style: { backgroundColor: "rgb(36, 36, 36)" } },
-            headCells: { style: { color: "rgb(255, 255, 255)" } },
-            rows: {
-              style: { backgroundColor: "rgb(33, 33, 33)", color: "rgb(255, 255, 255)" },
-              highlightOnHoverStyle: {
-                backgroundColor: "rgb(44, 44, 44)",
-                color: "rgb(255, 255, 255)",
-                transitionDuration: "0.15s",
-                transitionProperty: "background-color",
-                zIndex: 1,
-                position: "relative",
-                overflow: "visible",
+        {/* Mobile view */}
+        <div className="block sm:hidden">
+          {filteredData.map((row) => (
+            <div key={row.id}>{mobileCard(row)}</div>
+          ))}
+        </div>
+
+        {/* Desktop view */}
+        <div className="hidden sm:block">
+          <DataTable
+            columns={columns}
+            data={filteredData}
+            pagination
+            highlightOnHover
+            customStyles={{
+              table: { style: { backgroundColor: "rgb(33, 33, 33)" } },
+              headRow: { style: { backgroundColor: "rgb(36, 36, 36)" } },
+              headCells: { style: { color: "rgb(255, 255, 255)" } },
+              rows: {
+                style: { backgroundColor: "rgb(33, 33, 33)", color: "rgb(255, 255, 255)" },
+                highlightOnHoverStyle: {
+                  backgroundColor: "rgb(44, 44, 44)",
+                  color: "rgb(255, 255, 255)",
+                  transitionDuration: "0.15s",
+                  transitionProperty: "background-color",
+                  zIndex: 1,
+                  position: "relative",
+                  overflow: "visible",
+                },
               },
-            },
-            pagination: {
-              style: { backgroundColor: "rgb(33, 33, 33)", color: "rgb(255, 255, 255)" },
-            },
-          }}
-        />
+              pagination: {
+                style: { backgroundColor: "rgb(33, 33, 33)", color: "rgb(255, 255, 255)" },
+              },
+            }}
+          />
+        </div>
       </div>
     </div>
   );

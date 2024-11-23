@@ -52,7 +52,7 @@ export default async function MembershipsPage({ params }: { params: { slug: stri
 
   // Render the page with the fetched data
   return (
-    <div className="mt-8 min-w-[1265px]">
+    <div className="mt-8 ">
       {organization && (
         <MembershipTiersClient
           memberships={memberships ?? []}

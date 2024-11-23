@@ -270,68 +270,205 @@ export default function EventsTable({
     </div>
   );
 
+  // Add mobile card rendering function
+  const mobileCard = (row: Event) => (
+    <div className="bg-charleston p-4 rounded-lg mb-4 border border-[#525252] relative">
+      <div className="space-y-2">
+        <div>
+          <span className="text-gray-400">Title:</span>{" "}
+          <span className="text-white">{row.title}</span>
+        </div>
+        <div>
+          <span className="text-gray-400">Start Date & Time:</span>{" "}
+          <span className="text-white">
+            {new Date(row.starteventdatetime).toLocaleString('en-US', { 
+              month: 'short', 
+              day: 'numeric', 
+              year: 'numeric', 
+              hour: 'numeric', 
+              minute: 'numeric', 
+              hour12: true 
+            })}
+          </span>
+        </div>
+        <div>
+          <span className="text-gray-400">End Date & Time:</span>{" "}
+          <span className="text-white">
+            {new Date(row.endeventdatetime).toLocaleString('en-US', { 
+              month: 'short', 
+              day: 'numeric', 
+              year: 'numeric', 
+              hour: 'numeric', 
+              minute: 'numeric', 
+              hour12: true 
+            })}
+          </span>
+        </div>
+        <div>
+          <span className="text-gray-400">Location:</span>{" "}
+          <span className="text-white">{row.location}</span>
+        </div>
+        <div>
+          <span className="text-gray-400">Registration Fee:</span>{" "}
+          <span className="text-white">{row.registrationfee || "N/A"}</span>
+        </div>
+        <div>
+          <span className="text-gray-400">Capacity:</span>{" "}
+          <span className="text-white">{row.capacity || "N/A"}</span>
+        </div>
+        <div>
+          <span className="text-gray-400">Privacy:</span>{" "}
+          <span className="text-white">
+            {row.privacy && typeof row.privacy === "object" && row.privacy.type === "public" ? "Public" : "Private"}
+          </span>
+        </div>
+        <div>
+          <span className="text-gray-400">Status:</span>{" "}
+          <div className="relative inline-block">
+            <select
+              value={row.status}
+              onChange={(e) => handleStatusChange(row.eventid, e.target.value)}
+              className={`text-center bg-charleston cursor-pointer rounded-2xl border-2 px-4 py-1 text-xs ml-2
+                ${row.status === "Ongoing"
+                  ? "bg-yellow-600/25 text-yellow-300 border-yellow-500 focus:border-yellow-500 focus:outline-none focus:ring-yellow-500"
+                  : row.status === "Open"
+                    ? "bg-green-600/25 text-green-300 border-green-700 focus:border-green-700 focus:outline-none focus:ring-green-700"
+                    : "bg-red-600/25 text-red-300 border-red-700 focus:border-red-700 focus:outline-none focus:ring-red-700"
+                }`}
+            >
+              <option value="Open" className="bg-charleston text-green-300">Open</option>
+              <option value="Ongoing" className="bg-charleston text-yellow-300">Ongoing</option>
+              <option value="Closed" className="bg-charleston text-red-300">Closed</option>
+            </select>
+            <style jsx>{`
+              select {
+                appearance: none;
+                background-image: none;
+                outline: none;
+              }
+              select option {
+                background-color: #2a2a2a;
+                color: inherit;
+                text-align: center;
+                margin: 0;
+                padding: 8px;
+              }
+            `}</style>
+          </div>
+        </div>
+      </div>
+      <div className="absolute bottom-4 right-4">
+        <EventOptions selectedEvent={row} userId={userId} />
+      </div>
+    </div>
+  );
+
   return (
     <div className="px-4 sm:px-6 lg:px-8">
-      <div className="justify-between sm:flex sm:items-center">
-        <div className="sm:flex-auto">
+      <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:space-y-0 sm:justify-between">
+        <div className="flex-1">
           <h1 className="text-base font-semibold leading-6 text-light">Events</h1>
           <p className="mt-2 text-sm text-light">
             A list of all the events including their title, date and time, location,
             registration fee, capacity, and privacy.
           </p>
         </div>
+        <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
+          <input
+            type="text"
+            placeholder="Search..."
+            value={filterText}
+            onChange={(e) => setFilterText(e.target.value)}
+            className="w-full sm:w-auto rounded-md border border-[#525252] text-light bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary text-sm"
+          />
+          <select
+            value={selectedOrgId}
+            onChange={(e) => setSelectedOrgId(e.target.value)}
+            className="w-full sm:w-auto rounded-md border border-[#525252] bg-charleston px-3 py-2 text-white shadow-sm focus:border-primary focus:outline-none focus:ring-primary text-sm"
+          >
+            <option value="">All Organizations</option>
+            {organizations.map((org) => (
+              <option key={org.organizationid} value={org.organizationid}>
+                {org.name}
+              </option>
+            ))}
+          </select>
+          {canCreateEvents && (
+            <button
+              onClick={handleCreateEvent}
+              disabled={!selectedOrgId}
+              className={`w-full sm:w-auto rounded-md px-4 py-2 text-sm text-white ${
+                selectedOrgId
+                  ? "bg-primary hover:bg-primarydark"
+                  : "cursor-not-allowed bg-gray-500"
+              }`}
+            >
+              Create Event
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="mt-8 flow-root">
-        <DataTable
-          columns={columns as TableColumn<unknown>[]}
-          data={filteredData}
-          customStyles={{
-            header: {
-              style: {
-                backgroundColor: "rgb(36, 36, 36)",
-                color: "rgb(255, 255, 255)",
+      <div className="mt-8">
+        {/* Mobile view */}
+        <div className="block sm:hidden">
+          {filteredData.map((row, index) => (
+            <div key={index}>{mobileCard(row)}</div>
+          ))}
+        </div>
+
+        {/* Desktop view */}
+        <div className="hidden sm:block">
+          <DataTable
+            columns={columns}
+            data={filteredData}
+            pagination
+            customStyles={{
+              header: {
+                style: {
+                  backgroundColor: "rgb(36, 36, 36)",
+                  color: "rgb(255, 255, 255)",
+                },
               },
-            },
-            subHeader: {
-              style: {
-                backgroundColor: "none",
-                color: "rgb(255, 255, 255)",
-                padding: 0,
-                marginBottom: 10,
+              subHeader: {
+                style: {
+                  backgroundColor: "none",
+                  color: "rgb(255, 255, 255)",
+                  padding: 0,
+                  marginBottom: 10,
+                },
               },
-            },
-            rows: {
-              style: {
-                minHeight: "6vh",
-                backgroundColor: "rgb(33, 33, 33)",
-                color: "rgb(255, 255, 255)",
+              rows: {
+                style: {
+                  minHeight: "6vh",
+                  backgroundColor: "rgb(33, 33, 33)",
+                  color: "rgb(255, 255, 255)",
+                },
               },
-            },
-            headCells: {
-              style: {
-                backgroundColor: "rgb(36, 36, 36)",
-                color: "rgb(255, 255, 255)",
+              headCells: {
+                style: {
+                  backgroundColor: "rgb(36, 36, 36)",
+                  color: "rgb(255, 255, 255)",
+                },
               },
-            },
-            cells: {
-              style: {
-                backgroundColor: "rgb(33, 33, 33)",
-                color: "rgb(255, 255, 255)",
+              cells: {
+                style: {
+                  backgroundColor: "rgb(33, 33, 33)",
+                  color: "rgb(255, 255, 255)",
+                },
               },
-            },
-            pagination: {
-              style: {
-                backgroundColor: "rgb(33, 33, 33)",
-                color: "rgb(255, 255, 255)",
+              pagination: {
+                style: {
+                  backgroundColor: "rgb(33, 33, 33)",
+                  color: "rgb(255, 255, 255)",
+                },
               },
-            },
-          }}
-          pagination
-          subHeader
-          subHeaderComponent={subHeaderComponent}
-          highlightOnHover
-        />
+            }}
+            subHeader
+            subHeaderComponent={subHeaderComponent}
+            highlightOnHover
+          />
+        </div>
       </div>
     </div>
   );

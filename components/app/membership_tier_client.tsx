@@ -120,15 +120,16 @@ export default function MembershipTiersClient({
         membership={selectedMembership}
         onSubmit={handleSubmitModal}
       />
-
-      <MembershipTiers
-        memberships={memberships}
-        onCreateClick={handleCreateClick}
-        organizationid={organization.organizationid}
-        onDelete={handleDeleteMembership}
-        onEdit={handleEditMembership}
-        editable={true}
-      />
+      <div className="px-4 sm:px-6 lg:px-8">
+        <MembershipTiers
+          memberships={memberships}
+          onCreateClick={handleCreateClick}
+          organizationid={organization.organizationid}
+          onDelete={handleDeleteMembership}
+          onEdit={handleEditMembership}
+          editable={true}
+        />
+      </div>
     </>
   );
 }

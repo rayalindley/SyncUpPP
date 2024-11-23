@@ -161,6 +161,53 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({
     />
   );
 
+  const mobileCard = (row: TransactionTableData) => (
+    <div 
+      className="bg-charleston p-4 rounded-lg mb-4 border border-[#525252] cursor-pointer hover:bg-[#2c2c2c]"
+      onClick={() => handleRowClick(row)}
+    >
+      <div className="space-y-2">
+        <div>
+          <span className="text-gray-400">Invoice ID:</span>{" "}
+          <span className="text-white">{row.invoiceId}</span>
+        </div>
+        <div>
+          <span className="text-gray-400">Amount:</span>{" "}
+          <span className="text-white">${row.amount.toFixed(2)}</span>
+        </div>
+        <div>
+          <span className="text-gray-400">Type:</span>{" "}
+          <span className="text-white capitalize">{row.type}</span>
+        </div>
+        <div>
+          <span className="text-gray-400">Status:</span>{" "}
+          <span
+            className={`rounded-full px-2 py-1 text-xs font-medium ${
+              row.status === "COMPLETED"
+                ? "bg-green-800 text-green-200"
+                : "bg-yellow-800 text-yellow-200"
+            }`}
+          >
+            {row.status}
+          </span>
+        </div>
+        <div>
+          <span className="text-gray-400">Date:</span>{" "}
+          <span className="text-white">
+            {new Date(row.created_at).toLocaleString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+              hour: "numeric",
+              minute: "numeric",
+              hour12: true,
+            })}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+
   if (!isMounted) {
     return <Preloader />;
   }
@@ -179,61 +226,83 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({
         </div>
       </div>
       <div className="mt-8">
-        {tableData.length > 0 ? (
-          <DataTable
-            columns={columns as TableColumn<unknown>[]}
-            data={filteredData}
-            pagination
-            highlightOnHover
-            subHeader
-            subHeaderComponent={subHeaderComponent}
-            customStyles={{
-              header: {
-                style: {
-                  backgroundColor: "rgb(36, 36, 36)",
-                  color: "rgb(255, 255, 255)",
-                },
-              },
-              subHeader: {
-                style: {
-                  backgroundColor: "none",
-                  color: "rgb(255, 255, 255)",
-                  padding: 0,
-                  marginBottom: 10,
-                },
-              },
-              rows: {
-                style: {
-                  minHeight: "6vh",
-                  backgroundColor: "rgb(33, 33, 33)",
-                  color: "rgb(255, 255, 255)",
-                },
-              },
-              headCells: {
-                style: {
-                  backgroundColor: "rgb(36, 36, 36)",
-                  color: "rgb(255, 255, 255)",
-                },
-              },
-              cells: {
-                style: {
-                  backgroundColor: "rgb(33, 33, 33)",
-                  color: "rgb(255, 255, 255)",
-                },
-              },
-              pagination: {
-                style: {
-                  backgroundColor: "rgb(33, 33, 33)",
-                  color: "rgb(255, 255, 255)",
-                },
-              },
-            }}
-            onRowClicked={(row, e) => handleRowClick(row as TransactionTableData)}
-            pointerOnHover
-            noDataComponent={
-              <div className="p-4 text-center text-light">No transactions found</div>
-            }
+        <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4 mb-4">
+          <input
+            type="text"
+            placeholder="Search transactions..."
+            value={filterText}
+            onChange={(e) => setFilterText(e.target.value)}
+            className="w-full sm:w-auto rounded-md border border-[#525252] bg-charleston px-3 py-2 text-light shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
           />
+        </div>
+
+        {tableData.length > 0 ? (
+          <>
+            {/* Mobile view */}
+            <div className="block sm:hidden">
+              {filteredData.map((row, index) => (
+                <div key={index}>{mobileCard(row)}</div>
+              ))}
+            </div>
+
+            {/* Desktop view */}
+            <div className="hidden sm:block">
+              <DataTable
+                columns={columns as TableColumn<unknown>[]}
+                data={filteredData}
+                pagination
+                highlightOnHover
+                subHeader
+                subHeaderComponent={subHeaderComponent}
+                customStyles={{
+                  header: {
+                    style: {
+                      backgroundColor: "rgb(36, 36, 36)",
+                      color: "rgb(255, 255, 255)",
+                    },
+                  },
+                  subHeader: {
+                    style: {
+                      backgroundColor: "none",
+                      color: "rgb(255, 255, 255)",
+                      padding: 0,
+                      marginBottom: 10,
+                    },
+                  },
+                  rows: {
+                    style: {
+                      minHeight: "6vh",
+                      backgroundColor: "rgb(33, 33, 33)",
+                      color: "rgb(255, 255, 255)",
+                    },
+                  },
+                  headCells: {
+                    style: {
+                      backgroundColor: "rgb(36, 36, 36)",
+                      color: "rgb(255, 255, 255)",
+                    },
+                  },
+                  cells: {
+                    style: {
+                      backgroundColor: "rgb(33, 33, 33)",
+                      color: "rgb(255, 255, 255)",
+                    },
+                  },
+                  pagination: {
+                    style: {
+                      backgroundColor: "rgb(33, 33, 33)",
+                      color: "rgb(255, 255, 255)",
+                    },
+                  },
+                }}
+                onRowClicked={(row) => handleRowClick(row as TransactionTableData)}
+                pointerOnHover
+                noDataComponent={
+                  <div className="p-4 text-center text-light">No transactions found</div>
+                }
+              />
+            </div>
+          </>
         ) : (
           <div className="p-4 text-center text-light">No transactions found</div>
         )}

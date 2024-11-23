@@ -16,8 +16,8 @@ export default function SignIn({ searchParams }: { searchParams: any }) {
           </h2>
         </div>
 
-        <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-[480px]">
-          <div className="bg-charleston px-6 py-12 shadow sm:rounded-lg sm:px-12">
+        <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-[480px] px-6 ">
+          <div className="bg-charleston px-6 py-12 shadow rounded-lg sm:px-12">
             {(searchParams?.error || searchParams?.success) && (
               <div
                 className={`rounded-md ${searchParams.error ? "bg-red-50" : "bg-green-50"} p-4`}
@@ -56,7 +56,9 @@ export default function SignIn({ searchParams }: { searchParams: any }) {
                 >
                   Password
                 </label>
-                <div className="mt-2 relative"> {/* Add relative positioning */}
+                <div className="relative mt-2">
+                  {" "}
+                  {/* Add relative positioning */}
                   <input
                     id="password"
                     name="password"
@@ -74,7 +76,8 @@ export default function SignIn({ searchParams }: { searchParams: any }) {
                       <EyeSlashIcon className="h-5 w-5" aria-hidden="true" /> // Use EyeSlashIcon for hide
                     ) : (
                       <EyeIcon className="h-5 w-5" aria-hidden="true" /> // Use EyeIcon for show
-                    )} {/* Eye icon for password visibility */}
+                    )}{" "}
+                    {/* Eye icon for password visibility */}
                   </button>
                 </div>
               </div>

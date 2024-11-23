@@ -172,9 +172,9 @@ export default function OrganizationUserView() {
             </div>
 
             {/* Search Input with Sort and Filters */}
-            <div className="mx-auto mt-6 flex max-w-3xl justify-between">
+            <div className="mx-auto mt-6 flex max-w-3xl flex-col space-y-4 px-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 sm:px-0">
               {/* Search Bar */}
-              <div className="relative flex-grow">
+              <div className="relative w-full sm:max-w-md">
                 <input
                   type="text"
                   placeholder="Search organizations..."
@@ -191,10 +191,10 @@ export default function OrganizationUserView() {
               </div>
 
               {/* Sort and Filters */}
-              <div className="flex items-center space-x-4 pl-8">
+              <div className="flex flex-wrap items-center gap-4 sm:pl-4">
                 {/* Sort Menu */}
                 <Menu as="div" className="relative">
-                  <Menu.Button className="flex items-center text-sm font-medium text-light">
+                  <Menu.Button className="flex items-center whitespace-nowrap text-sm font-medium text-light">
                     Sort by
                     <ChevronDownIcon className="ml-1 h-5 w-5" />
                   </Menu.Button>
@@ -222,7 +222,7 @@ export default function OrganizationUserView() {
 
                 {/* Organization Type Filter */}
                 <Menu as="div" className="relative">
-                  <Menu.Button className="flex items-center text-sm font-medium text-light">
+                  <Menu.Button className="flex items-center whitespace-nowrap text-sm font-medium text-light">
                     Type
                     <ChevronDownIcon className="ml-1 h-5 w-5" />
                   </Menu.Button>
@@ -250,7 +250,7 @@ export default function OrganizationUserView() {
 
                 {/* Industry Filter */}
                 <Menu as="div" className="relative">
-                  <Menu.Button className="flex items-center text-sm font-medium text-light">
+                  <Menu.Button className="flex items-center whitespace-nowrap text-sm font-medium text-light">
                     Industry
                     <ChevronDownIcon className="ml-1 h-5 w-5" />
                   </Menu.Button>

@@ -345,19 +345,19 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
   };
 
   return (
-    <div>
-      <div id="pricing" className="pb-16">
+    <div className="w-full max-w-[1400px] mx-auto">
+      <div id="pricing" className="pb-4 sm:pb-8">
         {userid && (
-          <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="px-2 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-4xl text-center">
-              <p className="mt-2 text-2xl font-bold tracking-tight text-light sm:text-2xl">
+              <p className="mt-2 text-lg sm:text-2xl font-bold tracking-tight text-light">
                 Choose Your Membership
               </p>
             </div>
           </div>
         )}
 
-        <div className="isolate mx-8 mt-8 flex flex-wrap justify-center gap-x-8 gap-y-8 sm:mt-10 lg:max-w-none">
+        <div className="mt-4 sm:mt-8 grid grid-cols-1 gap-4 sm:gap-6 px-2 sm:px-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {memberships.length > 0 ? (
             memberships.map((membership, index) => (
               <MembershipCard
@@ -377,16 +377,16 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
               />
             ))
           ) : (
-            <p className="w-full text-center text-white">
+            <p className="col-span-full text-center text-white">
               No memberships available. Create one to get started!
             </p>
           )}
           {editable && (
-            <div className="mr-16 w-full sm:w-64">
+            <div className="w-full h-full min-h-[300px] sm:min-h-[400px]">
               <PlusCircleIcon
                 className={classNames(
-                  "size-80 min-w-80 rounded-3xl bg-raisinblack p-8 text-charleston text-opacity-50 outline-dashed outline-2 outline-primarydark hover:bg-eerieblack hover:text-opacity-100 focus-visible:outline-primary xl:p-10",
-                  "h-full"
+                  "h-full w-full rounded-3xl bg-raisinblack p-4 sm:p-6 lg:p-8 text-charleston text-opacity-50 outline-dashed outline-2 outline-primarydark hover:bg-eerieblack hover:text-opacity-100 focus-visible:outline-primary",
+                  "transition-all duration-200 ease-in-out hover:scale-105"
                 )}
                 onClick={onCreateClick}
                 strokeWidth={2}

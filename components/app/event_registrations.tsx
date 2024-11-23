@@ -250,29 +250,36 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
             onChange={(e) =>
               handleStatusChange(row.eventregistrationid, e.target.value)
             }
-            className={`text-center bg-charleston cursor-pointer rounded-2xl border-2 px-4 py-1 text-xs focus:border-primary focus:outline-none focus:ring-primary
+            className={`text-center bg-charleston cursor-pointer rounded-2xl border-2 px-4 py-1 text-xs
               ${row.status === "pending"
-                ? "bg-yellow-600/25 text-yellow-300 border-yellow-500 focus:border-yellow-500 focus:outline-none focus:ring-yellow-500"
-                : row.status === "registered"
-                ? "bg-green-600/25 text-green-300 border-green-700 focus:border-green-700 focus:outline-none focus:ring-green-700"
-                : ""
-            }`}
+                ? "border-yellow-500 text-yellow-300"
+                : "border-green-700 text-green-300"
+              }`}
           >
             <option value="registered">Registered</option>
             <option value="pending">Pending</option>
           </select>
           <style jsx>{`
                 select {
-                  appearance: none; /* Removes default styling including arrow */
-                  background-image: none; /* Ensures no background images like arrow */
-                  outline: none; /* Removes the blue outline */
+                  appearance: none !important;
+                  -webkit-appearance: none !important;
+                  -moz-appearance: none !important;
+                  background-image: none !important;
+                  outline: none;
+                  padding-right: 4px !important;
+                }
+
+                /* Remove dropdown arrow in IE/Edge */
+                select::-ms-expand {
+                  display: none;
                 }
 
                 select option {
-                  background-color: #2a2a2a; /* Option background color */
-                  color: #ffffff; /* Option text color */
-                  text-align: center; /* Ensures text alignment inside the option */
-                  margin: 0; /* Removes any default margin */
+                  background-color: #2a2a2a !important;
+                  color: #ffffff !important;
+                  text-align: center;
+                  margin: 0;
+                  padding: 8px;
                 }
         `}</style>
         </div>
@@ -289,15 +296,14 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
             onChange={(e) =>
               handleAttendanceChange(row.eventregistrationid, e.target.value)
             }
-            className={`text-center bg-charleston cursor-pointer rounded-2xl border-2 px-4 py-1  text-xs 
-              ${
-                row.attendance === "present"
-                  ? "bg-green-600/25 text-green-300 border-green-700 focus:border-green-700 focus:outline-none focus:ring-green-700"
-                  : row.attendance === "absent"
-                  ? "bg-red-600/25 text-red-300 border-red-700  focus:border-red-700 focus:outline-none focus:ring-red-700"
-                  : row.attendance === "late"
-                  ? "bg-yellow-600/25 text-yellow-300 border-yellow-500 focus:border-yellow-500 focus:outline-none focus:ring-yellow-500"
-                  : "text-light border-[#525252] focus:border-[#525252] focus:outline-none focus:ring-[#525252]" // Default for "Set"
+            className={`text-center bg-charleston cursor-pointer rounded-2xl border-2 px-4 py-1 text-xs
+              ${row.attendance === "present"
+                ? "border-green-700 text-green-300"
+                : row.attendance === "absent"
+                ? "border-red-700 text-red-300"
+                : row.attendance === "late"
+                ? "border-yellow-500 text-yellow-300"
+                : "border-[#525252] text-light"
               }`}
           >
             <option value="Set">Set</option>
@@ -307,16 +313,25 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
           </select>
             <style jsx>{`
                 select {
-                  appearance: none; /* Removes default styling including arrow */
-                  background-image: none; /* Ensures no background images like arrow */
-                  outline: none; /* Removes the blue outline */
+                  appearance: none !important;
+                  -webkit-appearance: none !important;
+                  -moz-appearance: none !important;
+                  background-image: none !important;
+                  outline: none;
+                  padding-right: 4px !important;
+                }
+
+                /* Remove dropdown arrow in IE/Edge */
+                select::-ms-expand {
+                  display: none;
                 }
 
                 select option {
-                  background-color: #2a2a2a; /* Option background color */
-                  color: #ffffff; /* Option text color */
-                  text-align: center; /* Ensures text alignment inside the option */
-                  margin: 0; /* Removes any default margin */
+                  background-color: #2a2a2a !important;
+                  color: #ffffff !important;
+                  text-align: center;
+                  margin: 0;
+                  padding: 8px;
                 }
             `}</style>
         </div>
@@ -376,6 +391,76 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
     console.error("QR Scan Error:", error);
   };
 
+  // Add mobileCard rendering function after the columns definition
+  const mobileCard = (row: Registration) => (
+    <div className="bg-charleston p-4 rounded-lg mb-4 border border-[#525252] relative">
+      <div className="space-y-2">
+        <div>
+          <span className="text-gray-400">Name:</span>{" "}
+          <span className="text-white">{`${row.first_name} ${row.last_name}`}</span>
+        </div>
+        <div>
+          <span className="text-gray-400">Email:</span>{" "}
+          <span className="text-white">{row.email}</span>
+        </div>
+        <div>
+          <span className="text-gray-400">Event Name:</span>{" "}
+          <span className="text-white">{row.event_name}</span>
+        </div>
+        <div>
+          <span className="text-gray-400">Organization:</span>{" "}
+          <span className="text-white">{row.organization_name}</span>
+        </div>
+        <div>
+          <span className="text-gray-400">Registration Date:</span>{" "}
+          <span className="text-white">
+            {format(new Date(row.registrationdate), "MMM d, yyyy h:mma")}
+          </span>
+        </div>
+        <div>
+          <span className="text-gray-400">Status:</span>{" "}
+          <div className="relative inline-block">
+            <select
+              value={row.status}
+              onChange={(e) => handleStatusChange(row.eventregistrationid, e.target.value)}
+              className={`text-center bg-charleston cursor-pointer rounded-2xl border-2 px-4 py-1 text-xs ml-2
+                ${row.status === "pending"
+                  ? "border-yellow-500 text-yellow-300"
+                  : "border-green-700 text-green-300"
+                }`}
+            >
+              <option value="registered">Registered</option>
+              <option value="pending">Pending</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <span className="text-gray-400">Attendance:</span>{" "}
+          <div className="relative inline-block">
+            <select
+              value={row.attendance || "Set"}
+              onChange={(e) => handleAttendanceChange(row.eventregistrationid, e.target.value)}
+              className={`text-center bg-charleston cursor-pointer rounded-2xl border-2 px-4 py-1 text-xs ml-2
+                ${row.attendance === "present"
+                  ? "border-green-700 text-green-300"
+                  : row.attendance === "absent"
+                  ? "border-red-700 text-red-300"
+                  : row.attendance === "late"
+                  ? "border-yellow-500 text-yellow-300"
+                  : "border-[#525252] text-light"
+                }`}
+            >
+              <option value="Set">Set</option>
+              <option value="present">Present</option>
+              <option value="absent">Absent</option>
+              <option value="late">Late</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="px-4 sm:px-6 lg:px-8">
       <div className="sm:flex sm:items-center">
@@ -388,38 +473,44 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
           </p>
         </div>
       </div>
-      <div className="mt-10 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        {/* Search Bar on the Left */}
-        <div className="flex items-center mb-4 sm:mb-0">
-          <input
-            type="text"
-            placeholder="Search..."
-            value={filterText}
-            onChange={(e) => setFilterText(e.target.value)}
-            className="block rounded-md border border-[#525252] bg-charleston px-3 py-2 text-light shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
-          />
-        </div>
-        {/* Filters and Export Button on the Right */}
-        <div className="flex items-center space-x-2">
-          {/* Scan QR Button */}
-          <button
-            onClick={() => setShowQrScanner(true)}
-            className="block rounded-md bg-primary text-white px-3 py-2 text-sm shadow-sm hover:bg-primarydark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50"
-          >
-            Scan QR
-          </button>
-          {eventFilter && (
+      <div className="mt-10 flex flex-col space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+          {/* Search Bar */}
+          <div className="w-full sm:w-auto">
+            <input
+              type="text"
+              placeholder="Search..."
+              value={filterText}
+              onChange={(e) => setFilterText(e.target.value)}
+              className="w-full sm:w-auto rounded-md border border-[#525252] bg-charleston px-3 py-2 text-light shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+            />
+          </div>
+          
+          {/* Filters and Buttons */}
+          <div className="flex flex-wrap gap-2">
             <button
-              onClick={exportToCSV}
-              className="block rounded-md bg-primary text-white px-3 py-2 text-sm shadow-sm hover:bg-primarydark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50"
+              onClick={() => setShowQrScanner(true)}
+              className="rounded-md bg-primary text-white px-3 py-2 text-sm shadow-sm hover:bg-primarydark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50"
             >
-              Export
+              Scan QR
             </button>
-          )}
+            {eventFilter && (
+              <button
+                onClick={exportToCSV}
+                className="rounded-md bg-primary text-white px-3 py-2 text-sm shadow-sm hover:bg-primarydark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50"
+              >
+                Export
+              </button>
+            )}
+          </div>
+        </div>
+        
+        {/* Additional Filters Row */}
+        <div className="flex flex-wrap gap-2">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="block rounded-md border border-[#525252] bg-charleston pl-3 pr-8 py-2 text-white shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+            className="w-full sm:w-auto rounded-md border border-[#525252] bg-charleston px-3 py-2 text-white shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
           >
             <option value="">All Status</option>
             <option value="pending">Pending</option>
@@ -428,8 +519,7 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
           <select
             value={eventFilter}
             onChange={(e) => setEventFilter(e.target.value)}
-            className="truncate block rounded-md border border-[#525252] bg-charleston px-3 py-2 text-white shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
-            style={{ maxWidth: '200px' }}
+            className="w-full sm:w-auto truncate rounded-md border border-[#525252] bg-charleston px-3 py-2 text-white shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
           >
             <option value="">All Events</option>
             {uniqueEvents.map((event) => (
@@ -441,7 +531,7 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
           <select
             value={attendanceFilter}
             onChange={(e) => setAttendanceFilter(e.target.value)}
-            className="block rounded-md border border-[#525252] bg-charleston pl-3 pr-8 py-2 text-white shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+            className="w-full sm:w-auto rounded-md border border-[#525252] bg-charleston px-3 py-2 text-white shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
           >
             <option value="">All Attendance</option>
             <option value="present">Present</option>
@@ -450,33 +540,44 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
           </select>
         </div>
       </div>
-      <div className="mt-4">
-        <DataTable
-          columns={columns as TableColumn<unknown>[]}
-          data={filteredData}
-          pagination
-          highlightOnHover
-          customStyles={{
-            table: { style: { backgroundColor: "rgb(33, 33, 33)" } },
-            headRow: { style: { backgroundColor: "rgb(36, 36, 36)" } },
-            headCells: { style: { color: "rgb(255, 255, 255)" } },
-            rows: {
-              style: { backgroundColor: "rgb(33, 33, 33)", color: "rgb(255, 255, 255)" },
-              highlightOnHoverStyle: {
-                backgroundColor: "rgb(44, 44, 44)",
-                color: "rgb(255, 255, 255)",
-                transitionDuration: "0.15s",
-                transitionProperty: "background-color",
-                zIndex: 1,
-                position: "relative",
-                overflow: "visible",
+
+      <div className="mt-8">
+        {/* Mobile view */}
+        <div className="block sm:hidden">
+          {filteredData.map((row, index) => (
+            <div key={index}>{mobileCard(row)}</div>
+          ))}
+        </div>
+
+        {/* Desktop view */}
+        <div className="hidden sm:block">
+          <DataTable
+            columns={columns}
+            data={filteredData}
+            pagination
+            highlightOnHover
+            customStyles={{
+              table: { style: { backgroundColor: "rgb(33, 33, 33)" } },
+              headRow: { style: { backgroundColor: "rgb(36, 36, 36)" } },
+              headCells: { style: { color: "rgb(255, 255, 255)" } },
+              rows: {
+                style: { backgroundColor: "rgb(33, 33, 33)", color: "rgb(255, 255, 255)" },
+                highlightOnHoverStyle: {
+                  backgroundColor: "rgb(44, 44, 44)",
+                  color: "rgb(255, 255, 255)",
+                  transitionDuration: "0.15s",
+                  transitionProperty: "background-color",
+                  zIndex: 1,
+                  position: "relative",
+                  overflow: "visible",
+                },
               },
-            },
-            pagination: {
-              style: { backgroundColor: "rgb(33, 33, 33)", color: "rgb(255, 255, 255)" },
-            },
-          }}
-        />
+              pagination: {
+                style: { backgroundColor: "rgb(33, 33, 33)", color: "rgb(255, 255, 255)" },
+              },
+            }}
+          />
+        </div>
       </div>
 
       {/* QR Scanner Modal */}

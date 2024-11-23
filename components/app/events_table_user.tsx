@@ -217,24 +217,95 @@ export default function EventsTableUser({
     [debouncedFilterText, tableData]
   );
 
-  const subHeaderComponent = (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full">
-      <input
-        type="text"
-        placeholder="Search..."
-        value={filterText}
-        onChange={(e) => setFilterText(e.target.value)}
-        className="block rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
-      />
-      <div className="mt-4 sm:mt-0 flex space-x-2">
-        {canCreateEvents && (
-          <button
-            onClick={handleCreateEvent}
-            className="rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-primarydark"
-          >
-            Create Event
-          </button>
-        )}
+  // Add mobile card rendering function
+  const mobileCard = (row: Event) => (
+    <div className="bg-charleston p-4 rounded-lg mb-4 border border-[#525252] relative">
+      <div className="space-y-2">
+        <div>
+          <span className="text-gray-400">Title:</span>{" "}
+          <span className="text-white">{row.title}</span>
+        </div>
+        <div>
+          <span className="text-gray-400">Start Date & Time:</span>{" "}
+          <span className="text-white">
+            {new Date(row.starteventdatetime).toLocaleString('en-US', { 
+              month: 'short', 
+              day: 'numeric', 
+              year: 'numeric', 
+              hour: 'numeric', 
+              minute: 'numeric', 
+              hour12: true 
+            })}
+          </span>
+        </div>
+        <div>
+          <span className="text-gray-400">End Date & Time:</span>{" "}
+          <span className="text-white">
+            {new Date(row.endeventdatetime).toLocaleString('en-US', { 
+              month: 'short', 
+              day: 'numeric', 
+              year: 'numeric', 
+              hour: 'numeric', 
+              minute: 'numeric', 
+              hour12: true 
+            })}
+          </span>
+        </div>
+        <div>
+          <span className="text-gray-400">Location:</span>{" "}
+          <span className="text-white">{row.location}</span>
+        </div>
+        <div>
+          <span className="text-gray-400">Registration Fee:</span>{" "}
+          <span className="text-white">{row.registrationfee || "N/A"}</span>
+        </div>
+        <div>
+          <span className="text-gray-400">Capacity:</span>{" "}
+          <span className="text-white">{row.capacity || "N/A"}</span>
+        </div>
+        <div>
+          <span className="text-gray-400">Privacy:</span>{" "}
+          <span className="text-white">
+            {row.privacy && typeof row.privacy === "object" && row.privacy.type === "public" ? "Public" : "Private"}
+          </span>
+        </div>
+        <div>
+          <span className="text-gray-400">Status:</span>{" "}
+          <div className="relative inline-block">
+            <select
+              value={row.status}
+              onChange={(e) => handleStatusChange(row.eventid, e.target.value)}
+              className={`text-center bg-charleston cursor-pointer rounded-2xl border-2 px-4 py-1 text-xs ml-2
+                ${row.status === "Ongoing"
+                  ? "bg-yellow-600/25 text-yellow-300 border-yellow-500 focus:border-yellow-500 focus:outline-none focus:ring-yellow-500"
+                  : row.status === "Open"
+                    ? "bg-green-600/25 text-green-300 border-green-700 focus:border-green-700 focus:outline-none focus:ring-green-700"
+                    : "bg-red-600/25 text-red-300 border-red-700 focus:border-red-700 focus:outline-none focus:ring-red-700"
+                }`}
+            >
+              <option value="Open">Open</option>
+              <option value="Ongoing">Ongoing</option>
+              <option value="Closed">Closed</option>
+            </select>
+            <style jsx>{`
+              select {
+                appearance: none; /* Removes default styling including arrow */
+                background-image: none; /* Ensures no background images like arrow */
+                outline: none; /* Removes the blue outline */
+              }
+
+              select option {
+                background-color: #2a2a2a; /* Option background color */
+                color: #ffffff; /* Option text color */
+                text-align: center; /* Ensures text alignment inside the option */
+                margin: 0; /* Removes any default margin */
+              }
+            `}</style>
+          </div>
+        </div>
+      </div>
+      <div className="absolute bottom-4 right-4">
+        <EventOptions selectedEvent={row} userId={userId} />
       </div>
     </div>
   );
@@ -244,68 +315,92 @@ export default function EventsTableUser({
   }
 
   return (
-    <div className="py-4 sm:px-6 lg:px-8">
-      <div className="justify-between sm:flex sm:items-center">
-        <div className="sm:flex-auto">
+    <div className="py-4 px-4 sm:px-6 lg:px-8">
+      <div className="flex flex-col space-y-4">
+        <div>
           <h1 className="text-base font-semibold leading-6 text-light">Events</h1>
           <p className="mt-2 text-sm text-light">
             A list of all the events including their title, date and time, location,
             registration fee, capacity, and privacy.
           </p>
         </div>
-      </div>
 
-      <div className="mt-8 flow-root">
-        <DataTable
-          columns={columns as TableColumn<unknown>[]}
-          data={filteredData}
-          defaultSortFieldId="title"
-          customStyles={{
-            header: {
-              style: {
-                backgroundColor: "rgb(36, 36, 36)",
-                color: "rgb(255, 255, 255)",
+        {/* Search and Create Event Section */}
+        <div className="flex flex-col space-y-4">
+          <input
+            type="text"
+            placeholder="Search..."
+            value={filterText}
+            onChange={(e) => setFilterText(e.target.value)}
+            className="w-full rounded-md border border-[#525252] bg-charleston px-3 py-2 text-light shadow-sm focus:border-primary focus:outline-none focus:ring-primary text-sm"
+          />
+          {canCreateEvents && (
+            <button
+              onClick={handleCreateEvent}
+              className="w-full sm:w-auto rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-primarydark"
+            >
+              Create Event
+            </button>
+          )}
+        </div>
+
+        {/* Mobile View */}
+        <div className="block sm:hidden">
+          {filteredData.map((row, index) => (
+            <div key={index}>{mobileCard(row)}</div>
+          ))}
+        </div>
+
+        {/* Desktop View */}
+        <div className="hidden sm:block">
+          <DataTable
+            columns={columns}
+            data={filteredData}
+            pagination
+            customStyles={{
+              header: {
+                style: {
+                  backgroundColor: "rgb(36, 36, 36)",
+                  color: "rgb(255, 255, 255)",
+                },
               },
-            },
-            subHeader: {
-              style: {
-                backgroundColor: "none",
-                color: "rgb(255, 255, 255)",
-                padding: 0,
-                marginBottom: 10,
+              subHeader: {
+                style: {
+                  backgroundColor: "none",
+                  color: "rgb(255, 255, 255)",
+                  padding: 0,
+                  marginBottom: 10,
+                },
               },
-            },
-            rows: {
-              style: {
-                minHeight: "6vh",
-                backgroundColor: "rgb(33, 33, 33)",
-                color: "rgb(255, 255, 255)",
+              rows: {
+                style: {
+                  minHeight: "6vh",
+                  backgroundColor: "rgb(33, 33, 33)",
+                  color: "rgb(255, 255, 255)",
+                },
               },
-            },
-            headCells: {
-              style: {
-                backgroundColor: "rgb(36, 36, 36)",
-                color: "rgb(255, 255, 255)",
+              headCells: {
+                style: {
+                  backgroundColor: "rgb(36, 36, 36)",
+                  color: "rgb(255, 255, 255)",
+                },
               },
-            },
-            cells: {
-              style: {
-                backgroundColor: "rgb(33, 33, 33)",
-                color: "rgb(255, 255, 255)",
+              cells: {
+                style: {
+                  backgroundColor: "rgb(33, 33, 33)",
+                  color: "rgb(255, 255, 255)",
+                },
               },
-            },
-            pagination: {
-              style: {
-                backgroundColor: "rgb(33, 33, 33)",
-                color: "rgb(255, 255, 255)",
+              pagination: {
+                style: {
+                  backgroundColor: "rgb(33, 33, 33)",
+                  color: "rgb(255, 255, 255)",
+                },
               },
-            },
-          }}
-          pagination
-          subHeader
-          highlightOnHover
-          subHeaderComponent={subHeaderComponent}
-        />
+            }}
+            highlightOnHover
+          />
+        </div>
       </div>
     </div>
   );

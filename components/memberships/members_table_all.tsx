@@ -230,22 +230,81 @@ const MembersTableAll: React.FC<MembersTableAllProps> = ({
     });
   }, [debouncedFilterText, selectedOrganization, tableData]);
 
+  // Custom mobile-friendly card component
+  const MobileCard = ({ data }: { data: MemberTableData }) => (
+    <div 
+      className="bg-charleston p-4 rounded-lg mb-4 cursor-pointer hover:bg-opacity-80 transition-colors"
+      onClick={() => handleRowClick(data)}
+    >
+      <div className="space-y-2">
+        <div className="flex justify-between items-center">
+          <div className="font-semibold text-light">
+            {data.user.first_name} {data.user.last_name}
+          </div>
+          <span
+            className={`w-20 text-center rounded-2xl border-2 px-2 py-1 text-xs ${
+              data.status === 'Active' 
+                ? 'bg-green-600/25 text-green-300 border-green-700' 
+                : 'bg-red-600/25 text-red-300 border-red-700'
+            }`}
+          >
+            {data.status}
+          </span>
+        </div>
+        
+        <div className="text-sm text-gray-300">
+          <div className="flex justify-between items-center mb-1">
+            <span>Role:</span>
+            <span
+              className={`border-2 rounded-2xl px-4 py-1 text-xs`}
+              style={{
+                borderColor: data.role.color,
+                backgroundColor: `${data.role.color}33`,
+                color: data.role.color,
+              }}
+            >
+              {data.role.role}
+            </span>
+          </div>
+          
+          <div className="flex justify-between items-center mb-1">
+            <span>Organization:</span>
+            <span>{organizations.find((org) => org.organizationid === data.organizationid)?.name || "N/A"}</span>
+          </div>
+          
+          <div className="flex justify-between items-center mb-1">
+            <span>Join Date:</span>
+            <span>{new Date(data.joindate).toLocaleString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })}</span>
+          </div>
+          
+          <div className="flex justify-between items-center">
+            <span>Membership:</span>
+            <span>{data.membership.name ?? "N/A"}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Updated subHeaderComponent with better mobile styling
   const subHeaderComponent = (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full">
-      {/* Search Bar */}
+    <div className="flex flex-col gap-4 w-full md:flex-row md:items-center md:justify-between">
       <input
         type="text"
         placeholder="Search by name..."
         value={filterText}
         onChange={(e) => setFilterText(e.target.value)}
-        className="block rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm mb-2 sm:mb-0"
+        className="w-full md:w-64 rounded-md border border-[#525252] text-light bg-charleston px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-primary"
       />
 
-      {/* Organization Dropdown */}
       <select
         value={selectedOrganization}
         onChange={(e) => setSelectedOrganization(e.target.value)}
-        className="block rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+        className="w-full md:w-64 rounded-md border border-[#525252] bg-charleston px-3 py-2 text-sm shadow-sm text-light focus:border-primary focus:outline-none focus:ring-primary"
       >
         <option value="All">All Organizations</option>
         {organizations.map((org) => (
@@ -350,58 +409,70 @@ const MembersTableAll: React.FC<MembersTableAllProps> = ({
         </div>
       </div>
       <div className="mt-8">
+        {subHeaderComponent}
+        
         {tableData.length > 0 ? (
-          <DataTable
-            columns={columns}
-            data={filteredData}
-            pagination
-            highlightOnHover
-            subHeader
-            subHeaderComponent={subHeaderComponent}
-            customStyles={{
-              header: {
-                style: {
-                  backgroundColor: "rgb(36, 36, 36)",
-                  color: "rgb(255, 255, 255)",
-                },
-              },
-              subHeader: {
-                style: {
-                  backgroundColor: "none",
-                  color: "rgb(255, 255, 255)",
-                  padding: 0,
-                  marginBottom: 10,
-                },
-              },
-              rows: {
-                style: {
-                  minHeight: "6vh",
-                  backgroundColor: "rgb(33, 33, 33)",
-                  color: "rgb(255, 255, 255)",
-                },
-              },
-              headCells: {
-                style: {
-                  backgroundColor: "rgb(36, 36, 36)",
-                  color: "rgb(255, 255, 255)",
-                },
-              },
-              cells: {
-                style: {
-                  backgroundColor: "rgb(33, 33, 33)",
-                  color: "rgb(255, 255, 255)",
-                },
-              },
-              pagination: {
-                style: {
-                  backgroundColor: "rgb(33, 33, 33)",
-                  color: "rgb(255, 255, 255)",
-                },
-              },
-            }}
-            onRowClicked={(row) => handleRowClick(row as MemberTableData)}
-            pointerOnHover
-          />
+          <>
+            {/* Mobile View */}
+            <div className="md:hidden mt-4">
+              {filteredData.map((item) => (
+                <MobileCard key={item.organizationmemberid} data={item} />
+              ))}
+            </div>
+
+            {/* Desktop View */}
+            <div className="hidden md:block mt-4">
+              <DataTable
+                columns={columns}
+                data={filteredData}
+                pagination
+                highlightOnHover
+                customStyles={{
+                  header: {
+                    style: {
+                      backgroundColor: "rgb(36, 36, 36)",
+                      color: "rgb(255, 255, 255)",
+                    },
+                  },
+                  subHeader: {
+                    style: {
+                      backgroundColor: "none",
+                      color: "rgb(255, 255, 255)",
+                      padding: 0,
+                      marginBottom: 10,
+                    },
+                  },
+                  rows: {
+                    style: {
+                      minHeight: "6vh",
+                      backgroundColor: "rgb(33, 33, 33)",
+                      color: "rgb(255, 255, 255)",
+                    },
+                  },
+                  headCells: {
+                    style: {
+                      backgroundColor: "rgb(36, 36, 36)",
+                      color: "rgb(255, 255, 255)",
+                    },
+                  },
+                  cells: {
+                    style: {
+                      backgroundColor: "rgb(33, 33, 33)",
+                      color: "rgb(255, 255, 255)",
+                    },
+                  },
+                  pagination: {
+                    style: {
+                      backgroundColor: "rgb(33, 33, 33)",
+                      color: "rgb(255, 255, 255)",
+                    },
+                  },
+                }}
+                onRowClicked={(row) => handleRowClick(row as MemberTableData)}
+                pointerOnHover
+              />
+            </div>
+          </>
         ) : (
           <Preloader />
         )}
