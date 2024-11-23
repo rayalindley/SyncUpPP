@@ -1,11 +1,8 @@
-// Filename: D:\Repos\SyncUp-test\components\newsletter\emails.tsx
-
 "use client";
-
-import React, { useState, Fragment, useMemo, useEffect } from "react";
+import React, { useState, Fragment, useMemo } from "react";
 import { Email } from "@/types/email";
 import DataTable, { TableColumn, TableStyles } from "react-data-table-component";
-import { Disclosure, Switch } from "@headlessui/react"; // Imported Switch
+import { Disclosure, Switch } from "@headlessui/react";
 import {
   ChevronUpIcon,
   ChevronDownIcon,
@@ -13,10 +10,7 @@ import {
   ArrowLeftIcon,
 } from "@heroicons/react/24/solid";
 import { Dialog, Transition } from "@headlessui/react";
-import { check_permissions } from "@/lib/newsletter_actions";
-import { useUser } from "@/context/user_context";
 import Swal from "sweetalert2";
-import Preloader from "@/components/preloader";
 import DOMPurify from "dompurify";
 
 interface EmailsProps {
@@ -24,6 +18,7 @@ interface EmailsProps {
   incomingEmails: Email[];
   organizationName: string;
   organizationId: string;
+  hasPermission: boolean;
 }
 
 function classNames(...classes: string[]) {
@@ -87,14 +82,11 @@ const customStyles: TableStyles = {
   },
 };
 
-// Helper Function to Convert CSS Color to RGB
 const cssColorToRgb = (color: string): { r: number; g: number; b: number } | null => {
   const ctx = document.createElement("canvas").getContext("2d");
   if (!ctx) return null;
   ctx.fillStyle = color;
   const computedColor = ctx.fillStyle;
-
-  // Parse the computed color
   const match = computedColor.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/);
   if (match) {
     return { r: parseInt(match[1]), g: parseInt(match[2]), b: parseInt(match[3]) };
@@ -102,7 +94,6 @@ const cssColorToRgb = (color: string): { r: number; g: number; b: number } | nul
   return null;
 };
 
-// Helper Function to Calculate Luminance
 const getLuminance = (r: number, g: number, b: number): number => {
   const a = [r, g, b].map((v) => {
     v /= 255;
@@ -111,7 +102,6 @@ const getLuminance = (r: number, g: number, b: number): number => {
   return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
 };
 
-// Function to Check if Background is Light
 const isBackgroundLight = (backgroundColor: string): boolean => {
   const rgb = cssColorToRgb(backgroundColor);
   if (!rgb) return false; // Default to dark if unable to parse
@@ -119,18 +109,12 @@ const isBackgroundLight = (backgroundColor: string): boolean => {
   return luminance > 0.5; // Threshold for light vs dark
 };
 
-// Function to Adjust Text Colors Based on Backgrounds
 const adjustTextColors = (html: string): string => {
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, "text/html");
-
-  // Default background color is dark (#1f1f1f)
   const defaultBgColor = "rgb(31, 31, 31)";
-
   const traverse = (element: HTMLElement, parentBgColor: string) => {
-    // Determine this element's background color from inline style
     let bgColor = parentBgColor;
-
     const inlineStyle = element.getAttribute("style");
     if (inlineStyle) {
       const bgMatch = inlineStyle.match(/background-color\s*:\s*([^;]+)/i);
@@ -138,8 +122,6 @@ const adjustTextColors = (html: string): string => {
         bgColor = bgMatch[1].trim();
       }
     }
-
-    // Handle 'transparent' or 'inherit'
     if (
       !bgColor ||
       bgColor.toLowerCase() === "transparent" ||
@@ -147,25 +129,17 @@ const adjustTextColors = (html: string): string => {
     ) {
       bgColor = parentBgColor;
     }
-
-    // Determine if background is light
     const isLight = isBackgroundLight(bgColor);
-
-    // Set text color accordingly
     if (isLight) {
       element.style.color = "#000000"; // Dark text
     } else {
       element.style.color = "#FFFFFF"; // Light text
     }
-
-    // Traverse child elements
     Array.from(element.children).forEach((child) => {
       traverse(child as HTMLElement, bgColor);
     });
   };
-
   traverse(doc.body, defaultBgColor);
-
   return doc.body.innerHTML;
 };
 
@@ -174,49 +148,14 @@ const Emails: React.FC<EmailsProps> = ({
   incomingEmails,
   organizationName,
   organizationId,
+  hasPermission,
 }) => {
-  const { user } = useUser();
-
-  // State Management
-  const [hasPermission, setHasPermission] = useState(false);
-  const [checkingPermission, setCheckingPermission] = useState(true);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [outgoingSearch, setOutgoingSearch] = useState("");
   const [incomingSearch, setIncomingSearch] = useState("");
-
-  // **New State Variable for Light Mode Toggle**
   const [isLightMode, setIsLightMode] = useState(false);
 
-  // Permission Check
-  useEffect(() => {
-    async function checkUserPermissions() {
-      setCheckingPermission(true); // Start loading
-      try {
-        const permission = await check_permissions(
-          organizationId,
-          "send_newsletters",
-          user?.id || ""
-        );
-        setHasPermission(permission);
-      } catch (error) {
-        console.error("Error checking permissions:", error);
-        setHasPermission(false);
-        Swal.fire("Error", "Failed to check permissions.", "error");
-      } finally {
-        setCheckingPermission(false); // End loading
-      }
-    }
-
-    if (user && organizationId) {
-      checkUserPermissions();
-    } else {
-      setHasPermission(false);
-      setCheckingPermission(false);
-    }
-  }, [user, organizationId]);
-
-  // Table Columns without Reply
   const outgoingEmailColumns: TableColumn<Email>[] = [
     {
       name: "Subject",
@@ -276,7 +215,7 @@ const Emails: React.FC<EmailsProps> = ({
       sortable: true,
       id: "from",
       width: "200px",
-    },    
+    },
     {
       name: "Date",
       selector: (row: Email) => new Date(row.date).toLocaleString(),
@@ -304,43 +243,42 @@ const Emails: React.FC<EmailsProps> = ({
     },
   ];
 
-  // Search Functionality
   const filteredSentEmails = useMemo(() => {
     if (!outgoingSearch) return sentEmails;
     return sentEmails.filter((email) =>
-      Object.values(email).join(" ").toLowerCase().includes(outgoingSearch.toLowerCase())
+      Object.values(email)
+        .join(" ")
+        .toLowerCase()
+        .includes(outgoingSearch.toLowerCase())
     );
   }, [sentEmails, outgoingSearch]);
 
   const filteredIncomingEmails = useMemo(() => {
     if (!incomingSearch) return incomingEmails;
     return incomingEmails.filter((email) =>
-      Object.values(email).join(" ").toLowerCase().includes(incomingSearch.toLowerCase())
+      Object.values(email)
+        .join(" ")
+        .toLowerCase()
+        .includes(incomingSearch.toLowerCase())
     );
   }, [incomingEmails, incomingSearch]);
 
-  // Sanitize and Adjust HTML Content
   const processedHtml = useMemo(() => {
     if (!selectedEmail) return "";
-
     const rawHtml = selectedEmail.htmlContent || selectedEmail.body || "";
     const sanitizedHtml = DOMPurify.sanitize(rawHtml, { USE_PROFILES: { html: true } });
-
-    // Remove any appearance of the environment variable NEWSLETTER_EMAIL and any surrounding <>
-    const cleanedHtml = sanitizedHtml
-      .replace(new RegExp(`${process.env.NEWSLETTER_EMAIL}`, "g"), "")
-
+    const cleanedHtml = sanitizedHtml.replace(
+      new RegExp(`${process.env.NEWSLETTER_EMAIL}`, "g"),
+      ""
+    );
     if (isLightMode) {
-      // **Render Original HTML Without Adjustments (Light Mode)**
       return cleanedHtml;
     } else {
-      // **Adjust Text Colors Based on Background Colors (Dark Mode)**
       const adjustedHtml = adjustTextColors(cleanedHtml);
       return adjustedHtml;
     }
   }, [selectedEmail, isLightMode]);
 
-  // Open Email Preview Modal
   const openEmailPreview = (email: Email) => {
     setSelectedEmail(email);
     setIsPreviewOpen(true);
@@ -348,9 +286,7 @@ const Emails: React.FC<EmailsProps> = ({
 
   return (
     <div className="mx-auto max-w-6xl rounded-lg bg-[#1f1f1f] p-4 shadow-lg">
-      {checkingPermission ? (
-        <Preloader />
-      ) : !hasPermission ? (
+      {!hasPermission ? (
         <div className="text-center text-lg font-semibold text-red-500">
           You do not have permission to view emails.
         </div>
@@ -415,7 +351,6 @@ const Emails: React.FC<EmailsProps> = ({
                 </>
               )}
             </Disclosure>
-
             {/* Incoming Emails Section */}
             <Disclosure>
               {({ open }) => (
@@ -475,7 +410,6 @@ const Emails: React.FC<EmailsProps> = ({
               )}
             </Disclosure>
           </div>
-
           {/* Email Preview Modal */}
           {selectedEmail && (
             <Transition appear show={isPreviewOpen} as={Fragment}>
@@ -586,8 +520,7 @@ const Emails: React.FC<EmailsProps> = ({
                             {new Date(selectedEmail.date).toLocaleString()}
                           </span>
                         </div>
-                        {/* **Removed Notification Note** */}
-                        {/* **Securely Render Adjusted or Original HTML Content** */}
+                        {/* Securely Render Adjusted or Original HTML Content */}
                         <div
                           className={`prose max-w-none ${
                             isLightMode ? "" : "prose-invert"

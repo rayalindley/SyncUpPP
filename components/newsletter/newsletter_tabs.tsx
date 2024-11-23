@@ -1,6 +1,5 @@
 "use client";
-
-import React, { Fragment } from "react";
+import React from "react";
 import { Tab } from "@headlessui/react";
 import NewsletterCreation from "./newsletter_creation";
 import Emails from "./emails";
@@ -13,6 +12,7 @@ interface NewsletterTabsProps {
   users: any[]; // Replace with actual type
   sentEmails: any[]; // Replace with Email type
   incomingEmails: any[]; // Replace with Email type
+  hasPermission: boolean;
 }
 
 function classNames(...classes: string[]) {
@@ -27,11 +27,12 @@ const NewsletterTabs: React.FC<NewsletterTabsProps> = ({
   users,
   sentEmails,
   incomingEmails,
+  hasPermission,
 }) => {
   return (
     <div className="bg-raisin rounded-lg font-sans text-white">
       <Tab.Group>
-        <Tab.List className="flex space-x-1 rounded-xl bg-[#333333] p-1 mb-6">
+        <Tab.List className="mb-6 flex space-x-1 rounded-xl bg-[#333333] p-1">
           <Tab
             className={({ selected }) =>
               classNames(
@@ -65,6 +66,7 @@ const NewsletterTabs: React.FC<NewsletterTabsProps> = ({
               organizationSlug={organizationSlug}
               events={events}
               users={users}
+              hasPermission={hasPermission}
             />
           </Tab.Panel>
           <Tab.Panel>
@@ -73,6 +75,7 @@ const NewsletterTabs: React.FC<NewsletterTabsProps> = ({
               incomingEmails={incomingEmails}
               organizationName={organizationName}
               organizationId={organizationId}
+              hasPermission={hasPermission}
             />
           </Tab.Panel>
         </Tab.Panels>

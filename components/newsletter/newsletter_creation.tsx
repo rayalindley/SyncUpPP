@@ -1,6 +1,5 @@
 "use client";
-
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { Event } from "@/types/event";
 import { CombinedUserData } from "@/types/combined_user_data";
 import DataTable, { TableColumn, TableStyles } from "react-data-table-component";
@@ -10,10 +9,7 @@ import { ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/20/solid";
 import { z } from "zod";
 import axios from "axios";
 import { useDropzone } from "react-dropzone";
-import { fetchMembersByEvent, check_permissions } from "@/lib/newsletter_actions";
-import { useUser } from "@/context/user_context";
 import Swal from "sweetalert2";
-import Preloader from "@/components/preloader";
 
 const RichTextEditor = dynamic(() => import("@mantine/rte"), { ssr: false });
 
@@ -23,6 +19,7 @@ interface NewsletterCreationProps {
   organizationSlug: string;
   events: Event[];
   users: CombinedUserData[];
+  hasPermission: boolean;
 }
 
 const newsletterSchema = z.object({
@@ -44,18 +41,18 @@ const customStyles: TableStyles = {
   },
   headRow: {
     style: {
-      backgroundColor: "#212121", // Customize the header row background color
-      color: "#ffffff", // Customize the header row text color
+      backgroundColor: "#212121",
+      color: "#ffffff",
     },
   },
   headCells: {
     style: {
-      color: "#ffffff", // Customize the header cell text color
+      color: "#ffffff",
       whiteSpace: "nowrap",
       overflow: "hidden",
       textOverflow: "ellipsis",
       padding: "8px",
-      backgroundColor: "#212121", // Customize the header cell background color
+      backgroundColor: "#212121",
       borderRadius: "8px",
     },
   },
@@ -95,11 +92,8 @@ const NewsletterCreation: React.FC<NewsletterCreationProps> = ({
   organizationSlug,
   events,
   users,
+  hasPermission,
 }) => {
-  const { user } = useUser();
-
-  const [hasPermission, setHasPermission] = useState(false);
-  const [checkingPermission, setCheckingPermission] = useState(true); // New state for loading
   const [editorState, setEditorState] = useState("");
   const [subject, setSubject] = useState("");
   const [selectedUsers, setSelectedUsers] = useState<CombinedUserData[]>([]);
@@ -108,36 +102,9 @@ const NewsletterCreation: React.FC<NewsletterCreationProps> = ({
   const [sending, setSending] = useState(false);
   const [eventsSearch, setEventsSearch] = useState("");
   const [usersSearch, setUsersSearch] = useState("");
-
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: (acceptedFiles) => setAttachments((prev) => [...prev, ...acceptedFiles]),
   });
-
-  useEffect(() => {
-    async function checkUserPermissions() {
-      setCheckingPermission(true); // Start loading
-      try {
-        const permission = await check_permissions(
-          organizationId,
-          "send_newsletters",
-          user?.id || ""
-        );
-        setHasPermission(permission);
-      } catch (error) {
-        console.error("Error checking permissions:", error);
-        setHasPermission(false);
-      } finally {
-        setCheckingPermission(false); // End loading
-      }
-    }
-
-    if (user && organizationId) {
-      checkUserPermissions();
-    } else {
-      setHasPermission(false);
-      setCheckingPermission(false);
-    }
-  }, [user, organizationId]);
 
   const removeAttachment = (index: number) => {
     setAttachments((prev) => prev.filter((_, i) => i !== index));
@@ -147,12 +114,10 @@ const NewsletterCreation: React.FC<NewsletterCreationProps> = ({
     try {
       const formData = { subject, content: editorState };
       newsletterSchema.parse(formData);
-
       if (selectedUsers.length === 0 && selectedEvents.length === 0) {
         Swal.fire("Error", "At least one recipient is required", "error");
         return false;
       }
-
       return true;
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -168,24 +133,22 @@ const NewsletterCreation: React.FC<NewsletterCreationProps> = ({
 
   const handleSendNewsletter = async () => {
     if (!validateForm()) return;
-
     setSending(true);
     try {
       const selectedEventUsers = await Promise.all(
-        selectedEvents.map((event) => fetchMembersByEvent(event.eventid))
+        selectedEvents.map((event) =>
+          fetch(`/api/events/${event.eventid}/members`).then((res) => res.json())
+        )
       ).then((results) => results.flat());
-
       const combinedUsers = [...selectedUsers, ...selectedEventUsers];
       const uniqueUsers = combinedUsers.filter(
         (user, index, self) => index === self.findIndex((t) => t.email === user.email)
       );
-
       if (uniqueUsers.length === 0) {
         Swal.fire("Error", "At least one recipient is required.", "error");
         setSending(false);
         return;
       }
-
       const formData = new FormData();
       formData.append("fromName", organizationName);
       formData.append("replyToExtension", organizationSlug);
@@ -193,7 +156,6 @@ const NewsletterCreation: React.FC<NewsletterCreationProps> = ({
       formData.append("subject", subject);
       formData.append("message", editorState);
       attachments.forEach((file) => formData.append("attachments", file));
-
       const response = await axios.post(
         "/api/newsletter/send-newsletter-email",
         formData,
@@ -201,7 +163,6 @@ const NewsletterCreation: React.FC<NewsletterCreationProps> = ({
           headers: { "Content-Type": "multipart/form-data" },
         }
       );
-
       if (response.status === 200) {
         Swal.fire("Success", "Newsletter sent successfully!", "success");
         setAttachments([]);
@@ -274,22 +235,26 @@ const NewsletterCreation: React.FC<NewsletterCreationProps> = ({
   const filteredEvents = useMemo(() => {
     if (!eventsSearch) return events;
     return events.filter((event) =>
-      Object.values(event).join(" ").toLowerCase().includes(eventsSearch.toLowerCase())
+      Object.values(event)
+        .join(" ")
+        .toLowerCase()
+        .includes(eventsSearch.toLowerCase())
     );
   }, [events, eventsSearch]);
 
   const filteredUsers = useMemo(() => {
     if (!usersSearch) return users;
     return users.filter((user) =>
-      Object.values(user).join(" ").toLowerCase().includes(usersSearch.toLowerCase())
+      Object.values(user)
+        .join(" ")
+        .toLowerCase()
+        .includes(usersSearch.toLowerCase())
     );
   }, [users, usersSearch]);
 
   return (
     <div className="mx-auto max-w-6xl rounded-lg bg-[#1f1f1f] p-4 shadow-lg">
-      {checkingPermission ? (
-        <Preloader />
-      ) : !hasPermission ? (
+      {!hasPermission ? (
         <div className="text-center text-lg font-semibold text-red-500">
           You do not have permission to send newsletters.
         </div>
@@ -408,7 +373,7 @@ const NewsletterCreation: React.FC<NewsletterCreationProps> = ({
                             placeholder="Search Events..."
                             value={eventsSearch}
                             onChange={(e) => setEventsSearch(e.target.value)}
-                            className="w-full border-gray-500 border-transparent bg-charleston p-2 text-sm text-white placeholder-gray-400 focus:border-primary focus:ring-0"
+                            className="w-full border-transparent bg-charleston p-2 text-sm text-white placeholder-gray-400 focus:border-primary focus:ring-0"
                           />
                         </div>
                       )}
@@ -469,7 +434,7 @@ const NewsletterCreation: React.FC<NewsletterCreationProps> = ({
                             placeholder="Search Users..."
                             value={usersSearch}
                             onChange={(e) => setUsersSearch(e.target.value)}
-                            className="w-full border-gray-500 border-transparent bg-charleston p-2 text-sm text-white placeholder-gray-400 focus:border-primary focus:ring-0"
+                            className="w-full border-transparent bg-charleston p-2 text-sm text-white placeholder-gray-400 focus:border-primary focus:ring-0"
                           />
                         </div>
                       )}
