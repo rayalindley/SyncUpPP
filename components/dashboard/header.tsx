@@ -339,7 +339,7 @@ function Header({ user }: { user: User }) {
             <Menu.Button className="-m-1.5 flex items-center p-1.5">
               <span className="sr-only">Open user menu</span>
               <img
-                className="h-8 w-8 rounded-full bg-gray-700"
+                className="h-8 w-8 rounded-full bg-gray-700 object-cover"
                 src={
                   userProfile?.profilepicture
                     ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${userProfile.profilepicture}`
