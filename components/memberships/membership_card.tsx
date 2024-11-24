@@ -147,6 +147,42 @@ const MembershipCard: React.FC<MembershipCardProps> = ({
         </div>
       </div>
 
+      <div className="mt-4 sm:mt-6">
+        {userid ? (
+          <button
+            onClick={() => {
+              if (isCurrentPlan && isHovered) {
+                setIsModalOpen(true);
+              } else if (!isProcessing) {
+                handleSubscribe(
+                  membership.membershipid,
+                  membership.organizationid || ""
+                );
+              }
+            }}
+            className={classNames(
+              "w-full rounded-md px-3 py-2 text-center text-sm font-semibold",
+              "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2",
+              isCurrentPlan
+                ? isHovered
+                  ? "bg-red-600 text-white"
+                  : "cursor-not-allowed bg-gray-300 text-white"
+                : membership.mostPopular
+                ? "bg-primary text-white shadow-sm hover:bg-primarydark focus-visible:outline-primary"
+                : "bg-white/10 text-white hover:bg-white/20 focus-visible:outline-white",
+              isProcessing ? "opacity-50 cursor-not-allowed" : ""
+            )}
+            disabled={isCurrentPlan && !isHovered || isProcessing}
+          >
+            {isProcessing
+              ? "Processing..."
+              : isCurrentPlan
+                ? (isHovered ? "Cancel Plan" : "Current Plan")
+                : isFree ? "Join Plan" : "Subscribe"}
+          </button>
+        ) : null}
+      </div>
+
       {editable && (
         <div className="flex flex-row gap-2 mt-4">
           <button
