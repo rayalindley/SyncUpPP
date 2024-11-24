@@ -71,7 +71,8 @@ export default function OrganizationUserView() {
       const supabase = createClient();
       const { data: organizations, error } = await supabase
         .from("organization_summary")
-        .select("*");
+        .select("*")
+        .order("created_at", { ascending: false });
 
       if (!error) {
         setOrganizations(organizations);
