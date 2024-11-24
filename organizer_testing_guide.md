@@ -132,15 +132,20 @@ To test this feature:
 
 ---
 
-## Additional Features to Explore
-
-### **Posts and Communications**
+### 7. **Posts and Communications**
 This feature allows you to post updates, announcements, or discussions within your organization. You can also engage members through comments and discussions.
-- Create and manage posts within your organization.
-- Test the commenting system.
-- Experiment with post visibility settings (e.g., public, private).
+
+To test this feature:
+1. Navigate to the **"Posts"** section of your organization’s page.
+2. Perform the following actions:
+   - Create a **public post** with an update or announcement.
+   - Test the commenting system by adding comments.
+   - Experiment with post visibility settings (e.g., public, private).
+3. Evaluate how posts and interactions contribute to member engagement.
 
 ---
+
+## Additional Features to Explore
 
 ### **Newsletter Management**
 SyncUp lets you create and manage newsletters to communicate with your members. This feature includes:
