@@ -217,7 +217,7 @@ export default async function OrganizationUserView({
                 {(await check_permissions(user?.id || "", org.organizationid, "view_dashboard")) && (
                   <Link
                     className="rounded-lg bg-primary px-4 py-2 text-white hover:bg-primarydark"
-                    href={`${slug}/dashboard}`}
+                    href={`${slug}/dashboard`}
                   >
                     Manage
                   </Link>
