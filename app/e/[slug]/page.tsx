@@ -865,7 +865,7 @@ const EventPage = () => {
                     <span className="mb-4 text-light">Free Registration</span>
                   )}
                 </p>
-                {discounts.length > 0 && (
+                {event.registrationfee && discounts.some(discount => discount.discount_percent > 0) && (
                   <div className="mb-4">
                   <h3 className="text-md font-medium text-primary">Available Discounts!</h3>
                   {discounts.map((discount) => (
