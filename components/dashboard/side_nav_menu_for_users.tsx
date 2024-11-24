@@ -23,6 +23,7 @@ import {
 } from "react-icons/io5";
 import { TbUserStar } from "react-icons/tb";
 import { ChevronDownIcon } from "@heroicons/react/20/solid";
+import { set } from "date-fns";
 
 function classNames(...classes: any[]) {
   return classes.filter(Boolean).join(" ");
@@ -38,13 +39,14 @@ const getInitials = (name: string) => {
 };
 
 const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] }) => {
-  const { sidebarOpen, toggleSidebar, setSidebarOpen } = useSidebarStore((state) => ({
-    sidebarOpen: state.sidebarOpen,
-    toggleSidebar: state.toggleSidebar,
-    setSidebarOpen: state.setSidebarOpen,
-  }));
+  const { sidebarOpen, toggleSidebar, setSidebarOpen } = useSidebarStore();
   const router = useRouter();
 
+  useEffect(() => {
+    // Ensure the sidebar is closed on initial render
+    setSidebarOpen(false);
+  }, []);
+  
   const { slug } = useParams() as { slug: string };
 
   const pathname = usePathname();
@@ -279,6 +281,7 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
                               >
                                 {({ active }) => (
                                   <Link
+                                  
                                     href="/organization/create"
                                     className="flex items-center"
                                   >
@@ -304,7 +307,7 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
                                 value="default"
                               >
                                 {({ active }) => (
-                                  <Link href="/dashboard" className="flex items-center">
+                                  <Link href="/dashboard" onClick={() => setSidebarOpen(false)} className="flex items-center">
                                     <span
                                       className={classNames(
                                         active ? "font-semibold" : "font-normal",
@@ -319,6 +322,7 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
                               {organizations?.map((organization) => (
                                 <Listbox.Option
                                   key={organization.id}
+                                  onClick={() => setSidebarOpen(false)}
                                   className={({ active }) =>
                                     classNames(
                                       active ? "bg-primary text-white" : "text-light",
@@ -412,6 +416,7 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
                                         <li key={subItem.name}>
                                           <Link
                                             href={subItem.href}
+                                            onClick={() => setSidebarOpen(false)}
                                             className={classNames(
                                               currentItem === subItem.href
                                                 ? "bg-charleston text-light"
@@ -429,6 +434,7 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
                               ) : (
                                 <Link
                                   href={item.href}
+                                  onClick={() => setSidebarOpen(false)}
                                   className={classNames(
                                     currentItem === item.href
                                       ? "bg-charleston text-light"
