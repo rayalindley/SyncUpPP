@@ -335,6 +335,12 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPost
       const matchesSearch = post.content
         ?.toLowerCase()
         .includes(searchTerm.toLowerCase());
+      
+      // If user is not logged in, only show public posts
+      if (!isLoggedIn) {
+        return matchesSearch && !post.roles?.length && !post.memberships?.length;
+      }
+
       const matchesRole = filterByRole ? post.roles?.includes(filterByRole) : true;
       const matchesMembership = filterByMembership
         ? post.memberships?.includes(filterByMembership)
@@ -347,6 +353,7 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPost
         ? post.createdat &&
           new Date(post.createdat).toDateString() === filterByDate.toDateString()
         : true;
+      
       return (
         matchesSearch &&
         matchesRole &&
@@ -608,7 +615,9 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPost
             className="mb-4 rounded-lg bg-gray-800 p-4 text-center text-sm text-blue-400"
             role="alert"
           >
-            The organization has no posts available for you at the moment.
+            {isLoggedIn 
+              ? "The organization has no posts available for you at the moment."
+              : "The organization has no public posts available at the moment."}
           </div>
         )}
         {filteredPosts.map((post) => (
