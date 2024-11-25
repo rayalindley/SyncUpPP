@@ -45,6 +45,7 @@
     "nodemailer": "^6.9.15",
     "or": "^0.2.0",
     "pdfkit": "^0.15.0",
+    "prop-types": "^15.8.1",
     "qr-scanner": "^1.4.2",
     "qrcode.react": "^4.0.1",
     "quill": "^2.0.2",
