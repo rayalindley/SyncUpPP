@@ -230,8 +230,8 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
                     {({ open }) => (
                       <>
                         <div className="relative">
-                        <Listbox.Button className="relative w-full cursor-default rounded-md bg-charleston py-1.5 pl-3 pr-10 text-left text-light shadow-sm ring-1 ring-inset ring-fadedgrey focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm sm:leading-6">
-                        <span className="flex items-center">
+                          <Listbox.Button className="relative w-full cursor-default rounded-md bg-charleston py-1.5 pl-3 pr-10 text-left text-light shadow-sm ring-1 ring-inset ring-fadedgrey focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm sm:leading-6">
+                            <span className="flex items-center">
                               {selected === "default" ? (
                                 <span className="ml-3 block truncate">Default</span>
                               ) : typeof selected !== "string" && selected?.photo ? (
@@ -268,8 +268,8 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
                             leaveFrom="opacity-100"
                             leaveTo="opacity-0"
                           >
-                         <Listbox.Options className="absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded-md bg-charleston py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                          <Listbox.Option
+                            <Listbox.Options className="absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded-md bg-charleston py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                              <Listbox.Option
                                 key="create-org"
                                 className={({ active }) =>
                                   classNames(
@@ -281,7 +281,6 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
                               >
                                 {({ active }) => (
                                   <Link
-                                  
                                     href="/organization/create"
                                     className="flex items-center"
                                   >
@@ -307,7 +306,11 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
                                 value="default"
                               >
                                 {({ active }) => (
-                                  <Link href="/dashboard" onClick={() => setSidebarOpen(false)} className="flex items-center">
+                                  <Link
+                                    href="/dashboard"
+                                    onClick={() => setSidebarOpen(false)}
+                                    className="flex items-center"
+                                  >
                                     <span
                                       className={classNames(
                                         active ? "font-semibold" : "font-normal",
@@ -710,10 +713,19 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
                   ))}
                 </ul>
               </li>
-              {slug && (
+              {slug ? (
                 <li className="">
                   <hr className="mb-5 border-t border-fadedgrey" />
                   <Link href={`/${slug}`}>
+                    <div className="border-1 rounded-md border border-primary bg-primarydark p-1 px-2 text-center text-sm text-gray-100 hover:cursor-pointer">
+                      Visit Page
+                    </div>
+                  </Link>
+                </li>
+              ) : (
+                <li className="">
+                  <hr className="mb-5 border-t border-fadedgrey" />
+                  <Link href="/organizations">
                     <div className="border-1 rounded-md border border-primary bg-primarydark p-1 px-2 text-center text-sm text-gray-100 hover:cursor-pointer">
                       Visit Page
                     </div>
