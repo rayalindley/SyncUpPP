@@ -33,6 +33,7 @@ import { format } from "date-fns";
 import "react-datepicker/dist/react-datepicker.css";
 import { getUserProfileById } from "@/lib/user_actions"; // Add this import
 import { CombinedUserData } from "@/types/combined_user_data";
+import { formatDate } from "@/lib/utils";
 
 const postSchema = z.object({
   content: z.string().min(1, "Content is required").max(500),
@@ -655,14 +656,13 @@ const PostCard: React.FC<{
       : null,
   };
 
-  // Compute selectedRoles and selectedMemberships directly from post prop
   const selectedRoles = post.privacy.role_privacy?.map((role: any) => role.role_id) || [];
   const selectedMemberships =
     post.privacy.membership_privacy?.map((membership: any) => membership.membership_id) ||
     [];
 
   const [isDeleted, setIsDeleted] = useState(false);
-  const isLoadingPrivacy = false; // Privacy data is already loaded
+  const isLoadingPrivacy = false;
   const { user } = useUser();
   const isLoggedIn = user && user.id && user.id.length > 0;
   const isCurrentUserAuthor = user?.id === authorid;
@@ -737,6 +737,7 @@ const PostCard: React.FC<{
       selectedMemberships: membershipNames,
     });
   };
+
   const generatePrivacyLabel = () => {
     if (isLoadingPrivacy) {
       return (
@@ -944,9 +945,7 @@ const PostCard: React.FC<{
 
         <div className="mt-3 flex justify-between text-xs text-gray-700">
           <div>
-            {createdat
-              ? format(new Date(createdat), "MMM dd, yyyy hh:mm a")
-              : "Unknown date"}
+            {createdat ? formatDate(createdat) : "Unknown date"}
           </div>
         </div>
       </div>
