@@ -20,6 +20,7 @@ import "react-toastify/dist/ReactToastify.css";
 import Swal from "sweetalert2";
 import Datepicker from "tailwind-datepicker-react";
 import { z } from "zod";
+import imageCompression from 'browser-image-compression';
 
 const supabase = createClient();
 
@@ -120,19 +121,35 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
     let profilePictureUrl = userProfile?.profilepicture;
 
     if (profilePictureFile) {
-      const fileName = `${userProfile?.first_name}_${userProfile?.last_name}_${Date.now()}-${Math.random().toString(36).substring(7)}`;
-      const { data: uploadResult, error } = await supabase.storage
-        .from("profile-pictures")
-        .upload(fileName, profilePictureFile, {
-          cacheControl: "3600",
-          upsert: false,
-        });
+      try {
+        // Compress the image
+        const options = {
+          maxSizeMB: 1,             // Maximum size in MB
+          maxWidthOrHeight: 1024,   // Compress to this maximum dimension
+          useWebWorker: true        // Use web worker for better performance
+        };
+        
+        const compressedFile = await imageCompression(profilePictureFile, options);
+        
+        const fileName = `${userProfile?.first_name}_${userProfile?.last_name}_${Date.now()}-${Math.random().toString(36).substring(7)}`;
+        const { data: uploadResult, error } = await supabase.storage
+          .from("profile-pictures")
+          .upload(fileName, compressedFile, {
+            cacheControl: "3600",
+            upsert: false,
+          });
 
-      if (uploadResult) {
-        profilePictureUrl = `profile-pictures/${uploadResult.path}`;
-      } else {
-        console.error("Error uploading image:", error);
-        toast.error("Error uploading image. Please try again.");
+        if (uploadResult) {
+          profilePictureUrl = `profile-pictures/${uploadResult.path}`;
+        } else {
+          console.error("Error uploading image:", error);
+          toast.error("Error uploading image. Please try again.");
+          setIsUpdating(false);
+          return;
+        }
+      } catch (error) {
+        console.error("Error compressing image:", error);
+        toast.error("Error processing image. Please try again.");
         setIsUpdating(false);
         return;
       }
