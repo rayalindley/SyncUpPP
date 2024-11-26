@@ -459,6 +459,25 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
                               )}
                             </li>
                           ))}
+                          {slug ? (
+                            <li className="">
+                              <hr className="mb-5 border-t border-fadedgrey" />
+                              <Link href={`/${slug}`}>
+                                <div className="border-1 rounded-md border border-primary bg-primarydark p-1 px-2 text-center text-sm text-gray-100 hover:cursor-pointer">
+                                  Visit Page
+                                </div>
+                              </Link>
+                            </li>
+                          ) : (
+                            <li className="">
+                              <hr className="mb-5 border-t border-fadedgrey" />
+                              <Link href="/organizations">
+                                <div className="border-1 rounded-md border border-primary bg-primarydark p-1 px-2 text-center text-sm text-gray-100 hover:cursor-pointer">
+                                  Visit Community
+                                </div>
+                              </Link>
+                            </li>
+                          )}
                         </ul>
                       </li>
                       {slug && (
