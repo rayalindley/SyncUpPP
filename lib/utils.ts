@@ -67,3 +67,16 @@ export function timeAgo(dateString: string) {
 
   return Math.floor(timeDifferenceInSeconds) + " s"; // seconds
 }
+export const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  date.setHours(date.getHours() + 8); // Adjust for timezone
+
+  return date.toLocaleString('en-PH', {
+    year: 'numeric',
+    month: 'long', // Full month name for better readability
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true, // Use 12-hour format with AM/PM
+  });
+};
