@@ -28,7 +28,7 @@ export default async function GiveawayPage() {
   return (
     <div className="container mx-auto py-8 px-4">
       <h1 className="text-2xl font-bold mb-2 text-light text-center">
-        Giveaway Qualified Users ({qualifiedUsers ? qualifiedUsers.length : 0})
+        Raffle Qualified Users ({qualifiedUsers ? qualifiedUsers.length : 0})
       </h1>
       <p className="text-center text-sm text-green-500 mb-6">
         Qualified users have completed the requirements within the site, but they must answer and submit the form <a href="https://forms.gle/nEEAGhVXDtts2SQd8" className="underline text-blue-400">here</a>.
