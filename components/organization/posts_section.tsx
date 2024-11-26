@@ -607,10 +607,6 @@ const PostsSection: React.FC<PostsSectionProps> = ({ organizationId, initialPost
             </div>
           )}
         </>
-      ) : isLoggedIn ? (
-        <div className="mb-4 rounded-lg bg-gray-800 p-4 text-center text-sm text-blue-400">
-          You don&apos;t have permission to create posts in this organization.
-        </div>
       ) : null}
 
       <div className="mt-8 space-y-4">
