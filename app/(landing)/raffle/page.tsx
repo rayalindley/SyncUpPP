@@ -29,9 +29,11 @@ export default function GiveawayPage() {
   const [qualifiedUsers, setQualifiedUsers] = useState<any[]>([])
   const [almostQualifiedUsers, setAlmostQualifiedUsers] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     async function fetchUsers() {
+      setIsLoading(true)
       const supabase = createClient()
       
       const { data: qualified, error: qualifiedError } = await supabase
@@ -52,6 +54,7 @@ export default function GiveawayPage() {
 
       setQualifiedUsers(qualified || [])
       setAlmostQualifiedUsers(almostQualified || [])
+      setIsLoading(false)
     }
 
     fetchUsers()
@@ -84,6 +87,21 @@ export default function GiveawayPage() {
     return <div className="text-red-500 text-center p-4">{error}</div>
   }
 
+  const SkeletonCard = () => (
+    <div className="p-4 border rounded-md shadow-sm bg-eerieblack animate-pulse">
+      <div className="h-5 bg-charleston rounded w-3/4 mb-2"></div>
+      <div className="h-4 bg-charleston rounded w-1/2"></div>
+    </div>
+  )
+
+  const LoadingGrid = () => (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {[...Array(6)].map((_, index) => (
+        <SkeletonCard key={index} />
+      ))}
+    </div>
+  )
+
   return (
     <div className="container mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold mb-8 text-light text-center">
@@ -103,7 +121,7 @@ export default function GiveawayPage() {
               )
             }
           >
-            Qualified ({filteredQualifiedUsers?.length || 0})
+            Qualified ({!isLoading ? (filteredQualifiedUsers?.length || 0) : '...'})
           </Tab>
           <Tab
             className={({ selected }) =>
@@ -116,7 +134,7 @@ export default function GiveawayPage() {
               )
             }
           >
-            Almost Qualified ({filteredAlmostQualifiedUsers?.length || 0})
+            Almost Qualified ({!isLoading ? (filteredAlmostQualifiedUsers?.length || 0) : '...'})
           </Tab>
         </Tab.List>
 
@@ -130,6 +148,7 @@ export default function GiveawayPage() {
                 value={qualifiedSearchQuery}
                 onChange={(e) => setQualifiedSearchQuery(e.target.value)}
                 className="w-full rounded-lg border border-charleston bg-charleston p-2 pl-10 pr-4 text-sm text-light focus:border-primary focus:ring-primary"
+                disabled={isLoading}
               />
               <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
                 <MagnifyingGlassIcon className="h-5 w-5 text-gray-500" aria-hidden="true" />
@@ -140,28 +159,32 @@ export default function GiveawayPage() {
               Qualified users have completed the requirements within the site, but they must answer and submit the form <a href="https://forms.gle/nEEAGhVXDtts2SQd8" className="underline text-blue-400 hover:text-blue-300">here</a>.
             </p>
             
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {!filteredQualifiedUsers || filteredQualifiedUsers.length === 0 ? (
-                <p className="text-gray-400 text-center">No qualified users found.</p>
-              ) : (
-                filteredQualifiedUsers.map((user) => (
-                  <div 
-                    key={user.email} 
-                    className="p-4 border rounded-md shadow-sm hover:shadow-md transition-shadow bg-eerieblack"
-                  >
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-light">{user.complete_name}</p>
-                      {user.is_organizer && (
-                        <span className="px-2 py-1 text-xs font-medium bg-blue-500 text-white rounded-full">
-                          Organizer
-                        </span>
-                      )}
+            {isLoading ? (
+              <LoadingGrid />
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {!filteredQualifiedUsers || filteredQualifiedUsers.length === 0 ? (
+                  <p className="text-gray-400 text-center">No qualified users found.</p>
+                ) : (
+                  filteredQualifiedUsers.map((user) => (
+                    <div 
+                      key={user.email} 
+                      className="p-4 border rounded-md shadow-sm hover:shadow-md transition-shadow bg-eerieblack"
+                    >
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-light">{user.complete_name}</p>
+                        {user.is_organizer && (
+                          <span className="px-2 py-1 text-xs font-medium bg-blue-500 text-white rounded-full">
+                            Organizer
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-400 font-mono">{maskEmail(user.email)}</p>
                     </div>
-                    <p className="text-sm text-gray-400 font-mono">{maskEmail(user.email)}</p>
-                  </div>
-                ))
-              )}
-            </div>
+                  ))
+                )}
+              </div>
+            )}
           </Tab.Panel>
 
           <Tab.Panel>
@@ -173,6 +196,7 @@ export default function GiveawayPage() {
                 value={almostQualifiedSearchQuery}
                 onChange={(e) => setAlmostQualifiedSearchQuery(e.target.value)}
                 className="w-full rounded-lg border border-charleston bg-charleston p-2 pl-10 pr-4 text-sm text-light focus:border-primary focus:ring-primary"
+                disabled={isLoading}
               />
               <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
                 <MagnifyingGlassIcon className="h-5 w-5 text-gray-500" aria-hidden="true" />
@@ -189,33 +213,37 @@ export default function GiveawayPage() {
               </ul>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {!filteredAlmostQualifiedUsers || filteredAlmostQualifiedUsers.length === 0 ? (
-                <p className="text-gray-400 text-center">No users close to qualifying found.</p>
-              ) : (
-                filteredAlmostQualifiedUsers.map((user) => {
-                  const reasons = []
-                  if (!user.is_part_of_org) reasons.push('Has not joined an organization')
-                  if (!user.has_registered_event) reasons.push('Has not registered for an event')
-                  if (!user.has_commented_on_post) reasons.push('Has not commented on a post')
+            {isLoading ? (
+              <LoadingGrid />
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {!filteredAlmostQualifiedUsers || filteredAlmostQualifiedUsers.length === 0 ? (
+                  <p className="text-gray-400 text-center">No users close to qualifying found.</p>
+                ) : (
+                  filteredAlmostQualifiedUsers.map((user) => {
+                    const reasons = []
+                    if (!user.is_part_of_org) reasons.push('Has not joined an organization')
+                    if (!user.has_registered_event) reasons.push('Has not registered for an event')
+                    if (!user.has_commented_on_post) reasons.push('Has not commented on a post')
 
-                  return (
-                    <div 
-                      key={user.email} 
-                      className="p-4 border rounded-md shadow-sm hover:shadow-md transition-shadow bg-eerieblack"
-                    >
-                      <p className="font-medium text-light">{user.complete_name}</p>
-                      <p className="text-sm text-gray-400 font-mono">{maskEmail(user.email)}</p>
-                      <ul className="mt-2 text-sm text-red-400">
-                        {reasons.map((reason, index) => (
-                          <li key={index}>- {reason}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )
-                })
-              )}
-            </div>
+                    return (
+                      <div 
+                        key={user.email} 
+                        className="p-4 border rounded-md shadow-sm hover:shadow-md transition-shadow bg-eerieblack"
+                      >
+                        <p className="font-medium text-light">{user.complete_name}</p>
+                        <p className="text-sm text-gray-400 font-mono">{maskEmail(user.email)}</p>
+                        <ul className="mt-2 text-sm text-red-400">
+                          {reasons.map((reason, index) => (
+                            <li key={index}>- {reason}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            )}
           </Tab.Panel>
         </Tab.Panels>
       </Tab.Group>
