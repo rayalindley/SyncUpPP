@@ -15,6 +15,8 @@ import { PhotoIcon, PlusIcon, TrashIcon } from "@heroicons/react/20/solid";
 import { insertEvent, updateEvent } from "@/lib/events";
 import { getUser, createClient } from "@/lib/supabase/client";
 import { recordActivity } from "@/lib/track";
+import { set } from "date-fns";
+import Swal from "sweetalert2";
 
 // Validation Schema
 const isFutureDate = (date: Date): boolean => {
@@ -910,7 +912,27 @@ const CreateEventForm = ({
         toast.success(
           event ? "Event was updated successfully." : "Event was created successfully."
         );
-        window.location.href = `/e/${event ? event.eventslug : completeFormData.eventslug}`;
+
+        const handleCreateFeedbackForm = async() => {
+          const result = await Swal.fire({
+            title: "Create Feedback Form",
+            text: "Do you want to create a feedback form for this event?",
+            icon: 'question',
+            confirmButtonText: "Create Now",
+            confirmButtonColor: '#3085d6',
+            cancelButtonText: "Later",
+            cancelButtonColor: '#d33',
+            showCancelButton: true,
+          });
+
+          if(result.isConfirmed) {
+            window.location.href = `/create-feedback-form/${event ? event.eventslug : completeFormData.eventslug}`;
+          } else {
+            window.location.href = `/e/${event ? event.eventslug : completeFormData.eventslug}`;
+          }
+        }
+        handleCreateFeedbackForm();
+        //window.location.href = `/e/${event ? event.eventslug : completeFormData.eventslug}`;
 
         // Reset form and signatories state
         reset();
@@ -1617,8 +1639,10 @@ const CreateEventForm = ({
                   defaultValue={event?.release_option || "after_event"}
                   className="block w-full rounded-md bg-charleston py-1.5 text-light shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                 >
-                  <option value="after_event">After Event</option>
-                  <option value="scheduled">Scheduled</option>
+                  <option value="after_feedback_submission"> After Feedback Submission </option>
+                  <option value="scheduled"> Scheduled Release </option>
+                  <option value="manual"> Manual Release </option>
+                  <option value="after_event"> After Attendance Verification </option>
                 </select>
               </div>
 
