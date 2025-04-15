@@ -913,6 +913,7 @@ const CreateEventForm = ({
           event ? "Event was updated successfully." : "Event was created successfully."
         );
 
+        // Feedback Creation Confirmation
         const handleCreateFeedbackForm = async() => {
           const result = await Swal.fire({
             title: "Create Feedback Form",
@@ -926,7 +927,7 @@ const CreateEventForm = ({
           });
 
           if(result.isConfirmed) {
-            window.location.href = `/create-feedback-form/${event ? event.eventslug : completeFormData.eventslug}`;
+            window.location.href = `/feedback-form/create/${event ? event.eventslug : completeFormData.eventslug}`;
           } else {
             window.location.href = `/e/${event ? event.eventslug : completeFormData.eventslug}`;
           }

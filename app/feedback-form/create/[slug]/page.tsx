@@ -1,5 +1,5 @@
 "use client";
-import CreateEventForm from "@/components/create_event_form";
+import CreateFeedbackForm from "@/components/create_feedback_form";
 import Preloader from "@/components/preloader";
 import { check_permissions, fetchOrganizationBySlug } from "@/lib/organization";
 import { getUser } from "@/lib/supabase/client";
@@ -67,18 +67,18 @@ export default function CreateEventPage() {
     return <Preloader />;
   }
 
-  if (!hasPermission) {
-    return (
-      <div className="bg-raisin flex min-h-screen items-center justify-center p-10 font-sans text-white">
-        <div className="text-center">
-          <h1 className="mb-4 text-3xl">Events Creation</h1>
-          <p className="text-lg">
-            You do not have permission to create events for this organization.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // if (!hasPermission) {
+  //   return (
+  //     <div className="bg-raisin flex min-h-screen items-center justify-center p-10 font-sans text-white">
+  //       <div className="text-center">
+  //         <h1 className="mb-4 text-3xl">Events Creation</h1>
+  //         <p className="text-lg">
+  //           You do not have permission to create events for this organization.
+  //         </p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <>
@@ -92,8 +92,17 @@ export default function CreateEventPage() {
           </a>
         </div>
 
+        <div className="sm:mx-auto sm:w-full sm:max-w-sm">
+          <img className="mx-auto h-10 w-auto" src="/syncup.png" alt="SyncUp" />
+          <h2 className="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-white">
+            Feedback Form
+          </h2>
+        </div>
+
+        
+
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-lg">
-          <CreateEventForm organizationid={(organization as any)?.organizationid} />
+          <CreateFeedbackForm/>
         </div>
       </div>
     </>
