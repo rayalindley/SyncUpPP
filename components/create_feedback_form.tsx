@@ -28,6 +28,7 @@ export default function CreateFeedbackForm() {
   const [showSatisfaction, setShowSatisfaction] = useState(false);
   const [showFrequency, setShowFrequency] = useState(false);
 
+  const [isLoading, setIsLoading] = useState(false);
 
   return (
     <div>
@@ -174,6 +175,18 @@ export default function CreateFeedbackForm() {
               <p className="text-sm text-red-500">{errors.description.message}</p>
             )} */}
           </div>
+
+          {/* Submit Button */}
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="flex justify-end rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:bg-charleston"
+            >
+              {isLoading ? "Submitting..." : "Submit"}
+            </button>
+          </div>
     </div>
+
   );
 }
