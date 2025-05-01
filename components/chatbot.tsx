@@ -24,13 +24,11 @@ export default function Chatbot() {
     <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end">
       {open && (
         <div className="w-80 h-96 bg-white rounded-lg shadow-lg flex flex-col overflow-hidden">
-          {/* Header */}
           <div className="pt-2 pb-2 pl-4 pr-4 bg-primary rounded-t-lg flex justify-between items-center text-white">
             <h2 className="text-lg font-bold">BotBot</h2>
             <button onClick={() => setOpen(false)}>✖</button>
           </div>
 
-          {/* Messages Scroll Area */}
           <div className="flex-1 overflow-auto p-2 space-y-2 text-sm">
             {messages.map((msg, idx) => (
               <div key={idx} className="text-right">
@@ -42,7 +40,6 @@ export default function Chatbot() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input box always at the bottom */}
           <div className="p-2 border-t flex gap-2">
             <input
               type="text"
