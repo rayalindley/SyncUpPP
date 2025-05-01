@@ -918,12 +918,20 @@ const CreateEventForm = ({
           const result = await Swal.fire({
             title: "Create Feedback Form",
             text: "Do you want to create a feedback form for this event?",
-            icon: 'question',
+            
             confirmButtonText: "Create Now",
-            confirmButtonColor: '#3085d6',
+            confirmButtonColor: '#379A7B',
             cancelButtonText: "Later",
             cancelButtonColor: '#d33',
             showCancelButton: true,
+
+            customClass: {
+              title: "text-lg",
+              htmlContainer: "text-base",
+              popup: "rounded-lg p-6 shadow-xl border border-gray-700",
+              confirmButton: "text-sm px-4 py-2 rounded-md",
+              cancelButton: "text-sm px-4 py-2 rounded-md",
+            }
           });
 
           if(result.isConfirmed) {

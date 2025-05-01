@@ -1,4 +1,5 @@
 import "@/app/globals.css";
+import Chatbot from "@/components/chatbot";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 
@@ -18,6 +19,7 @@ export default function RootLayout({
     <html lang="en" className=" h-full ">
       <body className={`${inter.className} h-full bg-eerieblack bg-none`}>
         {children}
+        <Chatbot/>
       </body>
     </html>
   );

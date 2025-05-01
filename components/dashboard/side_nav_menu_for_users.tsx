@@ -21,6 +21,9 @@ import {
   IoShieldCheckmarkOutline,
   IoWalletOutline,
 } from "react-icons/io5";
+
+import { CgFileDocument } from "react-icons/cg";
+
 import { TbUserStar } from "react-icons/tb";
 import { ChevronDownIcon } from "@heroicons/react/20/solid";
 import { set } from "date-fns";
@@ -107,25 +110,40 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
             },
           ]
         : []),
+      // ...(selected === "default" || typeof selected === "string"
+      //   ? [
+      //     {
+      //       name: "Events",
+      //       icon: IoCalendarOutline,
+      //       href:
+      //         selected
+      //     }
+      //   ]
+      // )
     {
       name: "Events",
       icon: IoCalendarOutline,
-      submenu: [
-        {
-          name: "Events List",
-          href:
-          selected === "default" || typeof selected === "string"
-            ? `/dashboard/events`
-            : `/${selected.slug}/dashboard/events`,
-        },
-        {
-          name: "Events Registrations",
-          href:
-            selected === "default" || typeof selected === "string"
-              ? `/dashboard/registrations`
-              : `/${selected.slug}/dashboard/registrations`,
-        },
-      ],
+      href:
+        selected === "default" || typeof selected === "string"
+          ? `/dashboard/events`
+          : `/${selected.slug}/dashboard/events`,
+
+      // submenu: [
+      //   {
+      //     name: "Events List",
+      //     href:
+      //     selected === "default" || typeof selected === "string"
+      //       ? `/dashboard/events`
+      //       : `/${selected.slug}/dashboard/events`,
+      //   },
+      //   {
+      //     name: "Events Registrations",
+      //     href:
+      //       selected === "default" || typeof selected === "string"
+      //         ? `/dashboard/registrations`
+      //         : `/${selected.slug}/dashboard/registrations`,
+      //   },
+      // ],
     },
     ...(selected !== "default" && typeof selected !== "string"
       ? [
@@ -136,6 +154,15 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
           },
         ]
       : []),
+    ...(selected !== "default" && typeof selected !== "string"
+      ? [
+        {
+          name: "Reports",
+          href: `/${selected.slug}/dashboard/reports`,
+          icon: CgFileDocument,
+        }
+      ]
+      : [])
   ];
 
   const toggleSubmenu = (name: string) => {

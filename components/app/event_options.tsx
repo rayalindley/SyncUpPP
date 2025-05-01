@@ -23,6 +23,7 @@ import { CertificateSettings } from "@/types/event";
 import { fetchCertificateSettings } from "@/lib/events";
 import { FaCertificate } from "react-icons/fa";
 import { releaseCertificatesNow } from "@/lib/events";
+import { Cog6ToothIcon } from "@heroicons/react/24/outline";
 
 
 const jsonTheme = {
@@ -336,18 +337,36 @@ export default function EventOptions({
                     href="#"
                     className={classNames(
                       active ? "bg-raisinblack text-light" : "text-light",
-                      "group flex items-center px-4 py-2 text-sm"
+                      "group flex items-center px-3 py-2 text-sm"
                     )}
                     onClick={() => {
                       setCurrentTab("Info");
                       setOpen(true);
                     }}
                   >
-                    <UserIcon
+                    <Cog6ToothIcon
+                      className="mr-4 h-5 w-5 text-light group-hover:text-light"
+                      aria-hidden="true"
+                    />
+                    Manage Event
+                  </a>
+                )}
+              </Menu.Item>
+              <Menu.Item>
+                {({ active }: { active: boolean }) => (
+                  <a
+                    className={classNames(
+                      active ? "bg-raisinblack text-light" : "text-light",
+                      "group flex items-center px-4 py-2 text-sm"
+                    )}
+                    // org slug/dashboard.registrations
+                    href={`/${selectedEvent.eventslug}/dashboard/registrations`}
+                  >
+                    <UsersIcon
                       className="mr-3 h-5 w-5 text-light group-hover:text-light"
                       aria-hidden="true"
                     />
-                    View Event Info
+                    View Registrations
                   </a>
                 )}
               </Menu.Item>
@@ -359,13 +378,14 @@ export default function EventOptions({
                         active ? "bg-raisinblack text-light" : "text-light",
                         "group flex items-center px-4 py-2 text-sm"
                       )}
-                      href={`/events/edit/${selectedEvent.eventid}`} // Assuming id is used for events
+                      href={`/${selectedEvent.eventid}/dashboard/registrations`}
+                      //href={`/events/edit/${selectedEvent.eventid}`} // Assuming id is used for events
                     >
-                      <FaRegEdit
+                      <UsersIcon
                         className="mr-3 h-5 w-5 text-light group-hover:text-light"
                         aria-hidden="true"
                       />
-                      Edit Event
+                      View Registrations
                     </Link>
                   )}
                 </Menu.Item>
@@ -501,7 +521,7 @@ export default function EventOptions({
                         <div className="flex items-start justify-between">
                           <Dialog.Title className="text-base font-semibold leading-6 text-light">
                             {currentTab === "Info"
-                              ? "Event Information"
+                              ? "Manage Event"
                               : currentTab === "Attendees"
                               ? "Attendees"
                               : "Certificate Preview"}
@@ -748,7 +768,7 @@ export default function EventOptions({
                                   onClick={deleteBtn}
                                   className="flex-1 rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700"
                                 >
-                                  Delete
+                                  Delete Event
                                 </button>
                               )}
                             </div>
