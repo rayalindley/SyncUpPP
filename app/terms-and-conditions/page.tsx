@@ -8,7 +8,7 @@ export default async function TermsAndConditions() {
       <Header user={user} />
       <main className="p-6 font-sans">
         <div className="max-w-6xl mx-auto">
-          <h3 className="text-[#bababa] text-xl font-bold mb-3">SyncUp</h3>
+          <h3 className="text-[#bababa] text-xl font-bold mb-3">SyncUp++</h3>
           <h1 className="text-3xl font-bold mb-4 text-[#efefef] mb-6">Terms & Conditions</h1>
           <p className="mb-4 text-[#bababa] text-lg font-semibold">These Terms & Conditions outline the rules and regulations for using our platform. SyncUp offers organizations a streamlined system to manage memberships, events, and communications efficiently. By using our services, users agree to comply with the terms set forth below. These terms are designed to ensure the protection of both users and administrators while providing a secure and reliable experience. Please review them carefully, as your continued use of the platform indicates your acceptance and understanding of these conditions.</p>
           

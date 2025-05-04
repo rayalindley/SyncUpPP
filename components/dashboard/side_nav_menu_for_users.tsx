@@ -533,7 +533,7 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
           <Link href="/">
             <div className="flex h-16 shrink-0 items-center">
               <img className="h-10 w-auto" src="/syncup.png" alt="SyncUp" />
-              <p className="ml-2 font-semibold text-light">SyncUp</p>
+              <p className="ml-2 font-semibold text-light">SyncUp++</p>
             </div>
           </Link>
 

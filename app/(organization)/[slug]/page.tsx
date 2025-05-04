@@ -54,7 +54,7 @@ export async function generateMetadata(
       title: `${org.name} | SyncUp`,
       description: org.description,
       url: `${process.env.NEXT_PUBLIC_BASE_URL}/organization/${slug}`,
-      siteName: "SyncUp",
+      siteName: "SyncUp++",
       images: [
         {
           url: org.banner

@@ -39,14 +39,14 @@ export default function Footer() {
                 <img className="h-8 w-auto" src="/syncup.png" alt="" />
               </div>
               <div className="font text-l flex items-center px-2 font-semibold text-light">
-                SyncUp
+                SyncUp++
               </div>
             </div>
           </Link>
         </div>
         <div className="mt-4 max-sm:order-3 md:mt-0">
           <p className="text-center text-xs text-gray-500">
-            &copy; Copyright 2024 SyncUp. All rights reserved.
+            &copy; Copyright 2025 SyncUp++. All rights reserved.
           </p>
         </div>
         <div className="flex justify-center space-x-4 max-sm:order-2">
