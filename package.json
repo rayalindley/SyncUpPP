@@ -108,6 +108,7 @@
     "@types/node-cache": "^4.2.5",
     "@types/nodemailer": "^6.4.16",
     "@types/pdfkit": "^0.13.5",
+    "@types/prop-types": "^15.7.14",
     "@types/react": "^18",
     "@types/react-beautiful-dnd": "^13.1.8",
     "@types/react-color": "^3.0.12",
