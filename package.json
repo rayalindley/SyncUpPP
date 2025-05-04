@@ -33,6 +33,7 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
+    "dialogflow-fulfillment": "^0.5.0",
     "dompurify": "^3.1.7",
     "file-saver": "^2.0.5",
     "formidable": "^3.5.1",
