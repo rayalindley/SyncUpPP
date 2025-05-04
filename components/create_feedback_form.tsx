@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 import React, { useRef, useEffect, useState } from "react";
 import "@yaireo/tagify/dist/tagify.css";
 import { ToastContainer, toast } from "react-toastify";
