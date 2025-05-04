@@ -7,17 +7,17 @@ const supabase = createClient();
 export default async function handler(req:NextApiRequest, res:NextApiResponse) {
   const agent = new WebhookClient({ request:req, response:res});
 
-  async function getUserData(agent: any) {
-    const { data, error } = await supabase.from("users").select("*").limit(1);
+  async function getData(agent: any) {
+    const { data, error } = await supabase.from("userprofiles").select("*").limit(1);
 
     if(error || !data?.length) {
       agent.add("Sorry, I couldn't fetch the user data.");
     } else {
-      agent.add(`User name: ${data[0].name}, Email" ${data[0].email}`);
+      agent.add(`User name: ${JSON.stringify(data[0])}`);
     }
   }
 
   const intentMap = new Map();
-  intentMap.set("GetUserInfo", getUserData);
+  intentMap.set('Get Data', getData);
   agent.handleRequest(intentMap);
 }
