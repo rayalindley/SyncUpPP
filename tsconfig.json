@@ -26,14 +26,16 @@
       "@/*": [
         "./*"
       ] // Allows alias '@/' for easier imports
-    }
+    },
+    "typeRoots": ["node_modules/@types", "./types"],
+    "types": ["node", "react", "react-dom", "pdfkit", "validator", "lodash"],
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts",
-    "app/(organization)/[slug]/dashboard/edit/page-oldtsx"  ], // Includes TypeScript files and Next.js types
+    ".next/types/**/*.ts"
+, "app/(organization)/[slug]/dashboard/edit/page-oldtsx"  ], // Includes TypeScript files and Next.js types
   "exclude": [
     "node_modules",
     "models",
