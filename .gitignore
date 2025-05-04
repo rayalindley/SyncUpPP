@@ -55,3 +55,4 @@ db.backup
 attachments/
 
 # dialogflow key
+/service-account/syncup2-457313-3ba0e049b955.json
