@@ -14,7 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const auth = new GoogleAuth({
-      keyFile: process.env.GOOGLE_KEY_PATH || "./service-account/syncup2-457313-3ba0e049b955.json",
+      keyFile: process.env.GOOGLE_KEY_PATH || "./service-account/dialogflow-service-account.json",
       scopes: "https://www.googleapis.com/auth/cloud-platform",
     });
 
