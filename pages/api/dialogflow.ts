@@ -1,6 +1,20 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { GoogleAuth } from "google-auth-library";
+import { GoogleAuth, JWTInput } from "google-auth-library";
 import axios from "axios";
+import fs from "fs";
+import path from "path";
+
+let credentials: JWTInput;
+
+if (process.env.VERCEL) {
+  const decoded = Buffer.from(process.env.GOOGLE_KEY_PATH!, "base64").toString("utf-8");
+  credentials = JSON.parse(decoded);
+} else {
+  const filePath = path.join(process.cwd(), process.env.GOOGLE_KEY_PATH!);
+  const fileContent = fs.readFileSync(filePath, "utf-8");
+  credentials = JSON.parse(fileContent);
+}
+
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -14,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const auth = new GoogleAuth({
-      keyFile: process.env.GOOGLE_KEY_PATH,
+      credentials, // 👈 Use the loaded credentials
       scopes: ["https://www.googleapis.com/auth/cloud-platform"],
     });
 
