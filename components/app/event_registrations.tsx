@@ -31,6 +31,8 @@ interface Registration {
   status: string;
   attendance: string | null; // Modified to allow null for empty values
   attendance_updated_at: string;
+  has_submitted_feedback: boolean;
+  feedback_submitted_at: string;
 }
 
 interface RegistrationsTableProps {
@@ -223,18 +225,18 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
       selector: (row: Registration) => row.email,
       sortable: true,
     },
-    {
-      name: "Event Name",
-      selector: (row: Registration) => row.event_name.toLowerCase(),
-      sortable: true,
-      cell: (row: Registration) => row.event_name,
-    },
-    {
-      name: "Organization",
-      selector: (row: Registration) => row.organization_name.toLowerCase(),
-      sortable: true,
-      cell: (row: Registration) => row.organization_name,
-    },
+    // {
+    //   name: "Event Name",
+    //   selector: (row: Registration) => row.event_name.toLowerCase(),
+    //   sortable: true,
+    //   cell: (row: Registration) => row.event_name,
+    // },
+    // {
+    //   name: "Organization",
+    //   selector: (row: Registration) => row.organization_name.toLowerCase(),
+    //   sortable: true,
+    //   cell: (row: Registration) => row.organization_name,
+    // },
     {
       name: "Registration Date",
       selector: (row: Registration) => row.registrationdate,
@@ -346,6 +348,15 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
       cell: (row: Registration) => {
         const attendanceDate = new Date(row.attendance_updated_at);
         return attendanceDate.getTime() === 0 ? "" : format(attendanceDate, "MMM d, yyyy h:mma");
+      },
+    },
+    {
+      name: "Feedback Submitted At",
+      selector: (row: Registration) => row.feedback_submitted_at,
+      sortable: true,
+      cell: (row: Registration) => {
+        const feedbackDate = new Date(row.feedback_submitted_at);
+        return isNaN(feedbackDate.getTime()) ? "" : format(feedbackDate, "MMM d, yyyy h:mma");
       },
     },
   ];

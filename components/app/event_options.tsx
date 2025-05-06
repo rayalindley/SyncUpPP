@@ -370,26 +370,6 @@ export default function EventOptions({
                   </a>
                 )}
               </Menu.Item>
-              {canEditEvents && (
-                <Menu.Item>
-                  {({ active }: { active: boolean }) => (
-                    <Link
-                      className={classNames(
-                        active ? "bg-raisinblack text-light" : "text-light",
-                        "group flex items-center px-4 py-2 text-sm"
-                      )}
-                      href={`/${selectedEvent.eventid}/dashboard/registrations`}
-                      //href={`/events/edit/${selectedEvent.eventid}`} // Assuming id is used for events
-                    >
-                      <UsersIcon
-                        className="mr-3 h-5 w-5 text-light group-hover:text-light"
-                        aria-hidden="true"
-                      />
-                      View Registrations
-                    </Link>
-                  )}
-                </Menu.Item>
-              )}
               <Menu.Item>
                 {({ active }: { active: boolean }) => (
                   <a
@@ -411,6 +391,26 @@ export default function EventOptions({
                   </a>
                 )}
               </Menu.Item>
+              {canEditEvents && (
+                <Menu.Item>
+                  {({ active }: { active: boolean }) => (
+                    <Link
+                      className={classNames(
+                        active ? "bg-raisinblack text-light" : "text-light",
+                        "group flex items-center px-4 py-2 text-sm"
+                      )}
+                      href={`/${selectedEvent.eventid}/dashboard/registrations`}
+                      //href={`/events/edit/${selectedEvent.eventid}`} // Assuming id is used for events
+                    >
+                      <UsersIcon
+                        className="mr-3 h-5 w-5 text-light group-hover:text-light"
+                        aria-hidden="true"
+                      />
+                      View Feedbacks
+                    </Link>
+                  )}
+                </Menu.Item>
+              )}
               {/* Certificate Preview - Conditional Rendering */}
               <Menu.Item disabled={!certificateSettings?.certificate_enabled}>
                 {({ active, disabled }: { active: boolean; disabled: boolean }) => (

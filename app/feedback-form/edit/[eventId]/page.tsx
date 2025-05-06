@@ -4,7 +4,8 @@ import Preloader from "@/components/preloader";
 import { check_permissions, fetchOrganizationBySlug } from "@/lib/organization";
 import { getUser } from "@/lib/supabase/client";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
+import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
 export default function CreateEventPage() {
@@ -14,7 +15,7 @@ export default function CreateEventPage() {
   const [organization, setOrganization] = useState(null);
   const [error, setError] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [loading, setLoading] = useState(true); // Add a loading state
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchOrganization = async () => {
@@ -53,7 +54,7 @@ export default function CreateEventPage() {
       } catch (error) {
         console.error("Failed to check permissions", error);
       } finally {
-        setLoading(false); // Ensure loading is set to false after permission check
+        setLoading(false);
       }
     };
 

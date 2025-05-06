@@ -18,6 +18,8 @@ interface Registration {
   eventid: string;
   attendance: string;
   attendance_updated_at: string;
+  has_submitted_feedback: boolean;
+  feedback_submitted_at: string;
 }
 
 export default async function RegistrationsPage() {

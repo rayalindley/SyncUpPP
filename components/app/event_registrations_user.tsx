@@ -27,6 +27,8 @@ interface Registration {
   status: string;
   attendance: string | null; // Modified to allow null for empty values
   attendance_updated_at: string;
+  has_submitted_feedback: boolean;
+  feedback_submitted_at: string;
 }
 
 interface RegistrationsTableProps {
@@ -349,6 +351,17 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
       sortable: true,
       cell: (row: Registration) => {
         const attendanceDate = new Date(row.attendance_updated_at);
+        // Convert UTC to PST (UTC-8 or UTC-7 depending on daylight saving)
+        const pstDate = new Date(attendanceDate.getTime() + (8 * 60 * 60 * 1000)); // Adjust for PST
+        return attendanceDate.getTime() === 0 ? "" : format(pstDate, "MMM d, yyyy h:mma");
+      },
+    },
+    {
+      name: "Feedback Submitted At",
+      selector: (row: Registration) => row.feedback_submitted_at,
+      sortable: true,
+      cell: (row: Registration) => {
+        const attendanceDate = new Date(row.feedback_submitted_at);
         // Convert UTC to PST (UTC-8 or UTC-7 depending on daylight saving)
         const pstDate = new Date(attendanceDate.getTime() + (8 * 60 * 60 * 1000)); // Adjust for PST
         return attendanceDate.getTime() === 0 ? "" : format(pstDate, "MMM d, yyyy h:mma");
