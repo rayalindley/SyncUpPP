@@ -22,6 +22,7 @@ import { recordActivity } from "@/lib/track";
 import { CertificateSettings } from "@/types/event";
 import { fetchCertificateSettings } from "@/lib/events";
 import { FaCertificate } from "react-icons/fa";
+import { MdOutlineComment } from "react-icons/md";
 import { releaseCertificatesNow } from "@/lib/events";
 import { Cog6ToothIcon } from "@heroicons/react/24/outline";
 
@@ -74,6 +75,8 @@ export default function EventOptions({
   const [certificateSettings, setCertificateSettings] = useState<CertificateSettings | null>(null);
   const [loadingCertificateSettings, setLoadingCertificateSettings] = useState<boolean>(false);
   const [certificateError, setCertificateError] = useState<string | null>(null);
+
+  const hasFeedbackForm = selectedEvent.has_feedback_form;
 
   const releaseCertificatesHandler = async () => {
     // Perform necessary checks here
@@ -370,7 +373,33 @@ export default function EventOptions({
                   </a>
                 )}
               </Menu.Item>
-              <Menu.Item>
+              
+              {canEditEvents && (
+                <Menu.Item>
+                  {({ active }: { active: boolean }) => (
+                    <a
+                      href={`/feedback-form/${selectedEvent.eventslug}`}
+                      className={classNames(
+                        active ? "bg-raisinblack text-light" : "text-light",
+                        "group flex items-center px-3 py-2 text-sm"
+                      )}
+                      // onClick={() => {
+                      //   setCurrentTab("Info");
+                      //   setOpen(true);
+                      // }}
+                    >
+                      <Cog6ToothIcon
+                        className="mr-4 h-5 w-5 text-light group-hover:text-light"
+                        aria-hidden="true"
+                      />
+                      
+                      {hasFeedbackForm ? "Edit Feedback Form" : "Create Feedback Form"}
+                    </a>
+                  )}
+                </Menu.Item>
+              )}
+              
+              {/* <Menu.Item>
                 {({ active }: { active: boolean }) => (
                   <a
                     href="#"
@@ -390,24 +419,30 @@ export default function EventOptions({
                     View Attendees
                   </a>
                 )}
-              </Menu.Item>
+              </Menu.Item> */}
               {canEditEvents && (
-                <Menu.Item>
-                  {({ active }: { active: boolean }) => (
-                    <Link
+                <Menu.Item disabled={!hasFeedbackForm}>
+                  {({ active, disabled }: { active: boolean; disabled: boolean }) => (
+                      <a
+                      href="#"
                       className={classNames(
-                        active ? "bg-raisinblack text-light" : "text-light",
+                        active && !disabled ? "bg-raisinblack text-light" : "text-light",
+                        disabled ? "cursor-not-allowed opacity-50" : "",
                         "group flex items-center px-4 py-2 text-sm"
                       )}
-                      href={`/${selectedEvent.eventid}/dashboard/registrations`}
-                      //href={`/events/edit/${selectedEvent.eventid}`} // Assuming id is used for events
-                    >
-                      <UsersIcon
+                      onClick={() => {
+                        if (certificateSettings?.certificate_enabled) {
+                        setCurrentTab("CertificatePreview");
+                        setOpen(true);
+                        }
+                      }}
+                      >
+                      <MdOutlineComment
                         className="mr-3 h-5 w-5 text-light group-hover:text-light"
                         aria-hidden="true"
                       />
-                      View Feedbacks
-                    </Link>
+                      View Feedback
+                      </a>
                   )}
                 </Menu.Item>
               )}

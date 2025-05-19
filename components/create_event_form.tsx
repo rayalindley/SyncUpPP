@@ -913,6 +913,8 @@ const CreateEventForm = ({
           event ? "Event was updated successfully." : "Event was created successfully."
         );
 
+
+
         // Feedback Creation Confirmation
         const handleCreateFeedbackForm = async() => {
           const result = await Swal.fire({
@@ -934,8 +936,15 @@ const CreateEventForm = ({
             }
           });
 
+          const eventSlug = event ? event.eventslug : completeFormData.eventslug;
+
           if(result.isConfirmed) {
-            window.location.href = `/feedback-form/create/${event ? event.eventslug : completeFormData.eventslug}`;
+            await supabase
+              .from("events")
+              .update({has_feedback_form: true})
+              .eq("eventslug", eventSlug);
+
+            window.location.href = `/feedback-form/${event ? event.eventslug : completeFormData.eventslug}`;
           } else {
             window.location.href = `/e/${event ? event.eventslug : completeFormData.eventslug}`;
           }
