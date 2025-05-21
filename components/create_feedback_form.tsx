@@ -1,15 +1,29 @@
 /* eslint-disable react/no-unescaped-entities */
+"use client";
 import React, { useRef, useEffect, useState } from "react";
 import "@yaireo/tagify/dist/tagify.css";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { MdDragIndicator } from 'react-icons/md'
+import { Event } from "@/types/event";
+import { getUser, createClient } from "@/lib/supabase/client";
+import { useParams } from "next/navigation";
+import { Question } from "@/types/questions";
 
+const supabase = createClient();
 
-export default function CreateFeedbackForm() {
+export default function CreateFeedbackForm({
+  selectedEvent,
+  userId,
+}: {
+  selectedEvent: Event;
+  userId: string;
+}) {
+  const { eventslug } = useParams() as { eventslug: string };
   const [isAddQModalOpen, setIsAddQModalOpen] = useState(false);
-  const [questionType, setQuestionType] = useState('text');
+  const [questions, setQuestions] = useState<Question[]>([]); // here
+  const [questionType, setQuestionType] = useState('text'); //here
   const [likertType, setLikertType] = useState('');
   const [showAgreement, setShowAgreement] = useState(false);
   const [showSatisfaction, setShowSatisfaction] = useState(false);
@@ -19,8 +33,119 @@ export default function CreateFeedbackForm() {
 
   const [isLoading, setIsLoading] = useState(false);
 
-  const [addedQuestions, setAddedQuestions] = useState<string[]>([]);
+  const [formId, setFormId] = useState<number | null>(null);
+  const [choiceQuestions, setChoiceQuestions] = useState<Question[]>([]);
+  const [likertQuestions, setLikertQuestions] = useState<Question[]>([]);
+  const [addedQuestions, setAddedQuestions] = useState<number[]>([]);
 
+  
+
+  useEffect(() => {
+    const fetchFormAndQuestions = async () => {
+      let fetchedFormId: number | null = null;
+
+      const { data: form, error: formError } = await supabase
+        .from('forms')
+        .select('id')
+        .eq('slug', eventslug)
+        .single();
+
+      if (form && !formError) {
+        fetchedFormId = form.id;
+      } else {
+        const { data: newForm, error: insertError } = await supabase
+          .from('forms')
+          .insert([{ slug: eventslug }])
+          .select()
+          .single();
+
+        if (insertError || !newForm) {
+          console.error('Error creating new form:', insertError);
+          return;
+        }
+
+        fetchedFormId = newForm.id;
+      }
+
+      setFormId(fetchedFormId);
+
+      const { data: allQuestions, error: qError } = await supabase
+        .from('questions')
+        .select('id, question_text, question_type, category_id');
+
+      if (qError) {
+        console.error('Error fetching questions:', qError);
+        return;
+      }
+
+      setChoiceQuestions(allQuestions.filter(q => q.question_type === 'choice'));
+      setLikertQuestions(allQuestions.filter(q => q.question_type === 'likert'));
+
+      const { data: formData, error: fError } = await supabase
+        .from('form_questions')
+        .select('question_id')
+        .eq('form_id', fetchedFormId);
+
+      if (fError) {
+        console.error('Error fetching form questions:', fError);
+        return;
+      }
+
+      setAddedQuestions(formData.map(fq => fq.question_id));
+    };
+
+    fetchFormAndQuestions();
+  }, [eventslug]);
+
+  
+
+  const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
+
+  const toggleCategory = (label: string) => {
+    setExpandedCategories(prev =>
+      prev.includes(label) ? prev.filter(l => l !== label) : [...prev, label]
+    );
+  };
+
+  const getCategoryLabel = (categoryId?: number | null) => {
+    switch (categoryId) {
+      case 1: return 'Agreement';
+      case 2: return 'Satisfaction';
+      case 3: return 'Frequency';
+      case 4: return 'Importance';
+      case 5: return 'Effectiveness';
+      default: return 'Other';
+    }
+  };
+
+  const handleAddQuestion = async (questionId: number) => {
+    if (!formId) return;
+  
+    const { error } = await supabase.from('form_questions').insert({
+      form_id: formId,
+      question_id: questionId
+    });
+  
+    if (error) {
+      console.error('Error adding question to form:', error);
+      return;
+    }
+  
+    setAddedQuestions(prev => [...prev, questionId]);
+  };
+  
+
+
+  const [isClicked, setIsClicked] = useState<boolean[]>([]);
+
+  const handleClicked = (index: number) => {
+    setIsClicked(prev => {
+      const newStates = [...prev];
+      newStates[index] = !newStates[index];
+      return newStates;
+    })
+  }
+  
   useEffect(() => {
     console.log("Saving to localStorage: ", addedQuestions);
     localStorage.setItem('addedQuestions', JSON.stringify(addedQuestions));
@@ -38,29 +163,49 @@ export default function CreateFeedbackForm() {
       }
     }
   }, []);
+
+  // const handleAddQuestion = (questionText: string) => {
+  //   setAddedQuestions(prev => [...prev, questionText]);
+  // };
+
+  // const choiceQuestions = [
+  //   "How did you hear about this event?",
+  //   "What was your main reason for attending?",
+  //   "Which segment did you find most engaging?",
+  // ]
+
+
+  // useEffect(() => {
+  //   const fetchAll = async () => {
+  //     const { data, error } = await supabase
+  //       .from('questions')
+  //       .select('*');
   
-
-  const handleAddQuestion = (questionText: string) => {
-    setAddedQuestions(prev => [...prev, questionText]);
-  };
-
-
-  const [isClicked, setIsClicked] = useState<boolean[]>([]);
-
-  const handleClicked = (index: number) => {
-    setIsClicked(prev => {
-      const newStates = [...prev];
-      newStates[index] = !newStates[index];
-      return newStates;
-    })
-  }
-
-  const choiceQuestions = [
-    "How did you hear about this event?",
-    "What was your main reason for attending?",
-    "Which segment did you find most engaging?",
-  ]
-
+  //     if(error) {
+  //       console.error('Error fetching questions:', error);
+  //       return;
+  //     }
+  
+  //     setChoiceQuestions(data.filter(q => q.question_type === 'Choice'));
+  //     setLikertQuestions(data.filter(q => q.question_type === 'Likert'));
+  
+  //     const { data: formData, error: fError } = await supabase
+  //       .from('form_questions')
+  //       .select('question_id')
+  //       .eq('form_id', formId);
+  
+  //     if (fError) {
+  //       console.error('Error fetching form questions:', fError);
+  //       return;
+  //     }
+  
+  //     const addedIds = formData.map(fq => fq.question_id);
+  //     setAddedQuestions(addedIds);
+  //   };
+  
+  //   fetchAll();
+  // }, [formId]);
+  
 
 
   return (
@@ -130,6 +275,30 @@ export default function CreateFeedbackForm() {
               {questionType === 'choice' && (
                 <div className="bg-[#282828]">
                   {choiceQuestions
+                  .filter(q=>!addedQuestions.includes(q.id))
+                  .map((q) => (
+                  <>
+                    <div key={q.id} className="flex items-center border border-[#444444]">
+                      <button onClick={()=>handleAddQuestion(q.id)}>
+                        <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
+                      </button>
+                      <div> {q.question_text} </div>
+                    </div>
+                  </>
+                  ))}
+                      
+                  <div className="flex items-center border border-[#444444]">
+                    <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
+                    <div className="italic text-sm"> Custom Question </div>
+                    <div className="italic text-xs ml-auto pr-3"> PAID </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Choice Questions */}
+              {/* {questionType === 'choice' && (
+                <div className="bg-[#282828]">
+                  {choiceQuestions
                   .filter(q=>!addedQuestions.includes(q))
                   .map((questionText, i) => (
                   <>
@@ -148,7 +317,7 @@ export default function CreateFeedbackForm() {
                     <div className="italic text-xs ml-auto pr-3"> PAID </div>
                   </div>
                 </div>
-              )}
+              )} */}
 
               {/* Likert Questions */}
               {questionType === 'likert' && (

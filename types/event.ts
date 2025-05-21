@@ -27,5 +27,5 @@ export interface Event {
   selected?: boolean;
   onsite?: boolean;
   status?: string;
-  has_feedback_form: boolean;
+  has_feedback_form?: boolean;
 }
