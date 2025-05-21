@@ -11,6 +11,7 @@ export default function CreateEventPage() {
   const router = useRouter();
   const params = useParams() as { slug: string };
   const slug = params.slug;
+  const [ userId, setUserId ] = useState<string | null>(null);
   const [organization, setOrganization] = useState(null);
   const [error, setError] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
@@ -40,6 +41,8 @@ export default function CreateEventPage() {
 
     const checkPermissions = async () => {
       const { user } = await getUser();
+      setUserId(user?.id ?? null);
+      
       try {
         const organization = await fetchOrganizationBySlug(slug as string);
         if (organization && organization.data) {
@@ -102,7 +105,7 @@ export default function CreateEventPage() {
         
 
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-lg">
-          <CreateFeedbackForm/>
+          <CreateFeedbackForm selectedEvent={slug} userId={userId}/>
         </div>
       </div>
     </>
