@@ -17,8 +17,8 @@ export default function CreateFeedbackForm({
   selectedEvent,
   userId,
 }: {
-  selectedEvent: Event;
-  userId: string;
+  selectedEvent: any;
+  userId: any;
 }) {
   const { eventslug } = useParams() as { eventslug: string };
   const [isAddQModalOpen, setIsAddQModalOpen] = useState(false);
