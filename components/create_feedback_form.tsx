@@ -5,6 +5,7 @@ import "@yaireo/tagify/dist/tagify.css";
 import "react-toastify/dist/ReactToastify.css";
 import { createClient } from "@/lib/supabase/client";
 import { Question } from "@/types/questions";
+import { useRouter } from "next/navigation";
 
 const supabase = createClient();
 
@@ -27,6 +28,7 @@ export default function CreateFeedbackForm({
   const [showEffectiveness, setShowEffectiveness] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const [formId, setFormId] = useState<number | null>(null);
   const [choiceQuestions, setChoiceQuestions] = useState<Question[]>([]);
@@ -122,26 +124,8 @@ export default function CreateFeedbackForm({
     fetchFormAndQuestions();
   }, [selectedEvent, eventId]);
 
-  const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
 
-  const toggleCategory = (label: string) => {
-    setExpandedCategories(prev =>
-      prev.includes(label) ? prev.filter(l => l !== label) : [...prev, label]
-    );
-  };
-
-  const getCategoryLabel = (categoryId?: number | null) => {
-    switch (categoryId) {
-      case 1: return 'Agreement';
-      case 2: return 'Satisfaction';
-      case 3: return 'Frequency';
-      case 4: return 'Importance';
-      case 5: return 'Effectiveness';
-      default: return 'Other';
-    }
-  };
-
-  const handleAddQuestion = async (questionId: number) => {
+  const handleAddQuestion = async(questionId: number) => {
     if (!formId) return;
 
     const { data: existingQuestions } = await supabase
@@ -177,7 +161,115 @@ export default function CreateFeedbackForm({
     setAddedQuestions(prev => [...prev, questionId]);
   };
   
+  const handleDeleteQuestion = async(questionId: number) => {
+    if(!formId) return;
 
+    const { error: deleteError } = await supabase
+      .from('form_questions')
+      .delete()
+      .eq('question_id', questionId)
+      .eq('form_id', formId);
+
+    if(deleteError) {
+      console.error("Error deleting question");
+      return;
+    }
+
+    const { data: remaining, error: fetchError } = await supabase
+      .from('form_questions')
+      .select('id')
+      .eq('form_id', formId)
+      .order('question_order', { ascending: true });
+
+    if (fetchError) {
+      console.error("Error fetching remaining questions:", fetchError);
+      return;
+    }
+
+    for(let i = 0; i < remaining.length; i++) {
+      const { error: updateError } = await supabase
+        .from('form_questions')
+        .update({ question_order: i })
+        .eq('id', remaining[i].id);
+
+      if (updateError) {
+        console.error("Error updating question_order:", updateError);
+      }
+    }
+
+    setFormQuestions(prev => prev.filter(q => q.id !== questionId));
+    setAddedQuestions(prev => prev.filter(id => id !== questionId));
+  }
+
+  const handleMoveUpQuestion = async (index: number) => {
+    if (index === 0) return;
+
+    const curr = formQuestions[index];
+    const above = formQuestions[index - 1];
+
+    const updates = [
+      supabase
+        .from('form_questions')
+        .update({ question_order: above.question_order })
+        .eq('question_id', curr.id)
+        .eq('form_id', formId),
+      supabase
+        .from('form_questions')
+        .update({ question_order: curr.question_order })
+        .eq('question_id', above.id)
+        .eq('form_id', formId),
+    ];
+
+    const [res1, res2] = await Promise.all(updates);
+
+    if (res1.error || res2.error) {
+      console.error('Error swapping question order', res1.error || res2.error);
+      return;
+    }
+
+    const updated = [...formQuestions];
+    [updated[index - 1], updated[index]] = [updated[index], updated[index - 1]];
+
+    const tempOrder = updated[index].question_order;
+    updated[index].question_order = updated[index - 1].question_order;
+    updated[index - 1].question_order = tempOrder;
+
+    setFormQuestions(updated.sort((a, b) => a.question_order - b.question_order));
+  };
+
+  const handleMoveDownQuestion = async(index: number) => {
+    if(index === formQuestions?.length-1) return;
+
+    const curr = formQuestions[index];
+    const below = formQuestions[index+1];
+
+    const updates = [
+      supabase.from('form_questions')
+        .update({question_order: below.question_order})
+        .eq('question_id', curr.id)
+        .eq('form_id', formId),
+      supabase.from('form_questions')
+        .update({question_order: curr.question_order})
+        .eq('question_id', below.id)
+        .eq('form_id', formId)
+    ];
+
+    const [res1, res2] = await Promise.all(updates);
+
+    if (res1.error || res2.error) {
+      console.error('Error swapping question order', res1.error || res2.error);
+      return;
+    }
+
+    const updated = [...formQuestions];
+    [updated[index], updated[index+1]] = [updated[index+1], updated[index]];
+
+    const tempOrder = updated[index].question_order;
+    updated[index].question_order = updated[index+1].question_order;
+    updated[index+1].question_order = tempOrder;
+
+    setFormQuestions(updated.sort((a, b) => a.question_order - b.question_order));
+  }
 
   const [isClicked, setIsClicked] = useState<boolean[]>([]);
 
@@ -215,8 +307,11 @@ export default function CreateFeedbackForm({
     Effectiveness: ["Not Effective", "Slightly Effective", "Neutral", "Very Effective", "Extremely Effective"],
   };
 
-
   const [selected, setSelected] = useState<number>(0);
+
+  const [isRequired, setIsRequired] = useState(
+    formQuestions.map(() => true)
+  );
 
 
   return (
@@ -321,7 +416,7 @@ export default function CreateFeedbackForm({
                           .filter((q)=>q.likert_category === 'Agreement' && !addedQuestions.includes(q.id))
                           .map((q) => (
                             <>
-                            <div className="flex items-center pl-2 bg-[#1D1C1C]">
+                            <div className="flex items-center pl-2 bg-[#1D1C1C] border border-[#444444]">
                               <button onClick={()=>handleAddQuestion(q.id)}>
                                 <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
                               </button>
@@ -330,7 +425,7 @@ export default function CreateFeedbackForm({
                             </>
                         ))}
 
-                        <div className="flex items-center pl-2 bg-[#1D1C1C]">
+                        <div className="flex items-center pl-2 bg-[#1D1C1C] border border-[#444444]">
                           <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
                           <div className="italic text-sm"> Custom Question </div>
                           <div className="italic text-xs ml-auto pr-3"> PAID </div>
@@ -351,7 +446,7 @@ export default function CreateFeedbackForm({
                           .filter((q)=>q.likert_category === 'Satisfaction' && !addedQuestions.includes(q.id))
                           .map((q) => (
                             <>
-                            <div className="flex items-center pl-2 bg-[#1D1C1C]">
+                            <div className="flex items-center pl-2 bg-[#1D1C1C] border border-[#444444]">
                               <button onClick={()=>handleAddQuestion(q.id)}>
                                 <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
                               </button>
@@ -360,7 +455,7 @@ export default function CreateFeedbackForm({
                             </>
                         ))}
 
-                        <div className="flex items-center pl-2 bg-[#1D1C1C]">
+                        <div className="flex items-center pl-2 bg-[#1D1C1C] border border-[#444444]">
                           <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
                           <div className="italic text-sm"> Custom Question </div>
                           <div className="italic text-xs ml-auto pr-3"> PAID </div>
@@ -381,7 +476,7 @@ export default function CreateFeedbackForm({
                           .filter((q)=>q.likert_category === 'Frequency' && !addedQuestions.includes(q.id))
                           .map((q) => (
                             <>
-                            <div className="flex items-center pl-2 bg-[#1D1C1C]">
+                            <div className="flex items-center pl-2 bg-[#1D1C1C] border border-[#444444]">
                               <button onClick={()=>handleAddQuestion(q.id)}>
                                 <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
                               </button>
@@ -390,7 +485,7 @@ export default function CreateFeedbackForm({
                             </>
                         ))}
 
-                        <div className="flex items-center pl-2 bg-[#1D1C1C]">
+                        <div className="flex items-center pl-2 bg-[#1D1C1C] border border-[#444444]">
                           <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
                           <div className="italic text-sm"> Custom Question </div>
                           <div className="italic text-xs ml-auto pr-3"> PAID </div>
@@ -411,7 +506,7 @@ export default function CreateFeedbackForm({
                           .filter((q)=>q.likert_category === 'Importance' && !addedQuestions.includes(q.id))
                           .map((q) => (
                             <>
-                            <div className="flex items-center pl-2 bg-[#1D1C1C]">
+                            <div className="flex items-center pl-2 bg-[#1D1C1C] border border-[#444444]">
                               <button onClick={()=>handleAddQuestion(q.id)}>
                                 <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
                               </button>
@@ -420,7 +515,7 @@ export default function CreateFeedbackForm({
                             </>
                         ))}
 
-                        <div className="flex items-center pl-2 bg-[#1D1C1C]">
+                        <div className="flex items-center pl-2 bg-[#1D1C1C] border border-[#444444]">
                           <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
                           <div className="italic text-sm"> Custom Question </div>
                           <div className="italic text-xs ml-auto pr-3"> PAID </div>
@@ -441,7 +536,7 @@ export default function CreateFeedbackForm({
                           .filter((q)=>q.likert_category === 'Effectiveness' && !addedQuestions.includes(q.id))
                           .map((q) => (
                             <>
-                            <div className="flex items-center pl-2 bg-[#1D1C1C]">
+                            <div className="flex items-center pl-2 bg-[#1D1C1C] border border-[#444444]">
                               <button onClick={()=>handleAddQuestion(q.id)}>
                                 <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
                               </button>
@@ -450,7 +545,7 @@ export default function CreateFeedbackForm({
                             </>
                         ))}
 
-                        <div className="flex items-center pl-2 bg-[#1D1C1C]">
+                        <div className="flex items-center pl-2 bg-[#1D1C1C] border border-[#444444]">
                           <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
                           <div className="italic text-sm"> Custom Question </div>
                           <div className="italic text-xs ml-auto pr-3"> PAID </div>
@@ -474,10 +569,25 @@ export default function CreateFeedbackForm({
             onClick={() => handleClicked(i)}
             className={`space-y-1 text-light mt-4 mb-4 p-2 hover:bg-white/5 transition-all duration-300 ease-in-out ${isClicked[i] ? 'bg-white/5 border-t-2 border-primary cursor-default' : 'border-t-0 border-transparent cursor-pointer'}`}>
             {isClicked[i] && (
-              <div className="flex justify-end">
-                <button className={`${isClicked[i] ? "cursor-pointer disabled" : "cursor-default"}`}><svg className="hover:fill-red ml-2 mr-2" width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M18 6L17.1991 18.0129C17.129 19.065 17.0939 19.5911 16.8667 19.99C16.6666 20.3412 16.3648 20.6235 16.0011 20.7998C15.588 21 15.0607 21 14.0062 21H9.99377C8.93927 21 8.41202 21 7.99889 20.7998C7.63517 20.6235 7.33339 20.3412 7.13332 19.99C6.90607 19.5911 6.871 19.065 6.80086 18.0129L6 6M4 6H20M16 6L15.7294 5.18807C15.4671 4.40125 15.3359 4.00784 15.0927 3.71698C14.8779 3.46013 14.6021 3.26132 14.2905 3.13878C13.9376 3 13.523 3 12.6936 3H11.3064C10.477 3 10.0624 3 9.70951 3.13878C9.39792 3.26132 9.12208 3.46013 8.90729 3.71698C8.66405 4.00784 8.53292 4.40125 8.27064 5.18807L8 6M14 10V17M10 10V17" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path> </g></svg></button>
-                <button className={`${isClicked[i] ? "cursor-pointer disabled" : "cursor-default"}`}><svg className="ml-2 mr-2" width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" transform="matrix(-1, 0, 0, -1, 0, 0)"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M12 3C12.2652 3 12.5196 3.10536 12.7071 3.29289L19.7071 10.2929C20.0976 10.6834 20.0976 11.3166 19.7071 11.7071C19.3166 12.0976 18.6834 12.0976 18.2929 11.7071L13 6.41421V20C13 20.5523 12.5523 21 12 21C11.4477 21 11 20.5523 11 20V6.41421L5.70711 11.7071C5.31658 12.0976 4.68342 12.0976 4.29289 11.7071C3.90237 11.3166 3.90237 10.6834 4.29289 10.2929L11.2929 3.29289C11.4804 3.10536 11.7348 3 12 3Z" fill="#ffffff"></path> </g></svg></button>
-                <button className={`${isClicked[i] ? "cursor-pointer disabled" : "cursor-default"}`}><svg className="ml-2 mr-2" width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path className={`${i===0 ? "fill-white/50 cursor-default" : "fill-white cursor-pointer"}`} fillRule="evenodd" clipRule="evenodd" d="M12 3C12.2652 3 12.5196 3.10536 12.7071 3.29289L19.7071 10.2929C20.0976 10.6834 20.0976 11.3166 19.7071 11.7071C19.3166 12.0976 18.6834 12.0976 18.2929 11.7071L13 6.41421V20C13 20.5523 12.5523 21 12 21C11.4477 21 11 20.5523 11 20V6.41421L5.70711 11.7071C5.31658 12.0976 4.68342 12.0976 4.29289 11.7071C3.90237 11.3166 3.90237 10.6834 4.29289 10.2929L11.2929 3.29289C11.4804 3.10536 11.7348 3 12 3Z" fill="#ffffff"></path> </g></svg></button>
+              <div className="flex justify-between">
+                <div className="flex justify-start">
+                  <button>
+                    <label className={`inline-flex items-center me-5 ${isClicked[i] ? "cursor-pointer disabled" : "cursor-default"}`}>
+                      <input type="checkbox" value="" className="sr-only peer" checked onChange={() => {
+                        const newToggles = [...isRequired];
+                        newToggles[i] = !newToggles[i];
+                        setIsRequired(newToggles);}}/>
+                      <div className="ml-2 relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-teal-300 dark:peer-focus:ring-teal-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-teal-600 dark:peer-checked:bg-teal-600"></div>
+                      <span className="ms-3 text-xs font-medium text-white-900 mr-2"> Required </span>
+                    </label>
+                  </button>
+                </div>
+
+                <div className="flex justify-end">
+                  <button onClick={()=>handleDeleteQuestion(q.id)} className={`${isClicked[i] ? "cursor-pointer disabled" : "cursor-default"}`}><svg className="hover:fill-red ml-2 mr-2" width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M18 6L17.1991 18.0129C17.129 19.065 17.0939 19.5911 16.8667 19.99C16.6666 20.3412 16.3648 20.6235 16.0011 20.7998C15.588 21 15.0607 21 14.0062 21H9.99377C8.93927 21 8.41202 21 7.99889 20.7998C7.63517 20.6235 7.33339 20.3412 7.13332 19.99C6.90607 19.5911 6.871 19.065 6.80086 18.0129L6 6M4 6H20M16 6L15.7294 5.18807C15.4671 4.40125 15.3359 4.00784 15.0927 3.71698C14.8779 3.46013 14.6021 3.26132 14.2905 3.13878C13.9376 3 13.523 3 12.6936 3H11.3064C10.477 3 10.0624 3 9.70951 3.13878C9.39792 3.26132 9.12208 3.46013 8.90729 3.71698C8.66405 4.00784 8.53292 4.40125 8.27064 5.18807L8 6M14 10V17M10 10V17" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path> </g></svg></button>
+                  <button onClick={()=>handleMoveDownQuestion(i)} className={`${isClicked[i] ? "cursor-pointer disabled" : "cursor-default"}`}><svg className="ml-2 mr-2" width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" transform="matrix(-1, 0, 0, -1, 0, 0)"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path className={`${i===addedQuestions?.length-1 ? "fill-white/50 cursor-default" : "fill-white cursor-pointer"}`} fillRule="evenodd" clipRule="evenodd" d="M12 3C12.2652 3 12.5196 3.10536 12.7071 3.29289L19.7071 10.2929C20.0976 10.6834 20.0976 11.3166 19.7071 11.7071C19.3166 12.0976 18.6834 12.0976 18.2929 11.7071L13 6.41421V20C13 20.5523 12.5523 21 12 21C11.4477 21 11 20.5523 11 20V6.41421L5.70711 11.7071C5.31658 12.0976 4.68342 12.0976 4.29289 11.7071C3.90237 11.3166 3.90237 10.6834 4.29289 10.2929L11.2929 3.29289C11.4804 3.10536 11.7348 3 12 3Z" fill="#ffffff"></path> </g></svg></button>
+                  <button onClick={()=>handleMoveUpQuestion(i)} className={`${isClicked[i] ? "cursor-pointer disabled" : "cursor-default"}`}><svg className="ml-2 mr-2" width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path className={`${i===0 ? "fill-white/50 cursor-default" : "fill-white cursor-pointer"}`} fillRule="evenodd" clipRule="evenodd" d="M12 3C12.2652 3 12.5196 3.10536 12.7071 3.29289L19.7071 10.2929C20.0976 10.6834 20.0976 11.3166 19.7071 11.7071C19.3166 12.0976 18.6834 12.0976 18.2929 11.7071L13 6.41421V20C13 20.5523 12.5523 21 12 21C11.4477 21 11 20.5523 11 20V6.41421L5.70711 11.7071C5.31658 12.0976 4.68342 12.0976 4.29289 11.7071C3.90237 11.3166 3.90237 10.6834 4.29289 10.2929L11.2929 3.29289C11.4804 3.10536 11.7348 3 12 3Z" fill="#ffffff"></path> </g></svg></button>
+                </div>
               </div>
             )}
 
@@ -503,20 +613,11 @@ export default function CreateFeedbackForm({
                   <div className="absolute top-[17px] left-1/2 transform -translate-x-[47.5%] h-5 w-[349px] bg-[#201c1c] z-0" />
                   <div className="absolute top-[35px] left-1/2 transform -translate-x-[47.5%] h-0.5 w-[349px] bg-[#379A7B] z-0" />
 
-                  <div className="flex items-center justify-between relative">
+                  <div className={`flex items-center justify-between relative ${isClicked[i] ? 'cursor-default' : 'cursor-pointer'}`}>
                     {likertLabelsMap[q.likert_category].map((label, index) => (
-                      <div key={index} className="flex flex-col items-center text-center">
-                        <div
-                          className={`w-10 h-10 border-2 rounded-full flex items-center justify-center cursor-pointer transition-colors
-                            ${selected === index ? "border-[#379A7B] bg-[#201c1c]" : "border-[#379A7B] bg-[#201c1c]"}
-                          `}
-                          onClick={() => setSelected(index)}
-                        >
-                          <div
-                            className={`w-6 h-6 rounded-full
-                              ${selected === index ? "bg-[#379A7B]" : "bg-[#379A7B]"}
-                            `}
-                          />
+                      <div key={index} className={`flex flex-col items-center text-center ${isClicked[i] ? 'cursor-default' : 'cursor-pointer'} ${isClicked[i] ? 'cursor-default' : 'cursor-pointer'}`}>
+                        <div onClick={() => setSelected(index)} className={`w-10 h-10 border-2 rounded-full flex items-center justify-center cursor-pointer transition-colors ${selected === index ? "border-[#379A7B] bg-[#201c1c]" : "border-[#379A7B] bg-[#201c1c]"} ${isClicked[i] ? 'cursor-default' : 'cursor-pointer'}`}>
+                          <div className={`w-6 h-6 rounded-full ${selected === index ? "bg-[#379A7B]" : "bg-[#379A7B]"} ${isClicked[i] ? 'cursor-default' : 'cursor-pointer'}`}/>
                         </div>
                         <p className="text-[10px] italic text-white w-24 mt-2">{label}</p>
                       </div>
@@ -579,6 +680,7 @@ export default function CreateFeedbackForm({
       {/* Submit Button */}
       <div className="flex justify-end">
         <button
+          onClick={router.back}
           type="submit"
           disabled={isLoading}
           className="flex justify-end rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:bg-charleston"
