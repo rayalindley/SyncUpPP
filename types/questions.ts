@@ -3,4 +3,5 @@ export interface Question {
   question_text: string;
   question_type: 'Choice' | 'Likert';
   category_id?: number | null;
+  likert_category?: string | null;
 }

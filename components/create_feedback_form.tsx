@@ -1,14 +1,9 @@
 /* eslint-disable react/no-unescaped-entities */
 "use client";
-import React, { useRef, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import "@yaireo/tagify/dist/tagify.css";
-import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
-import { MdDragIndicator } from 'react-icons/md'
-import { Event } from "@/types/event";
-import { getUser, createClient } from "@/lib/supabase/client";
-import { useParams } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { Question } from "@/types/questions";
 
 const supabase = createClient();
@@ -20,7 +15,7 @@ export default function CreateFeedbackForm({
   selectedEvent: any;
   userId: any;
 }) {
-  const { eventslug } = useParams() as { eventslug: string };
+  // const { eventslug } = useParams() as { eventslug: string };
   const [isAddQModalOpen, setIsAddQModalOpen] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([]); // here
   const [questionType, setQuestionType] = useState('text'); //here
@@ -37,17 +32,36 @@ export default function CreateFeedbackForm({
   const [choiceQuestions, setChoiceQuestions] = useState<Question[]>([]);
   const [likertQuestions, setLikertQuestions] = useState<Question[]>([]);
   const [addedQuestions, setAddedQuestions] = useState<number[]>([]);
+  const [formQuestions, setFormQuestions] = useState<any[]>([]);
 
-  
+  const [eventId, setEventId] = useState<string | null>(null);
 
   useEffect(() => {
+    const fetchEvent = async () => {
+      const { data, error } = await supabase
+        .from("events")
+        .select("eventid")
+        .eq("eventslug", selectedEvent)
+        .single();
+
+      if (data) {
+        setEventId(data.eventid);
+      }
+    };
+
+    fetchEvent();
+  }, [selectedEvent]);
+
+  useEffect(() => {
+    if(!eventId) return;
+
     const fetchFormAndQuestions = async () => {
       let fetchedFormId: number | null = null;
 
       const { data: form, error: formError } = await supabase
         .from('forms')
         .select('id')
-        .eq('slug', eventslug)
+        .eq('slug', selectedEvent)
         .single();
 
       if (form && !formError) {
@@ -55,9 +69,11 @@ export default function CreateFeedbackForm({
       } else {
         const { data: newForm, error: insertError } = await supabase
           .from('forms')
-          .insert([{ slug: eventslug }])
+          .insert([{ event_id: eventId, slug: selectedEvent}])
           .select()
           .single();
+
+        console.log("eventid:", eventId);
 
         if (insertError || !newForm) {
           console.error('Error creating new form:', insertError);
@@ -71,19 +87,23 @@ export default function CreateFeedbackForm({
 
       const { data: allQuestions, error: qError } = await supabase
         .from('questions')
-        .select('id, question_text, question_type, category_id');
+        .select('id, question_text, question_type, likert_category');
 
       if (qError) {
         console.error('Error fetching questions:', qError);
         return;
+      } else {
+        console.log("successful fetching questions", allQuestions);
       }
 
-      setChoiceQuestions(allQuestions.filter(q => q.question_type === 'choice'));
-      setLikertQuestions(allQuestions.filter(q => q.question_type === 'likert'));
+      setChoiceQuestions(allQuestions.filter(q => q.question_type === 'Choice'));
+      setLikertQuestions(allQuestions.filter(q => q.question_type === 'Likert'));
+
+      // console.log("choiceQuestions", choiceQuestions);
 
       const { data: formData, error: fError } = await supabase
         .from('form_questions')
-        .select('question_id')
+        .select('*, question:question_id(*)')
         .eq('form_id', fetchedFormId);
 
       if (fError) {
@@ -91,13 +111,16 @@ export default function CreateFeedbackForm({
         return;
       }
 
+      setFormQuestions(formData.map(fq => ({
+        ...fq.question,
+        question_order: fq.question_order
+      })));
+
       setAddedQuestions(formData.map(fq => fq.question_id));
     };
 
     fetchFormAndQuestions();
-  }, [eventslug]);
-
-  
+  }, [selectedEvent, eventId]);
 
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
 
@@ -120,17 +143,37 @@ export default function CreateFeedbackForm({
 
   const handleAddQuestion = async (questionId: number) => {
     if (!formId) return;
-  
+
+    const { data: existingQuestions } = await supabase
+      .from('form_questions')
+      .select('*')
+      .eq('form_id', formId);
+
+    const newOrder = existingQuestions?.length;
+
     const { error } = await supabase.from('form_questions').insert({
       form_id: formId,
-      question_id: questionId
+      question_id: questionId,
+      question_order: newOrder
     });
   
     if (error) {
       console.error('Error adding question to form:', error);
       return;
     }
+
+    const { data: questionData, error: fetchError } = await supabase
+      .from('questions')
+      .select('*')
+      .eq('id', questionId)
+      .single();
+
+    if (fetchError || !questionData) {
+      console.error('Error fetching added question data:', fetchError);
+      return;
+    }
   
+    setFormQuestions(prev => [...prev, { ...questionData, question_order: newOrder }]);
     setAddedQuestions(prev => [...prev, questionId]);
   };
   
@@ -145,7 +188,7 @@ export default function CreateFeedbackForm({
       return newStates;
     })
   }
-  
+
   useEffect(() => {
     console.log("Saving to localStorage: ", addedQuestions);
     localStorage.setItem('addedQuestions', JSON.stringify(addedQuestions));
@@ -164,48 +207,16 @@ export default function CreateFeedbackForm({
     }
   }, []);
 
-  // const handleAddQuestion = (questionText: string) => {
-  //   setAddedQuestions(prev => [...prev, questionText]);
-  // };
-
-  // const choiceQuestions = [
-  //   "How did you hear about this event?",
-  //   "What was your main reason for attending?",
-  //   "Which segment did you find most engaging?",
-  // ]
+  const likertLabelsMap: Record<string, string[]> = {
+    Agreement: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"],
+    Satisfaction: ["Very Unsatisfied", "Unsatisfied", "Neutral", "Satisfied", "Very Satisfied"],
+    Frequency: ["Never", "Rarely", "Sometimes", "Often", "Always"],
+    Importance: ["Not Important", "Slightly Important", "Neutral", "Very Important", "Extremely Important"],
+    Effectiveness: ["Not Effective", "Slightly Effective", "Neutral", "Very Effective", "Extremely Effective"],
+  };
 
 
-  // useEffect(() => {
-  //   const fetchAll = async () => {
-  //     const { data, error } = await supabase
-  //       .from('questions')
-  //       .select('*');
-  
-  //     if(error) {
-  //       console.error('Error fetching questions:', error);
-  //       return;
-  //     }
-  
-  //     setChoiceQuestions(data.filter(q => q.question_type === 'Choice'));
-  //     setLikertQuestions(data.filter(q => q.question_type === 'Likert'));
-  
-  //     const { data: formData, error: fError } = await supabase
-  //       .from('form_questions')
-  //       .select('question_id')
-  //       .eq('form_id', formId);
-  
-  //     if (fError) {
-  //       console.error('Error fetching form questions:', fError);
-  //       return;
-  //     }
-  
-  //     const addedIds = formData.map(fq => fq.question_id);
-  //     setAddedQuestions(addedIds);
-  //   };
-  
-  //   fetchAll();
-  // }, [formId]);
-  
+  const [selected, setSelected] = useState<number>(0);
 
 
   return (
@@ -275,16 +286,16 @@ export default function CreateFeedbackForm({
               {questionType === 'choice' && (
                 <div className="bg-[#282828]">
                   {choiceQuestions
-                  .filter(q=>!addedQuestions.includes(q.id))
-                  .map((q) => (
-                  <>
-                    <div key={q.id} className="flex items-center border border-[#444444]">
-                      <button onClick={()=>handleAddQuestion(q.id)}>
-                        <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
-                      </button>
-                      <div> {q.question_text} </div>
-                    </div>
-                  </>
+                    .filter(q=>!addedQuestions.includes(q.id))
+                    .map((q) => (
+                    <>
+                      <div key={q.id} className="flex items-center border border-[#444444]">
+                        <button onClick={()=>handleAddQuestion(q.id)}>
+                          <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
+                        </button>
+                        <div> {q.question_text} </div>
+                      </div>
+                    </>
                   ))}
                       
                   <div className="flex items-center border border-[#444444]">
@@ -294,30 +305,6 @@ export default function CreateFeedbackForm({
                   </div>
                 </div>
               )}
-
-              {/* Choice Questions */}
-              {/* {questionType === 'choice' && (
-                <div className="bg-[#282828]">
-                  {choiceQuestions
-                  .filter(q=>!addedQuestions.includes(q))
-                  .map((questionText, i) => (
-                  <>
-                    <div key={i} className="flex items-center border border-[#444444]">
-                      <button onClick={()=>handleAddQuestion(questionText)}>
-                        <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
-                      </button>
-                      <div> {questionText} </div>
-                    </div>
-                  </>
-                  ))}
-                      
-                  <div className="flex items-center border border-[#444444]">
-                    <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
-                    <div className="italic text-sm"> Custom Question </div>
-                    <div className="italic text-xs ml-auto pr-3"> PAID </div>
-                  </div>
-                </div>
-              )} */}
 
               {/* Likert Questions */}
               {questionType === 'likert' && (
@@ -330,46 +317,24 @@ export default function CreateFeedbackForm({
 
                     {showAgreement && (
                       <>
-                      <div className="flex items-center pl-2 bg-[#1D1C1C]">
-                        <button>
+                        {likertQuestions
+                          .filter((q)=>q.likert_category === 'Agreement' && !addedQuestions.includes(q.id))
+                          .map((q) => (
+                            <>
+                            <div className="flex items-center pl-2 bg-[#1D1C1C]">
+                              <button onClick={()=>handleAddQuestion(q.id)}>
+                                <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
+                              </button>
+                              <div> {q.question_text} </div>
+                            </div>
+                            </>
+                        ))}
+
+                        <div className="flex items-center pl-2 bg-[#1D1C1C]">
                           <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
-                        </button>
-                        <div> The event met my expectations. </div>
-                      </div>  
-                      
-                      <div className="flex items-center pl-2 bg-[#1D1C1C]">
-                        <button>
-                          <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
-                        </button>
-                        <div> The speakers were knowledgeable. </div>
-                      </div>
-                      
-                      <div className="flex items-center pl-2 bg-[#1D1C1C]">
-                        <button>
-                          <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
-                        </button>
-                        <div> The schedule was well-organized. </div>
-                      </div>
-                      
-                      <div className="flex items-center pl-2 bg-[#1D1C1C]">
-                        <button>
-                          <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
-                        </button>
-                        <div> The environment made me feel comfortable. </div>
-                      </div>
-                      
-                      <div className="flex items-center pl-2 bg-[#1D1C1C]">
-                        <button>
-                          <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
-                        </button>
-                        <div> I would recommend this event to others. </div>
-                      </div>
-                      
-                      <div className="flex items-center pl-2 bg-[#1D1C1C]">
-                        <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
-                        <div className="italic text-sm"> Custom Question </div>
-                        <div className="italic text-xs ml-auto pr-3"> PAID </div>
-                      </div>
+                          <div className="italic text-sm"> Custom Question </div>
+                          <div className="italic text-xs ml-auto pr-3"> PAID </div>
+                        </div>
                       </>
                     )}
                   </div>
@@ -382,36 +347,24 @@ export default function CreateFeedbackForm({
 
                     {showSatisfaction && (
                       <>
-                      <div className="flex items-center pl-2 bg-[#1D1C1C]">
-                        <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
-                        <div> How satisfied were you overall? </div>
-                      </div>
-                      
-                      <div className="flex items-center pl-2 bg-[#1D1C1C]">
-                        <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
-                        <div> How satisfied were you with the venue? </div>
-                      </div>
-                      
-                      <div className="flex items-center pl-2 bg-[#1D1C1C]">
-                        <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
-                        <div> How satisfied were you with the registration process? </div>
-                      </div>
-                      
-                      <div className="flex items-center pl-2 bg-[#1D1C1C]">
-                        <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
-                        <div> How satisfied were you with the food/snacks? </div>
-                      </div>
-                      
-                      <div className="flex items-center pl-2 bg-[#1D1C1C]">
-                        <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
-                        <div> How satisfied were you with the event's duration? </div>
-                      </div>
-                      
-                      <div className="flex items-center pl-2 bg-[#1D1C1C]">
-                        <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
-                        <div className="italic text-sm"> Custom Question </div>
-                        <div className="italic text-xs ml-auto pr-3"> PAID </div>
-                      </div>
+                        {likertQuestions
+                          .filter((q)=>q.likert_category === 'Satisfaction' && !addedQuestions.includes(q.id))
+                          .map((q) => (
+                            <>
+                            <div className="flex items-center pl-2 bg-[#1D1C1C]">
+                              <button onClick={()=>handleAddQuestion(q.id)}>
+                                <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
+                              </button>
+                              <div> {q.question_text} </div>
+                            </div>
+                            </>
+                        ))}
+
+                        <div className="flex items-center pl-2 bg-[#1D1C1C]">
+                          <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
+                          <div className="italic text-sm"> Custom Question </div>
+                          <div className="italic text-xs ml-auto pr-3"> PAID </div>
+                        </div>
                       </>
                     )}
                   </div>
@@ -424,26 +377,24 @@ export default function CreateFeedbackForm({
 
                     {showFrequency && (
                       <>
-                      <div className="flex items-center pl-2 bg-[#1D1C1C]">
-                        <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
-                        <div> How often did you feel engaged during the event? </div>
-                      </div>
-                      
-                      <div className="flex items-center pl-2 bg-[#1D1C1C]">
-                        <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
-                        <div> How often did you interact with other attendees? </div>
-                      </div>
-                      
-                      <div className="flex items-center pl-2 bg-[#1D1C1C]">
-                        <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
-                        <div> How often did you understand the topics being discussed? </div>
-                      </div>
-                      
-                      <div className="flex items-center pl-2 bg-[#1D1C1C]">
-                        <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
-                        <div className="italic text-sm"> Custom Question </div>
-                        <div className="italic text-xs ml-auto pr-3"> PAID </div>
-                      </div>
+                        {likertQuestions
+                          .filter((q)=>q.likert_category === 'Frequency' && !addedQuestions.includes(q.id))
+                          .map((q) => (
+                            <>
+                            <div className="flex items-center pl-2 bg-[#1D1C1C]">
+                              <button onClick={()=>handleAddQuestion(q.id)}>
+                                <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
+                              </button>
+                              <div> {q.question_text} </div>
+                            </div>
+                            </>
+                        ))}
+
+                        <div className="flex items-center pl-2 bg-[#1D1C1C]">
+                          <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
+                          <div className="italic text-sm"> Custom Question </div>
+                          <div className="italic text-xs ml-auto pr-3"> PAID </div>
+                        </div>
                       </>
                     )}
                   </div>
@@ -456,26 +407,24 @@ export default function CreateFeedbackForm({
 
                     {showImportance && (
                       <>
-                      <div className="flex items-center pl-2 bg-[#1D1C1C]">
-                        <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
-                        <div> How important was networking in this event for you? </div>
-                      </div>
-                      
-                      <div className="flex items-center pl-2 bg-[#1D1C1C]">
-                        <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
-                        <div> How important was the topic/theme of the event to you? </div>
-                      </div>
-                      
-                      <div className="flex items-center pl-2 bg-[#1D1C1C]">
-                        <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
-                        <div> How important was having interactive segments? </div>
-                      </div>
-                      
-                      <div className="flex items-center pl-2 bg-[#1D1C1C]">
-                        <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
-                        <div className="italic text-sm"> Custom Question </div>
-                        <div className="italic text-xs ml-auto pr-3"> PAID </div>
-                      </div>
+                        {likertQuestions
+                          .filter((q)=>q.likert_category === 'Importance' && !addedQuestions.includes(q.id))
+                          .map((q) => (
+                            <>
+                            <div className="flex items-center pl-2 bg-[#1D1C1C]">
+                              <button onClick={()=>handleAddQuestion(q.id)}>
+                                <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
+                              </button>
+                              <div> {q.question_text} </div>
+                            </div>
+                            </>
+                        ))}
+
+                        <div className="flex items-center pl-2 bg-[#1D1C1C]">
+                          <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
+                          <div className="italic text-sm"> Custom Question </div>
+                          <div className="italic text-xs ml-auto pr-3"> PAID </div>
+                        </div>
                       </>
                     )}
                   </div>
@@ -488,26 +437,24 @@ export default function CreateFeedbackForm({
 
                     {showEffectiveness && (
                       <>
-                      <div className="flex items-center pl-2 bg-[#1D1C1C]">
-                        <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
-                        <div> How effective was the event in delivering its purpose? </div>
-                      </div>
-                      
-                      <div className="flex items-center pl-2 bg-[#1D1C1C]">
-                        <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
-                        <div> How effective were the visual aids and materials used? </div>
-                      </div>
-                      
-                      <div className="flex items-center pl-2 bg-[#1D1C1C]">
-                        <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
-                        <div> How effective were the breakout sessions? </div>
-                      </div>
-                      
-                      <div className="flex items-center pl-2 bg-[#1D1C1C]">
-                        <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
-                        <div className="italic text-sm"> Custom Question </div>
-                        <div className="italic text-xs ml-auto pr-3"> PAID </div>
-                      </div>
+                        {likertQuestions
+                          .filter((q)=>q.likert_category === 'Effectiveness' && !addedQuestions.includes(q.id))
+                          .map((q) => (
+                            <>
+                            <div className="flex items-center pl-2 bg-[#1D1C1C]">
+                              <button onClick={()=>handleAddQuestion(q.id)}>
+                                <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
+                              </button>
+                              <div> {q.question_text} </div>
+                            </div>
+                            </>
+                        ))}
+
+                        <div className="flex items-center pl-2 bg-[#1D1C1C]">
+                          <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M11.25 12.75V18H12.75V12.75H18V11.25H12.75V6H11.25V11.25H6V12.75H11.25Z" fill="#ffffff"></path> </g></svg>
+                          <div className="italic text-sm"> Custom Question </div>
+                          <div className="italic text-xs ml-auto pr-3"> PAID </div>
+                        </div>
                       </>
                     )}
                   </div>
@@ -519,113 +466,99 @@ export default function CreateFeedbackForm({
       </div>
 
       {/* Added Questions */}
-      {addedQuestions.map((question, i) => (
-        <div key={i} onClick={()=>handleClicked(i)} className={`space-y-1 text-light mt-4 mb-4 p-2 hover:bg-white/5 transition-all duration-300 ease-in-out ${isClicked[i] === true ? 'bg-white/5 border-t-2 border-primary cursor-default' : ' border-t-0 border-transparent hover:bg-white/5 cursor-pointer'}`}>
-          {isClicked[i] === true && (
-            <div className="flex justify-end">
-              <button className={`${isClicked[i] ? "cursor-pointer disabled" : "cursor-default"}`}><svg className="hover:fill-red ml-2 mr-2" width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M18 6L17.1991 18.0129C17.129 19.065 17.0939 19.5911 16.8667 19.99C16.6666 20.3412 16.3648 20.6235 16.0011 20.7998C15.588 21 15.0607 21 14.0062 21H9.99377C8.93927 21 8.41202 21 7.99889 20.7998C7.63517 20.6235 7.33339 20.3412 7.13332 19.99C6.90607 19.5911 6.871 19.065 6.80086 18.0129L6 6M4 6H20M16 6L15.7294 5.18807C15.4671 4.40125 15.3359 4.00784 15.0927 3.71698C14.8779 3.46013 14.6021 3.26132 14.2905 3.13878C13.9376 3 13.523 3 12.6936 3H11.3064C10.477 3 10.0624 3 9.70951 3.13878C9.39792 3.26132 9.12208 3.46013 8.90729 3.71698C8.66405 4.00784 8.53292 4.40125 8.27064 5.18807L8 6M14 10V17M10 10V17" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path> </g></svg></button>
-              <button className={`${isClicked[i] ? "cursor-pointer disabled" : "cursor-default"}`}><svg className="ml-2 mr-2" width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" transform="matrix(-1, 0, 0, -1, 0, 0)"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M12 3C12.2652 3 12.5196 3.10536 12.7071 3.29289L19.7071 10.2929C20.0976 10.6834 20.0976 11.3166 19.7071 11.7071C19.3166 12.0976 18.6834 12.0976 18.2929 11.7071L13 6.41421V20C13 20.5523 12.5523 21 12 21C11.4477 21 11 20.5523 11 20V6.41421L5.70711 11.7071C5.31658 12.0976 4.68342 12.0976 4.29289 11.7071C3.90237 11.3166 3.90237 10.6834 4.29289 10.2929L11.2929 3.29289C11.4804 3.10536 11.7348 3 12 3Z" fill="#ffffff"></path> </g></svg></button>
-              <button className={`${isClicked[i] ? "cursor-pointer disabled" : "cursor-default"}`}><svg className="ml-2 mr-2" width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path className={`${i===0 ? "fill-white/50 cursor-default" : "fill-white cursor-pointer"}`} fillRule="evenodd" clipRule="evenodd" d="M12 3C12.2652 3 12.5196 3.10536 12.7071 3.29289L19.7071 10.2929C20.0976 10.6834 20.0976 11.3166 19.7071 11.7071C19.3166 12.0976 18.6834 12.0976 18.2929 11.7071L13 6.41421V20C13 20.5523 12.5523 21 12 21C11.4477 21 11 20.5523 11 20V6.41421L5.70711 11.7071C5.31658 12.0976 4.68342 12.0976 4.29289 11.7071C3.90237 11.3166 3.90237 10.6834 4.29289 10.2929L11.2929 3.29289C11.4804 3.10536 11.7348 3 12 3Z" fill="#ffffff"></path> </g></svg></button>
-            </div>
-          )}
-          
-          <label className={`text-sm font-medium text-white font-bold ${isClicked[i] ? "cursor-default" : "cursor-pointer"}`}>
-            {question}
-          </label>
+      {formQuestions
+        .sort((a, b) => a.question_order - b.question_order)
+        .map((q, i) => (
+          <div
+            key={i}
+            onClick={() => handleClicked(i)}
+            className={`space-y-1 text-light mt-4 mb-4 p-2 hover:bg-white/5 transition-all duration-300 ease-in-out ${isClicked[i] ? 'bg-white/5 border-t-2 border-primary cursor-default' : 'border-t-0 border-transparent cursor-pointer'}`}>
+            {isClicked[i] && (
+              <div className="flex justify-end">
+                <button className={`${isClicked[i] ? "cursor-pointer disabled" : "cursor-default"}`}><svg className="hover:fill-red ml-2 mr-2" width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M18 6L17.1991 18.0129C17.129 19.065 17.0939 19.5911 16.8667 19.99C16.6666 20.3412 16.3648 20.6235 16.0011 20.7998C15.588 21 15.0607 21 14.0062 21H9.99377C8.93927 21 8.41202 21 7.99889 20.7998C7.63517 20.6235 7.33339 20.3412 7.13332 19.99C6.90607 19.5911 6.871 19.065 6.80086 18.0129L6 6M4 6H20M16 6L15.7294 5.18807C15.4671 4.40125 15.3359 4.00784 15.0927 3.71698C14.8779 3.46013 14.6021 3.26132 14.2905 3.13878C13.9376 3 13.523 3 12.6936 3H11.3064C10.477 3 10.0624 3 9.70951 3.13878C9.39792 3.26132 9.12208 3.46013 8.90729 3.71698C8.66405 4.00784 8.53292 4.40125 8.27064 5.18807L8 6M14 10V17M10 10V17" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path> </g></svg></button>
+                <button className={`${isClicked[i] ? "cursor-pointer disabled" : "cursor-default"}`}><svg className="ml-2 mr-2" width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" transform="matrix(-1, 0, 0, -1, 0, 0)"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fillRule="evenodd" clipRule="evenodd" d="M12 3C12.2652 3 12.5196 3.10536 12.7071 3.29289L19.7071 10.2929C20.0976 10.6834 20.0976 11.3166 19.7071 11.7071C19.3166 12.0976 18.6834 12.0976 18.2929 11.7071L13 6.41421V20C13 20.5523 12.5523 21 12 21C11.4477 21 11 20.5523 11 20V6.41421L5.70711 11.7071C5.31658 12.0976 4.68342 12.0976 4.29289 11.7071C3.90237 11.3166 3.90237 10.6834 4.29289 10.2929L11.2929 3.29289C11.4804 3.10536 11.7348 3 12 3Z" fill="#ffffff"></path> </g></svg></button>
+                <button className={`${isClicked[i] ? "cursor-pointer disabled" : "cursor-default"}`}><svg className="ml-2 mr-2" width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <path className={`${i===0 ? "fill-white/50 cursor-default" : "fill-white cursor-pointer"}`} fillRule="evenodd" clipRule="evenodd" d="M12 3C12.2652 3 12.5196 3.10536 12.7071 3.29289L19.7071 10.2929C20.0976 10.6834 20.0976 11.3166 19.7071 11.7071C19.3166 12.0976 18.6834 12.0976 18.2929 11.7071L13 6.41421V20C13 20.5523 12.5523 21 12 21C11.4477 21 11 20.5523 11 20V6.41421L5.70711 11.7071C5.31658 12.0976 4.68342 12.0976 4.29289 11.7071C3.90237 11.3166 3.90237 10.6834 4.29289 10.2929L11.2929 3.29289C11.4804 3.10536 11.7348 3 12 3Z" fill="#ffffff"></path> </g></svg></button>
+              </div>
+            )}
 
-          {i === 0 && (
-            <div className={`${isClicked[i] ? "cursor-default" : "cursor-pointer"}`}>
-              <input disabled id="index1choice1" type="radio" className={`ml-2 mr-2 border-gray-300 text-primary focus:ring-primarydark ${isClicked[i] ? "cursor-default" : "cursor-pointer"}`}></input>
-              <label htmlFor="index1choice1" className={`text-sm font-medium text-white ${isClicked[i] ? "cursor-default" : "cursor-pointer"}`}>
-                SyncUp++
-              </label><br></br>
+            {/* Question Text */}
+            <label className={`text-sm font-medium text-white font-bold ${isClicked[i] ? 'cursor-default' : 'cursor-pointer'}`}>
+              {q.question_text}
+            </label>
 
-              <input disabled id="index1choice1" type="radio" className={`ml-2 mr-2 border-gray-300 text-primary focus:ring-primarydark ${isClicked[i] ? "cursor-default" : "cursor-pointer"}`}></input>
-              <label htmlFor="index1choice1" className={`text-sm font-medium text-white ${isClicked[i] ? "cursor-default" : "cursor-pointer"}`}>
-                Social Media
-              </label><br></br>
+            {q.question_type === 'Choice' && q.choices?.map((choice: string, i: number) => (
+              <div key={i} className={isClicked[i] ? 'cursor-default' : 'cursor-pointer'}>
+                <input disabled id={`index${i}choice1`} type="radio" className={`ml-2 mr-2 border-gray-300 text-primary focus:ring-primarydark ${isClicked[i] ? 'cursor-default' : 'cursor-pointer'}`}/>
+                <label htmlFor={`index${i}choice1`} className={`text-sm font-medium font-light text-white ${isClicked[i] ? 'cursor-default' : 'cursor-pointer'}`}>
+                  {choice}
+                </label>
+                <br />
+              </div>
+            ))}
 
-              <input disabled id="index1choice1" type="radio" className={`ml-2 mr-2 border-gray-300 text-primary focus:ring-primarydark ${isClicked[i] ? "cursor-default" : "cursor-pointer"}`}></input>
-              <label htmlFor="index1choice1" className={`text-sm font-medium text-white ${isClicked[i] ? "cursor-default" : "cursor-pointer"}`}>
-                A Friend
-              </label><br></br>
+            {q.question_type === 'Likert' && likertLabelsMap[q.likert_category] && (
+              <div className={isClicked[i] ? 'cursor-default' : 'cursor-pointer'}>
+                <div className="relative w-full max-w-4xl mx-auto px-4 py-2">
+                  <div className="absolute top-[15px] left-1/2 transform -translate-x-[47.5%] h-0.5 w-[355px] bg-[#379A7B] z-0" />
+                  <div className="absolute top-[17px] left-1/2 transform -translate-x-[47.5%] h-5 w-[349px] bg-[#201c1c] z-0" />
+                  <div className="absolute top-[35px] left-1/2 transform -translate-x-[47.5%] h-0.5 w-[349px] bg-[#379A7B] z-0" />
 
-              <input disabled id="index1choice1" type="radio" className={`ml-2 mr-2 border-gray-300 text-primary focus:ring-primarydark ${isClicked[i] ? "cursor-default" : "cursor-pointer"}`}></input>
-              <label htmlFor="index1choice1" className={`text-sm font-medium text-white ${isClicked[i] ? "cursor-default" : "cursor-pointer"}`}>
-                School/Work
-              </label><br></br>
+                  <div className="flex items-center justify-between relative">
+                    {likertLabelsMap[q.likert_category].map((label, index) => (
+                      <div key={index} className="flex flex-col items-center text-center">
+                        <div
+                          className={`w-10 h-10 border-2 rounded-full flex items-center justify-center cursor-pointer transition-colors
+                            ${selected === index ? "border-[#379A7B] bg-[#201c1c]" : "border-[#379A7B] bg-[#201c1c]"}
+                          `}
+                          onClick={() => setSelected(index)}
+                        >
+                          <div
+                            className={`w-6 h-6 rounded-full
+                              ${selected === index ? "bg-[#379A7B]" : "bg-[#379A7B]"}
+                            `}
+                          />
+                        </div>
+                        <p className="text-[10px] italic text-white w-24 mt-2">{label}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
-              <input disabled id="index1choice1" type="radio" className={`ml-2 mr-2 border-gray-300 text-primary focus:ring-primarydark ${isClicked[i] ? "cursor-default" : "cursor-pointer"}`}></input>
-              <label htmlFor="index1choice1" className={`text-sm font-medium text-white ${isClicked[i] ? "cursor-default" : "cursor-pointer"}`}>
-                Other
-              </label><br></br>
-              
-            </div>
-          )}
 
-          {i === 1 && (
-            <div>
-              <input disabled id="index1choice1" type="radio" className="ml-2 mr-2 border-gray-300 text-primary focus:ring-primarydark cursor-pointer"></input>
-              <label htmlFor="index1choice1" className="text-sm font-medium text-white cursor-pointer">
-                Learning new things
-              </label><br></br>
+            {/* form for the attendees */}
+            {/* {q.question_type === 'Likert' && (
+              q.likert_category === 'Agreement' && (
+              <div className={isClicked[i] ? 'cursor-default' : 'cursor-pointer'}>
+                <div className="relative w-full max-w-4xl mx-auto px-6 py-8">
+                  <div className="absolute top-[30px] left-0 right-0 h-1 bg-[#379A7B] z-0" />
 
-              <input disabled id="index1choice1" type="radio" className="ml-2 mr-2 border-gray-300 text-primary focus:ring-primarydark cursor-pointer"></input>
-              <label htmlFor="index1choice1" className="text-sm font-medium text-white cursor-pointer">
-                Networking
-              </label><br></br>
+                  <div className="flex items-center justify-between relative z-10">
+                    {agreementLabels.map((label, index) => (
+                      <div key={index} className="flex flex-col items-center text-center space-y-2">
+                        <div
+                          className={`w-10 h-10 border-2 rounded-full flex items-center justify-center cursor-pointer transition-colors
+                            ${selected === index ? "border-[#379A7B]" : "border-[#379A7B]"}
+                          `}
+                          onClick={() => setSelected(index)}
+                        >
+                          <div
+                            className={`w-5 h-5 rounded-full
+                              ${selected === index ? "bg-[#379A7B]" : "border-[#379A7B]"}
+                            `}
+                          />
+                        </div>
+                        <p className="text-sm italic text-white w-24">{label}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-              <input disabled id="index1choice1" type="radio" className="ml-2 mr-2 border-gray-300 text-primary focus:ring-primarydark cursor-pointer"></input>
-              <label htmlFor="index1choice1" className="text-sm font-medium text-white cursor-pointer">
-                Supporting a friend/speaker
-              </label><br></br>
-
-              <input disabled id="index1choice1" type="radio" className="ml-2 mr-2 border-gray-300 text-primary focus:ring-primarydark cursor-pointer"></input>
-              <label htmlFor="index1choice1" className="text-sm font-medium text-white cursor-pointer">
-                Personal interest
-              </label><br></br>
-
-              <input disabled id="index1choice1" type="radio" className="ml-2 mr-2 border-gray-300 text-primary focus:ring-primarydark cursor-pointer"></input>
-              <label htmlFor="index1choice1" className="text-sm font-medium text-white cursor-pointer">
-                Required to attend
-              </label><br></br>
-              
-            </div>
-          )}
-
-          {i === 2 && (
-            <div>
-              <input disabled id="index1choice1" type="radio" className="ml-2 mr-2 border-gray-300 text-primary focus:ring-primarydark cursor-pointer"></input>
-              <label htmlFor="index1choice1" className="text-sm font-medium text-white cursor-pointer">
-                Opening Ceremony
-              </label><br></br>
-
-              <input disabled id="index1choice1" type="radio" className="ml-2 mr-2 border-gray-300 text-primary focus:ring-primarydark cursor-pointer"></input>
-              <label htmlFor="index1choice1" className="text-sm font-medium text-white cursor-pointer">
-                Guest Speaker / Talk
-              </label><br></br>
-
-              <input disabled id="index1choice1" type="radio" className="ml-2 mr-2 border-gray-300 text-primary focus:ring-primarydark cursor-pointer"></input>
-              <label htmlFor="index1choice1" className="text-sm font-medium text-white cursor-pointer">
-                Workshop / Activity
-              </label><br></br>
-
-              <input disabled id="index1choice1" type="radio" className="ml-2 mr-2 border-gray-300 text-primary focus:ring-primarydark cursor-pointer"></input>
-              <label htmlFor="index1choice1" className="text-sm font-medium text-white cursor-pointer">
-                Games & Prizes
-              </label><br></br>
-
-              <input disabled id="index1choice1" type="radio" className="ml-2 mr-2 border-gray-300 text-primary focus:ring-primarydark cursor-pointer"></input>
-              <label htmlFor="index1choice1" className="text-sm font-medium text-white cursor-pointer">
-                Closing Remarks
-              </label><br></br>
-              
-            </div>
-          )}
+              </div>
+            ))} */}
           </div>
-      ))}
-      
-
+        ))}
 
       {/* Comments and Suggestions TextArea */}
       <div className="space-y-1 text-light mt-6 mb-6">

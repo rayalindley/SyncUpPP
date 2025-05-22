@@ -25,6 +25,8 @@ import { FaCertificate } from "react-icons/fa";
 import { MdOutlineComment } from "react-icons/md";
 import { releaseCertificatesNow } from "@/lib/events";
 import { Cog6ToothIcon } from "@heroicons/react/24/outline";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 
 
 const jsonTheme = {
@@ -312,6 +314,24 @@ export default function EventOptions({
     saveAs(blob, fileName);
   };
 
+  const supabase = createClient();
+  const router = useRouter();
+
+  const handleCreateFeedbackForm = async (eventslug: string) => {
+    const { error } = await supabase
+      .from("events")
+      .update({ has_feedback_form: true })
+      .eq("eventslug", eventslug);
+
+    if (error) {
+      console.error("Error updating has_feedback_form:", error);
+      return;
+    }
+
+    router.push(`/feedback-form/${eventslug}`);
+  };
+
+
   
   return (
     <>
@@ -387,6 +407,12 @@ export default function EventOptions({
                       //   setCurrentTab("Info");
                       //   setOpen(true);
                       // }}
+                      onClick={async(e) => {
+                        if(!hasFeedbackForm) {
+                          e.preventDefault();
+                          await handleCreateFeedbackForm(selectedEvent.eventslug);
+                        }
+                      }}
                     >
                       <Cog6ToothIcon
                         className="mr-4 h-5 w-5 text-light group-hover:text-light"
