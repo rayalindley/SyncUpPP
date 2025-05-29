@@ -6,10 +6,13 @@ import "react-toastify/dist/ReactToastify.css";
 import { createClient } from "@/lib/supabase/client";
 import { Question } from "@/types/questions";
 import { useRouter } from "next/navigation";
+import { CiShare2 } from "react-icons/ci";
+import { FaRegEye } from "react-icons/fa";
+
 
 const supabase = createClient();
 
-export default function CreateFeedbackForm({
+export default function FeedbackFormOrganizer({
   selectedEvent,
   userId,
 }: {
@@ -676,18 +679,45 @@ export default function CreateFeedbackForm({
           <p className="text-sm text-red-500">{errors.description.message}</p>
         )} */}
       </div>
-    
-      {/* Submit Button */}
-      <div className="flex justify-end">
-        <button
-          onClick={router.back}
-          type="submit"
-          disabled={isLoading}
-          className="flex justify-end rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:bg-charleston"
-        >
-          {isLoading ? "Submitting..." : "Submit"}
-        </button>
+      
+      <div className="flex justify-between">
+          {/* Submit Button */}
+          <div className="flex justify-end">
+            <button
+              onClick={()=>deleteFeedbackForm()}
+              type="submit"
+              disabled={isLoading}
+              className="flex justify-end rounded-md bg-red-500 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:bg-charleston"
+            >
+              {isLoading ? "Deleting..." : "Delete"}
+            </button>
+          </div>
+
+          <div className="flex">
+            <button className="flex items-center group relative rounded-md bg-gray-700 px-3 py-1.5 mr-1" onclick={()=> router.push(`/feedback/${selectedEvent}`)}>
+              <FaRegEye color="white" className="text-2xl" />
+              <div className="text-white ml-1 text-md"> Preview </div>
+            </button>
+
+            <button className="flex items-center group relative rounded-md bg-gray-700 px-3 py-1.5 ml-1" onClick={() => navigator.clipboard.writeText(window.location.href).then(() => alert("Copied feedback form link!"))}>
+              <CiShare2 color="white" className="text-2xl" />
+              <div className="text-white ml-1 text-md">Share</div>
+            </button>
+          </div>
+          
+          {/* Submit Button */}
+          <div className="flex justify-end">
+            <button
+              onClick={router.back}
+              type="submit"
+              disabled={isLoading}
+              className="flex justify-end rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:bg-charleston"
+            >
+              {isLoading ? "Submitting..." : "Submit"}
+            </button>
+          </div>
       </div>
+      
     </div>
     </>
   );

@@ -328,7 +328,7 @@ export default function EventOptions({
       return;
     }
 
-    router.push(`/feedback-form/${eventslug}`);
+    router.push(`/feedback/form/${eventslug}`);
   };
 
 
@@ -398,7 +398,7 @@ export default function EventOptions({
                 <Menu.Item>
                   {({ active }: { active: boolean }) => (
                     <a
-                      href={`/feedback-form/${selectedEvent.eventslug}`}
+                      href={`/feedback/form/${selectedEvent.eventslug}`}
                       className={classNames(
                         active ? "bg-raisinblack text-light" : "text-light",
                         "group flex items-center px-3 py-2 text-sm"
@@ -457,10 +457,7 @@ export default function EventOptions({
                         "group flex items-center px-4 py-2 text-sm"
                       )}
                       onClick={() => {
-                        if (certificateSettings?.certificate_enabled) {
-                        setCurrentTab("CertificatePreview");
-                        setOpen(true);
-                        }
+                        router.push(`/dashboard/feedback/${selectedEvent.eventslug}`);
                       }}
                       >
                       <MdOutlineComment

@@ -944,7 +944,7 @@ const CreateEventForm = ({
               .update({has_feedback_form: true})
               .eq("eventslug", eventSlug);
 
-            window.location.href = `/feedback-form/${event ? event.eventslug : completeFormData.eventslug}`;
+            window.location.href = `/feedback/form/${event ? event.eventslug : completeFormData.eventslug}`;
           } else {
             window.location.href = `/e/${event ? event.eventslug : completeFormData.eventslug}`;
           }

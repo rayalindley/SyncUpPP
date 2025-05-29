@@ -1,13 +1,14 @@
 "use client";
-import CreateFeedbackForm from "@/components/create_feedback_form";
+import FeedbackFormAttendees from "@/components/feedback_form_attendees";
 import Preloader from "@/components/preloader";
 import { check_permissions, fetchOrganizationBySlug } from "@/lib/organization";
 import { getUser } from "@/lib/supabase/client";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { checkIfRegisteredUser } from "@/lib/feedback";
 
-export default function CreateEventPage() {
+export default function AttendeesFeedbackPage() {
   const router = useRouter();
   const params = useParams() as { slug: string };
   const slug = params.slug;
@@ -15,7 +16,9 @@ export default function CreateEventPage() {
   const [organization, setOrganization] = useState(null);
   const [error, setError] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [loading, setLoading] = useState(true); // Add a loading state
+  const [loading, setLoading] = useState(true);
+  
+  const [isRegistered, setIsRegistered] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchOrganization = async () => {
@@ -44,23 +47,18 @@ export default function CreateEventPage() {
       setUserId(user?.id ?? null);
 
       try {
-        const organization = await fetchOrganizationBySlug(slug as string);
-        if (organization && organization.data) {
-          const permission = await check_permissions(
-            user?.id || "",
-            organization.data.organizationid,
-            "create_events"
-          );
-          setHasPermission(permission);
-        }
+        if (!user?.id) return setIsRegistered(false);
+
+        const registered = await checkIfRegisteredUser(user.id, slug);
+        setIsRegistered(registered);
       } catch (error) {
         console.error("Failed to check permissions", error);
       } finally {
-        setLoading(false); // Ensure loading is set to false after permission check
+        setLoading(false);
       }
     };
 
-    if (slug) {
+    if(slug) {
       fetchOrganization();
       checkPermissions();
     }
@@ -70,18 +68,18 @@ export default function CreateEventPage() {
     return <Preloader />;
   }
 
-  // if (!hasPermission) {
-  //   return (
-  //     <div className="bg-raisin flex min-h-screen items-center justify-center p-10 font-sans text-white">
-  //       <div className="text-center">
-  //         <h1 className="mb-4 text-3xl">Events Creation</h1>
-  //         <p className="text-lg">
-  //           You do not have permission to create events for this organization.
-  //         </p>
-  //       </div>
-  //     </div>
-  //   );
-  // }
+  if (!isRegistered) {
+    return (
+      <div className="bg-raisin flex min-h-screen items-center justify-center p-10 font-sans text-white">
+        <div className="text-center">
+          <h1 className="mb-4 text-3xl"> Access Denied </h1>
+          <p className="text-lg">
+            You are not registered for this event.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -105,7 +103,7 @@ export default function CreateEventPage() {
         
 
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-lg">
-          <CreateFeedbackForm selectedEvent={slug} userId={userId}/>
+          <FeedbackFormAttendees slug={slug} userId={userId}/>
         </div>
       </div>
     </>
