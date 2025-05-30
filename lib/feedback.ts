@@ -35,3 +35,24 @@ export async function deleteForm(formId: number, slug: string) {
     .delete()
     .eq("id", formId);
 }
+
+export async function hasSubmittedResponse(userId: string, slug: string) {
+  const supabase = createClient();
+
+  const { data: form, error: formError } = await supabase
+    .from("forms")
+    .select("id")
+    .eq("slug", slug)
+    .single();
+
+  if (formError || !form) return false;
+
+  const { data: response, error: responseError } = await supabase
+    .from("form_responses")
+    .select("id")
+    .eq("form_id", form.id)
+    .eq("attendee_id", userId)
+    .maybeSingle();
+
+  return !!response && !responseError;
+}

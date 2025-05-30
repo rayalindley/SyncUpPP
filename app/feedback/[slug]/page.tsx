@@ -6,7 +6,9 @@ import { getUser } from "@/lib/supabase/client";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { checkIfRegisteredUser } from "@/lib/feedback";
+import { checkIfRegisteredUser, hasSubmittedResponse } from "@/lib/feedback";
+import { SupabaseAuthClient } from "@supabase/supabase-js/dist/module/lib/SupabaseAuthClient";
+import { getEventBySlug } from "@/lib/events";
 
 export default function AttendeesFeedbackPage() {
   const router = useRouter();
@@ -19,6 +21,9 @@ export default function AttendeesFeedbackPage() {
   const [loading, setLoading] = useState(true);
   
   const [isRegistered, setIsRegistered] = useState<boolean>(false);
+  const [hasSubmitted, setHasSubmitted] = useState<boolean>();
+
+  const [event, setEvent] = useState<any>();
 
   useEffect(() => {
     const fetchOrganization = async () => {
@@ -58,9 +63,29 @@ export default function AttendeesFeedbackPage() {
       }
     };
 
+    const checkSubmissions = async() => {
+      const { user } = await getUser();
+      if(!user?.id) return;
+
+      const submitted = await hasSubmittedResponse(user.id, slug);
+      setHasSubmitted(submitted);
+    };
+
+    const fetchEvent = async () => {
+      const { data, error } = await getEventBySlug(slug);
+      if (data) {
+        setEvent(data);
+      }
+
+      console.log("event:", data);
+    };
+
+
     if(slug) {
       fetchOrganization();
+      fetchEvent();
       checkPermissions();
+      checkSubmissions();
     }
   }, [slug]);
 
@@ -68,13 +93,29 @@ export default function AttendeesFeedbackPage() {
     return <Preloader />;
   }
 
-  if (!isRegistered) {
+  if(!isRegistered) {
     return (
       <div className="bg-raisin flex min-h-screen items-center justify-center p-10 font-sans text-white">
         <div className="text-center">
+          <h1 className="mb-4 text-lg"> {`${event.title} Feedback Form`}</h1>
           <h1 className="mb-4 text-3xl"> Access Denied </h1>
           <p className="text-lg">
             You are not registered for this event.
+          </p>
+        </div>
+      </div>
+    );
+  }
+  
+  if(hasSubmitted) {
+    return (
+      <div className="bg-raisin flex min-h-screen items-center justify-center p-10 font-sans text-white">
+        
+        <div className="text-center">
+          <h1 className="mb-4 text-lg"> {`${event.title} Feedback Form`}</h1>
+          <h1 className="mb-4 text-3xl"> You have already been submitted. </h1>
+          <p className="text-lg">
+            Only one response per person.
           </p>
         </div>
       </div>
@@ -96,8 +137,10 @@ export default function AttendeesFeedbackPage() {
         <div className="sm:mx-auto sm:w-full sm:max-w-sm">
           <img className="mx-auto h-10 w-auto" src="/syncup.png" alt="SyncUp" />
           <h2 className="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-white">
-            Feedback Form
+            {`${event?.title ?? ""}`}
           </h2>
+
+          <h2 className="text-center text-2xl font-bold leading-9 tracking-tight text-white"> Feedback Form </h2>
         </div>
 
         

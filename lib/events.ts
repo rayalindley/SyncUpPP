@@ -434,7 +434,7 @@ export async function getEventBySlug(slug: string) {
     const { data, error } = await supabase
       .from("events")
       .select("*")
-      .eq("slug", slug)
+      .eq("eventslug", slug)
       .single();
 
     if (!error && data) {

@@ -362,7 +362,7 @@ export default function FeedbackFormOrganizer({
     <div>
       <div className="flex justify-end mb-4 items-center">
         <div className="flex items-center group relative"
-          onClick={() => navigator.clipboard.writeText(window.location.href)
+          onClick={() => navigator.clipboard.writeText(`${window.location.origin}/feedback/${selectedEvent}`)
             .then(() => {
               Swal.fire({
                 icon: "success",
