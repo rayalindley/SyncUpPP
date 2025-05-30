@@ -21,3 +21,17 @@ export const checkIfRegisteredUser = async (userId: string, slug: string) => {
 
   return !!reg && !regError;
 }
+
+export async function deleteForm(formId: number, slug: string) {
+  const supabase = createClient();
+
+  await supabase
+    .from("events")
+    .update({has_feedback_form: false})
+    .eq("eventslug", slug);
+
+  return await supabase
+    .from("forms")
+    .delete()
+    .eq("id", formId);
+}

@@ -8,7 +8,8 @@ import { Question } from "@/types/questions";
 import { useRouter } from "next/navigation";
 import { CiShare2 } from "react-icons/ci";
 import { FaRegEye } from "react-icons/fa";
-
+import Swal from "sweetalert2";
+import { deleteForm } from "@/lib/feedback";
 
 const supabase = createClient();
 
@@ -316,10 +317,84 @@ export default function FeedbackFormOrganizer({
     formQuestions.map(() => true)
   );
 
+  const deleteFeedbackForm = async() => {
+    const result = await Swal.fire({
+      title: "Are you sure you want to delete this feedback form?",
+      text: "You won't be able to revert this!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "No, cancel!",
+      reverseButtons: true,
+
+      customClass: {
+        title: "text-lg",
+        htmlContainer: "text-base",
+        popup: "rounded-lg p-6 shadow-xl border border-gray-700",
+        confirmButton: "text-sm px-4 py-2 rounded-md",
+        cancelButton: "text-sm px-4 py-2 rounded-md",
+      }
+    });
+
+    if(result.isConfirmed) {
+      const response = await deleteForm(formId ?? 0, selectedEvent);
+
+      if (!response.error) {
+        Swal.fire({
+          title: "Deleted!",
+          text: "Feedback form successfully deleted.",
+          icon: "success",
+        }).then(() => {
+          window.history.back();
+        });
+      } else {
+        Swal.fire({
+          title: "Failed!",
+          text: response.error.message,
+          icon: "error",
+        });
+      }
+    }
+  }
 
   return (
     <>
     <div>
+      <div className="flex justify-end mb-4 items-center">
+        <div className="flex items-center group relative"
+          onClick={() => navigator.clipboard.writeText(window.location.href)
+            .then(() => {
+              Swal.fire({
+                icon: "success",
+                title: "Link copied!",
+                text: "Feedback form link has been copied to your clipboard.",
+                timer: 3000,
+                showConfirmButton: false,
+
+                customClass: {
+                  icon: "text-xs",
+                  title: "text-lg",
+                  htmlContainer: "text-base",
+                  popup: "rounded-lg p-6 shadow-xl border border-gray-700",
+                  confirmButton: "text-sm px-4 py-2 rounded-md",
+                  cancelButton: "text-sm px-4 py-2 rounded-md",
+                }
+              });
+            })}
+        >
+          <button>
+            <CiShare2 color="white" className="text-2xl" />
+          </button>
+          <span className="absolute bottom-full mb-2 hidden group-hover:block bg-black text-white text-xs px-2 py-1 whitespace-nowrap">
+            Copy link
+          </span>
+        </div>
+        
+        <button className="flex items-center group relative rounded-md bg-primary px-3 py-1.5 ml-2 hover:bg-primarydark" onClick={()=> router.push(`/feedback/${selectedEvent}`)}>
+          <div className="text-white ml-1 text-md"> Preview </div>
+        </button>
+      </div>
+      
       {/* Button to Open Add Question Modal */}
       <div className="flex justify-center">
         <button onClick={()=>setIsAddQModalOpen(true)} className="sm:w-full sm:max-w-full bg-[#379A7B] rounded-md text-white font-bold px-4 py-2 flex item-center gap-2 hover:bg-primarydark">
@@ -693,17 +768,7 @@ export default function FeedbackFormOrganizer({
             </button>
           </div>
 
-          <div className="flex">
-            <button className="flex items-center group relative rounded-md bg-gray-700 px-3 py-1.5 mr-1" onclick={()=> router.push(`/feedback/${selectedEvent}`)}>
-              <FaRegEye color="white" className="text-2xl" />
-              <div className="text-white ml-1 text-md"> Preview </div>
-            </button>
-
-            <button className="flex items-center group relative rounded-md bg-gray-700 px-3 py-1.5 ml-1" onClick={() => navigator.clipboard.writeText(window.location.href).then(() => alert("Copied feedback form link!"))}>
-              <CiShare2 color="white" className="text-2xl" />
-              <div className="text-white ml-1 text-md">Share</div>
-            </button>
-          </div>
+          
           
           {/* Submit Button */}
           <div className="flex justify-end">
