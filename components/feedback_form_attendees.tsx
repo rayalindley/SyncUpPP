@@ -6,6 +6,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { createClient } from "@/lib/supabase/client";
 import { Question } from "@/types/questions";
 import { useRouter } from "next/navigation";
+import Swal from "sweetalert2";
 
 const supabase = createClient();
 
@@ -143,6 +144,7 @@ export default function FeedbackFormAttendees({
         .insert({
           form_id: formId,
           attendee_id: userId,
+          comment: comment,
           // certificate_preference: certPreference,
         })
         .select("id")
@@ -163,10 +165,42 @@ export default function FeedbackFormAttendees({
 
       if (answersError) throw answersError;
 
-      alert("Form submitted successfully!");
+      await Swal.fire({
+        icon: "success",
+        title: "Form submitted successfully!",
+        text: "Thank you for sending a feedback.",
+        timer: 3000,
+        showConfirmButton: false,
+
+        customClass: {
+          icon: "text-xs",
+          title: "text-lg",
+          htmlContainer: "text-base",
+          popup: "rounded-lg p-6 shadow-xl border border-gray-700",
+          confirmButton: "text-sm px-4 py-2 rounded-md",
+          cancelButton: "text-sm px-4 py-2 rounded-md",
+        }
+      });
+
+      router.back();
     } catch (error) {
       console.error("Submission error:", error);
-      alert("Something went wrong.");
+      Swal.fire({
+        icon: "error",
+        title: "Failed to submit your feedback.",
+        text: "Please make sure to answer the required questions.",
+        timer: 3000,
+        showConfirmButton: false,
+
+        customClass: {
+          icon: "text-xs",
+          title: "text-lg",
+          htmlContainer: "text-base",
+          popup: "rounded-lg p-6 shadow-xl border border-gray-700",
+          confirmButton: "text-sm px-4 py-2 rounded-md",
+          cancelButton: "text-sm px-4 py-2 rounded-md",
+        }
+      });
     } finally {
       setIsLoading(false);
     }
@@ -241,7 +275,7 @@ export default function FeedbackFormAttendees({
           <label htmlFor="description" className="text-sm font-medium font-bold text-white">
             Comments and Suggestions
           </label>
-          <textarea value={comment} onChange={(e)=>setComment(e.target.value)} className="block max-h-[300px] min-h-[150px] w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"></textarea>
+          <textarea required id="comment" value={comment} onChange={(e)=>setComment(e.target.value)} className="block max-h-[300px] min-h-[150px] w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"></textarea>
         </div>
       
         {/* Submit Button */}
