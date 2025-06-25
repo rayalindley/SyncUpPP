@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { Pie } from "react-chartjs-2";
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import {
@@ -13,7 +12,6 @@ import { toast, ToastContainer } from "react-toastify";
 import { createClient } from "@/lib/supabase/client";
 import { Event } from "@/models/Event";
 import { Organization } from "@/models/Organization";
-import { MdBorderColor } from "react-icons/md";
 
 ChartJS.register(ArcElement, Tooltip, Legend, ChartDataLabels);
 
@@ -23,7 +21,7 @@ interface FeedbackReport {
   event_name: string;
   user_id: string;
   rating: number;
-  sentiment: "positive" | "neutral" | "negative";
+  sentiment: "positive" | "negative";
   keywords: string[];
 }
 
@@ -34,8 +32,6 @@ interface FeedbackReportsProps {
   userId: string;
 }
 
-
-
 const FeedbackReports: React.FC<FeedbackReportsProps> = ({
   feedbackreports,
   organization,
@@ -44,38 +40,80 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
 }) => {
   const [eventFilter, setEventFilter] = useState<string>("");
   const [filteredReports, setFilteredReports] = useState<FeedbackReport[]>([]);
+  const [summary, setSummary] = useState<string | null>(null);
+  const [sentimentResults, setSentimentResults] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!eventFilter) {
-      setFilteredReports([]);
-      return;
-    }
-    const filtered = feedbackreports.filter(r => r.eventid === eventFilter);
-    setFilteredReports(filtered);
-  }, [eventFilter, feedbackreports]);
+    const analyzeFeedback = async () => {
+      if (!eventFilter) {
+        setFilteredReports([]);
+        return;
+      }
+
+      const filtered = feedbackreports.filter(r => r.eventid === eventFilter);
+      setFilteredReports(filtered);
+
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("form_responses")
+        .select("comment, forms!inner(event_id)")
+        .eq("forms.event_id", eventFilter);
+
+      if (error) {
+        toast.error("Failed to fetch comments.");
+        return;
+      }
+
+      const rawComments = data.map(d => d.comment).filter(Boolean);
+
+      try {
+        const res = await fetch("https://felbert.onrender.com/batch-analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ comments: rawComments }),
+        });
+
+        const json = await res.json();
+        setSentimentResults(json.results);
+
+        // const summary = await callMistral(json.results);
+        // setSummary(summary);
+        setSummary(rawComments.join("\n\n"));
+      } catch (err) {
+        toast.error("Sentiment or summarization API failed.");
+      }
+    };
+
+    analyzeFeedback();
+  }, [eventFilter]);
 
   const totalResponses = filteredReports.length;
   const averageRating = totalResponses
     ? (filteredReports.reduce((sum, r) => sum + r.rating, 0) / totalResponses).toFixed(1)
     : "0";
 
-  const sentimentCount = {
-    positive: 60,
-    neutral: 20,
-    negative: 30,
+  const sentimentCount: { [key in "positive" | "negative"]: number } = {
+    positive: 0,
+    negative: 0,
   };
+
+  sentimentResults.forEach((res) => {
+    const label = res.sentiment.toLowerCase() as "positive" | "negative";
+    if (label in sentimentCount) {
+      sentimentCount[label]++;
+    }
+  });
 
   filteredReports.forEach((r) => {
     sentimentCount[r.sentiment]++;
   });
 
   const pieData = {
-    labels: ["Positive", "Neutral", "Negative"],
+    labels: ["Positive", "Negative"],
     datasets: [
       {
         data: [
           sentimentCount.positive,
-          sentimentCount.neutral,
           sentimentCount.negative,
         ],
         backgroundColor: ["#5687F2", "#EAB308", "#EA3A88"],
@@ -135,12 +173,12 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
                   <h1 className="text-xl font-bold"> {totalResponses} </h1>
                   <h5 className="text-sm mt-2"> Total Responses </h5>
                 </div>
-      
+
                 <div className="bg-charleston rounded-md p-10 text-center">
-                  <h1 className="text-xl font-bold"> {totalResponses}/5</h1>
+                  <h1 className="text-xl font-bold"> {averageRating}/5</h1>
                   <h5 className="text-sm mt-2"> Average Rating </h5>
                 </div>
-      
+
                 <div>
                   <h3> Most mentioned keywords: </h3>
                   <ul className="list-disc pl-6">
@@ -157,9 +195,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
                   data={pieData}
                   options={{
                     maintainAspectRatio: false,
-                    layout: {
-                      padding: 0,
-                    },
+                    layout: { padding: 0 },
                     plugins: {
                       datalabels: {
                         formatter: (value, context) => {
@@ -168,18 +204,11 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
                           return percentage;
                         },
                         color: 'white',
-                        font: {
-                          weight: 'bold',
-                          size: 12,
-                        },
+                        font: { weight: 'bold', size: 12 },
                       },
                       legend: {
                         position: 'right',
-                        labels: {
-                          color: 'white',
-                          boxWidth: 12,
-                          padding: 8,
-                        },
+                        labels: { color: 'white', boxWidth: 12, padding: 8 },
                       },
                     },
                   }}
@@ -187,8 +216,14 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
               </div>
 
               <div className="mt-16">
-                <h2 className="text-lg font-semibold">Key Insights</h2>
-                <p>Coming soon huhu</p>
+                <h2 className="text-lg font-semibold mb-2">Key Insights</h2>
+                {summary ? (
+                  <div className="bg-charleston p-4 rounded-md text-sm text-white whitespace-pre-line">
+                    {summary}
+                  </div>
+                ) : (
+                  <p className="text-light text-sm italic">Getting insights.</p>
+                )}
               </div>
             </>
           )}
