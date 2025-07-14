@@ -32,6 +32,12 @@ interface FeedbackReportsProps {
   userId: string;
 }
 
+interface SentimentResult {
+  sentiment: string;
+  confidence: number;
+  original: string;
+}
+
 const FeedbackReports: React.FC<FeedbackReportsProps> = ({
   feedbackreports,
   organization,
@@ -41,56 +47,219 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
   const [eventFilter, setEventFilter] = useState<string>("");
   const [filteredReports, setFilteredReports] = useState<FeedbackReport[]>([]);
   const [summary, setSummary] = useState<string | null>(null);
-  const [sentimentResults, setSentimentResults] = useState<any[]>([]);
+  const [sentimentResults, setSentimentResults] = useState<SentimentResult[]>([]);
+  const [reportLimit, setReportLimit] = useState<number | null>(null);
+  const [totalFormResponses, setTotalFormResponses] = useState<number>(0);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [topKeywords, setTopKeywords] = useState<string[]>([]);
+  const [averageLikertRating, setAverageLikert] = useState("0");
+
+  const loadStats = async () => {
+  if (!eventFilter) {
+    setFilteredReports([]);
+    setSummary(null);
+    setReportLimit(null);
+    setTotalFormResponses(0);
+    return;
+  }
+
+  const supabase = createClient();
+
+  // 1. Get event's report limit
+  const { data: eventData } = await supabase
+    .from("events")
+    .select("report_limit")
+    .eq("eventid", eventFilter)
+    .single();
+  setReportLimit(eventData?.report_limit ?? 0);
+
+  // 2. Get total form responses for the event
+  const { data: formResponses, error: formError } = await supabase
+    .from("form_responses")
+    .select("id, comment, submitted_at, forms!inner(event_id)")
+    .eq("forms.event_id", eventFilter);
+
+  if (formError) {
+    toast.error("Failed to fetch form responses.");
+    return;
+  }
+
+  setTotalFormResponses(formResponses.length);
+
+  // 2. Get numeric Likert answers
+  const { data: likertAnswers, error: likertError } = await supabase
+    .from("form_answers")
+    .select("answer, form_responses!inner(form_id, forms!inner(event_id))")
+    .eq("form_responses.forms.event_id", eventFilter)
+    .in("answer", ["1", "2", "3", "4", "5"]);
+
+  if (likertError) {
+    console.error("Error fetching Likert answers:", likertError);
+    // TODO uncomment this line when the UI is ready.
+    // toast.error("Failed to calculate average rating.");
+  } else {
+    const numericAnswers = likertAnswers.map(a => Number(a.answer)).filter(n => !isNaN(n));
+    const avg =
+      numericAnswers.length > 0
+        ? (numericAnswers.reduce((sum, n) => sum + n, 0) / numericAnswers.length).toFixed(1)
+        : "0";
+
+    setAverageLikert(avg);
+  }
+
+  // 3. Fetch feedback reports
+  const { data: feedbackReports, error: feedbackError } = await supabase
+    .from("feedbackreports")
+    .select("*")
+    .eq("eventid", eventFilter);
+
+  if (feedbackError) {
+    console.error("Error fetching feedback reports:", feedbackError);
+    return;
+  }
+
+  setFilteredReports(feedbackReports || []);
+
+  if (!feedbackReports || feedbackReports.length === 0) {
+    setSummary("No reports generated yet.");
+  } else {
+    const latest = [...feedbackReports]
+      .sort((a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime())[0];
+    setSummary(latest.feedback_text || "No summary found.");
+  }
+};
+
+
 
   useEffect(() => {
-    const analyzeFeedback = async () => {
-      if (!eventFilter) {
-        setFilteredReports([]);
-        return;
-      }
-
-      const filtered = feedbackreports.filter(r => r.eventid === eventFilter);
-      setFilteredReports(filtered);
-
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from("form_responses")
-        .select("comment, forms!inner(event_id)")
-        .eq("forms.event_id", eventFilter);
-
-      if (error) {
-        toast.error("Failed to fetch comments.");
-        return;
-      }
-
-      const rawComments = data.map(d => d.comment).filter(Boolean);
-
-      try {
-        const res = await fetch("https://felbert.onrender.com/batch-analyze", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ comments: rawComments }),
-        });
-
-        const json = await res.json();
-        setSentimentResults(json.results);
-
-        // const summary = await callMistral(json.results);
-        // setSummary(summary);
-        setSummary(rawComments.join("\n\n"));
-      } catch (err) {
-        toast.error("Sentiment or summarization API failed.");
-      }
-    };
-
-    analyzeFeedback();
+    loadStats();
   }, [eventFilter]);
 
+  function getSentimentCounts(results: SentimentResult[]) {
+    const counts = { positive: 0, negative: 0 };
+    results.forEach((r) => {
+      const sentiment = r.sentiment.toLowerCase();
+      if (sentiment === "positive" || sentiment === "negative") {
+        counts[sentiment]++;
+      }
+    });
+    return counts;
+  }
+
+const handleGenerateReport = async () => {
+  if (reportLimit === 0 || !eventFilter) return;
+
+  const confirm = window.confirm("This will decrement your generations. Do you wanna continue?");
+  if (!confirm) return;
+
+  setIsGenerating(true);
+
+  const supabase = createClient();
+
+  try {
+    // Get comments
+    const { data: formResponses } = await supabase
+      .from("form_responses")
+      .select("comment, forms!inner(event_id)")
+      .eq("forms.event_id", eventFilter);
+
+    const rawComments = formResponses?.map((d) => d.comment).filter(Boolean) || [];
+
+    if (rawComments.length === 0) {
+
+      //TODO uncomment this line when the UI is ready.
+      // toast.error("No comments to analyze.");
+      console.error("No comments to analyze.");
+      return;
+    }
+
+    const res = await fetch("http://localhost:5000/batch-analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ comments: rawComments }),
+    });
+
+    const json: { results: SentimentResult[]; keywords: Record<string, number> } = await res.json();
+    console.log("API response:", json);
+    setSentimentResults(json.results);
+
+    const generatedText = rawComments.join("\n\n");
+    setSummary(generatedText);
+
+    // Save to form_responses (optional depending on your logic)
+    const { error: insertError } = await supabase
+      .from("form_responses")
+      .insert([
+        {
+          form_id: null, // Replace if you have the actual form_id
+          attendee_id: userId,
+          comment: generatedText,
+          submitted_at: new Date().toISOString(),
+          certificate_issued: false,
+          certificate_preference: "none",
+        },
+      ]);
+
+    if (insertError) {
+      console.error(insertError);
+
+      // TODO uncomment this line when the UI is ready.
+      // toast.error("Failed to save generated report.");
+      console.error("Failed to save generated report:", insertError);
+    }
+
+    // Insert feedback report into feedbackreports table
+    await supabase.from("feedbackreports").insert({
+      feedbackreportid: crypto.randomUUID(),
+      eventid: eventFilter,
+      userid: userId,
+      feedback_text: json.results.map((r) => r.original).join("\n"),
+      sentiment: getSentimentCounts(json.results),
+      keywords: Object.keys(json.keywords),
+      submitted_at: new Date().toISOString(),
+    });
+
+    // Update report_limit
+    const { error: updateError } = await supabase
+      .from("events")
+      .update({ report_limit: (reportLimit || 1) - 1 })
+      .eq("eventid", eventFilter);
+
+    if (updateError) {
+
+      // TODO uncomment this line when the UI is ready.
+      // toast.error("Failed to update report limit.");
+      console.error("Failed to update report limit:", updateError);
+    } else {
+      setReportLimit((prev) => (prev || 1) - 1);
+      // TODO uncomment this line when the UI is ready.
+      // toast.success("Report generated and saved.");
+      console.log("Report generated and saved successfully.");
+    }
+
+    // Top 5 keywords
+    const sortedKeywords = Object.entries(json.keywords)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([kw, count]) => `${kw}: ${count}`);
+    setTopKeywords(sortedKeywords);
+
+    await loadStats();
+  } catch (err) {
+    console.error("Report generation error:", err);
+
+    // TODO uncomment this line when the UI is ready.
+    // toast.error(`An error occurred while generating the report);
+
+  } finally {
+    setIsGenerating(false);
+  }
+};
+
+
+
+
   const totalResponses = filteredReports.length;
-  const averageRating = totalResponses
-    ? (filteredReports.reduce((sum, r) => sum + r.rating, 0) / totalResponses).toFixed(1)
-    : "0";
 
   const sentimentCount: { [key in "positive" | "negative"]: number } = {
     positive: 0,
@@ -104,24 +273,24 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
     }
   });
 
-  filteredReports.forEach((r) => {
-    sentimentCount[r.sentiment]++;
-  });
+  // filteredReports.forEach((r) => {
+  //   sentimentCount[r.sentiment]++;
+  // });
+
+  const sentimentCounts = getSentimentCounts(sentimentResults);
 
   const pieData = {
     labels: ["Positive", "Negative"],
     datasets: [
       {
-        data: [
-          sentimentCount.positive,
-          sentimentCount.negative,
-        ],
-        backgroundColor: ["#5687F2", "#EAB308", "#EA3A88"],
+        data: [sentimentCounts.positive, sentimentCounts.negative],
+        backgroundColor: ["#5687F2", "#EAB308"],
         borderColor: "white",
         borderWidth: 1,
       },
     ],
   };
+
 
   const keywordMap: { [key: string]: number } = {};
   filteredReports.forEach((r) => {
@@ -129,11 +298,6 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
       keywordMap[kw] = (keywordMap[kw] || 0) + 1;
     });
   });
-
-  const topKeywords = Object.entries(keywordMap)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([kw]) => kw);
 
   return (
     <>
@@ -170,23 +334,42 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="bg-charleston rounded-md p-10 text-center">
-                  <h1 className="text-xl font-bold"> {totalResponses} </h1>
+                  <h1 className="text-xl font-bold"> {totalFormResponses} </h1>
                   <h5 className="text-sm mt-2"> Total Responses </h5>
                 </div>
 
                 <div className="bg-charleston rounded-md p-10 text-center">
-                  <h1 className="text-xl font-bold"> {averageRating}/5</h1>
-                  <h5 className="text-sm mt-2"> Average Rating </h5>
+                  <h1 className="text-xl font-bold"> {averageLikertRating}/5.0</h1>
+                  <h5 className="text-sm mt-2"> Average Likert Rating </h5>
                 </div>
 
-                <div>
-                  <h3> Most mentioned keywords: </h3>
-                  <ul className="list-disc pl-6">
-                    {topKeywords.map((kw) => (
-                      <li key={kw}>{kw}</li>
-                    ))}
-                  </ul>
+                <div className="bg-charleston rounded-md p-10 text-center">
+                  <h1 className="text-xl font-bold">{reportLimit}</h1>
+                  <h5 className="text-sm mt-2">Report Generations Left</h5>
                 </div>
+
+                <button
+                  onClick={handleGenerateReport}
+                  disabled={reportLimit === 0 || isGenerating}
+                  title={reportLimit === 0 ? "No more generations left." : ""}
+                  className={`mt-4 px-4 py-2 text-sm rounded-md ${
+                    reportLimit === 0
+                      ? "bg-gray-500 cursor-not-allowed"
+                      : "bg-blue-600 hover:bg-blue-700"
+                  } text-white`}
+                >
+                  {isGenerating ? "Generating..." : "Generate Report"}
+                </button>
+
+              <div className="bg-charleston rounded-md p-10 text-center">
+                <h3 className="font-semibold mb-2">Most Mentioned Keywords:</h3>
+                <ul className="list-disc list-inside text-sm">
+                  {topKeywords.map((kw) => (
+                    <li key={kw}>{kw}</li>
+                  ))}
+                </ul>
+              </div>
+
               </div>
 
               <div className="mt-8 mb-6 w-96 h-[250px]">
@@ -222,7 +405,10 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
                     {summary}
                   </div>
                 ) : (
-                  <p className="text-light text-sm italic">Getting insights.</p>
+                  <p className="text-light text-sm italic">
+  {summary === "No reports generated yet." ? summary : "Getting insights."}
+</p>
+
                 )}
               </div>
             </>
