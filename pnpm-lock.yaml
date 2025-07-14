@@ -26,6 +26,9 @@ importers:
       '@hookform/resolvers':
         specifier: ^3.3.4
         version: 3.10.0(react-hook-form@7.56.2(react@18.3.1))
+      '@huggingface/inference':
+        specifier: ^4.5.1
+        version: 4.5.1
       '@mantine/core':
         specifier: ^3.4.3
         version: 3.6.14(@mantine/hooks@3.6.14(react@18.3.1))(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -561,6 +564,17 @@ packages:
     resolution: {integrity: sha512-79Dv+3mDF7i+2ajj7SkypSKHhl1cbln1OGavqrsF7p6mbUv11xpqpacPsGDCTRvCSjEEIez2ef1NveSVL3b0Ag==}
     peerDependencies:
       react-hook-form: ^7.0.0
+
+  '@huggingface/inference@4.5.1':
+    resolution: {integrity: sha512-eMuugf8LfyqRyZxcdXH2sTk2Isb7+2B1lxHwdmHAOfaclfoNDC/OegZZ12Fp61WdgTXr+R/gM7oATMr3HXlN2g==}
+    engines: {node: '>=18'}
+
+  '@huggingface/jinja@0.5.1':
+    resolution: {integrity: sha512-yUZLld4lrM9iFxHCwFQ7D1HW2MWMwSbeB7WzWqFYDWK+rEb+WldkLdAJxUPOmgICMHZLzZGVcVjFh3w/YGubng==}
+    engines: {node: '>=18'}
+
+  '@huggingface/tasks@0.19.23':
+    resolution: {integrity: sha512-akJDLpcgf1rz+9ddH8cA+JdpSU6aDiStV59JoaMeMuni8g5Q0tbgbFBxW1Jnm/m7LENy5UumtbS6Ie36havZmQ==}
 
   '@humanwhocodes/config-array@0.13.0':
     resolution: {integrity: sha512-DZLEEqFWQFiyK6h5YIeynKx7JlvCYWL0cImfSRXZ9l4Sg2efkFGTuFf6vzXjK1cq6IYkU+Eg/JizXw+TD2vRNw==}
@@ -4638,6 +4652,15 @@ snapshots:
   '@hookform/resolvers@3.10.0(react-hook-form@7.56.2(react@18.3.1))':
     dependencies:
       react-hook-form: 7.56.2(react@18.3.1)
+
+  '@huggingface/inference@4.5.1':
+    dependencies:
+      '@huggingface/jinja': 0.5.1
+      '@huggingface/tasks': 0.19.23
+
+  '@huggingface/jinja@0.5.1': {}
+
+  '@huggingface/tasks@0.19.23': {}
 
   '@humanwhocodes/config-array@0.13.0':
     dependencies:

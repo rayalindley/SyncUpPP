@@ -12,8 +12,25 @@ import { toast, ToastContainer } from "react-toastify";
 import { createClient } from "@/lib/supabase/client";
 import { Event } from "@/models/Event";
 import { Organization } from "@/models/Organization";
+import ReactMarkdown from "react-markdown"
 
 ChartJS.register(ArcElement, Tooltip, Legend, ChartDataLabels);
+
+const generateInsights = async (comments: string[]): Promise<string> => {
+  const trimmedComments = comments.slice(0, 15); // safer length
+  const formatted = trimmedComments.map((c, i) => `- ${c}`).join("\n");
+
+  const prompt = `Here are feedback comments from event attendees:\n${formatted}\n\nPlease summarize and give the key insights from this list.`;
+
+  const res = await fetch("/api/phi-4", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt }),
+  });
+
+  const data = await res.json();
+  return data.explanation || "No insight generated.";
+};
 
 interface FeedbackReport {
   id: string;
@@ -51,8 +68,14 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
   const [reportLimit, setReportLimit] = useState<number | null>(null);
   const [totalFormResponses, setTotalFormResponses] = useState<number>(0);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [reportGenerating, setReportGenerating] = useState(false);
   const [topKeywords, setTopKeywords] = useState<string[]>([]);
   const [averageLikertRating, setAverageLikert] = useState("0");
+
+  const [insightComments, setInsightComments] = useState<string[]>([]);
+
+  const [insight, setInsight] = useState<string>("");
+  const [loadingInsight, setLoadingInsight] = useState<boolean>(false);
 
   const loadStats = async () => {
   if (!eventFilter) {
@@ -153,6 +176,7 @@ const handleGenerateReport = async () => {
   if (!confirm) return;
 
   setIsGenerating(true);
+  setReportGenerating(true)
 
   const supabase = createClient();
 
@@ -299,6 +323,49 @@ const handleGenerateReport = async () => {
     });
   });
 
+
+  useEffect(() => {
+    const fetchComments = async () => {
+      if (!eventFilter) {
+        setInsightComments([]);
+        return;
+      }
+
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("feedbackreports")
+        .select("feedback_text")
+        .eq("eventid", eventFilter)
+        .not("feedback_text", "is", null);
+
+      if (error) {
+        console.error("Error fetching comments:", error.message);
+        setInsightComments([]);
+      } else {
+        const comments = data.map((row: { feedback_text: string }) => row.feedback_text);
+        setInsightComments(comments);
+      }
+    };
+
+    fetchComments();
+  }, [eventFilter]);
+
+
+  useEffect(() => {
+    if (insightComments.length === 0) {
+      setInsight("");
+      return;
+    }
+
+    setLoadingInsight(true);
+    generateInsights(insightComments)
+      .then((text) => setInsight(text))
+      .catch(() => setInsight("Failed to generate insight."))
+      .finally(() => setLoadingInsight(false));
+  }, [insightComments]);
+
+
+
   return (
     <>
       <ToastContainer />
@@ -372,45 +439,54 @@ const handleGenerateReport = async () => {
 
               </div>
 
+            { reportGenerating && (
+              <>
               <div className="mt-8 mb-6 w-96 h-[250px]">
-                <h1 className="font-bold mb-4"> Sentiment Analysis </h1>
-                <Pie
-                  data={pieData}
-                  options={{
-                    maintainAspectRatio: false,
-                    layout: { padding: 0 },
-                    plugins: {
-                      datalabels: {
-                        formatter: (value, context) => {
-                          const total = (context.chart.data.datasets[0].data as number[]).reduce((a, b) => a + b, 0);
-                          const percentage = ((value / total) * 100).toFixed(1) + '%';
-                          return percentage;
+                  <h1 className="font-bold mb-4"> Sentiment Analysis </h1>
+                  <Pie
+                    data={pieData}
+                    options={{
+                      maintainAspectRatio: false,
+                      layout: { padding: 0 },
+                      plugins: {
+                        datalabels: {
+                          formatter: (value, context) => {
+                            const total = (context.chart.data.datasets[0].data as number[]).reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1) + '%';
+                            return percentage;
+                          },
+                          color: 'white',
+                          font: { weight: 'bold', size: 12 },
                         },
-                        color: 'white',
-                        font: { weight: 'bold', size: 12 },
+                        legend: {
+                          position: 'right',
+                          labels: { color: 'white', boxWidth: 12, padding: 8 },
+                        },
                       },
-                      legend: {
-                        position: 'right',
-                        labels: { color: 'white', boxWidth: 12, padding: 8 },
-                      },
-                    },
-                  }}
-                />
-              </div>
+                    }}
+                  />
+                </div>
 
-              <div className="mt-16">
-                <h2 className="text-lg font-semibold mb-2">Key Insights</h2>
-                {summary ? (
-                  <div className="bg-charleston p-4 rounded-md text-sm text-white whitespace-pre-line">
-                    {summary}
-                  </div>
-                ) : (
-                  <p className="text-light text-sm italic">
-  {summary === "No reports generated yet." ? summary : "Getting insights."}
-</p>
+                <div className="mt-16 mr-24">
+                  <h2 className="font-bold">Key Insights</h2>
+                  {loadingInsight ? (
+                    <p className="italic text-gray-400">Generating insight...</p>
+                  ) : (
+                    <ReactMarkdown className="bg-charleston rounded-md px-8 py-5 prose prose-invert mt-2 text-sm"
+                      components={{
+                        p: ({ node, ...props }) => <p className="mb-2" {...props} />,
+                        ul: ({ node, ...props }) => <ul className="mb-3 list-disc pl-6" {...props} />,
+                      }}
+                    >
+                      {insight}
+                    </ReactMarkdown>
 
-                )}
-              </div>
+
+                  )}
+                </div>
+                </>
+            )}
+              
             </>
           )}
         </div>
