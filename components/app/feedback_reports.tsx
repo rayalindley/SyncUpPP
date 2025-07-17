@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import { Pie } from "react-chartjs-2";
 import ChartDataLabels from 'chartjs-plugin-datalabels';
@@ -12,34 +13,20 @@ import { toast, ToastContainer } from "react-toastify";
 import { createClient } from "@/lib/supabase/client";
 import { Event } from "@/models/Event";
 import { Organization } from "@/models/Organization";
-import ReactMarkdown from "react-markdown"
+import ReactMarkdown from "react-markdown";
 
+// Register chart components
 ChartJS.register(ArcElement, Tooltip, Legend, ChartDataLabels);
 
-const generateInsights = async (comments: string[]): Promise<string> => {
-  const trimmedComments = comments.slice(0, 15); // safer length
-  const formatted = trimmedComments.map((c, i) => `- ${c}`).join("\n");
-
-  const prompt = `Here are feedback comments from event attendees:\n${formatted}\n\nPlease summarize and give the key insights from this list.`;
-
-  const res = await fetch("/api/phi-4", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt }),
-  });
-
-  const data = await res.json();
-  return data.explanation || "No insight generated.";
-};
-
+// Feedback report structure
 interface FeedbackReport {
-  id: string;
+  feedbackreportid: string;
   eventid: string;
-  event_name: string;
-  user_id: string;
-  rating: number;
-  sentiment: "positive" | "negative";
+  userid: string;
+  feedback_text: string;
+  sentiment: { positive: number; negative: number };
   keywords: string[];
+  submitted_at: string;
 }
 
 interface FeedbackReportsProps {
@@ -53,6 +40,7 @@ interface SentimentResult {
   sentiment: string;
   confidence: number;
   original: string;
+  translated: string;
 }
 
 const FeedbackReports: React.FC<FeedbackReportsProps> = ({
@@ -65,99 +53,88 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
   const [filteredReports, setFilteredReports] = useState<FeedbackReport[]>([]);
   const [summary, setSummary] = useState<string | null>(null);
   const [sentimentResults, setSentimentResults] = useState<SentimentResult[]>([]);
-  const [reportLimit, setReportLimit] = useState<number | null>(null);
   const [totalFormResponses, setTotalFormResponses] = useState<number>(0);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [reportGenerating, setReportGenerating] = useState(false);
   const [topKeywords, setTopKeywords] = useState<string[]>([]);
+  const [sentiment, setSentiment] = useState<{ positive: number; negative: number } | null>(null);
   const [averageLikertRating, setAverageLikert] = useState("0");
 
-  const [insightComments, setInsightComments] = useState<string[]>([]);
-
-  const [insight, setInsight] = useState<string>("");
-  const [loadingInsight, setLoadingInsight] = useState<boolean>(false);
-
+  // Load event stats and feedback
   const loadStats = async () => {
-  if (!eventFilter) {
-    setFilteredReports([]);
-    setSummary(null);
-    setReportLimit(null);
-    setTotalFormResponses(0);
-    return;
-  }
+    if (!eventFilter) {
+      setFilteredReports([]);
+      setSummary(null);
+      setTotalFormResponses(0);
+      setSentiment(null);
+      return;
+    }
 
-  const supabase = createClient();
+    const supabase = createClient();
 
-  // 1. Get event's report limit
-  const { data: eventData } = await supabase
-    .from("events")
-    .select("report_limit")
-    .eq("eventid", eventFilter)
-    .single();
-  setReportLimit(eventData?.report_limit ?? 0);
+    // 1. Total form responses
+    const { data: formResponses, error: formError } = await supabase
+      .from("form_responses")
+      .select("id, comment, submitted_at, forms!inner(event_id)")
+      .eq("forms.event_id", eventFilter);
 
-  // 2. Get total form responses for the event
-  const { data: formResponses, error: formError } = await supabase
-    .from("form_responses")
-    .select("id, comment, submitted_at, forms!inner(event_id)")
-    .eq("forms.event_id", eventFilter);
+    if (formError) {
+      toast.error("Failed to fetch form responses.");
+      return;
+    }
+    setTotalFormResponses(formResponses.length);
 
-  if (formError) {
-    toast.error("Failed to fetch form responses.");
-    return;
-  }
+    // 2. Likert ratings
+    const { data: likertAnswers, error: likertError } = await supabase
+      .from("form_answers")
+      .select("answer, form_responses!inner(form_id, forms!inner(event_id))")
+      .eq("form_responses.forms.event_id", eventFilter)
+      .in("answer", ["1", "2", "3", "4", "5"]);
 
-  setTotalFormResponses(formResponses.length);
-
-  // 2. Get numeric Likert answers
-  const { data: likertAnswers, error: likertError } = await supabase
-    .from("form_answers")
-    .select("answer, form_responses!inner(form_id, forms!inner(event_id))")
-    .eq("form_responses.forms.event_id", eventFilter)
-    .in("answer", ["1", "2", "3", "4", "5"]);
-
-  if (likertError) {
-    console.error("Error fetching Likert answers:", likertError);
-    // TODO uncomment this line when the UI is ready.
-    // toast.error("Failed to calculate average rating.");
-  } else {
-    const numericAnswers = likertAnswers.map(a => Number(a.answer)).filter(n => !isNaN(n));
-    const avg =
-      numericAnswers.length > 0
+    if (!likertError) {
+      const numericAnswers = likertAnswers.map(a => Number(a.answer)).filter(n => !isNaN(n));
+      const avg = numericAnswers.length > 0
         ? (numericAnswers.reduce((sum, n) => sum + n, 0) / numericAnswers.length).toFixed(1)
         : "0";
+      setAverageLikert(avg);
+    }
 
-    setAverageLikert(avg);
-  }
+    // 3. Feedback reports
+    const { data: feedbackReports, error: feedbackError } = await supabase
+      .from("feedbackreports")
+      .select("*")
+      .eq("eventid", eventFilter);
 
-  // 3. Fetch feedback reports
-  const { data: feedbackReports, error: feedbackError } = await supabase
-    .from("feedbackreports")
-    .select("*")
-    .eq("eventid", eventFilter);
+    if (feedbackError) return;
 
-  if (feedbackError) {
-    console.error("Error fetching feedback reports:", feedbackError);
-    return;
-  }
+    setFilteredReports(feedbackReports || []);
 
-  setFilteredReports(feedbackReports || []);
+    if (!feedbackReports || feedbackReports.length === 0) {
+      setSummary("No reports generated yet.");
+      setSentiment(null);
+      setTopKeywords([]);
+    } else {
+      const latest = [...feedbackReports].sort((a, b) =>
+        new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime()
+      )[0];
 
-  if (!feedbackReports || feedbackReports.length === 0) {
-    setSummary("No reports generated yet.");
-  } else {
-    const latest = [...feedbackReports]
-      .sort((a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime())[0];
-    setSummary(latest.feedback_text || "No summary found.");
-  }
-};
+      setSummary(latest.feedback_text || "No summary found.");
+      setSentiment(latest.sentiment || { positive: 0, negative: 0 });
 
-
+      if (latest.keywords && typeof latest.keywords === 'object') {
+        const sorted = Object.entries(latest.keywords)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(([kw, count]) => `${kw}: ${count}`);
+        setTopKeywords(sorted);
+      }
+    }
+  };
 
   useEffect(() => {
     loadStats();
   }, [eventFilter]);
 
+  // Count sentiments
   function getSentimentCounts(results: SentimentResult[]) {
     const counts = { positive: 0, negative: 0 };
     results.forEach((r) => {
@@ -169,145 +146,87 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
     return counts;
   }
 
-const handleGenerateReport = async () => {
-  if (reportLimit === 0 || !eventFilter) return;
+  // Generate feedback report
+  const handleGenerateReport = async () => {
+    if (!eventFilter) return;
 
-  const confirm = window.confirm("This will decrement your generations. Do you wanna continue?");
-  if (!confirm) return;
+    const supabase = createClient();
 
-  setIsGenerating(true);
-  setReportGenerating(true)
+    try {
+      // Check for existing responses
+      const { data: formResponses } = await supabase
+        .from("form_responses")
+        .select("comment, forms!inner(event_id)")
+        .eq("forms.event_id", eventFilter);
 
-  const supabase = createClient();
+      const rawComments = formResponses?.map((d) => d.comment).filter(Boolean) || [];
 
-  try {
-    // Get comments
-    const { data: formResponses } = await supabase
-      .from("form_responses")
-      .select("comment, forms!inner(event_id)")
-      .eq("forms.event_id", eventFilter);
+      if (rawComments.length === 0) {
+        alert("No responses available. Cannot generate report.");
+        return;
+      }
 
-    const rawComments = formResponses?.map((d) => d.comment).filter(Boolean) || [];
+      // Confirm overwrite if previous report exists
+      if (sentimentResults && sentimentResults.length > 0) {
+        const confirm = window.confirm("This will erase the previous report. Continue?");
+        if (!confirm) return;
+      }
 
-    if (rawComments.length === 0) {
+      setIsGenerating(true);
 
-      //TODO uncomment this line when the UI is ready.
-      // toast.error("No comments to analyze.");
-      console.error("No comments to analyze.");
-      return;
+      // Call batch sentiment API
+      const res = await fetch("http://localhost:5000/batch-analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comments: rawComments }),
+      });
+
+      const json = await res.json();
+      setSentimentResults(json.results);
+      setSummary(json.summary);
+      console.log("Generated feedback:", json);
+
+      // Get form ID for current event
+      const { data: formData, error: formIdError } = await supabase
+        .from("forms")
+        .select("id")
+        .eq("event_id", eventFilter)
+        .single();
+
+      if (formIdError || !formData) return;
+
+      // Insert new report into feedbackreports
+      await supabase.from("feedbackreports").insert({
+        feedbackreportid: crypto.randomUUID(),
+        eventid: eventFilter,
+        userid: userId,
+        feedback_text: json.summary,
+        sentiment: getSentimentCounts(json.results),
+        keywords: json.keywords,
+        submitted_at: new Date().toISOString(),
+      });
+
+      const sortedKeywords = Object.entries(json.keywords)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([kw, count]) => `${kw}: ${count}`);
+      setTopKeywords(sortedKeywords);
+
+      await loadStats();
+    } catch (err) {
+      console.error("Report generation error:", err);
+    } finally {
+      setIsGenerating(false);
     }
-
-    const res = await fetch("http://localhost:5000/batch-analyze", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ comments: rawComments }),
-    });
-
-    const json: { results: SentimentResult[]; keywords: Record<string, number> } = await res.json();
-    console.log("API response:", json);
-    setSentimentResults(json.results);
-
-    const generatedText = rawComments.join("\n\n");
-    setSummary(generatedText);
-
-    // Save to form_responses (optional depending on your logic)
-    const { error: insertError } = await supabase
-      .from("form_responses")
-      .insert([
-        {
-          form_id: null, // Replace if you have the actual form_id
-          attendee_id: userId,
-          comment: generatedText,
-          submitted_at: new Date().toISOString(),
-          certificate_issued: false,
-          certificate_preference: "none",
-        },
-      ]);
-
-    if (insertError) {
-      console.error(insertError);
-
-      // TODO uncomment this line when the UI is ready.
-      // toast.error("Failed to save generated report.");
-      console.error("Failed to save generated report:", insertError);
-    }
-
-    // Insert feedback report into feedbackreports table
-    await supabase.from("feedbackreports").insert({
-      feedbackreportid: crypto.randomUUID(),
-      eventid: eventFilter,
-      userid: userId,
-      feedback_text: json.results.map((r) => r.original).join("\n"),
-      sentiment: getSentimentCounts(json.results),
-      keywords: Object.keys(json.keywords),
-      submitted_at: new Date().toISOString(),
-    });
-
-    // Update report_limit
-    const { error: updateError } = await supabase
-      .from("events")
-      .update({ report_limit: (reportLimit || 1) - 1 })
-      .eq("eventid", eventFilter);
-
-    if (updateError) {
-
-      // TODO uncomment this line when the UI is ready.
-      // toast.error("Failed to update report limit.");
-      console.error("Failed to update report limit:", updateError);
-    } else {
-      setReportLimit((prev) => (prev || 1) - 1);
-      // TODO uncomment this line when the UI is ready.
-      // toast.success("Report generated and saved.");
-      console.log("Report generated and saved successfully.");
-    }
-
-    // Top 5 keywords
-    const sortedKeywords = Object.entries(json.keywords)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([kw, count]) => `${kw}: ${count}`);
-    setTopKeywords(sortedKeywords);
-
-    await loadStats();
-  } catch (err) {
-    console.error("Report generation error:", err);
-
-    // TODO uncomment this line when the UI is ready.
-    // toast.error(`An error occurred while generating the report);
-
-  } finally {
-    setIsGenerating(false);
-  }
-};
-
-
-
-
-  const totalResponses = filteredReports.length;
-
-  const sentimentCount: { [key in "positive" | "negative"]: number } = {
-    positive: 0,
-    negative: 0,
   };
 
-  sentimentResults.forEach((res) => {
-    const label = res.sentiment.toLowerCase() as "positive" | "negative";
-    if (label in sentimentCount) {
-      sentimentCount[label]++;
-    }
-  });
 
-  // filteredReports.forEach((r) => {
-  //   sentimentCount[r.sentiment]++;
-  // });
-
-  const sentimentCounts = getSentimentCounts(sentimentResults);
-
+  // Pie chart data
   const pieData = {
     labels: ["Positive", "Negative"],
     datasets: [
       {
-        data: [sentimentCounts.positive, sentimentCounts.negative],
+        data: [sentiment?.positive ?? 0, sentiment?.negative ?? 0],
         backgroundColor: ["#5687F2", "#EAB308"],
         borderColor: "white",
         borderWidth: 1,
@@ -315,64 +234,13 @@ const handleGenerateReport = async () => {
     ],
   };
 
-
-  const keywordMap: { [key: string]: number } = {};
-  filteredReports.forEach((r) => {
-    r.keywords.forEach((kw) => {
-      keywordMap[kw] = (keywordMap[kw] || 0) + 1;
-    });
-  });
-
-
-  useEffect(() => {
-    const fetchComments = async () => {
-      if (!eventFilter) {
-        setInsightComments([]);
-        return;
-      }
-
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from("feedbackreports")
-        .select("feedback_text")
-        .eq("eventid", eventFilter)
-        .not("feedback_text", "is", null);
-
-      if (error) {
-        console.error("Error fetching comments:", error.message);
-        setInsightComments([]);
-      } else {
-        const comments = data.map((row: { feedback_text: string }) => row.feedback_text);
-        setInsightComments(comments);
-      }
-    };
-
-    fetchComments();
-  }, [eventFilter]);
-
-
-  useEffect(() => {
-    if (insightComments.length === 0) {
-      setInsight("");
-      return;
-    }
-
-    setLoadingInsight(true);
-    generateInsights(insightComments)
-      .then((text) => setInsight(text))
-      .catch(() => setInsight("Failed to generate insight."))
-      .finally(() => setLoadingInsight(false));
-  }, [insightComments]);
-
-
-
   return (
     <>
       <ToastContainer />
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="sm:flex sm:items-center">
           <div className="sm:flex-auto">
-            <h1 className="mt-6 text-base font-semibold leading-6 text-light">
+            <h1 className="mt-6 text-base font-semibold leading-6 text-light text-white">
               Feedback Reports
             </h1>
             <p className="mt-2 text-sm text-light">
@@ -381,6 +249,7 @@ const handleGenerateReport = async () => {
           </div>
         </div>
 
+        {/* Event dropdown */}
         <div className="flex flex-wrap gap-2">
           <select
             value={eventFilter}
@@ -396,100 +265,86 @@ const handleGenerateReport = async () => {
           </select>
         </div>
 
-        <div className="text-white">
-          {eventFilter && (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="bg-charleston rounded-md p-10 text-center">
-                  <h1 className="text-xl font-bold"> {totalFormResponses} </h1>
-                  <h5 className="text-sm mt-2"> Total Responses </h5>
-                </div>
-
-                <div className="bg-charleston rounded-md p-10 text-center">
-                  <h1 className="text-xl font-bold"> {averageLikertRating}/5.0</h1>
-                  <h5 className="text-sm mt-2"> Average Likert Rating </h5>
-                </div>
-
-                <div className="bg-charleston rounded-md p-10 text-center">
-                  <h1 className="text-xl font-bold">{reportLimit}</h1>
-                  <h5 className="text-sm mt-2">Report Generations Left</h5>
-                </div>
-
-                <button
-                  onClick={handleGenerateReport}
-                  disabled={reportLimit === 0 || isGenerating}
-                  title={reportLimit === 0 ? "No more generations left." : ""}
-                  className={`mt-4 px-4 py-2 text-sm rounded-md ${
-                    reportLimit === 0
-                      ? "bg-gray-500 cursor-not-allowed"
-                      : "bg-blue-600 hover:bg-blue-700"
-                  } text-white`}
-                >
-                  {isGenerating ? "Generating..." : "Generate Report"}
-                </button>
+        {/* Metrics & visualizations */}
+        {eventFilter && (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="bg-charleston rounded-md p-10 text-center">
+                <h1 className="text-xl font-bold text-white"> {totalFormResponses} </h1>
+                <h5 className="text-sm mt-2 text-white"> Total Responses </h5>
+              </div>
 
               <div className="bg-charleston rounded-md p-10 text-center">
-                <h3 className="font-semibold mb-2">Most Mentioned Keywords:</h3>
-                <ul className="list-disc list-inside text-sm">
+                <h1 className="text-xl font-bold text-white"> {averageLikertRating}/5.0</h1>
+                <h5 className="text-sm mt-2 text-white"> Average Likert Rating </h5>
+              </div>
+
+              <div className="bg-charleston rounded-md p-10 text-center">
+                <h3 className="font-semibold mb-2 text-white">Most Mentioned Keywords:</h3>
+                <ul className="list-disc list-inside text-sm text-white">
                   {topKeywords.map((kw) => (
-                    <li key={kw}>{kw}</li>
+                    <ul key={kw}>{kw}</ul>
                   ))}
                 </ul>
               </div>
 
-              </div>
+            <button
+              onClick={handleGenerateReport}
+              disabled={isGenerating || totalFormResponses === 0}
+              className="mt-4 px-4 py-2 text-sm rounded-md bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              title={totalFormResponses === 0 ? "No responses to generate from." : ""}
+            >
+              {isGenerating ? "Generating..." : "Generate Report"}
+            </button>
 
-            { reportGenerating && (
-              <>
-              <div className="mt-8 mb-6 w-96 h-[250px]">
-                  <h1 className="font-bold mb-4"> Sentiment Analysis </h1>
-                  <Pie
-                    data={pieData}
-                    options={{
-                      maintainAspectRatio: false,
-                      layout: { padding: 0 },
-                      plugins: {
-                        datalabels: {
-                          formatter: (value, context) => {
-                            const total = (context.chart.data.datasets[0].data as number[]).reduce((a, b) => a + b, 0);
-                            const percentage = ((value / total) * 100).toFixed(1) + '%';
-                            return percentage;
-                          },
-                          color: 'white',
-                          font: { weight: 'bold', size: 12 },
+            </div>
+
+            {/* Sentiment Pie Chart */}
+            <div className="mt-8 mb-6 w-96 h-[250px]">
+              <h1 className="font-bold mb-4 text-white"> Sentiment Analysis </h1>
+              {(sentiment?.positive ?? 0) + (sentiment?.negative ?? 0) > 0 ? (
+                <Pie
+                  data={pieData}
+                  options={{
+                    maintainAspectRatio: false,
+                    layout: { padding: 1 },
+                    plugins: {
+                      datalabels: {
+                        formatter: (value, context) => {
+                          const total = (context.chart.data.datasets[0].data as number[]).reduce((a, b) => a + b, 0);
+                          const percentage = ((value / total) * 100).toFixed(1) + '%';
+                          return percentage;
                         },
-                        legend: {
-                          position: 'right',
-                          labels: { color: 'white', boxWidth: 12, padding: 8 },
-                        },
+                        color: 'white',
+                        font: { weight: 'bold', size: 12 },
                       },
-                    }}
-                  />
+                      legend: {
+                        position: 'right',
+                        labels: { color: 'white', boxWidth: 12, padding: 8 },
+                      },
+                    },
+                  }}
+                />
+              ) : (
+                <div className="text-center text-white italic">No sentiment data available yet.</div>
+              )}
+            </div>
+
+            {/* Summary of insights */}
+            <div className="mt-16">
+              <h2 className="text-lg font-semibold mb-2 text-white">Key Insights</h2>
+              {summary ? (
+                <div className="bg-charleston p-4 rounded-md text-sm text-white whitespace-pre-line">
+                  <ReactMarkdown>{summary}</ReactMarkdown>
                 </div>
-
-                <div className="mt-16 mr-24">
-                  <h2 className="font-bold">Key Insights</h2>
-                  {loadingInsight ? (
-                    <p className="italic text-gray-400">Generating insight...</p>
-                  ) : (
-                    <ReactMarkdown className="bg-charleston rounded-md px-8 py-5 prose prose-invert mt-2 text-sm"
-                      components={{
-                        p: ({ node, ...props }) => <p className="mb-2" {...props} />,
-                        ul: ({ node, ...props }) => <ul className="mb-3 list-disc pl-6" {...props} />,
-                      }}
-                    >
-                      {insight}
-                    </ReactMarkdown>
-
-
-                  )}
-                </div>
-                </>
-            )}
-              
-            </>
-          )}
-        </div>
+              ) : (
+                <p className="text-light text-sm italic">
+                  {summary === "No reports generated yet." ? summary : "Getting insights."}
+                </p>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </>
   );
