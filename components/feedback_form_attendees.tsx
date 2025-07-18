@@ -167,25 +167,6 @@ export default function FeedbackFormAttendees({
 
       if (answersError) throw answersError;
 
-      // await Swal.fire({
-      //   icon: "success",
-      //   title: "Form submitted successfully!",
-      //   text: "Thank you for sending a feedback.",
-      //   timer: 3000,
-      //   showConfirmButton: false,
-
-      //   customClass: {
-      //     icon: "text-xs",
-      //     title: "text-lg",
-      //     htmlContainer: "text-base",
-      //     popup: "rounded-lg p-6 shadow-xl border border-gray-700",
-      //     confirmButton: "text-sm px-4 py-2 rounded-md",
-      //     cancelButton: "text-sm px-4 py-2 rounded-md",
-      //   }
-      // });
-
-      // router.back();
-
       const { data: certSettings } = await supabase
         .from("event_certificate_settings")
         .select("release_option")
@@ -193,7 +174,6 @@ export default function FeedbackFormAttendees({
         .single();
 
       if(certSettings?.release_option === "after_feedback_submission") {
-        // Insert certificate
         await supabase.from("certificates").insert({
           event_id: eventId,
           user_id: userId,
@@ -201,7 +181,6 @@ export default function FeedbackFormAttendees({
           created_at: new Date().toISOString(),
         });
 
-        // Get cert ID to show download link
         const { data: cert, error: certError } = await supabase
           .from("certificates")
           .select("certificate_id")

@@ -121,12 +121,14 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
       setSentiment(latest.sentiment || { positive: 0, negative: 0 });
 
       if (latest.keywords && typeof latest.keywords === 'object') {
-        const sorted = Object.entries(latest.keywords)
+        const keywordEntries = Object.entries(latest.keywords as Record<string, number>);
+        const sorted = keywordEntries
           .sort((a, b) => b[1] - a[1])
           .slice(0, 5)
           .map(([kw, count]) => `${kw}: ${count}`);
         setTopKeywords(sorted);
       }
+
     }
   };
 
@@ -206,11 +208,13 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
         submitted_at: new Date().toISOString(),
       });
 
-      const sortedKeywords = Object.entries(json.keywords)
+      const sortedKeywords = Object.entries(json.keywords as Record<string, number>)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5)
         .map(([kw, count]) => `${kw}: ${count}`);
+
       setTopKeywords(sortedKeywords);
+
 
       await loadStats();
     } catch (err) {
