@@ -127,7 +127,7 @@ export interface EventFormValues {
     position: string;
   }[];
   certificate_enabled?: boolean;
-  release_option?: "after_event" | "scheduled";
+  release_option?: "after_event" | "scheduled" | "after_feedback_submission";
   scheduled_release_date?: string | null; // Changed to string
   certificate_background?: string | null;
   discounts?: Array<{
@@ -360,7 +360,7 @@ const CreateEventForm = ({
           onsite: false,
           signatories: [],
           certificate_enabled: false,
-          release_option: "after_event" as "after_event" | "scheduled",
+          release_option: "after_event" as "after_event" | "scheduled" | "after_feedback_submission",
           scheduled_release_date: null,
           certificate_background: null,
           discounts: [],

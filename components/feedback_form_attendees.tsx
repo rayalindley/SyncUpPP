@@ -33,6 +33,8 @@ export default function FeedbackFormAttendees({
   const [answers, setAnswers] = useState<{ [questionId: string]: string }>({});
   const [comment, setComment] = useState("");
 
+  const [certificateId, setCertificateId] = useState<string | null>(null);
+
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -165,24 +167,96 @@ export default function FeedbackFormAttendees({
 
       if (answersError) throw answersError;
 
-      await Swal.fire({
-        icon: "success",
-        title: "Form submitted successfully!",
-        text: "Thank you for sending a feedback.",
-        timer: 3000,
-        showConfirmButton: false,
+      // await Swal.fire({
+      //   icon: "success",
+      //   title: "Form submitted successfully!",
+      //   text: "Thank you for sending a feedback.",
+      //   timer: 3000,
+      //   showConfirmButton: false,
 
-        customClass: {
-          icon: "text-xs",
-          title: "text-lg",
-          htmlContainer: "text-base",
-          popup: "rounded-lg p-6 shadow-xl border border-gray-700",
-          confirmButton: "text-sm px-4 py-2 rounded-md",
-          cancelButton: "text-sm px-4 py-2 rounded-md",
+      //   customClass: {
+      //     icon: "text-xs",
+      //     title: "text-lg",
+      //     htmlContainer: "text-base",
+      //     popup: "rounded-lg p-6 shadow-xl border border-gray-700",
+      //     confirmButton: "text-sm px-4 py-2 rounded-md",
+      //     cancelButton: "text-sm px-4 py-2 rounded-md",
+      //   }
+      // });
+
+      // router.back();
+
+      const { data: certSettings } = await supabase
+        .from("event_certificate_settings")
+        .select("release_option")
+        .eq("event_id", eventId)
+        .single();
+
+      if(certSettings?.release_option === "after_feedback_submission") {
+        // Insert certificate
+        await supabase.from("certificates").insert({
+          event_id: eventId,
+          user_id: userId,
+          release_status: "released",
+          created_at: new Date().toISOString(),
+        });
+
+        // Get cert ID to show download link
+        const { data: cert, error: certError } = await supabase
+          .from("certificates")
+          .select("certificate_id")
+          .eq("event_id", eventId)
+          .eq("user_id", userId)
+          .eq("release_status", "released")
+          .single();
+
+        if (!certError && cert) {
+          setCertificateId(cert.certificate_id);
+
+          await Swal.fire({
+            icon: "success",
+            title: "Form submitted successfully!",
+            html: `
+              <p>Thank you for your feedback.</p>
+              <a href="/api/certificates/${cert.certificate_id}" target="_blank" class="mt-4 inline-block bg-primary text-white px-4 py-2 rounded-md shadow hover:bg-primarydark transition">
+                View Certificate
+              </a>
+            `,
+            showConfirmButton: true,
+            confirmButtonText: "Done",
+            customClass: {
+              icon: "text-xs",
+              title: "text-lg",
+              htmlContainer: "text-base",
+              popup: "rounded-lg p-6 shadow-xl border border-gray-700",
+              confirmButton: "bg-gray-200 text-gray-800 text-sm px-4 py-2 rounded-md hover:bg-gray-300",
+            },
+          });
+
+          router.back();
+        } else {
+          console.error("Failed to fetch certificate ID:", certError);
         }
-      });
+      } else {
+        await Swal.fire({
+          icon: "success",
+          title: "Form submitted successfully!",
+          text: "Thank you for your feedback.",
+          timer: 3000,
+          showConfirmButton: false,
+          customClass: {
+            icon: "text-xs",
+            title: "text-lg",
+            htmlContainer: "text-base",
+            popup: "rounded-lg p-6 shadow-xl border border-gray-700",
+            confirmButton: "text-sm px-4 py-2 rounded-md",
+          },
+        });
 
-      router.back();
+        router.back();
+      }
+
+
     } catch (error) {
       console.error("Submission error:", error);
       Swal.fire({
@@ -204,7 +278,13 @@ export default function FeedbackFormAttendees({
     } finally {
       setIsLoading(false);
     }
+
+    
+
+    
   };
+
+  
 
 
   
@@ -289,6 +369,20 @@ export default function FeedbackFormAttendees({
           </button>
         </div>
       </form>
+
+      {certificateId && (
+        <div className="mt-4 text-center">
+          <a
+            href={`/api/certificates/${certificateId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-light bg-primary hover:bg-primarydark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+          >
+            🎓 View Your Certificate
+          </a>
+        </div>
+      )}
+
     </div>
     </>
   );
