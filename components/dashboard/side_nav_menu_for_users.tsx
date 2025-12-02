@@ -14,7 +14,7 @@ import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { Fragment, useEffect, useState } from "react";
 
-import { IoIosAnalytics, IoIosPeople } from "react-icons/io";
+import { IoIosAnalytics, IoIosClipboard, IoIosPeople } from "react-icons/io";
 import {
   IoCalendarOutline,
   IoMailUnreadOutline,
@@ -162,7 +162,16 @@ const SideNavMenuForUsers = ({ organizations }: { organizations: Organization[] 
           icon: CgFileDocument,
         }
       ]
-      : [])
+      : []),
+      {
+      name: "FAQs",
+      icon: IoIosClipboard,
+       href: "/dashboard/faqs", // optional default route
+
+        
+      
+    },
+      
   ];
 
   const toggleSubmenu = (name: string) => {
