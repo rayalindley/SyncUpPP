@@ -1,5 +1,5 @@
 "use client";
-import CreateOrganizationForm from "@/components/create_organization_form";
+import CreateOrganizationForm from "@/components/organization/create";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { useRouter } from "next/navigation";
 import { StepsProvider } from "react-step-builder";

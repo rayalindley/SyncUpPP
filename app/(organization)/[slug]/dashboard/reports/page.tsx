@@ -1,10 +1,13 @@
-
 import FeedbackReports from "@/components/app/feedback_reports";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { fetchOrganizationBySlug } from "@/lib/organization";
 import { check_permissions } from "@/lib/organization";
 
-export default async function TransactionsPage({ params }: { params: { slug: string } }) {
+interface TransactionsPageProps {
+  params: { slug: string };
+}
+
+export default async function TransactionsPage({ params }: TransactionsPageProps) {
   const supabase = createClient();
   const { user } = await getUser();
 
@@ -13,13 +16,27 @@ export default async function TransactionsPage({ params }: { params: { slug: str
   const { data: organization } = await fetchOrganizationBySlug(params.slug);
   if (!organization) return <div>Organization not found</div>;
 
-  const hasPermission = await check_permissions(user.id, organization.organizationid, "view_dashboard");
+  const hasPermission = await check_permissions(
+    user.id,
+    organization.organizationid,
+    "view_dashboard"
+  );
   if (!hasPermission) return <div>No permission</div>;
 
+  // Fetch feedback reports for this organization
   const { data: feedbackreports } = await supabase
     .from("feedbackreports")
-    .select("*");
+    .select("*")
+    .in(
+      "eventid",
+      (await supabase
+        .from("events")
+        .select("eventid")
+        .eq("organizationid", organization.organizationid)
+        .then((res) => res.data?.map((e) => e.eventid) || [])) // get all event IDs
+    );
 
+  // Fetch events for this organization
   const { data: events } = await supabase
     .from("events")
     .select("*")

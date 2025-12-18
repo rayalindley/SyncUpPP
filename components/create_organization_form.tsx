@@ -508,6 +508,20 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
         theme="dark"
       />
       <form className="space-y-6" onSubmit={handleSubmit(onSubmit)} method="POST">
+        {/* Progress Bar */}
+<div className="mb-6">
+  <div className="mb-2 flex justify-between text-sm text-gray-300">
+    <span>Step {current} of {total}</span>
+    <span>{Math.round(progress * 100)}%</span>
+  </div>
+
+  <div className="h-2 w-full rounded-full bg-gray-700">
+    <div
+      className="h-2 rounded-full bg-primary transition-all duration-300 ease-in-out"
+      style={{ width: `${progress * 100}%` }}
+    />
+  </div>
+</div>
         <Steps>
           {/* Step 1 */}
           <div id="step1" className="space-y-6">
