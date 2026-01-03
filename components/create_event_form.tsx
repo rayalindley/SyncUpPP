@@ -585,7 +585,7 @@ const CreateEventForm = ({
         const { data: certData, error: certError } = await supabase
           .from("event_certificate_settings")
           .select("*")
-          .eq("event_id", event.eventid)
+          .eq("event_id", events.id)
           .maybeSingle();
         if (certError) {
           console.error("Error fetching certificate settings:", certError);
@@ -853,7 +853,8 @@ const CreateEventForm = ({
         : await insertEvent(completeFormData, organizationid);
 
       if (data) {
-        const eventId = event ? event.eventid! : data[0].eventid;
+        const eventId = event ? events.
+        id! : data[0].eventid;
 
         // Auto-register creator if creating a new event
         if (!event) {

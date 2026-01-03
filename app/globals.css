@@ -46,7 +46,7 @@
   padding: 8px;
   border-radius: 4px;
   width: 100%;
-  max-width: 300px;
+  max-width: none;
   margin-bottom: 16px;
 }
 

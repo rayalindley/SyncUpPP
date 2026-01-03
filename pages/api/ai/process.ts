@@ -1,64 +1,233 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import Groq from "groq-sdk";
+import { createClient } from "@supabase/supabase-js";
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! });
+/* =========================
+   Server-side Supabase
+========================= */
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY! // REQUIRED (bypasses RLS)
+);
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST")
-    return res.status(405).json({ error: "Method not allowed" });
+/* =========================
+   Groq Client
+========================= */
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY!,
+});
 
-  const { feedback } = req.body;
+/* =========================
+   Types
+========================= */
+type FeedbackRow = {
+  id: string;
+  text: string;
+  likert: number | null;
+  event_id: string | null;
+};
 
-  if (!feedback)
-    return res.status(400).json({ error: "Missing feedback" });
+type GroqResult = {
+  translation?: string;
+  summary?: string;
+  sentiment?: {
+    label?: string;
+    score?: number;
+  };
+  likert?: number;
+  keywords?: string[];
+  recommendations?: string[];
+};
 
+/* =========================
+   Groq Call
+========================= */
+async function analyzeFeedback(text: string) {
   const prompt = `
-You are an event evaluation AI assistant.
-Analyze the feedback below and ALWAYS respond in VALID JSON ONLY.
+Analyze the feedback below and return ONLY valid JSON.
 
 FEEDBACK:
-"${feedback}"
-
-Return JSON in this format:
+"${text}"
 
 {
   "translation": "English translation",
   "summary": "2–3 sentence summary",
   "sentiment": {
-    "label": "Positive | Neutral | Negative | Mixed | Sarcastic",
-    "score": "float between -1 and 1"
+    "label": "Positive | Neutral | Negative | Mixed",
+    "score": -1 to 1
   },
   "likert": 1-5,
-  "keywords": ["word1", "word2", ...],
+  "keywords": ["keyword1", "keyword2"],
   "recommendations": ["rec1", "rec2"]
 }
-
-RULES:
-- Respond with ONLY raw JSON. No markdown.
-- If unsure, make your best reasonable guess.
 `;
 
+  const completion = await groq.chat.completions.create({
+    model: "llama-3.1-8b-instant",
+    messages: [{ role: "user", content: prompt }],
+    temperature: 0.2,
+    max_tokens: 400,
+  });
+
+  const raw =
+    completion.choices?.[0]?.message?.content?.trim() ?? "";
+
   try {
-    const completion = await groq.chat.completions.create({
-      model: "llama-3.1-8b-instant",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.2,
-      max_tokens: 400,
-    });
+    return {
+      ok: true,
+      parsed: JSON.parse(raw) as GroqResult,
+      raw,
+    };
+  } catch {
+    return { ok: false, parsed: null, raw };
+  }
+}
 
-    const raw = completion.choices[0]?.message?.content || "";
+/* =========================
+   API Handler
+========================= */
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method Not Allowed" });
+  }
 
-    let parsed;
-    try {
-      parsed = JSON.parse(raw);
-    } catch (err) {
-      return res.status(200).json({ raw });
+  try {
+    const { eventId } = req.body as { eventId?: string };
+
+    if (!eventId) {
+      return res.status(400).json({ error: "eventId required" });
     }
 
-    return res.status(200).json({ result: parsed });
+    /* =========================
+       1. Fetch unprocessed feedbacks
+    ========================= */
+    const { data: feedbacks, error } = await supabase
+      .from("feedbacks")
+      .select("id, text, likert, event_id")
+      .eq("event_id", eventId)
+      .eq("processed", false)
+      .limit(200);
 
-  } catch (error) {
-    console.error("Groq error:", error);
-    return res.status(500).json({ error: "AI processing failed" });
+    if (error) {
+      console.error(error);
+      return res.status(500).json({ error: "Failed to fetch feedbacks" });
+    }
+
+    if (!feedbacks || feedbacks.length === 0) {
+      return res
+        .status(200)
+        .json({ message: "No feedbacks to process." });
+    }
+
+    /* =========================
+       2. Analyze feedbacks
+    ========================= */
+    const analyses = [];
+
+    for (const fb of feedbacks) {
+      const result = await analyzeFeedback(fb.text);
+
+      analyses.push({
+        feedback_id: fb.id,
+        translation: result.parsed?.translation ?? null,
+        summary: result.parsed?.summary ?? null,
+        sentiment_label:
+          result.parsed?.sentiment?.label?.toLowerCase() ?? null,
+        sentiment_score:
+          typeof result.parsed?.sentiment?.score === "number"
+            ? result.parsed.sentiment.score
+            : null,
+        likert:
+          typeof result.parsed?.likert === "number"
+            ? result.parsed.likert
+            : fb.likert,
+        keywords: result.parsed?.keywords ?? [],
+        recommendations: result.parsed?.recommendations ?? [],
+        raw_response: result.raw,
+      });
+
+      await supabase
+        .from("feedbacks")
+        .update({
+          processed: true,
+          processed_at: new Date().toISOString(),
+        })
+        .eq("id", fb.id);
+    }
+
+    /* =========================
+       3. Insert feedback_analyses
+    ========================= */
+    await supabase.from("feedback_analyses").insert(analyses);
+
+    /* =========================
+       4. Aggregate report
+    ========================= */
+    const sentimentCounts = {
+      positive: 0,
+      negative: 0,
+      neutral: 0,
+      mixed: 0,
+    };
+
+    const likertCounts: Record<number, number> = {};
+    const keywordFreq: Record<string, number> = {};
+    let sumLikert = 0;
+    let likertTotal = 0;
+
+    for (const a of analyses) {
+      const s = a.sentiment_label ?? "neutral";
+      sentimentCounts[s as keyof typeof sentimentCounts]++;
+
+      if (typeof a.likert === "number") {
+        likertCounts[a.likert] =
+          (likertCounts[a.likert] || 0) + 1;
+        sumLikert += a.likert;
+        likertTotal++;
+      }
+
+      for (const k of a.keywords) {
+        keywordFreq[k] = (keywordFreq[k] || 0) + 1;
+      }
+    }
+
+    const avgLikert =
+      likertTotal > 0 ? sumLikert / likertTotal : null;
+
+    const summaries = analyses
+      .map((a) => a.summary)
+      .filter(Boolean)
+      .slice(0, 5);
+
+    /* =========================
+       5. Insert feedback_reports
+    ========================= */
+    const { data: report } = await supabase
+      .from("feedback_reports")
+      .insert({
+        event_id: eventId,
+        generated_at: new Date().toISOString(),
+        total_feedbacks: analyses.length,
+        avg_likert: avgLikert,
+        likert_counts: likertCounts,
+        sentiment_counts: sentimentCounts,
+        top_keywords: keywordFreq,
+        summaries,
+        raw_analyses: analyses,
+      })
+      .select()
+      .single();
+
+    return res.status(200).json({
+      message: "Feedback processed",
+      processed: analyses.length,
+      report,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Processing failed" });
   }
 }
