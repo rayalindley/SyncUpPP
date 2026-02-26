@@ -153,7 +153,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
     } else {
       setProgress(0);
     }
-    return () => { if (timer) clearInterval(timer); };
+    return () => clearInterval(timer);
   }, [isGenerating]);
 
   const normalizeKeywords = (
