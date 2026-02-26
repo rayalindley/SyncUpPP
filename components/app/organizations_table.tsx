@@ -45,17 +45,17 @@ export default function OrganizationsTable({
     },
     {
       name: "Type",
-      selector: (row: Organization) => row.organization_type,
+      selector: (row: Organization) => row.organization_type ?? "",
       sortable: true,
     },
     {
       name: "Industry",
-      selector: (row: Organization) => row.industry,
+      selector: (row: Organization) => row.industry ?? "",
       sortable: true,
     },
     {
       name: "Size",
-      selector: (row: Organization) => row.organization_size,
+      selector: (row: Organization) => row.organization_size ?? "",
       sortable: true,
     },
     {
@@ -101,8 +101,8 @@ export default function OrganizationsTable({
         if (!filterText) return true;
         return (
           item.name.toLowerCase().includes(filterText.toLowerCase()) ||
-          item.organization_type.toLowerCase().includes(filterText.toLowerCase()) ||
-          item.industry.toLowerCase().includes(filterText.toLowerCase())
+          (item.organization_type ?? "").toLowerCase().includes(filterText.toLowerCase()) ||
+          (item.industry ?? "").toLowerCase().includes(filterText.toLowerCase())
         );
       }),
     [filterText, tableData]

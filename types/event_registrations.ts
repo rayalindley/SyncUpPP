@@ -1,5 +1,5 @@
 import { CombinedUserData } from './combined_user_data';
-import { Events } from './events';
+import { Event } from './event';
 import { OrganizationMembers } from './organization_members';
 
 export interface EventRegistrations {
@@ -9,7 +9,7 @@ export interface EventRegistrations {
   registrationdate?: string;
   status?: any;
   userid?: string;
-  events?: Events;
+  events?: Event;
   organizationmembers?: OrganizationMembers;
   combined_user_data?: CombinedUserData;
 }

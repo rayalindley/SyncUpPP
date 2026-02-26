@@ -213,7 +213,6 @@ export default function EventsPublicView() {
                 <EventsCard
                   key={event.eventid}
                   event={{
-                    id: event.eventid,
                     eventid: event.eventid,
                     imageUrl: event.eventphoto,
                     title: event.title,

@@ -34,12 +34,14 @@ interface FeedbackReport {
 }
 
 interface FeedbackReportsProps {
+  feedbackreports: FeedbackReport[];
   organization: Organization;
   events: Event[];
   userId: string;
 }
 
 const FeedbackReports: React.FC<FeedbackReportsProps> = ({
+  feedbackreports,
   organization,
   events,
   userId,
@@ -47,7 +49,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
   const supabase = createClient();
 
   const [eventFilter, setEventFilter] = useState<string>("");
-  const [reports, setReports] = useState<FeedbackReport[]>([]);
+  const [reports, setReports] = useState<FeedbackReport[]>(feedbackreports);
   const [summary, setSummary] = useState<string | null>(null);
   const [topKeywords, setTopKeywords] = useState<string[]>([]);
   const [averageLikert, setAverageLikert] = useState<string>("0");
@@ -151,7 +153,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
     } else {
       setProgress(0);
     }
-    return () => timer && clearInterval(timer);
+    return () => clearInterval(timer);
   }, [isGenerating]);
 
   const normalizeKeywords = (
@@ -250,7 +252,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
         >
           <option value="">Select Event</option>
           {events.map((e) => (
-            <option key={e.id} value={e.id}>
+            <option key={e.eventid} value={e.eventid}>
               {e.title}
             </option>
           ))}

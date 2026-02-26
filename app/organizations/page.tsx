@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { createClient, getUser } from "@/lib/supabase/client";
@@ -47,7 +47,7 @@ export default function CreateOrganizationPage() {
   ];
 
   // Fetch user on mount
-  useState(() => {
+  useEffect(() => {
     async function fetchUser() {
       const { user } = await getUser();
       setUser(user);

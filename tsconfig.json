@@ -39,6 +39,7 @@
   "exclude": [
     "node_modules",
     "models",
-    "services"
+    "services",
+    "testHF.ts"
   ] // Excludes node_modules and other folders not required in compilation
 }

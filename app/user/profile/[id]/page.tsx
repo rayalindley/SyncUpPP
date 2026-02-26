@@ -7,7 +7,7 @@ import UserOrganizations from "@/components/user/user_organizations";
 import { fetchCertificatesForUser, fetchEventsForUser } from "@/lib/events";
 import { createClient, getUser } from "@/lib/supabase/client";
 import { Event } from "@/types/event";
-import { Organization } from "@/types/organization";
+import { Organizations } from "@/types/organizations";
 import { UserProfile } from "@/types/user_profile";
 import { updateUserProfileById } from "@/lib/user_actions";
 import { PencilIcon } from "@heroicons/react/24/solid";
@@ -26,7 +26,7 @@ export default function ProfilePage() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [activeTab, setActiveTab] = useState<string>("events");
   const [userEvents, setUserEvents] = useState<Event[]>([]);
-  const [userOrganizations, setUserOrganizations] = useState<Organization[]>([]);
+  const [userOrganizations, setUserOrganizations] = useState<Organizations[]>([]);
   const router = useRouter();
   const [certificates, setCertificates] = useState<any[]>([]);
 

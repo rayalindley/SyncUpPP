@@ -313,7 +313,6 @@ const OrganizationEventsComponent: React.FC<OrganizationEventsComponentProps> = 
           <EventsCard
             key={index}
             event={{
-              id: event.eventid,
               eventid: event.eventid,
               eventphoto: event.eventphoto,
               capacity: event.capacity,

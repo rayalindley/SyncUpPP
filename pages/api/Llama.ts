@@ -41,6 +41,7 @@ Rules: Only return valid JSON, no extra text.
     });
 
     const output = result.choices[0].message.content;
+    if (!output) return res.status(200).json({ result: null });
     let parsed;
     try { parsed = JSON.parse(output); } 
     catch (e) { return res.status(200).json({ result: output }); }
