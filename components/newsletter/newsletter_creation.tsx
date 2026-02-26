@@ -3,15 +3,14 @@ import React, { useState, useMemo } from "react";
 import { Event } from "@/types/event";
 import { CombinedUserData } from "@/types/combined_user_data";
 import DataTable, { TableColumn, TableStyles } from "react-data-table-component";
-import dynamic from "next/dynamic";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
 import { Disclosure } from "@headlessui/react";
 import { ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/20/solid";
 import { z } from "zod";
 import axios from "axios";
 import { useDropzone } from "react-dropzone";
 import Swal from "sweetalert2";
-
-const RichTextEditor = dynamic(() => import("@mantine/rte"), { ssr: false });
 
 interface NewsletterCreationProps {
   organizationName: string;
@@ -102,6 +101,13 @@ const NewsletterCreation: React.FC<NewsletterCreationProps> = ({
   const [sending, setSending] = useState(false);
   const [eventsSearch, setEventsSearch] = useState("");
   const [usersSearch, setUsersSearch] = useState("");
+  const editor = useEditor({
+    extensions: [StarterKit],
+    content: editorState,
+    onUpdate({ editor }) {
+      setEditorState(editor.getHTML());
+    },
+  });
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: (acceptedFiles) => setAttachments((prev) => [...prev, ...acceptedFiles]),
   });
@@ -270,29 +276,16 @@ const NewsletterCreation: React.FC<NewsletterCreationProps> = ({
                 onChange={(e) => setSubject(e.target.value)}
               />
               <div className="flex flex-col space-y-4 min-h-[200px] h-auto">
-                <RichTextEditor
-                  value={editorState}
-                  onChange={setEditorState}
-                  className="rounded border border-primary text-white"
-                  styles={{
-                    root: {
-                      backgroundColor: "#2a2a2a",
-                      color: "#ffffff",
-                      minHeight: "200px",
-                      height: "auto",
-                      width: '100%',
-                      overflowX: 'auto',
-                    },
-                    toolbar: {
-                      backgroundColor: "#2a2a2a",
-                      borderColor: "#444444",
-                    },
-                    toolbarControl: {
-                      backgroundColor: "#2a2a2a",
-                      "&:hover": { backgroundColor: "#3a3a3a" },
-                    },
-                  }}
-                />
+                <div className="rounded border border-primary" style={{ backgroundColor: "#2a2a2a", color: "#ffffff", minHeight: "200px", width: "100%", overflowX: "auto" }}>
+                  <div className="flex flex-wrap gap-1 p-2 border-b" style={{ backgroundColor: "#2a2a2a", borderColor: "#444444" }}>
+                    <button type="button" onClick={() => editor?.chain().focus().toggleBold().run()} className={`px-2 py-1 text-xs rounded ${editor?.isActive("bold") ? "bg-primary text-white" : "bg-[#3a3a3a] text-gray-200 hover:bg-[#4a4a4a]"}`}>Bold</button>
+                    <button type="button" onClick={() => editor?.chain().focus().toggleItalic().run()} className={`px-2 py-1 text-xs rounded ${editor?.isActive("italic") ? "bg-primary text-white" : "bg-[#3a3a3a] text-gray-200 hover:bg-[#4a4a4a]"}`}>Italic</button>
+                    <button type="button" onClick={() => editor?.chain().focus().toggleStrike().run()} className={`px-2 py-1 text-xs rounded ${editor?.isActive("strike") ? "bg-primary text-white" : "bg-[#3a3a3a] text-gray-200 hover:bg-[#4a4a4a]"}`}>Strike</button>
+                    <button type="button" onClick={() => editor?.chain().focus().toggleBulletList().run()} className={`px-2 py-1 text-xs rounded ${editor?.isActive("bulletList") ? "bg-primary text-white" : "bg-[#3a3a3a] text-gray-200 hover:bg-[#4a4a4a]"}`}>• List</button>
+                    <button type="button" onClick={() => editor?.chain().focus().toggleOrderedList().run()} className={`px-2 py-1 text-xs rounded ${editor?.isActive("orderedList") ? "bg-primary text-white" : "bg-[#3a3a3a] text-gray-200 hover:bg-[#4a4a4a]"}`}>1. List</button>
+                  </div>
+                  <EditorContent editor={editor} className="p-3 text-white prose prose-invert max-w-none min-h-[160px] focus:outline-none" />
+                </div>
               </div>
               <div>
                 <div

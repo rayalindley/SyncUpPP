@@ -7,7 +7,7 @@ import Hero from "@/components/hero";
 import PricingSection from "@/components/pricing_section";
 import { createClient, getUser } from "@/lib/supabase/server";
 
-import { Organization } from "@/types/organization";
+import { Organizations } from "@/types/organizations";
 
 export default async function Home() {
   const { user } = await getUser();
@@ -18,7 +18,7 @@ export default async function Home() {
     .select("*")
     .range(0, 2);
 
-  const organizations: Organization[] = data || [];
+  const organizations: Organizations[] = data || [];
 
   return (
     <div className="bg-eerieblack">

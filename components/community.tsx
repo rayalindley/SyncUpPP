@@ -1,8 +1,8 @@
 "use client";
-import { Organization } from "@/types/organization";
+import { Organizations } from "@/types/organizations";
 import OrganizationCard from "./app/organization_card";
 
-export default function OrgSection({ organizations }: { organizations: Organization[] }) {
+export default function OrgSection({ organizations }: { organizations: Organizations[] }) {
   return (
     <div className="bg-eerieblack py-14 sm:py-20">
       <div className="mx-auto max-w-2xl px-6 lg:text-center">
@@ -19,15 +19,15 @@ export default function OrgSection({ organizations }: { organizations: Organizat
       </div>
       <div className="mx-auto max-w-7xl px-6 text-left lg:px-8">
         <ul className="mx-auto mt-20 grid max-w-2xl grid-cols-1 gap-6 sm:grid-cols-2 lg:mx-0 lg:max-w-none lg:grid-cols-3 lg:gap-8">
-          {organizations.map((org: Organization) => (
+          {organizations.map((org: Organizations) => (
             <OrganizationCard
-              key={org.id}
+              key={org.organizationid}
               name={org.name}
-              description={org.description}
-              organization_size={org.organization_size}
-              photo={org.photo}
+              description={org.description ?? ""}
+              organization_size={org.organization_size ?? ""}
+              photo={org.photo ?? ""}
               slug={org.slug}
-              banner={org.banner}
+              banner={org.banner ?? ""}
               total_members={org.total_members}
               total_posts={org.total_posts}
               total_events={org.total_events}

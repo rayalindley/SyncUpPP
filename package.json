@@ -125,7 +125,7 @@
     "@types/winston": "^2.4.4",
     "@types/yaireo__tagify": "^4.24.0",
     "autoprefixer": "^10.0.1",
-    "eslint": "^9.39.1",
+    "eslint": "^9.39.3",
     "eslint-config-next": "^16.0.5",
     "eslint-config-prettier": "^9.1.0",
     "postcss": "^8",

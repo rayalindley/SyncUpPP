@@ -1,10 +1,10 @@
 "use client";
 import OrganizationCard from "@/components/app/organization_card";
-import { Organization } from "@/types/organization";
+import { Organizations } from "@/types/organizations";
 import { ArrowLongLeftIcon, ArrowLongRightIcon } from "@heroicons/react/20/solid";
 import { useState } from "react";
 
-const UserOrganizations = ({ organizations }: { organizations: Organization[] }) => {
+const UserOrganizations = ({ organizations }: { organizations: Organizations[] }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const organizationsPerPage = 3;
 
@@ -32,12 +32,12 @@ const UserOrganizations = ({ organizations }: { organizations: Organization[] })
       <div className="isolate mx-auto mt-8 grid max-w-lg grid-cols-1 gap-x-5 gap-y-8 text-left sm:mt-12 lg:mx-0 lg:max-w-none lg:grid-cols-3">
         {currentOrganizations.map((organization) => (
           <OrganizationCard
-            key={organization.id}
+            key={organization.organizationid}
             name={organization.name}
-            description={organization.description}
-            organization_size={organization.organization_size}
-            photo={organization.photo}
-            banner={organization.banner}
+            description={organization.description ?? ""}
+            organization_size={organization.organization_size ?? ""}
+            photo={organization.photo ?? ""}
+            banner={organization.banner ?? ""}
             slug={organization.slug}
             total_members={organization.total_members}
             total_posts={organization.total_posts}

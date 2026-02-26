@@ -31,7 +31,6 @@ const UserEvents: React.FC<UserEventsProps> = ({ events }) => {
           <EventsCard
             key={index}
             event={{
-              id: event.eventid,
               eventid: event.eventid,
               eventphoto: event.eventphoto,
               capacity: event.capacity,

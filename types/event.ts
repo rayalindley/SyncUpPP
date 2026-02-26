@@ -1,7 +1,13 @@
 import { Privacy } from "./privacy";
 
+export interface CertificateSettings {
+  certificate_enabled: boolean;
+  release_option?: string;
+  scheduled_release_date?: string | null;
+}
+
 export interface Event {
-  id: string;                 // PRIMARY KEY
+  eventid: string;          // PRIMARY KEY
   eventphoto: string;
   title: string;
   description: string;
