@@ -53,7 +53,7 @@ export async function insertEvent(formData: any, organizationid: string) {
       };
     }
 
-    const eventId = eventDataInserted[0].eventid;
+    const eventId = eventDataInserted[0].id;
 
     // Handle event_certificate_settings insertion
     if (certificate_enabled) {

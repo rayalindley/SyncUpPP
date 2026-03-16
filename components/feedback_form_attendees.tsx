@@ -56,33 +56,26 @@ export default function FeedbackFormAttendees({
     if(!eventId) return;
 
     const fetchFormAndQuestions = async () => {
-      let fetchedFormId: number | null = null;
-
+      // ✅ FIX: Use .maybeSingle() to avoid PGRST116 error on missing row
       const { data: form, error: formError } = await supabase
         .from('forms')
         .select('id')
         .eq('slug', slug)
-        .single();
+        .maybeSingle();
 
-      if (form && !formError) {
-        fetchedFormId = form.id;
-      } else {
-        const { data: newForm, error: insertError } = await supabase
-          .from('forms')
-          .insert([{ event_id: eventId, slug: slug}])
-          .select()
-          .single();
-
-        console.log("eventid:", eventId);
-
-        if (insertError || !newForm) {
-          console.error('Error creating new form:', insertError);
-          return;
-        }
-
-        fetchedFormId = newForm.id;
+      // ✅ FIX: Handle real errors properly — don't insert a new form for attendees
+      if (formError) {
+        console.error('Error fetching form:', formError);
+        return;
       }
 
+      if (!form) {
+        // No feedback form exists yet for this event — attendees cannot create one
+        console.warn('No feedback form found for slug:', slug);
+        return;
+      }
+
+      const fetchedFormId = form.id;
       setFormId(fetchedFormId);
 
       const { data: allQuestions, error: qError } = await supabase
@@ -98,8 +91,6 @@ export default function FeedbackFormAttendees({
 
       setChoiceQuestions(allQuestions.filter(q => q.question_type === 'Choice'));
       setLikertQuestions(allQuestions.filter(q => q.question_type === 'Likert'));
-
-      // console.log("choiceQuestions", choiceQuestions);
 
       const { data: formData, error: fError } = await supabase
         .from('form_questions')
@@ -257,16 +248,8 @@ export default function FeedbackFormAttendees({
     } finally {
       setIsLoading(false);
     }
-
-    
-
-    
   };
 
-  
-
-
-  
   return (
     <>
     <div>
@@ -279,7 +262,6 @@ export default function FeedbackFormAttendees({
           .map((q) => (
             <div
               key={q.id}
-              // onClick={() => handleClicked(i)}
               className={`space-y-1 text-light mt-4 mb-4 p-2 `}>
 
               {/* Question Text */}

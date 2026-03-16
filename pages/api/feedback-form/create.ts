@@ -1,37 +1,46 @@
-// pages/api/events/create.ts
+// pages/api/feedback-form/create.ts
 
 import { NextApiRequest, NextApiResponse } from "next";
-import { EventService } from "@/services/EventService";
-import { Event } from "@/models/Event";
+import { createClient } from "@/lib/supabase/client";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ message: "Method not allowed" });
   }
 
-  const eventData = req.body;
-  const event = new Event(
-    "",
-    eventData.title,
-    eventData.description,
-    new Date(eventData.starteventdatetime),
-    new Date(eventData.endeventdatetime),
-    eventData.location,
-    eventData.capacity,
-    eventData.registrationfee,
-    eventData.privacy,
-    eventData.organizationid,
-    eventData.eventphoto,
-    eventData.tags,
-    eventData.slug
-  );
+  const { event_id, slug } = req.body;
 
-  const service = new EventService();
-
-  try {
-    const data = await service.insertEvent(event);
-    return res.status(201).json(data);
-  } catch (e) {
-    return res.status(500).json({ message: e });
+  if (!event_id || !slug) {
+    return res.status(400).json({ message: "event_id and slug are required" });
   }
+
+  const supabase = createClient();
+
+  // Check if a form already exists for this event slug
+  const { data: existingForm, error: fetchError } = await supabase
+    .from("forms")
+    .select("id")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (fetchError) {
+    return res.status(500).json({ message: fetchError.message });
+  }
+
+  if (existingForm) {
+    return res.status(200).json({ message: "Form already exists", form: existingForm });
+  }
+
+  // Insert a new feedback form
+  const { data: newForm, error: insertError } = await supabase
+    .from("forms")
+    .insert([{ event_id, slug }])
+    .select()
+    .single();
+
+  if (insertError || !newForm) {
+    return res.status(500).json({ message: insertError?.message || "Failed to create form" });
+  }
+
+  return res.status(201).json(newForm);
 }
