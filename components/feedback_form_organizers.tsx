@@ -12,7 +12,7 @@ import { deleteForm } from "@/lib/feedback";
 
 const supabase = createClient();
 
-// ─── Reusable icons (outside component — no closure issues) ──────────────────
+// ─── Reusable icons ──────────────────────────────────────────────────────────
 const PlusIcon = () => (
   <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none"
     xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
@@ -37,7 +37,7 @@ const TriangleIcon = ({ open }: { open: boolean }) => (
   </svg>
 );
 
-// ─── QuestionPickerRow (outside component) ────────────────────────────────────
+// ─── QuestionPickerRow ────────────────────────────────────────────────────────
 const QuestionPickerRow = ({
   q,
   indent = false,
@@ -66,7 +66,7 @@ const QuestionPickerRow = ({
   );
 };
 
-// ─── LikertSection (outside component) ───────────────────────────────────────
+// ─── LikertSection ────────────────────────────────────────────────────────────
 const LikertSection = ({
   label,
   category,
@@ -84,7 +84,6 @@ const LikertSection = ({
   addedQuestions: string[];
   onAdd: (id: string) => void;
 }) => {
-  // Use metadata.category instead of likert_category
   const available = likertQuestions.filter(
     (q) =>
       q.metadata?.category === category &&
@@ -149,7 +148,7 @@ export default function FeedbackFormOrganizer({
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const [formId, setFormId] = useState<number | null>(null);
+  const [formId, setFormId] = useState<string | null>(null); 
   const [textQuestions, setTextQuestions] = useState<Question[]>([]);
   const [choiceQuestions, setChoiceQuestions] = useState<Question[]>([]);
   const [likertQuestions, setLikertQuestions] = useState<Question[]>([]);
@@ -159,44 +158,60 @@ export default function FeedbackFormOrganizer({
   const [isClicked, setIsClicked] = useState<boolean[]>([]);
   const [isRequired, setIsRequired] = useState<boolean[]>([]);
 
-  // ─── Fetch eventId from slug ──────────────────────────────────────────────
+  // 1. FETCH ALL GLOBAL QUESTIONS FIRST
   useEffect(() => {
-    const fetchEvent = async () => {
-      const { data } = await supabase
+    const fetchGlobalQuestions = async () => {
+      const { data: allQuestions, error: qError } = await supabase
+        .from("questions")
+        .select("id, question_text, question_type, metadata");
+
+      if (qError || !allQuestions) {
+        console.error("Error fetching global questions:", qError);
+        return;
+      }
+
+      setTextQuestions(allQuestions.filter((q: any) => q.question_type === "Text" || q.question_type === "text"));
+      setChoiceQuestions(allQuestions.filter((q: any) => q.question_type === "Choice" || q.question_type === "choice"));
+      setLikertQuestions(allQuestions.filter((q: any) => q.question_type === "Likert" || q.question_type === "likert"));
+    };
+
+    fetchGlobalQuestions();
+  }, []);
+
+  // 2. FETCH EVENT AND FORM
+  useEffect(() => {
+    if (!selectedEvent) return;
+
+    const fetchEventAndForm = async () => {
+      // Fetch Event ID
+      const { data: eventData, error: eventError } = await supabase
         .from("events")
         .select("eventid")
         .eq("eventslug", selectedEvent)
         .single();
-      if (data) setEventId(data.eventid);
-    };
-    fetchEvent();
-  }, [selectedEvent]);
 
-  // ─── Fetch form + all questions ───────────────────────────────────────────
-  useEffect(() => {
-    if (!eventId) return;
+      if (eventError || !eventData) {
+        console.error("Event fetch error:", eventError);
+        return;
+      }
 
-    const fetchFormAndQuestions = async () => {
-      let fetchedFormId: number | null = null;
+      const currentEventId = eventData.eventid;
+      setEventId(currentEventId);
 
-      // Use maybeSingle() to avoid PGRST116 error when form doesn't exist yet
+      // Fetch or Create Form
+      let currentFormId: string | null = null;
       const { data: form, error: formError } = await supabase
         .from("forms")
         .select("id")
         .eq("slug", selectedEvent)
         .maybeSingle();
 
-      if (formError) {
-        console.error("Error fetching form:", formError);
-        return;
-      }
-
       if (form) {
-        fetchedFormId = form.id;
+        currentFormId = form.id;
       } else {
         const { data: newForm, error: insertError } = await supabase
           .from("forms")
-          .insert([{ event_id: eventId, slug: selectedEvent }])
+          .insert([{ event_id: currentEventId, slug: selectedEvent }])
           .select()
           .single();
 
@@ -204,103 +219,77 @@ export default function FeedbackFormOrganizer({
           console.error("Error creating new form:", insertError);
           return;
         }
-        fetchedFormId = newForm.id;
-        console.log("Created new form with id:", fetchedFormId);
+        currentFormId = newForm.id;
       }
 
-      setFormId(fetchedFormId);
+      setFormId(currentFormId);
 
-      // Fetch ALL available questions — now using metadata instead of
-      // likert_category and choices
-      const { data: allQuestions, error: qError } = await supabase
-        .from("questions")
-        .select("id, question_text, question_type, metadata");
-
-      if (qError || !allQuestions) {
-        console.error("Error fetching questions:", qError);
-        return;
-      }
-
-      console.log("question_type values in DB:", [
-        ...new Set(allQuestions.map((q: any) => q.question_type)),
-      ]);
-      console.log("Likert categories in DB:", [
-        ...new Set(
-          allQuestions
-            .filter((q: any) => q.question_type === "Likert")
-            .map((q: any) => q.metadata?.category)
-        ),
-      ]);
-
-      setTextQuestions(
-        allQuestions.filter((q: any) => q.question_type === "Text")
-      );
-      setChoiceQuestions(
-        allQuestions.filter((q: any) => q.question_type === "Choice")
-      );
-      setLikertQuestions(
-        allQuestions.filter((q: any) => q.question_type === "Likert")
-      );
-
-      // Fetch questions already in THIS form
+      // Fetch existing added questions
       const { data: formData, error: fError } = await supabase
         .from("form_questions")
         .select("*, question:question_id(*)")
-        .eq("form_id", fetchedFormId);
+        .eq("form_id", currentFormId);
 
       if (fError) {
         console.error("Error fetching form questions:", fError);
         return;
       }
 
-      if (!formData || formData.length === 0) {
-        setFormQuestions([]);
-        setAddedQuestions([]);
-        return;
+      if (formData) {
+        setFormQuestions(
+          formData.map((fq: any) => ({
+            ...fq.question,
+            question_order: fq.question_order,
+          }))
+        );
+        setAddedQuestions(formData.map((fq: any) => String(fq.question_id).trim()));
+        setIsRequired(formData.map((fq: any) => fq.is_required ?? true));
       }
-
-      const alreadyAdded = formData.map((fq: any) =>
-        String(fq.question_id).trim()
-      );
-      console.log("Already added IDs:", alreadyAdded);
-
-      setFormQuestions(
-        formData.map((fq: any) => ({
-          ...fq.question,
-          question_order: fq.question_order,
-        }))
-      );
-      setAddedQuestions(alreadyAdded);
     };
 
-    fetchFormAndQuestions();
-  }, [selectedEvent, eventId]);
+    fetchEventAndForm();
+  }, [selectedEvent]);
 
-  // ─── Add question ─────────────────────────────────────────────────────────
+  // 3. HANDLE ADDING A QUESTION (FULLY FIXED)
   const handleAddQuestion = async (questionId: string) => {
     if (!formId) return;
     const cleanId = String(questionId).trim();
 
+    // Prevent adding duplicates to state immediately
     if (addedQuestions.includes(cleanId)) return;
 
+    // Optimistically update UI so it feels instant
+    setAddedQuestions((prev) => [...prev, cleanId]);
+
+    // Fetch current max order
     const { data: existingQuestions } = await supabase
       .from("form_questions")
-      .select("*")
-      .eq("form_id", formId);
+      .select("question_order")
+      .eq("form_id", formId)
+      .order("question_order", { ascending: false })
+      .limit(1);
 
-    const newOrder = existingQuestions?.length ?? 0;
+    // Safely calculate next integer order
+    const newOrder = existingQuestions && existingQuestions.length > 0 
+      ? existingQuestions[0].question_order + 1 
+      : 0;
 
-    const { error } = await supabase.from("form_questions").insert({
+    // Insert into DB (Includes is_required: true)
+    const { error: insertError } = await supabase.from("form_questions").insert({
       form_id: formId,
       question_id: cleanId,
       question_order: newOrder,
+      is_required: true
     });
 
-    if (error) {
-      console.error("Error adding question:", error);
+    if (insertError) {
+      console.error("Error adding question:", insertError);
+      // Revert optimistic update on failure
+      setAddedQuestions((prev) => prev.filter(id => id !== cleanId));
       return;
     }
 
+    // Fetch full question data to render in the bottom preview
     const { data: questionData, error: fetchError } = await supabase
       .from("questions")
       .select("*")
@@ -312,14 +301,15 @@ export default function FeedbackFormOrganizer({
       return;
     }
 
+    // Append the full question object to the form list
     setFormQuestions((prev) => [
       ...prev,
       { ...questionData, question_order: newOrder },
     ]);
-    setAddedQuestions((prev) => [...prev, cleanId]);
+    
+    setIsRequired((prev) => [...prev, true]);
   };
 
-  // ─── Delete question ──────────────────────────────────────────────────────
   const handleDeleteQuestion = async (questionId: string) => {
     if (!formId) return;
     const cleanId = String(questionId).trim();
@@ -356,7 +346,6 @@ export default function FeedbackFormOrganizer({
     setAddedQuestions((prev) => prev.filter((id) => id !== cleanId));
   };
 
-  // ─── Move Up ──────────────────────────────────────────────────────────────
   const handleMoveUpQuestion = async (index: number) => {
     if (index === 0) return;
     const curr = formQuestions[index];
@@ -384,7 +373,6 @@ export default function FeedbackFormOrganizer({
     setFormQuestions(updated.sort((a, b) => a.question_order - b.question_order));
   };
 
-  // ─── Move Down ────────────────────────────────────────────────────────────
   const handleMoveDownQuestion = async (index: number) => {
     if (index === formQuestions.length - 1) return;
     const curr = formQuestions[index];
@@ -420,7 +408,6 @@ export default function FeedbackFormOrganizer({
     });
   };
 
-  // ─── Delete entire form ───────────────────────────────────────────────────
   const deleteFeedbackForm = async () => {
     const result = await Swal.fire({
       title: "Are you sure you want to delete this feedback form?",
@@ -440,7 +427,7 @@ export default function FeedbackFormOrganizer({
     });
 
     if (result.isConfirmed) {
-      const response = await deleteForm(formId ?? 0, selectedEvent);
+      const response = await deleteForm(formId as any, selectedEvent);
       if (!response.error) {
         Swal.fire({
           title: "Deleted!",
@@ -457,7 +444,6 @@ export default function FeedbackFormOrganizer({
     }
   };
 
-  // ─── Likert scale labels map (keyed by metadata.category) ────────────────
   const likertLabelsMap: Record<string, string[]> = {
     Agreement: [
       "Strongly Disagree",
@@ -490,11 +476,9 @@ export default function FeedbackFormOrganizer({
     ],
   };
 
-  // ─── RENDER ───────────────────────────────────────────────────────────────
   return (
     <>
       <div>
-        {/* Top bar */}
         <div className="flex justify-end mb-4 items-center">
           <div
             className="flex items-center group relative cursor-pointer"
@@ -539,7 +523,6 @@ export default function FeedbackFormOrganizer({
           </button>
         </div>
 
-        {/* Add Question Button */}
         <div className="flex justify-center">
           <button
             type="button"
@@ -565,12 +548,10 @@ export default function FeedbackFormOrganizer({
             <p className="text-base/7">Add question</p>
           </button>
 
-          {/* ��─ Modal ───────────────────────────────────────────────────── */}
           {isAddQModalOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
               <div className="bg-[#1C1C1C] p-6 rounded-md shadow-md w-full max-w-md text-white relative">
 
-                {/* Modal header */}
                 <div className="flex items-center justify-center mb-4 relative">
                   <h2 className="text-m font-semibold text-white">
                     Add question
@@ -597,7 +578,6 @@ export default function FeedbackFormOrganizer({
                   </button>
                 </div>
 
-                {/* Tabs */}
                 <div className="flex justify-between items-center pl-6 pr-6 mb-6">
                   {(["text", "choice", "likert"] as const).map((tab) => (
                     <button
@@ -615,7 +595,6 @@ export default function FeedbackFormOrganizer({
                   ))}
                 </div>
 
-                {/* ── Text tab ──────────────────────────────────────────── */}
                 {questionType === "text" && (
                   <div className="bg-[#282828]">
                     {textQuestions.filter(
@@ -641,7 +620,6 @@ export default function FeedbackFormOrganizer({
                   </div>
                 )}
 
-                {/* ── Choice tab ────────────────────────────────────────── */}
                 {questionType === "choice" && (
                   <div className="bg-[#282828]">
                     {choiceQuestions.filter(
@@ -672,7 +650,6 @@ export default function FeedbackFormOrganizer({
                   </div>
                 )}
 
-                {/* ── Likert tab ────────────────────────────────────────── */}
                 {questionType === "likert" && (
                   <div className="max-h-[500px] overflow-y-auto bg-[#282828] border border-[#444444]">
                     <LikertSection
@@ -727,7 +704,6 @@ export default function FeedbackFormOrganizer({
           )}
         </div>
 
-        {/* ── Form questions list ─────────────────────────────────────────── */}
         {formQuestions
           .sort((a, b) => a.question_order - b.question_order)
           .map((q, i) => (
@@ -742,7 +718,6 @@ export default function FeedbackFormOrganizer({
             >
               {isClicked[i] && (
                 <div className="flex justify-between">
-                  {/* Required toggle */}
                   <div className="flex justify-start">
                     <label className="inline-flex items-center me-5 cursor-pointer">
                       <input
@@ -762,9 +737,7 @@ export default function FeedbackFormOrganizer({
                     </label>
                   </div>
 
-                  {/* Action buttons */}
                   <div className="flex justify-end items-center gap-1">
-                    {/* Delete */}
                     <button
                       type="button"
                       onClick={(e) => {
@@ -792,7 +765,6 @@ export default function FeedbackFormOrganizer({
                       </svg>
                     </button>
 
-                    {/* Move Down */}
                     <button
                       type="button"
                       onClick={(e) => {
@@ -824,7 +796,6 @@ export default function FeedbackFormOrganizer({
                       </svg>
                     </button>
 
-                    {/* Move Up */}
                     <button
                       type="button"
                       onClick={(e) => {
@@ -854,7 +825,6 @@ export default function FeedbackFormOrganizer({
                 </div>
               )}
 
-              {/* Question label */}
               <label
                 className={`text-sm font-medium text-white font-bold ${
                   isClicked[i] ? "cursor-default" : "cursor-pointer"
@@ -863,7 +833,6 @@ export default function FeedbackFormOrganizer({
                 {q.question_text}
               </label>
 
-              {/* Text preview */}
               {q.question_type === "Text" && (
                 <input
                   disabled
@@ -873,7 +842,6 @@ export default function FeedbackFormOrganizer({
                 />
               )}
 
-              {/* Choice preview — uses metadata.choices */}
               {q.question_type === "Choice" &&
                 q.metadata?.choices?.map((choice: string, idx: number) => (
                   <div key={idx} className="cursor-default">
@@ -893,7 +861,6 @@ export default function FeedbackFormOrganizer({
                   </div>
                 ))}
 
-              {/* Likert preview — uses metadata.category */}
               {q.question_type === "Likert" &&
                 q.metadata?.category &&
                 likertLabelsMap[q.metadata.category] && (
@@ -925,7 +892,6 @@ export default function FeedbackFormOrganizer({
             </div>
           ))}
 
-        {/* Comments and Suggestions */}
         <div className="space-y-1 text-light mt-6 mb-6">
           <label
             htmlFor="description"
@@ -939,7 +905,6 @@ export default function FeedbackFormOrganizer({
           />
         </div>
 
-        {/* Footer */}
         <div className="flex justify-between">
           <button
             type="button"

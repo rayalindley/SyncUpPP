@@ -17,8 +17,6 @@ export default function FeedbackFormAttendees({
   slug: any;
   userId: any;
 }) {
-  // const { eventslug } = useParams() as { eventslug: string };
-
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
@@ -56,21 +54,18 @@ export default function FeedbackFormAttendees({
     if(!eventId) return;
 
     const fetchFormAndQuestions = async () => {
-      // ✅ FIX: Use .maybeSingle() to avoid PGRST116 error on missing row
       const { data: form, error: formError } = await supabase
         .from('forms')
         .select('id')
         .eq('slug', slug)
         .maybeSingle();
 
-      // ✅ FIX: Handle real errors properly — don't insert a new form for attendees
       if (formError) {
         console.error('Error fetching form:', formError);
         return;
       }
 
       if (!form) {
-        // No feedback form exists yet for this event — attendees cannot create one
         console.warn('No feedback form found for slug:', slug);
         return;
       }
@@ -80,13 +75,11 @@ export default function FeedbackFormAttendees({
 
       const { data: allQuestions, error: qError } = await supabase
         .from('questions')
-        .select('id, question_text, question_type, likert_category');
+        .select('id, question_text, question_type, metadata');
 
       if (qError) {
         console.error('Error fetching questions:', qError);
         return;
-      } else {
-        console.log("successful fetching questions", allQuestions);
       }
 
       setChoiceQuestions(allQuestions.filter(q => q.question_type === 'Choice'));
@@ -122,8 +115,6 @@ export default function FeedbackFormAttendees({
     Effectiveness: ["Not Effective", "Slightly Effective", "Neutral", "Very Effective", "Extremely Effective"],
   };
 
-  const [selected, setSelected] = useState<number>(0);
-
   const [isRequired, setIsRequired] = useState(
     formQuestions.map(() => true)
   );
@@ -138,7 +129,6 @@ export default function FeedbackFormAttendees({
           form_id: formId,
           attendee_id: userId,
           comment: comment,
-          // certificate_preference: certPreference,
         })
         .select("id")
         .single();
@@ -226,7 +216,6 @@ export default function FeedbackFormAttendees({
         router.back();
       }
 
-
     } catch (error) {
       console.error("Submission error:", error);
       Swal.fire({
@@ -269,7 +258,8 @@ export default function FeedbackFormAttendees({
                 {q.question_text}
               </label>
 
-              {q.question_type === 'Choice' && q.choices?.map((choice: string, i: number) => (
+              {/* Choice Questions */}
+              {q.question_type === 'Choice' && q.metadata?.choices?.map((choice: string, i: number) => (
                 <div key={i}>
                   <input type="radio" onChange={() => setAnswers(prev => ({ ...prev, [q.id]: choice }))} name={`question-${q.id}`} className={`ml-2 mr-2 border-gray-300 text-primary focus:ring-primarydark`}/>
                   <label className={`text-sm font-medium font-light text-white`}>
@@ -279,7 +269,8 @@ export default function FeedbackFormAttendees({
                 </div>
               ))}
 
-              {q.question_type === 'Likert' && likertLabelsMap[q.likert_category] && (
+              {/* Likert Questions */}
+              {q.question_type === 'Likert' && q.metadata?.category && likertLabelsMap[q.metadata.category] && (
                 <div>
                   <div className="relative w-full max-w-4xl mx-auto px-4 py-2">
                     <div className="absolute top-[15px] left-1/2 transform -translate-x-[47.5%] h-0.5 w-[355px] bg-[#379A7B] z-0" />
@@ -287,11 +278,15 @@ export default function FeedbackFormAttendees({
                     <div className="absolute top-[35px] left-1/2 transform -translate-x-[47.5%] h-0.5 w-[349px] bg-[#379A7B] z-0" />
 
                     <div className="flex items-center justify-between relative">
-                      {likertLabelsMap[q.likert_category].map((label, index) => (
-                        <div key={index} className="flex flex-col items-center text-center" onClick={() => setAnswers(prev => ({ ...prev, [q.id]: index.toString() }))}>
+                      {likertLabelsMap[q.metadata.category].map((label, index) => (
+                        <div 
+                          key={index} 
+                          className="flex flex-col items-center text-center cursor-pointer" 
+                          onClick={() => setAnswers(prev => ({ ...prev, [q.id]: index.toString() }))}
+                        >
+                          {/* ✅ BUG FIX: Removed conflicting nested onClick, only outer handles state now */}
                           <div
-                            onClick={() => setAnswers((prev) => ({ ...prev, [q.id]: index }))}
-                            className={`w-10 h-10 border-2 rounded-full flex items-center justify-center cursor-pointer transition-colors
+                            className={`w-10 h-10 border-2 rounded-full flex items-center justify-center transition-colors
                               ${answers[q.id] === index.toString() ? "border-[#379A7B] bg-[#201c1c]" : "border-[#379A7B] bg-[#201c1c]"}
                             `}
                           >
@@ -313,7 +308,7 @@ export default function FeedbackFormAttendees({
 
         {/* Comments and Suggestions TextArea */}
         <div className="space-y-1 text-light mt-6 mb-6">
-          <label htmlFor="description" className="text-sm font-medium font-bold text-white">
+          <label htmlFor="comment" className="text-sm font-medium font-bold text-white">
             Comments and Suggestions
           </label>
           <textarea required id="comment" value={comment} onChange={(e)=>setComment(e.target.value)} className="block max-h-[300px] min-h-[150px] w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"></textarea>
