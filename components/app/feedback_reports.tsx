@@ -179,7 +179,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
     setIsGenerating(true);
 
     try {
-      const res = await fetch("/api/process", {
+      const res = await fetch("/api/ai/process", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ eventId: eventFilter }),

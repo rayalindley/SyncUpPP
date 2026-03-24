@@ -1,9 +1,10 @@
 "use client";
-import { useState } from "react"; // Add this import
+import { useState, use } from "react"; // Add this import
 import { signInWithGoogle, signInWithPassword } from "@/lib/auth";
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'; // Add Heroicons import
 
-export default function SignIn({ searchParams }: { searchParams: any }) {
+export default function SignIn(props: { searchParams: Promise<any> }) {
+  const searchParams = use(props.searchParams);
   const [showPassword, setShowPassword] = useState(false); // Add state for password visibility
 
   return (
@@ -73,9 +74,9 @@ export default function SignIn({ searchParams }: { searchParams: any }) {
                     className="absolute inset-y-0 right-0 flex items-center pr-3 text-sm text-light" // Changed color to match border
                   >
                     {showPassword ? (
-                      <EyeSlashIcon className="h-5 w-5" aria-hidden="true" /> // Use EyeSlashIcon for hide
+                      (<EyeSlashIcon className="h-5 w-5" aria-hidden="true" />) // Use EyeSlashIcon for hide
                     ) : (
-                      <EyeIcon className="h-5 w-5" aria-hidden="true" /> // Use EyeIcon for show
+                      (<EyeIcon className="h-5 w-5" aria-hidden="true" />) // Use EyeIcon for show
                     )}{" "}
                     {/* Eye icon for password visibility */}
                   </button>

@@ -4,10 +4,11 @@ import { fetchOrganizationBySlug } from "@/lib/organization";
 import { check_permissions } from "@/lib/organization";
 
 interface TransactionsPageProps {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
-export default async function TransactionsPage({ params }: TransactionsPageProps) {
+export default async function TransactionsPage(props: TransactionsPageProps) {
+  const params = await props.params;
   const supabase = createClient();
   const { user } = await getUser();
 
@@ -24,17 +25,16 @@ export default async function TransactionsPage({ params }: TransactionsPageProps
   if (!hasPermission) return <div>No permission</div>;
 
   // Fetch feedback reports for this organization
+  const { data: eventRows } = await supabase
+    .from("events")
+    .select("eventid")
+    .eq("organizationid", organization.organizationid);
+  const eventIds = eventRows?.map((e) => e.eventid) || [];
+
   const { data: feedbackreports } = await supabase
     .from("feedbackreports")
     .select("*")
-    .in(
-      "eventid",
-      (await supabase
-        .from("events")
-        .select("eventid")
-        .eq("organizationid", organization.organizationid)
-        .then((res) => res.data?.map((e) => e.eventid) || [])) // get all event IDs
-    );
+    .in("eventid", eventIds);
 
   // Fetch events for this organization
   const { data: events } = await supabase
