@@ -11,9 +11,10 @@ const Header = () => (
   </div>
 );
 
-export default async function MembershipsPage({ params }: { params: { slug: string } }) {
+export default async function MembershipsPage(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const { slug } = params;
-  
+
   // Fetch user details from server-side
   const { user } = await getUser();
 
