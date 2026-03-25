@@ -1,15 +1,7 @@
 import { Privacy } from "./privacy";
 
-export interface CertificateSettings {
-  certificate_enabled: boolean;
-  release_option: "disabled" | "immediate" | "after_event" | "scheduled";
-  scheduled_release_date: Date | null;
-}
-
 export interface Event {
-  users?: never[];
-  id: string;
-  eventid: string;
+  id: string;                 // PRIMARY KEY
   eventphoto: string;
   title: string;
   description: string;
@@ -23,7 +15,7 @@ export interface Event {
   imageUrl: string;
   tags: string[];
   privacy: Privacy;
-  createdat: Date;
+  createdat: string;
   selected?: boolean;
   onsite?: boolean;
   status?: string;

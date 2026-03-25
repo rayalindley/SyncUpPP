@@ -3,7 +3,8 @@ import { createClient } from '@/lib/supabase/client'; // Adjust as needed
 import { Metadata } from 'next';
 import React from 'react';
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const supabase = createClient();
   const { data: eventData } = await supabase
     .from('events')
@@ -18,9 +19,9 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     .single();
 
 
-    const faviconUrl = organizationData.photo
-    ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${organizationData.photo}`
-    : '/favicon.ico'; // Fallback to default favicon
+  const faviconUrl = organizationData.photo
+  ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${organizationData.photo}`
+  : '/favicon.ico'; // Fallback to default favicon
 
   return {
     title: `${eventData.title} | ${organizationData?.name || 'SyncUp'}`,

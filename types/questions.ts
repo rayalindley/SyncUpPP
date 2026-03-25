@@ -9,5 +9,7 @@ export interface Question {
   id: string;
   question_text: string;
   question_type: 'Choice' | 'Likert' | 'Text' | 'Comment';
-  metadata: QuestionMetadata;
+  metadata?: QuestionMetadata;
+  category_id?: number | null;
+  likert_category?: string | null;
 }

@@ -77,10 +77,10 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
   const { data: formResponses, error: formError } = await supabase
     .from("form_responses")
     .select("id, comment, submitted_at, forms!inner(event_id)")
-    .eq("forms.event_id", eventFilter);
+    .eq("forms.id", eventFilter);
 
   if (formError) {
-    toast.error("Failed to fetch form responses.");
+    console.log("Failed to fetch form responses.", formError.message);
     return;
   }
 

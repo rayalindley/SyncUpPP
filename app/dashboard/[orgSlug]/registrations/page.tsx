@@ -22,11 +22,12 @@ interface Registration {
   feedback_submitted_at: string;
 }
 
-export default async function RegistrationsPage({
-  params,
-}: {
-  params: { orgSlug: string; eventId: string};
-}) {
+export default async function RegistrationsPage(
+  props: {
+    params: Promise<{ orgSlug: string; eventId: string}>;
+  }
+) {
+  const params = await props.params;
   const { user } = await getUser();
   const supabase = createClient();
 
