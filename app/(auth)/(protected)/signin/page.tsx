@@ -3,8 +3,7 @@ import { useState, use } from "react"; // Add this import
 import { signInWithGoogle, signInWithPassword } from "@/lib/auth";
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'; // Add Heroicons import
 
-export default function SignIn(props: { searchParams: Promise<any> }) {
-  const searchParams = use(props.searchParams);
+export default function SignUp({ searchParams }: { searchParams: any }) {
   const [showPassword, setShowPassword] = useState(false); // Add state for password visibility
 
   return (

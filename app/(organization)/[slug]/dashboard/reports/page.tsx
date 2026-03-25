@@ -30,7 +30,7 @@ export default async function TransactionsPage(props: TransactionsPageProps) {
     .select("eventid")
     .eq("organizationid", organization.organizationid);
   const eventIds = eventRows?.map((e) => e.eventid) || [];
-
+  
   const { data: feedbackreports } = await supabase
     .from("feedbackreports")
     .select("*")

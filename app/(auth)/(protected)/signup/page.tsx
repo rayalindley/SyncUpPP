@@ -2,10 +2,9 @@
 
 import { signUp, signInWithGoogleAction } from "@/lib/auth";
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'; // Add Heroicons import
-import { useState, use } from "react";
+import { useState } from "react";
 
-export default function SignUp(props: { searchParams: Promise<any> }) {
-  const searchParams = use(props.searchParams);
+export default function SignUp({ searchParams }: { searchParams: any }) {
   const [showPassword, setShowPassword] = useState(false); // Add state for password visibility
 
   return (
@@ -112,9 +111,9 @@ export default function SignUp(props: { searchParams: Promise<any> }) {
                     className="absolute inset-y-0 right-0 flex items-center pr-3 text-sm text-gray-500" // Change text-gray-500 to match border color
                   >
                     {showPassword ? (
-                      (<EyeSlashIcon className="h-5 w-5 text-gray-300" aria-hidden="true" />) // Set color to match border
+                      <EyeSlashIcon className="h-5 w-5 text-gray-300" aria-hidden="true" /> // Set color to match border
                     ) : (
-                      (<EyeIcon className="h-5 w-5 text-gray-300" aria-hidden="true" />) // Set color to match border
+                      <EyeIcon className="h-5 w-5 text-gray-300" aria-hidden="true" /> // Set color to match border
                     )} {/* Eye icon for password visibility */}
                   </button>
                 </div>

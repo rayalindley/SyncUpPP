@@ -3,12 +3,7 @@
 import { useEffect, useState } from "react";
 import { Pie } from "react-chartjs-2";
 import ChartDataLabels from "chartjs-plugin-datalabels";
-import {
-  Chart as ChartJS,
-  ArcElement,
-  Tooltip,
-  Legend,
-} from "chart.js";
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -67,72 +62,62 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
       return;
     }
 
-    /* --- Event metadata --- */
-    const { data: eventData, error: eventErr } = await supabase
-      .from("events")
-      .select("report_limit")
-      .eq("id", eventFilter)
-      .single();
+    try {
+      // --- Event metadata ---
+      const { data: eventData, error: eventErr } = await supabase
+        .from("events")
+        .select("report_limit")
+        .eq("id", eventFilter)
+        .single();
 
-    if (eventErr) {
-      toast.error("Failed to load event data");
-      return;
-    }
-    setReportLimit(eventData?.report_limit ?? 0);
+      if (eventErr) throw eventErr;
+      setReportLimit(eventData?.report_limit ?? 0);
 
-    /* --- Total feedback count --- */
-    const { count } = await supabase
-      .from("feedbacks")
-      .select("id", { count: "exact", head: true })
-      .eq("event_id", eventFilter);
-    setTotalResponses(count ?? 0);
-
-    /* --- Average Likert --- */
-    const { data: likerts } = await supabase
-      .from("feedbacks")
-      .select("likert")
-      .eq("event_id", eventFilter)
-      .not("likert", "is", null);
-
-    if (likerts && likerts.length > 0) {
-      const nums = likerts.map((l) => Number(l.likert));
-      const avg = nums.reduce((a, b) => a + b, 0) / nums.length;
-      setAverageLikert(avg.toFixed(1));
-    } else {
-      setAverageLikert("0");
-    }
-
-    /* --- Feedback reports --- */
-    const { data: reportData, error: reportErr } =
-      await supabase
-        .from("feedback_reports")
+      // --- Total feedback count ---
+      const { data: feedbacks, error: feedbackErr } = await supabase
+        .from("feedbacks")
         .select("*")
-        .eq("event_id", eventFilter)
-        .order("generated_at", { ascending: false });
+        .eq("event_id", eventFilter);
 
-    if (reportErr) {
-      toast.error("Failed to load feedback reports");
-      return;
-    }
+      if (feedbackErr) {
+        console.error("Error fetching feedbacks:", feedbackErr);
+        setTotalResponses(0);
+      } else {
+        setTotalResponses(feedbacks?.length ?? 0);
+      }
 
-    setReports(reportData ?? []);
+      // --- Processed report via API ---
+      const res = await fetch(`/api/reports/get-feedback-report?eventId=${eventFilter}`);
+      const json = await res.json();
 
-    if (!reportData || reportData.length === 0) {
-      setSummary("No reports generated yet.");
+      if (!res.ok) throw new Error(json.error || "Failed to fetch reports");
+
+      setReports(json.reports ?? []);
+      const latest = json.reports?.[0];
+      setSummary(latest?.summaries?.length ? latest.summaries.join("\n\n") : "No summary available.");
+      setTopKeywords(normalizeKeywords(latest?.top_keywords));
+      setAverageLikert(latest?.avg_likert?.toFixed(1) ?? "0");
+    } catch (err: any) {
+      console.error("Error loading stats:", err.message || err);
+      toast.error("Failed to load feedback stats.");
+      setReports([]);
+      setSummary(null);
       setTopKeywords([]);
-      return;
+      setAverageLikert("0");
+      setTotalResponses(0);
+      setReportLimit(0);
     }
-
-    const latest = reportData[0];
-
-    setSummary(
-      latest.summaries?.length
-        ? latest.summaries.join("\n\n")
-        : "No summary available."
-    );
-
-    setTopKeywords(normalizeKeywords(latest.top_keywords, 5));
   };
+
+  const normalizeKeywords = (raw: FeedbackReport["top_keywords"]): string[] => {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw; // already array
+  // convert object to array of "keyword: count"
+  return Object.entries(raw)
+    .sort((a, b) => (b[1] as number) - (a[1] as number))
+    .map(([kw, count]) => `${kw}: ${count}`);
+};
+
 
   useEffect(() => {
     loadStats();
@@ -144,28 +129,14 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
     if (isGenerating) {
       setProgress(5);
       timer = window.setInterval(() => {
-        setProgress((p) =>
-          Math.min(90, p + Math.floor(Math.random() * 8) + 2)
-        );
+        setProgress((p) => Math.min(90, p + Math.floor(Math.random() * 8) + 2));
       }, 700);
     } else {
       setProgress(0);
     }
+
     return () => timer && clearInterval(timer);
   }, [isGenerating]);
-
-  const normalizeKeywords = (
-    raw: FeedbackReport["top_keywords"],
-    take = 5
-  ): string[] => {
-    if (!raw) return [];
-    if (Array.isArray(raw)) return raw.slice(0, take);
-
-    return Object.entries(raw)
-      .sort((a, b) => (b[1] as number) - (a[1] as number))
-      .slice(0, take)
-      .map(([kw, count]) => `${kw}: ${count}`);
-  };
 
   const handleGenerateReport = async () => {
     if (!eventFilter || reportLimit <= 0) {
@@ -173,8 +144,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
       return;
     }
 
-    if (!window.confirm("This will use one report generation. Continue?"))
-      return;
+    if (!window.confirm("This will use one report generation. Continue?")) return;
 
     setIsGenerating(true);
 
@@ -187,14 +157,12 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
 
       const json = await res.json();
 
-      if (!res.ok) {
-        throw new Error(json?.error || "Processing failed");
-      }
+      if (!res.ok) throw new Error(json?.error || "Processing failed");
 
       toast.success("Report generated successfully.");
       await loadStats();
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error("Report Generation Error:", err.message || err);
       toast.error("Failed to generate report.");
     } finally {
       setProgress(100);
@@ -202,23 +170,14 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
     }
   };
 
-  const sentimentCounts = reports[0]?.sentiment_counts ?? {
-    positive: 0,
-    negative: 0,
-  };
-
+  const sentimentCounts = reports[0]?.sentiment_counts ?? { positive: 0, negative: 0 };
   const pieData = {
     labels: ["Positive", "Negative"],
     datasets: [
-      {
-        data: [
-          sentimentCounts.positive ?? 0,
-          sentimentCounts.negative ?? 0,
-        ],
-      },
+      { data: [sentimentCounts.positive ?? 0, sentimentCounts.negative ?? 0] },
     ],
   };
-
+  
   return (
     <>
       <ToastContainer />

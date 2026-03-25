@@ -44,22 +44,39 @@ type GroqResult = {
 ========================= */
 async function analyzeFeedback(text: string) {
   const prompt = `
-Analyze the feedback below and return ONLY valid JSON.
+You are a strict JSON generator. Analyze the feedback below and return ONLY a single valid JSON object. 
 
 FEEDBACK:
 "${text}"
 
+The JSON object must have the following fields:
+
 {
-  "translation": "English translation",
-  "summary": "2–3 sentence summary",
+  "translation": string,            // English translation of feedback
+  "summary": string,                // 2–3 sentence summary of feedback
   "sentiment": {
-    "label": "Positive | Neutral | Negative | Mixed",
-    "score": -1 to 1
+    "label": "Positive" | "Neutral" | "Negative"
+    "score": number                 // 1 (positive), 0 (neutral) and -1 (negative)
   },
-  "likert": 1-5,
-  "keywords": ["keyword1", "keyword2"],
-  "recommendations": ["rec1", "rec2"]
+  "keywords": string[],             // array of important keywords, may be empty
+  "recommendations": string[]       // actionable recommendations, may be empty
 }
+
+Rules:
+
+1. RETURN ONLY VALID JSON. Do NOT include explanations, markdown, or comments.
+2. Always use numbers, not ranges or placeholders.
+3. Fill missing fields with sensible defaults: 
+   - translation: "" 
+   - summary: "" 
+   - sentiment.label: "Neutral" 
+   - sentiment.score: 0 
+   - keywords: [] 
+   - recommendations: []
+4. The JSON must be parseable by JSON.parse().
+
+Respond with the JSON object only.
+
 `;
 
   const completion = await groq.chat.completions.create({
@@ -115,7 +132,7 @@ export default async function handler(
       console.error(error);
       return res.status(500).json({ error: "Failed to fetch feedbacks" });
     }
-
+    
     if (!feedbacks || feedbacks.length === 0) {
       return res
         .status(200)
