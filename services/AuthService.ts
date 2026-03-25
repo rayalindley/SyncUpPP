@@ -53,7 +53,7 @@ export class AuthService {
       return redirect(`/signin?error=${error.message || "Invalid email or password"}`);
     }
 
-    const referer = (await headers()).get("referer");
+    const referer = headers().get("referer");
     if (
       referer &&
       !referer.includes("/signin") &&
@@ -96,7 +96,7 @@ export class AuthService {
       return redirect(`/signup?error=${error.message || "Could not sign up"}`);
     }
 
-    const referer = (await headers()).get("referer");
+    const referer = headers().get("referer");
     if (
       referer &&
       !referer.includes("/signin") &&
@@ -114,7 +114,7 @@ export class AuthService {
   }
 
   async signInWithProvider(provider: Provider) {
-    const origin = (await headers()).get("origin");
+    const origin = headers().get("origin");
     const { data, error } = await this.supabase.auth.signInWithOAuth({
       provider,
       options: { redirectTo: `${origin}/api/auth/callback` },

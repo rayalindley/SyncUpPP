@@ -1,7 +1,6 @@
 import { forgotPassword } from "@/lib/auth";
 
-export default async function ForgotPassword(props: { searchParams: Promise<any> }) {
-  const searchParams = await props.searchParams;
+export default function ForgotPassword({ searchParams }: { searchParams: any }) {
   return (
     <>
       <div className="flex min-h-full flex-1 flex-col justify-center bg-eerieblack py-12 sm:px-6 lg:px-8">

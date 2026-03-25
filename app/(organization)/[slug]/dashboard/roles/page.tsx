@@ -3,8 +3,7 @@ import { check_permissions } from "@/lib/organization";
 import RolesClientComponent from "@/components/settings/RolesClientComponent";
 import { redirect } from "next/navigation";
 
-export default async function SettingsRolesPage(props: { params: Promise<{ slug: string }> }) {
-  const params = await props.params;
+export default async function SettingsRolesPage({ params }: { params: { slug: string } }) {
   const slug = params.slug;
   const supabase = createClient();
 

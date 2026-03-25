@@ -8,8 +8,7 @@ import NewsletterTabs from "@/components/newsletter/newsletter_tabs";
 import { Email } from "@/types/email";
 import { getUser } from "@/lib/supabase/server";
 
-export default async function NewsletterPage(props: { params: Promise<{ slug: string }> }) {
-  const params = await props.params;
+export default async function NewsletterPage({ params }: { params: { slug: string } }) {
   const orgSlug = params.slug;
   const organization = await fetchOrganizationBySlug(orgSlug);
 

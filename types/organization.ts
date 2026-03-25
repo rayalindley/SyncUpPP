@@ -1,34 +1,20 @@
 export interface Organization {
-  /** Primary identifier (Supabase PK) */
-  organizationid: string; // UUID from Supabase
-
-  /** Human-readable info */
+  id: string;
+  selected?: boolean;
+  organization_id: string;
+  organizationid: string;
   name: string;
+  description: string;
+  created_at: Date;
+  organization_type: string;
+  organization_size: number;
+  photo: string;
+  banner: string;
   slug: string;
-  description?: string;
-
-  /** Metadata */
-  adminid?: string;
-  created_at?: string; // Supabase timestamp
-  date_established?: string; // date in ISO string
-
-  /** Classification */
-  organization_type?: string;
-  industry?: string;
-  organization_size?: string;
-
-  /** Media */
-  photo?: string | null;
-  banner?: string | null;
-
-  /** Social / stats */
-  website?: string;
-  address?: Record<string, any>; // JSON column
-  socials?: Record<string, any>; // JSON column
-  total_members?: number;
-  total_posts?: number;
-  total_events?: number;
-
-  /** Organization access */
-  organization_access?: string;
+  socials: string[];
+  total_members: number;
+  total_posts: number;
+  date_established: string;
+  industry: string;
+  total_events: number;
 }

@@ -36,8 +36,7 @@ async function fetchOrganizationActivities(organizationId: string) {
   return data || [];
 }
 
-export default async function SettingsPage(props: { params: Promise<{ slug: string }> }) {
-  const params = await props.params;
+export default async function SettingsPage({ params }: { params: { slug: string } }) {
   const { slug } = params;
   const { data: organization, error } = await fetchOrganizationBySlug(slug);
 

@@ -3,8 +3,7 @@ import { fetchOrganizationBySlug, check_permissions } from "@/lib/organization";
 import { createClient, getUser } from "@/lib/supabase/server"; // Import server-based supabase client
 import Preloader from "@/components/preloader";
 
-export default async function RegistrationsPageUser(props: { params: Promise<{ slug: string }> }) {
-  const params = await props.params;
+export default async function RegistrationsPageUser({ params }: { params: { slug: string } }) {
   const supabase = createClient();
   // Fetch the current user
   const { user } = await getUser();

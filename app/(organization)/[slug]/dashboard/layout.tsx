@@ -1,36 +1,29 @@
 import Header from "@/components/dashboard/header";
 import SideNavMenuForUsers from "@/components/dashboard/side_nav_menu_for_users";
-import { fetchOrganizationsForUserWithViewPermission } from "@/lib/organization";
+import { fetchOrganizationsForUser, fetchOrganizationsForUserWithViewPermission } from "@/lib/organization";
 import { getUser } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
 export default async function SettingsLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   const { user } = await getUser();
 
   if (!user) {
-    redirect("/signin");
+    return redirect("/signin");
   }
 
   const organizations = await fetchOrganizationsForUserWithViewPermission(user.id);
 
   return (
-    <div className="flex w-full min-h-screen bg-eerieblack">
-      {/* Sidebar */}
+    <div className="">
       <SideNavMenuForUsers organizations={organizations.data || []} />
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col lg:pl-72">
+      <div className="lg:pl-72">
         <Header user={user} />
-
-        <main className="flex-1 w-full pb-10">
-          {/* THIS is the key line */}
-          <div className="w-full px-4 sm:px-6 lg:px-8">
-            {children}
-          </div>
+        <main className="bg-gray pb-10 ">
+          <div className="px-4 sm:px-6 lg:px-8">{children}</div>
         </main>
       </div>
     </div>

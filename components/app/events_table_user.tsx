@@ -161,11 +161,10 @@ export default function EventsTableUser({
       cell: (row: Event) => new Date(row.endeventdatetime).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true }),
     },
     {
-  name: "Location",
-  // before: selector: (row: Event) => row.location.toLowerCase(),
-  selector: (row: Event) => (row.location ?? "").toLowerCase(),
-  sortable: true,
-},
+      name: "Location",
+      selector: (row: Event) => row.location.toLowerCase(),
+      sortable: true,
+    },
     {
       name: "Registration Fee",
       selector: (row: Event) => row.registrationfee || "N/A",

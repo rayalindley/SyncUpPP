@@ -3,8 +3,7 @@ import { redirect } from "next/navigation";
 import { resetPassword } from "@/lib/auth";
 import { getUser } from "@/lib/supabase/server";
 
-export default async function SignIn(props: { searchParams: Promise<any> }) {
-  const searchParams = await props.searchParams;
+export default async function SignIn({ searchParams }: { searchParams: any }) {
   const { user } = await getUser();
   if (!user) {
     return redirect("/signin");

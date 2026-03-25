@@ -7,8 +7,7 @@ import { check_permissions } from "@/lib/organization";  // Import the permissio
 
 
 
-export default async function TransactionsPage(props: { params: Promise<{ slug: string }> }) {
-  const params = await props.params;
+export default async function TransactionsPage({ params }: { params: { slug: string } }) {
   // Fetch the current user
   const supabase = createClient();
   const { user } = await getUser();

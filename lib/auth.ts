@@ -94,7 +94,7 @@ export async function signUp(formData: FormData) {
 
 type Provider = "github" | "google";
 export async function signInWith(provider: Provider) {
-  const origin = (await headers()).get("origin");
+  const origin = headers().get("origin");
 
   const supabase = createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
@@ -131,7 +131,7 @@ export async function forgotPassword(formData: FormData) {
     return redirect(`/forgot-password?error=${errors}`);
   }
   const { email } = result.data;
-  const origin = (await headers()).get("origin");
+  const origin = headers().get("origin");
   const supabase = createClient();
 
   const { error } = await supabase.auth.resetPasswordForEmail(email);

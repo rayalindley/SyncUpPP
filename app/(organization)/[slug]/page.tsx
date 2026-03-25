@@ -17,13 +17,15 @@ import ShareButton from "@/components/share-button";
 
 // Add this type for the props
 type Props = {
-  params: Promise<{ slug: string }>;
-  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+  params: { slug: string };
+  searchParams?: { [key: string]: string | string[] | undefined };
 }
 
 // Add this function to generate metadata
-export async function generateMetadata(props: Props, parent: ResolvingMetadata): Promise<Metadata> {
-  const params = await props.params;
+export async function generateMetadata(
+  { params, searchParams }: Props,
+  parent: ResolvingMetadata
+): Promise<Metadata> {
   const { slug } = params
 
   const supabase = createClient();
@@ -96,13 +98,13 @@ const getInitials = (name: string) =>
     .join("")
     .substring(0, 2);
 
-export default async function OrganizationUserView(
-  props: {
-    params: Promise<{ slug: string }>;
-    searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
-  }
-) {
-  const params = await props.params;
+export default async function OrganizationUserView({
+  params,
+  searchParams,
+}: {
+  params: { slug: string };
+  searchParams?: { [key: string]: string | string[] | undefined };
+}) {
   const { user } = await getUser();
   const { slug } = params;
   if (!slug) throw new Error("Slug is missing");

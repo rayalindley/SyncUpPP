@@ -1,4 +1,3 @@
-// (Updated layout: min-h-screen, full-width form, larger banner/photo)
 "use client"
 import { CameraIcon } from "@heroicons/react/24/outline";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -508,553 +507,548 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
         pauseOnHover
         theme="dark"
       />
-      {/* page-level container: ensures the form fills the viewport and can span full width */}
-      <div className="min-h-screen w-full p-6 sm:p-12">
-        <form className="w-full max-w-none space-y-6" onSubmit={handleSubmit(onSubmit)} method="POST">
-          <Steps>
-            {/* Step 1 */}
-            <div id="step1" className="space-y-6">
-              <p className="text-xl font-bold text-white">Organization Details</p>
-              <div>
-                <div className="mb-16">
-                  {/* Increased banner height to use more vertical space */}
-                  <div className="relative mt-4 h-[35vh] w-full rounded-lg font-semibold">
-                    {banner ? (
-                      <img
-                        src={banner}
-                        alt="Banner Preview"
-                        className="h-full w-full rounded-lg object-cover "
+      <form className="space-y-6" onSubmit={handleSubmit(onSubmit)} method="POST">
+        <Steps>
+          {/* Step 1 */}
+          <div id="step1" className="space-y-6">
+            <p className="text-xl font-bold text-white">Organization Details</p>
+            <div>
+              <div className="mb-16">
+                <div className="relative mt-4 h-48 w-full rounded-lg font-semibold">
+                  {banner ? (
+                    <img
+                      src={banner}
+                      alt="Banner Preview"
+                      className="h-full w-full rounded-lg object-cover "
+                    />
+                  ) : (
+                    <div className="h-full w-full rounded-lg bg-charleston"></div>
+                  )}
+                  <div className="absolute bottom-0 right-0 mb-2 mr-2 flex justify-end">
+                    <div className="flex items-center gap-2 rounded-lg bg-eerieblack bg-opacity-25 text-white hover:cursor-pointer hover:bg-gray-500 hover:bg-opacity-25">
+                      <CameraIcon className="h-6 w-6 pl-2" />
+                      <label
+                        htmlFor="banner-input"
+                        className="py-2 pr-2 text-sm font-medium hover:cursor-pointer"
+                      >
+                        Add Banner
+                      </label>
+                      <input
+                        id="banner-input"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleBannerChange}
+                        className="hidden"
                       />
-                    ) : (
-                      <div className="h-full w-full rounded-lg bg-charleston"></div>
-                    )}
-                    <div className="absolute bottom-0 right-0 mb-2 mr-2 flex justify-end">
-                      <div className="flex items-center gap-2 rounded-lg bg-eerieblack bg-opacity-25 text-white hover:cursor-pointer hover:bg-gray-500 hover:bg-opacity-25">
-                        <CameraIcon className="h-6 w-6 pl-2" />
-                        <label
-                          htmlFor="banner-input"
-                          className="py-2 pr-2 text-sm font-medium hover:cursor-pointer"
-                        >
-                          Add Banner
+                    </div>
+                  </div>
+                  <div className="absolute bottom-0 left-[5%] translate-y-1/2 ">
+                    <div className="relative">
+                      {photo ? (
+                        <img
+                          src={photo}
+                          alt="Photo Preview"
+                          className="block h-24 w-24 rounded-lg border-4 border-eerieblack object-cover"
+                        />
+                      ) : (
+                        <div className="block h-24 w-24 rounded-lg border-4 border-eerieblack bg-charleston"></div>
+                      )}
+                      <div className="absolute bottom-0 left-2/3 mb-2 ">
+                        <label htmlFor="file-input" className="">
+                          <CameraIcon className="mr-2 inline-block h-5 w-5 cursor-pointer text-white hover:bg-opacity-25 hover:text-gray-500" />
                         </label>
                         <input
-                          id="banner-input"
-                          type="file"
+                          id="file-input"
                           accept="image/*"
-                          onChange={handleBannerChange}
+                          type="file"
+                          onChange={handleFileChange}
                           className="hidden"
                         />
                       </div>
                     </div>
-                    <div className="absolute bottom-0 left-8 translate-y-1/2 ">
-                      <div className="relative">
-                        {/* larger profile photo so it visually balances the taller banner */}
-                        {photo ? (
-                          <img
-                            src={photo}
-                            alt="Photo Preview"
-                            className="block h-32 w-32 rounded-lg border-4 border-eerieblack object-cover"
-                          />
-                        ) : (
-                          <div className="block h-32 w-32 rounded-lg border-4 border-eerieblack bg-charleston"></div>
-                        )}
-                        <div className="absolute bottom-0 left-2/3 mb-2 ">
-                          <label htmlFor="file-input" className="">
-                            <CameraIcon className="mr-2 inline-block h-5 w-5 cursor-pointer text-white hover:bg-opacity-25 hover:text-gray-500" />
-                          </label>
-                          <input
-                            id="file-input"
-                            accept="image/*"
-                            type="file"
-                            onChange={handleFileChange}
-                            className="hidden"
-                          />
-                        </div>
-                      </div>
-                    </div>
                   </div>
-                  {bannerError && <p className="text-red-500">{bannerError}</p>}
                 </div>
+                {bannerError && <p className="text-red-500">{bannerError}</p>}
+              </div>
 
-                <label
-                  htmlFor="name"
-                  className="mt-8 block text-sm font-medium leading-6 text-white"
-                >
-                  Organization Name
-                </label>
-                <div className="mt-2">
-                  <input
-                    id="name"
-                    type="text"
-                    autoComplete="name"
-                    className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-                    {...register("name")}
-                    onKeyUp={(e) => {
-                      if (!formValues) {
-                        const target = e.target as HTMLInputElement;
-                        const slugValue = slugify(target.value);
-                        setValue("slug", slugValue);
-                      }
-                    }}
-                  />
-                  {errors.name && <p className="text-red-500">{errors.name.message}</p>}
-                </div>
+              <label
+                htmlFor="name"
+                className="mt-8 block text-sm font-medium leading-6 text-white"
+              >
+                Organization Name
+              </label>
+              <div className="mt-2">
+                <input
+                  id="name"
+                  type="text"
+                  autoComplete="name"
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                  {...register("name")}
+                  onKeyUp={(e) => {
+                    if (!formValues) {
+                      const target = e.target as HTMLInputElement;
+                      const slugValue = slugify(target.value);
+                      setValue("slug", slugValue);
+                    }
+                  }}
+                />
+                {errors.name && <p className="text-red-500">{errors.name.message}</p>}
               </div>
-              <div>
-                <label
-                  htmlFor="slug"
-                  className="block text-sm font-medium leading-6 text-white"
-                >
-                  Slug
-                </label>
-                <div className="mt-2">
-                  <input
-                    id="slug"
-                    type="text"
-                    autoComplete="slug"
-                    className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-                    {...register("slug")}
-                    onKeyDown={(event) => {
-                      if (
-                        !/[a-zA-Z0-9-_]/.test(event.key) &&
-                        event.key !== "Backspace" &&
-                        event.key !== "Tab" &&
-                        event.key !== "ArrowLeft" &&
-                        event.key !== "ArrowRight"
-                      ) {
-                        event.preventDefault();
-                      }
-                    }}
-                  />
-                  <span className="text-xs text-gray-400">
-                    Your organization address will be at https://localhost:3001/
-                    {getValues("slug")}
-                  </span>
-                  {errors.slug && <p className="text-red-500">{errors.slug.message}</p>}
-                </div>
+            </div>
+            <div>
+              <label
+                htmlFor="slug"
+                className="block text-sm font-medium leading-6 text-white"
+              >
+                Slug
+              </label>
+              <div className="mt-2">
+                <input
+                  id="slug"
+                  type="text"
+                  autoComplete="slug"
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                  {...register("slug")}
+                  onKeyDown={(event) => {
+                    if (
+                      !/[a-zA-Z0-9-_]/.test(event.key) &&
+                      event.key !== "Backspace" &&
+                      event.key !== "Tab" &&
+                      event.key !== "ArrowLeft" &&
+                      event.key !== "ArrowRight"
+                    ) {
+                      event.preventDefault();
+                    }
+                  }}
+                />
+                <span className="text-xs text-gray-400">
+                  Your organization address will be at https://localhost:3001/
+                  {getValues("slug")}
+                </span>
+                {errors.slug && <p className="text-red-500">{errors.slug.message}</p>}
               </div>
-              <div>
-                <label
-                  htmlFor="description"
-                  className="block text-sm font-medium leading-6 text-white"
-                >
-                  Description
-                </label>
-                <div className="mt-2">
-                  <textarea
-                    id="description"
-                    autoComplete="description"
-                    className="block max-h-[300px] min-h-[150px] w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-                    {...register("description")}
-                  />
-                  {errors.description && (
-                    <p className="text-red-500">{errors.description.message}</p>
-                  )}
-                </div>
-              </div>
-              <div>
-                <label
-                  htmlFor="organizationType"
-                  className="block text-sm font-medium leading-6 text-white"
-                >
-                  Type of Organization
-                </label>
-                <select
-                  id="organizationType"
-                  className="mt-2 block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-                  {...register("organizationType")}
-                >
-                  <option disabled selected>
-                    Select Type
-                  </option>
-                  {ORGANIZATION_TYPES.map((org_type) => (
-                    <option key={org_type} value={org_type} className="bg-[#242424]">
-                      {org_type}
-                    </option>
-                  ))}
-                </select>
-                {errors.organizationType && (
-                  <p className="text-red-500">{errors.organizationType.message}</p>
-                )}
-              </div>
-              <div>
-                <label
-                  htmlFor="industry"
-                  className="block text-sm font-medium leading-6 text-white"
-                >
-                  Industry / Sector
-                </label>
-                <select
-                  id="industry"
-                  className="mt-2 block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-                  {...register("industry")}
-                >
-                  <option disabled selected>
-                    Select Industry
-                  </option>
-                  {INDUSTRIES.map((value) => (
-                    <option key={value} value={value} className="bg-[#242424]">
-                      {value}
-                    </option>
-                  ))}
-                </select>
-                {errors.industry && (
-                  <p className="text-red-500">{errors.industry.message}</p>
-                )}
-              </div>
-              <div>
-                <label
-                  htmlFor="organizationSize"
-                  className="block text-sm font-medium leading-6 text-white"
-                >
-                  Organization Size
-                </label>
-                <select
-                  id="organizationSize"
-                  className="mt-2 block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-                  {...register("organizationSize")}
-                >
-                  <option disabled selected>
-                    Select Size
-                  </option>
-                  {ORGANIZATION_SIZES.map((value) => (
-                    <option key={value} value={value} className="bg-[#242424]">
-                      {value}
-                    </option>
-                  ))}
-                </select>
-                {errors.organizationSize && (
-                  <p className="text-red-500">{errors.organizationSize.message}</p>
-                )}
-              </div>
-              <div>
-                <label
-                  htmlFor="website"
-                  className="block text-sm font-medium leading-6 text-white"
-                >
-                  Website URL <span className="text-sm text-gray-400">(optional)</span>
-                </label>
-                <div className="mt-2">
-                  <input
-                    id="website"
-                    type="text"
-                    className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-                    {...register("website")}
-                  />
-                  {errors.website && (
-                    <p className="text-red-500">{errors.website.message}</p>
-                  )}
-                </div>
-              </div>
-              <div>
-                <label
-                  htmlFor="location"
-                  className="block text-sm font-medium leading-6 text-white"
-                >
-                  Date Established
-                </label>
-                <div className="mt-2">
-                  <Controller
-                    name="dateEstablished"
-                    control={control}
-                    rules={{ required: "Date Established is required" }}
-                    render={({ field }) => (
-                      <Datepicker
-                        {...field}
-                        options={datepicker_options}
-                        onChange={(selectedDate) => {
-                          field.onChange(selectedDate);
-                        }}
-                        show={show}
-                        setShow={handleClose}
-                      />
-                    )}
-                  />
-                  {errors.dateEstablished && (
-                    <p className="text-red-500">{errors.dateEstablished.message}</p>
-                  )}
-                </div>
-              </div>
-              <div>
-                <label
-                  htmlFor="organizationAccess"
-                  className="block text-sm font-medium leading-6 text-white"
-                >
-                  Organization Access
-                </label>
-                <div className="mt-2 space-y-2">
-                  <div className="flex items-center">
-                    <input
-                      id="open"
-                      type="radio"
-                      value="open"
-                      className="h-4 w-4 border-gray-300 text-green-600 focus:ring-green-500"
-                      {...register("organizationAccess")}
-                    />
-                    <label
-                      htmlFor="open"
-                      className="ml-3 block text-sm font-medium text-white"
-                    >
-                      Open to All
-                    </label>
-                  </div>
-                  <p className="ml-7 text-xs text-gray-400">
-                    Anyone can join your organization without approval.
-                  </p>
-                  <div className="flex items-center">
-                    <input
-                      id="approval"
-                      type="radio"
-                      value="approval"
-                      className="h-4 w-4 border-gray-300 text-green-600 focus:ring-green-500"
-                      {...register("organizationAccess")}
-                    />
-                    <label
-                      htmlFor="approval"
-                      className="ml-3 block text-sm font-medium text-white"
-                    >
-                      Requires Approval
-                    </label>
-                  </div>
-                  <p className="ml-7 text-xs text-gray-400">
-                    New members must be approved by an administrator.
-                  </p>
-                </div>
-                {errors.organizationAccess && (
-                  <p className="text-red-500">{errors.organizationAccess.message}</p>
+            </div>
+            <div>
+              <label
+                htmlFor="description"
+                className="block text-sm font-medium leading-6 text-white"
+              >
+                Description
+              </label>
+              <div className="mt-2">
+                <textarea
+                  id="description"
+                  autoComplete="description"
+                  className="block max-h-[300px] min-h-[150px] w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                  {...register("description")}
+                />
+                {errors.description && (
+                  <p className="text-red-500">{errors.description.message}</p>
                 )}
               </div>
             </div>
-            {/* Step 2 */}
-            <div id="step2" className="space-y-6">
-              <p className="text-white">Address</p>
-              <div>
-                <label
-                  htmlFor="addressLine1"
-                  className="block text-sm font-medium leading-6 text-white"
-                >
-                  Address Line 1 <span className="text-sm text-gray-400">(optional)</span>
-                </label>
-                <div className="mt-2">
-                  <input
-                    id="addressLine1"
-                    type="text"
-                    autoComplete="address"
-                    className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-                    {...register("addressLine1")}
-                  />
-                  {errors.addressLine1 && (
-                    <p className="text-red-500">{errors.addressLine1.message}</p>
-                  )}
-                </div>
-              </div>
-              <div>
-                <label
-                  htmlFor="addressLine2"
-                  className="block text-sm font-medium leading-6 text-white"
-                >
-                  Address Line 2 <span className="text-sm text-gray-400">(optional)</span>
-                </label>
-                <div className="mt-2">
-                  <input
-                    id="addressLine2"
-                    type="text"
-                    className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-                    {...register("addressLine2")}
-                  />
-                  {errors.addressLine2 && (
-                    <p className="text-red-500">{errors.addressLine2.message}</p>
-                  )}
-                </div>
-              </div>
-              <div>
-                <label
-                  htmlFor="city"
-                  className="block text-sm font-medium leading-6 text-white"
-                >
-                  City
-                </label>
-                <div className="mt-2">
-                  <input
-                    id="addressLine2"
-                    type="text"
-                    className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-                    {...register("city")}
-                  />
-                  {errors.city && <p className="text-red-500">{errors.city.message}</p>}
-                </div>
-              </div>
-              <div>
-                <label
-                  htmlFor="stateProvince"
-                  className="block text-sm font-medium leading-6 text-white"
-                >
-                  State / Province
-                </label>
-                <div className="mt-2">
-                  <input
-                    id="stateProvince"
-                    type="text"
-                    autoComplete="stateProvince"
-                    required
-                    className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-                    {...register("stateProvince")}
-                  />
-                  {errors.stateProvince && (
-                    <p className="text-red-500">{errors.stateProvince.message}</p>
-                  )}
-                </div>
-              </div>
-              <div>
-                <label
-                  htmlFor="country"
-                  className="block text-sm font-medium leading-6 text-white"
-                >
-                  Country
-                </label>
-                <div className="mt-2">
-                  <select
-                    id="country"
-                    className="mt-2 block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-                    {...register("country")}
-                  >
-                    <option disabled selected>
-                      Select Country
-                    </option>
-                    {countries.map((x) => (
-                      <option key={x.name} value={x.name} className="bg-[#242424]">
-                        {x.name}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.country && (
-                    <p className="text-red-500">{errors.country.message}</p>
-                  )}
-                </div>
-              </div>
-            </div>
-            {/* Step 3 */}
-            <div id="step3" className="space-y-6 text-white">
-              <p className="text-white">Socials</p>
-              <div>
-                <label
-                  htmlFor="facebookLink"
-                  className="block text-sm font-medium leading-6 text-white"
-                >
-                  Facebook Link <span className="text-sm text-gray-400">(optional)</span>
-                </label>
-                <div className="mt-2">
-                  <input
-                    id="facebookLink"
-                    type="text"
-                    className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-                    {...register("facebookLink")}
-                  />
-                  {errors.facebookLink && (
-                    <p className="text-red-500">{errors.facebookLink.message}</p>
-                  )}
-                </div>
-              </div>
-              <div>
-                <label
-                  htmlFor="twitterLink"
-                  className="block text-sm font-medium leading-6 text-white"
-                >
-                  Twitter Link <span className="text-sm text-gray-400">(optional)</span>
-                </label>
-                <div className="mt-2">
-                  <input
-                    id="twitterLink"
-                    type="text"
-                    autoComplete="twitterLink"
-                    required
-                    className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-                    {...register("twitterLink")}
-                  />
-                  {errors.twitterLink && (
-                    <p className="text-red-500">{errors.twitterLink.message}</p>
-                  )}
-                </div>
-              </div>
-              <div>
-                <label
-                  htmlFor="linkedinLink"
-                  className="block text-sm font-medium leading-6 text-white"
-                >
-                  LinkedIn <span className="text-sm text-gray-400">(optional)</span>
-                </label>
-                <div className="mt-2">
-                  <input
-                    id="linkedinLink"
-                    type="text"
-                    className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-                    {...register("linkedinLink")}
-                  />
-                  {errors.linkedinLink && (
-                    <p className="text-red-500">{errors.linkedinLink.message}</p>
-                  )}
-                </div>
-              </div>
-            </div>
-            {/* Step 4 */}
-            <div id="step4" className="space-y-6 text-white">
-              <p className="text-xl font-bold">Confirmation and Submission</p>
-              <p>Please review the information below before submitting:</p>
-              {formData && (
-                <div className="space-y-4">
-                  {Object.entries(formData).map(([key, value]) => {
-                    const displayValue =
-                      value instanceof Date ? value.toLocaleDateString() : value;
-                    return (
-                      <div key={key}>
-                        {displayValue && (
-                          <>
-                            <p className="font-semibold capitalize">
-                              {key.replace(/([A-Z])/g, " $1").trim()}:
-                            </p>
-                            <p>{displayValue}</p>
-                          </>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+            <div>
+              <label
+                htmlFor="organizationType"
+                className="block text-sm font-medium leading-6 text-white"
+              >
+                Type of Organization
+              </label>
+              <select
+                id="organizationType"
+                className="mt-2 block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                {...register("organizationType")}
+              >
+                <option disabled selected>
+                  Select Type
+                </option>
+                {ORGANIZATION_TYPES.map((org_type) => (
+                  <option key={org_type} value={org_type} className="bg-[#242424]">
+                    {org_type}
+                  </option>
+                ))}
+              </select>
+              {errors.organizationType && (
+                <p className="text-red-500">{errors.organizationType.message}</p>
               )}
             </div>
-          </Steps>
-          <div className="navigation mb-4 flex justify-between">
-            <button
-              className={`flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${current == 1 ? "opacity-0" : ""}`}
-              onClick={prev}
-              disabled={current <= 0}
-              type="button"
-            >
-              Prev
-            </button>
-            {current === total ? (
-              <button
-                className="flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                type="submit"
+            <div>
+              <label
+                htmlFor="industry"
+                className="block text-sm font-medium leading-6 text-white"
               >
-                {isLoading ? "Submit..." : "Submit"}
-              </button>
-            ) : (
-              <button
-                className="flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                onClick={handleNext}
-                type="button"
+                Industry / Sector
+              </label>
+              <select
+                id="industry"
+                className="mt-2 block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                {...register("industry")}
               >
-                Next
-              </button>
+                <option disabled selected>
+                  Select Industry
+                </option>
+                {INDUSTRIES.map((value) => (
+                  <option key={value} value={value} className="bg-[#242424]">
+                    {value}
+                  </option>
+                ))}
+              </select>
+              {errors.industry && (
+                <p className="text-red-500">{errors.industry.message}</p>
+              )}
+            </div>
+            <div>
+              <label
+                htmlFor="organizationSize"
+                className="block text-sm font-medium leading-6 text-white"
+              >
+                Organization Size
+              </label>
+              <select
+                id="organizationSize"
+                className="mt-2 block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                {...register("organizationSize")}
+              >
+                <option disabled selected>
+                  Select Size
+                </option>
+                {ORGANIZATION_SIZES.map((value) => (
+                  <option key={value} value={value} className="bg-[#242424]">
+                    {value}
+                  </option>
+                ))}
+              </select>
+              {errors.organizationSize && (
+                <p className="text-red-500">{errors.organizationSize.message}</p>
+              )}
+            </div>
+            <div>
+              <label
+                htmlFor="website"
+                className="block text-sm font-medium leading-6 text-white"
+              >
+                Website URL <span className="text-sm text-gray-400">(optional)</span>
+              </label>
+              <div className="mt-2">
+                <input
+                  id="website"
+                  type="text"
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                  {...register("website")}
+                />
+                {errors.website && (
+                  <p className="text-red-500">{errors.website.message}</p>
+                )}
+              </div>
+            </div>
+            <div>
+              <label
+                htmlFor="location"
+                className="block text-sm font-medium leading-6 text-white"
+              >
+                Date Established
+              </label>
+              <div className="mt-2">
+                <Controller
+                  name="dateEstablished"
+                  control={control}
+                  rules={{ required: "Date Established is required" }}
+                  render={({ field }) => (
+                    <Datepicker
+                      {...field}
+                      options={datepicker_options}
+                      onChange={(selectedDate) => {
+                        field.onChange(selectedDate);
+                      }}
+                      show={show}
+                      setShow={handleClose}
+                    />
+                  )}
+                />
+                {errors.dateEstablished && (
+                  <p className="text-red-500">{errors.dateEstablished.message}</p>
+                )}
+              </div>
+            </div>
+            <div>
+              <label
+                htmlFor="organizationAccess"
+                className="block text-sm font-medium leading-6 text-white"
+              >
+                Organization Access
+              </label>
+              <div className="mt-2 space-y-2">
+                <div className="flex items-center">
+                  <input
+                    id="open"
+                    type="radio"
+                    value="open"
+                    className="h-4 w-4 border-gray-300 text-green-600 focus:ring-green-500"
+                    {...register("organizationAccess")}
+                  />
+                  <label
+                    htmlFor="open"
+                    className="ml-3 block text-sm font-medium text-white"
+                  >
+                    Open to All
+                  </label>
+                </div>
+                <p className="ml-7 text-xs text-gray-400">
+                  Anyone can join your organization without approval.
+                </p>
+                <div className="flex items-center">
+                  <input
+                    id="approval"
+                    type="radio"
+                    value="approval"
+                    className="h-4 w-4 border-gray-300 text-green-600 focus:ring-green-500"
+                    {...register("organizationAccess")}
+                  />
+                  <label
+                    htmlFor="approval"
+                    className="ml-3 block text-sm font-medium text-white"
+                  >
+                    Requires Approval
+                  </label>
+                </div>
+                <p className="ml-7 text-xs text-gray-400">
+                  New members must be approved by an administrator.
+                </p>
+              </div>
+              {errors.organizationAccess && (
+                <p className="text-red-500">{errors.organizationAccess.message}</p>
+              )}
+            </div>
+          </div>
+          {/* Step 2 */}
+          <div id="step2" className="space-y-6">
+            <p className="text-white">Address</p>
+            <div>
+              <label
+                htmlFor="addressLine1"
+                className="block text-sm font-medium leading-6 text-white"
+              >
+                Address Line 1 <span className="text-sm text-gray-400">(optional)</span>
+              </label>
+              <div className="mt-2">
+                <input
+                  id="addressLine1"
+                  type="text"
+                  autoComplete="address"
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                  {...register("addressLine1")}
+                />
+                {errors.addressLine1 && (
+                  <p className="text-red-500">{errors.addressLine1.message}</p>
+                )}
+              </div>
+            </div>
+            <div>
+              <label
+                htmlFor="addressLine2"
+                className="block text-sm font-medium leading-6 text-white"
+              >
+                Address Line 2 <span className="text-sm text-gray-400">(optional)</span>
+              </label>
+              <div className="mt-2">
+                <input
+                  id="addressLine2"
+                  type="text"
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                  {...register("addressLine2")}
+                />
+                {errors.addressLine2 && (
+                  <p className="text-red-500">{errors.addressLine2.message}</p>
+                )}
+              </div>
+            </div>
+            <div>
+              <label
+                htmlFor="city"
+                className="block text-sm font-medium leading-6 text-white"
+              >
+                City
+              </label>
+              <div className="mt-2">
+                <input
+                  id="addressLine2"
+                  type="text"
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                  {...register("city")}
+                />
+                {errors.city && <p className="text-red-500">{errors.city.message}</p>}
+              </div>
+            </div>
+            <div>
+              <label
+                htmlFor="stateProvince"
+                className="block text-sm font-medium leading-6 text-white"
+              >
+                State / Province
+              </label>
+              <div className="mt-2">
+                <input
+                  id="stateProvince"
+                  type="text"
+                  autoComplete="stateProvince"
+                  required
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                  {...register("stateProvince")}
+                />
+                {errors.stateProvince && (
+                  <p className="text-red-500">{errors.stateProvince.message}</p>
+                )}
+              </div>
+            </div>
+            <div>
+              <label
+                htmlFor="country"
+                className="block text-sm font-medium leading-6 text-white"
+              >
+                Country
+              </label>
+              <div className="mt-2">
+                <select
+                  id="country"
+                  className="mt-2 block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                  {...register("country")}
+                >
+                  <option disabled selected>
+                    Select Country
+                  </option>
+                  {countries.map((x) => (
+                    <option key={x.name} value={x.name} className="bg-[#242424]">
+                      {x.name}
+                    </option>
+                  ))}
+                </select>
+                {errors.country && (
+                  <p className="text-red-500">{errors.country.message}</p>
+                )}
+              </div>
+            </div>
+          </div>
+          {/* Step 3 */}
+          <div id="step3" className="space-y-6 text-white">
+            <p className="text-white">Socials</p>
+            <div>
+              <label
+                htmlFor="facebookLink"
+                className="block text-sm font-medium leading-6 text-white"
+              >
+                Facebook Link <span className="text-sm text-gray-400">(optional)</span>
+              </label>
+              <div className="mt-2">
+                <input
+                  id="facebookLink"
+                  type="text"
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                  {...register("facebookLink")}
+                />
+                {errors.facebookLink && (
+                  <p className="text-red-500">{errors.facebookLink.message}</p>
+                )}
+              </div>
+            </div>
+            <div>
+              <label
+                htmlFor="twitterLink"
+                className="block text-sm font-medium leading-6 text-white"
+              >
+                Twitter Link <span className="text-sm text-gray-400">(optional)</span>
+              </label>
+              <div className="mt-2">
+                <input
+                  id="twitterLink"
+                  type="text"
+                  autoComplete="twitterLink"
+                  required
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                  {...register("twitterLink")}
+                />
+                {errors.twitterLink && (
+                  <p className="text-red-500">{errors.twitterLink.message}</p>
+                )}
+              </div>
+            </div>
+            <div>
+              <label
+                htmlFor="linkedinLink"
+                className="block text-sm font-medium leading-6 text-white"
+              >
+                LinkedIn <span className="text-sm text-gray-400">(optional)</span>
+              </label>
+              <div className="mt-2">
+                <input
+                  id="linkedinLink"
+                  type="text"
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                  {...register("linkedinLink")}
+                />
+                {errors.linkedinLink && (
+                  <p className="text-red-500">{errors.linkedinLink.message}</p>
+                )}
+              </div>
+            </div>
+          </div>
+          {/* Step 4 */}
+          <div id="step4" className="space-y-6 text-white">
+            <p className="text-xl font-bold">Confirmation and Submission</p>
+            <p>Please review the information below before submitting:</p>
+            {formData && (
+              <div className="space-y-4">
+                {Object.entries(formData).map(([key, value]) => {
+                  const displayValue =
+                    value instanceof Date ? value.toLocaleDateString() : value;
+                  return (
+                    <div key={key}>
+                      {displayValue && (
+                        <>
+                          <p className="font-semibold capitalize">
+                            {key.replace(/([A-Z])/g, " $1").trim()}:
+                          </p>
+                          <p>{displayValue}</p>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
-          <div className="steps_data mt-4 flex justify-between text-sm text-white">
-            <div>Total Steps: {total}</div>
-            <div>Current Step: {current}</div>
-            <div>Progress: {progress * 100}%</div>
-          </div>
-        </form>
-      </div>
+        </Steps>
+        <div className="navigation mb-4 flex justify-between">
+          <button
+            className={`flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${current == 1 ? "opacity-0" : ""}`}
+            onClick={prev}
+            disabled={current <= 0}
+            type="button"
+          >
+            Prev
+          </button>
+          {current === total ? (
+            <button
+              className="flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              type="submit"
+            >
+              {isLoading ? "Submit..." : "Submit"}
+            </button>
+          ) : (
+            <button
+              className="flex justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              onClick={handleNext}
+              type="button"
+            >
+              Next
+            </button>
+          )}
+        </div>
+        <div className="steps_data mt-4 flex justify-between text-sm text-white">
+          <div>Total Steps: {total}</div>
+          <div>Current Step: {current}</div>
+          <div>Progress: {progress * 100}%</div>
+        </div>
+      </form>
     </>
   );
 };

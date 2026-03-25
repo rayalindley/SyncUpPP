@@ -39,7 +39,6 @@
     "file-saver": "^2.0.5",
     "formidable": "^3.5.1",
     "google-auth-library": "^10.0.0-rc.1",
-    "groq-sdk": "^1.1.1",
     "html-react-parser": "^5.1.16",
     "html-to-image": "^1.11.11",
     "imap-simple": "^1.6.3",

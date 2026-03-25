@@ -9,8 +9,9 @@ import { ToastContainer } from "react-toastify";
 import { useParams, useRouter } from "next/navigation";
 
 
-export default async function ViewFeedbackPage(props: { params: Promise<{ slug: string}>}) {
-  const params = await props.params;
+export default async function ViewFeedbackPage(
+  { params }: { params: { slug: string}}
+) {
   const { user } = await getUser();
   const slug = params.slug;
   const supabase = createClient();

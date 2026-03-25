@@ -1,5 +1,5 @@
 "use client";
-import CreateOrganizationForm from "@/components/organization/create";
+import CreateOrganizationForm from "@/components/create_organization_form";
 import { fetchOrganizationBySlug, check_permissions } from "@/lib/organization";
 import { createClient, getUser } from "@/lib/supabase/client";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";

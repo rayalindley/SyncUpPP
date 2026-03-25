@@ -4,10 +4,9 @@ import { createClient, getUser } from "@/lib/supabase/server"; // Server-side Su
 import { Event } from "@/types/event";
 import { Organization } from "@/types/organization";
 
-export default async function DashboardPage(props: { params: Promise<{ slug: string }> }) {
-  const params = await props.params;
+export default async function DashboardPage({ params }: { params: { slug: string } }) {
   const supabase = createClient();
-
+  
   // Fetch the current user
   const { user } = await getUser();
 

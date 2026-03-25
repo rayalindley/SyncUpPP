@@ -5,8 +5,7 @@ import { createClient, getUser } from "@/lib/supabase/server";
 import { Organization } from "@/types/organization";
 
 // Define the server-side page function
-export default async function OrganizationMembersPage(props: { params: Promise<{ slug: string }> }) {
-  const params = await props.params;
+export default async function OrganizationMembersPage({ params }: { params: { slug: string } }) {
   const { slug } = params;
   const supabase = createClient();
 
