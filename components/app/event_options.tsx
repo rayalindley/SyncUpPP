@@ -328,7 +328,8 @@ export default function EventOptions({
       return;
     }
 
-    router.push(`/feedback/form/${eventslug}`);
+    // router.push(`/feedback/form/${eventslug}`);
+    window.location.href = `/feedback/form/${eventslug}`;
   };
 
 
