@@ -38,12 +38,12 @@ export default function FeedbackFormAttendees({
     const fetchEvent = async () => {
       const { data, error } = await supabase
         .from("events")
-        .select("eventid")
+        .select("id") // FIXED: 'id' instead of 'eventid'
         .eq("eventslug", slug)
         .single();
 
       if (data) {
-        setEventId(data.eventid);
+        setEventId(data.id); // FIXED: 'data.id' instead of 'data.eventid'
       }
     };
 
@@ -54,11 +54,12 @@ export default function FeedbackFormAttendees({
     if(!eventId) return;
 
     const fetchFormAndQuestions = async () => {
+      // FIXED: maybeSingle() prevents crashes if the form doesn't exist yet
       const { data: form, error: formError } = await supabase
         .from('forms')
         .select('id')
         .eq('slug', slug)
-        .maybeSingle();
+        .maybeSingle(); 
 
       if (formError) {
         console.error('Error fetching form:', formError);
@@ -257,6 +258,17 @@ export default function FeedbackFormAttendees({
               <label className={`text-sm font-medium text-white font-extrabold`}>
                 {q.question_text}
               </label>
+
+              {/* Text Questions */}
+              {q.question_type === 'Text' && (
+                <input
+                  type="text"
+                  required
+                  placeholder="Text answer..."
+                  onChange={(e) => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 px-2 text-white shadow-sm ring-1 ring-inset ring-white/10 sm:text-sm"
+                />
+              )}
 
               {/* Choice Questions */}
               {q.question_type === 'Choice' && q.metadata?.choices?.map((choice: string, i: number) => (
