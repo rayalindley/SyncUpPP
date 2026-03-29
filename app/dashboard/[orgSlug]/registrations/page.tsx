@@ -2,7 +2,7 @@ import { createClient, getUser } from "@/lib/supabase/server";
 import { fetchOrganizationsForUser } from "@/lib/organization"; // Import the function
 import { redirect, notFound } from "next/navigation";
 import RegistrationsTable from "@/components/app/event_registrations";
-import Preloader from "@/components/preloader";
+import Loader from "@/components/Loader";
 
 interface Registration {
   eventregistrationid: string;
@@ -38,7 +38,7 @@ export default async function RegistrationsPage({
   let registrations: Registration[] = [];
 
   if (!registrations) {
-    <Preloader />;
+    <Loader />;
   }
 
   if (user.role === "superadmin") {

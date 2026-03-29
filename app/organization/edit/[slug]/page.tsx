@@ -6,7 +6,7 @@ import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { StepsProvider } from "react-step-builder";
-import Preloader from "@/components/preloader";
+import Loader from "@/components/Loader";
 
 const supabase = createClient();
 
@@ -95,7 +95,7 @@ export default function Example() {
   }, [slug, router]);
 
   if (isLoading) {
-    return <Preloader />;
+    return <Loader />;
   }
 
   return (

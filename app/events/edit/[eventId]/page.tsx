@@ -1,6 +1,6 @@
 "use client";
 import CreateEventForm from "@/components/create_event_form";
-import Preloader from "@/components/preloader";
+import Loader from "@/components/Loader";
 import { fetchEventById } from "@/lib/events";
 import { check_permissions } from "@/lib/organization";
 import { getUser } from "@/lib/supabase/client";
@@ -64,10 +64,10 @@ export default function EditEventPage() {
   }, [eventId]);
 
   if (!event || hasPermission == null) {
-    return <Preloader />;
+    return <Loader />;
   }
   if (loading) {
-    return <Preloader />;
+    return <Loader />;
   }
 
   if (!hasPermission) {

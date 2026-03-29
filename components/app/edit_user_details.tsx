@@ -1,5 +1,5 @@
 "use client";
-import Preloader from "@/components/preloader";
+import Loader from "@/components/Loader";
 import { useUser } from "@/context/user_context";
 import { createClient } from "@/lib/supabase/client";
 import { UserProfile } from "@/types/user_profile";
@@ -243,7 +243,7 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
   };
 
   if (!userProfile) {
-    return <Preloader />;
+    return <Loader />;
   }
 
   return (

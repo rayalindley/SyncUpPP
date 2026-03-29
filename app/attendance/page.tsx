@@ -5,7 +5,7 @@ import { createClient, getUser } from "@/lib/supabase/client";
 import { check_permissions } from "@/lib/organization";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import Preloader from "@/components/preloader";
+import Loader from "@/components/Loader";
 import { Dialog } from "@headlessui/react";
 import QrScannerComponent from "@/components/qrscanner"; // Import the updated QrScanner component
 import { recordActivity } from "@/lib/track";
@@ -148,7 +148,7 @@ const AttendanceContent = () => {
   };
 
   if (loading) {
-    return <Preloader />;
+    return <Loader />;
   }
 
   if (!hasPermission) {
@@ -260,7 +260,7 @@ const AttendanceContent = () => {
 
 const Attendance = () => {
   return (
-    <Suspense fallback={<Preloader />}>
+    <Suspense fallback={<Loader />}>
       <AttendanceContent />
     </Suspense>
   );

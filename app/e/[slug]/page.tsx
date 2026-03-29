@@ -1,7 +1,7 @@
 "use client";
 import Footer from "@/components/footer";
 import Header from "@/components/header";
-import Preloader from "@/components/preloader";
+import Loader from "@/components/Loader";
 import {
   checkMembership,
   checkUserRegistration,
@@ -370,7 +370,7 @@ const EventPage = () => {
 
 
   if (loading) {
-    return <Preloader />;
+    return <Loader />;
   }
 
   if (!event) {

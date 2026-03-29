@@ -8,7 +8,7 @@ import EventOptions from "./event_options";
 import { TableColumn } from "react-data-table-component";
 import { useDebounce } from "use-debounce";
 import dynamic from 'next/dynamic';
-import Preloader from "../preloader";
+import Loader from "@/components/Loader";
 import { createClient } from "@/lib/supabase/client"; // Import Supabase client
 import { toast } from "react-toastify"; // Import toast for notifications
 import "react-toastify/dist/ReactToastify.css"; // Import toast styles
@@ -354,7 +354,7 @@ export default function EventsTableUser({
   );
 
   if (canCreateEvents === null || canEditEvents === null) {
-    return <Preloader />;
+    return <Loader />;
   }
 
   return (
