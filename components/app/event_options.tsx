@@ -1,5 +1,5 @@
 "use client";
-import Preloader from "@/components/preloader";
+import Loader from "@/components/Loader";
 import { deleteEvent, fetchRegisteredUsersForEvent } from "@/lib/events"; // Assuming you have deleteEvent function
 import { check_permissions } from "@/lib/organization";
 import { Event } from "@/types/event";
@@ -851,7 +851,7 @@ export default function EventOptions({
                               </button>
                             </div>
                             {loadingAttendees ? (
-                              <Preloader />
+                              <Loader />
                             ) : filteredAttendees && filteredAttendees.length > 0 ? (
                               filteredAttendees.map((attendee: UserProfile, index: number) => (
                                 <div key={index} className="flex items-center space-x-3">
@@ -881,7 +881,7 @@ export default function EventOptions({
                         {currentTab === "CertificatePreview" && (
                           <div className="space-y-4">
                             {loadingCertificateSettings ? (
-                              <Preloader />
+                              <Loader />
                             ) : certificateError ? (
                               <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded">
                                 <p className="font-semibold">Error</p>

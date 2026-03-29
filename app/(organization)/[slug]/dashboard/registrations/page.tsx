@@ -1,7 +1,7 @@
 import RegistrationsTable from "@/components/app/event_registrations_user";
 import { fetchOrganizationBySlug, check_permissions } from "@/lib/organization";
 import { createClient, getUser } from "@/lib/supabase/server"; // Import server-based supabase client
-import Preloader from "@/components/preloader";
+import Loader from "@/components/Loader";
 
 export default async function RegistrationsPageUser({ params }: { params: { slug: string } }) {
   const supabase = createClient();

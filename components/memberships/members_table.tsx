@@ -1,5 +1,5 @@
 "use client";
-import Preloader from "@/components/preloader";
+import Loader from "@/components/Loader";
 import { Organization } from "@/types/organization";
 import { useEffect, useMemo, useState } from "react";
 import dynamic from 'next/dynamic';
@@ -385,7 +385,7 @@ const MembersTable: React.FC<MembersTableProps> = ({ members, organization }) =>
   };
 
   if (!isMounted) {
-    return <Preloader />;
+    return <Loader />;
   }
 
   return (
@@ -483,7 +483,7 @@ const MembersTable: React.FC<MembersTableProps> = ({ members, organization }) =>
             </div>
           </>
         ) : (
-          <Preloader />
+          <Loader />
         )}
       </div>
 

@@ -1,12 +1,43 @@
-// components/Loader.tsx
 "use client";
 
-const Loader = () => {
+interface LoaderProps {
+  /** If true, covers the whole screen and blocks clicks */
+  isOverlay?: boolean;
+  /** Primary text to display */
+  text?: string;
+  /** Secondary smaller text (optional) */
+  subtext?: string;
+}
+
+const Loader = ({ 
+  isOverlay = false, 
+  text = "Loading...", 
+  subtext 
+}: LoaderProps) => {
+
+  const spinner = (
+    <div
+      className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-primary border-e-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"
+      role="status"
+    >
+      <span className="sr-only">Loading...</span>
+    </div>
+  );
+
+  if (isOverlay) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm">
+        {spinner}
+        <p className="mt-4 text-lg font-semibold text-white">{text}</p>
+        {subtext && <p className="mt-1 text-sm text-gray-300">{subtext}</p>}
+      </div>
+    );
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-70">
-      <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mb-4"></div>
-      <p className="text-lg font-semibold text-white">Generating report...</p>
-      <p className="text-sm text-gray-300 mt-1">This may take a few seconds.</p>
+    <div className="flex h-screen w-full flex-col items-center justify-center">
+      {spinner}
+      {text !== "Loading..." && <p className="mt-4 text-sm text-gray-400">{text}</p>}
     </div>
   );
 };

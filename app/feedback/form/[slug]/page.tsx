@@ -1,6 +1,11 @@
 "use client";
 import FeedbackFormOrganizer from "@/components/feedback_form_organizers";
+<<<<<<< HEAD
 import Preloader from "@/components/preloader";
+=======
+import Loader from "@/components/Loader";
+import { check_permissions, fetchOrganizationBySlug } from "@/lib/organization";
+>>>>>>> 7052abd80abaab7045a2a8c6c6475a61d9b2c3c2
 import { getUser } from "@/lib/supabase/client";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { useParams, useRouter } from "next/navigation";
@@ -31,7 +36,7 @@ export default function OrganizersFeedbackPage() {
   }, [slug]);
 
   if (loading) {
-    return <Preloader />;
+    return <Loader />;
   }
 
   return (
