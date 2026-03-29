@@ -1,5 +1,5 @@
 "use client";
-import Preloader from "@/components/preloader";
+import Loader from "@/components/Loader";
 import { Organization } from "@/types/organization";
 import { useEffect, useMemo, useState } from "react";
 import DataTable from "react-data-table-component";
@@ -182,7 +182,7 @@ export default function OrganizationsTable({
             }}
           />
         ) : (
-          <Preloader />
+          <Loader />
         )}
       </div>
     </div>
