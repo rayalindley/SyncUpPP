@@ -2,6 +2,7 @@
 "use client";
 import React, { useEffect, useState, useRef } from "react";
 import "@yaireo/tagify/dist/tagify.css";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { createClient } from "@/lib/supabase/client";
 import { Question } from "@/types/questions";
@@ -145,6 +146,11 @@ export default function FeedbackFormOrganizer({
   const [showImportance, setShowImportance] = useState(false);
   const [showEffectiveness, setShowEffectiveness] = useState(false);
 
+  // TEMPLATE SYSTEM STATE
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [newTemplateName, setNewTemplateName] = useState("");
+
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
@@ -155,6 +161,9 @@ export default function FeedbackFormOrganizer({
   const [addedQuestions, setAddedQuestions] = useState<string[]>([]);
   const [formQuestions, setFormQuestions] = useState<any[]>([]);
   const [eventId, setEventId] = useState<string | null>(null);
+  
+  // NEW: Store organization slug for redirection
+  const [orgSlug, setOrgSlug] = useState<string | null>(null);
   
   // Track selected question by ID rather than index
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
@@ -190,12 +199,9 @@ export default function FeedbackFormOrganizer({
     const fetchEventAndForm = async () => {
       isFetchingRef.current = true;
       try {
-        // Fetch Event ID
-               // Fetch Event ID
-                // Fetch Event ID (trying 'id' since 'eventid' is undefined in Supabase)
         const { data: eventData, error: eventError } = await supabase
           .from("events")
-          .select("id") 
+          .select("id, organizationid") 
           .eq("eventslug", selectedEvent)
           .single();
 
@@ -204,11 +210,22 @@ export default function FeedbackFormOrganizer({
           return;
         }
 
-        // Assign the correct ID variable 
         const currentEventId = eventData.id;
         setEventId(currentEventId);
 
-        // Fetch or Create Form
+        // Fetch organization slug for redirect
+        if (eventData.organizationid) {
+          const { data: orgData } = await supabase
+            .from("organizations")
+            .select("slug")
+            .eq("organizationid", eventData.organizationid)
+            .maybeSingle();
+
+          if (orgData?.slug) {
+            setOrgSlug(orgData.slug);
+          }
+        }
+
         let currentFormId: string | null = null;
         const { data: form, error: formError } = await supabase
           .from("forms")
@@ -219,7 +236,6 @@ export default function FeedbackFormOrganizer({
         if (form) {
           currentFormId = form.id;
         } else {
-          // Double check before insert to avoid race condition
           const { data: checkForm } = await supabase
             .from("forms")
             .select("id")
@@ -245,7 +261,6 @@ export default function FeedbackFormOrganizer({
 
         setFormId(currentFormId);
 
-        // Fetch existing added questions
         if (currentFormId) {
           const { data: formData, error: fError } = await supabase
             .from("form_questions")
@@ -282,7 +297,82 @@ export default function FeedbackFormOrganizer({
     fetchEventAndForm();
   }, [selectedEvent]);
 
-  // 3. HANDLE ADDING A QUESTION
+  // 3. TEMPLATE SYSTEM FUNCTIONS
+  const handleOpenTemplates = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("form_templates")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setTemplates(data || []);
+      setIsTemplateModalOpen(true);
+    } catch (error) {
+      console.error("Error fetching templates:", error);
+      toast.error("Failed to load templates");
+    }
+  };
+
+  const handleSaveAsTemplate = async () => {
+    if (!newTemplateName.trim()) {
+      toast.error("Please provide a template name");
+      return;
+    }
+    if (formQuestions.length === 0) {
+      toast.error("Add some questions before saving a template");
+      return;
+    }
+
+    try {
+      // We save just the array of question IDs
+      const templateQuestions = formQuestions.map((q) => String(q.id).trim());
+
+      const { error } = await supabase.from("form_templates").insert([
+        {
+          name: newTemplateName,
+          user_id: userId,
+          questions: templateQuestions,
+        },
+      ]);
+
+      if (error) throw error;
+
+      toast.success("Template saved successfully!");
+      setNewTemplateName("");
+      // Refresh templates list
+      handleOpenTemplates();
+    } catch (error) {
+      console.error("Error saving template:", error);
+      toast.error("Failed to save template");
+    }
+  };
+
+  const handleApplyTemplate = async (templateQuestionIds: string[]) => {
+    setIsLoading(true);
+    try {
+      // Filter out what is already in addedQuestions
+      const toAdd = templateQuestionIds.filter(
+        (id) => !addedQuestions.includes(id)
+      );
+
+      for (const qId of toAdd) {
+        await handleAddQuestion(qId);
+      }
+      
+      toast.success("Template applied successfully!");
+      setIsTemplateModalOpen(false);
+    } catch (error) {
+      console.error("Error applying template:", error);
+      toast.error("Failed to apply template");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
+  // 4. HANDLE ADDING A QUESTION
   const handleAddQuestion = async (questionId: string) => {
     if (!formId) return;
     const cleanId = String(questionId).trim();
@@ -482,6 +572,34 @@ export default function FeedbackFormOrganizer({
     }
   };
 
+  // NEW SUBMIT FUNCTION
+    // NEW SUBMIT FUNCTION
+  const handleSubmitForm = async () => {
+    setIsLoading(true);
+
+    await Swal.fire({
+      icon: "success",
+      title: "Success!",
+      text: "Successfully Created Feedback Form.",
+      confirmButtonText: "Go to Dashboard",
+      customClass: {
+        title: "text-lg text-white",
+        htmlContainer: "text-base text-gray-300",
+        popup: "bg-[#1C1C1C] rounded-lg p-6 shadow-xl border border-gray-700",
+        confirmButton: "bg-[#379A7B] text-white text-sm px-4 py-2 rounded-md hover:bg-[#2d7d64]",
+      },
+    });
+
+    setIsLoading(false);
+    
+    if (orgSlug) {
+      // Changed from /dashboard/[slug] to /[slug]/dashboard/events
+      router.push(`/${orgSlug}/dashboard`); 
+    } else {
+      router.push("/dashboard"); // Fallback
+    }
+  };
+
   const likertLabelsMap: Record<string, string[]> = {
     Agreement: [
       "Strongly Disagree",
@@ -561,11 +679,11 @@ export default function FeedbackFormOrganizer({
           </button>
         </div>
 
-        <div className="flex justify-center">
+        <div className="flex justify-center gap-4">
           <button
             type="button"
             onClick={() => setIsAddQModalOpen(true)}
-            className="sm:w-full sm:max-w-full bg-[#379A7B] rounded-md text-white font-bold px-4 py-2 flex items-center gap-2 hover:bg-primarydark"
+            className="sm:w-full sm:max-w-full bg-[#379A7B] rounded-md text-white font-bold px-4 py-2 flex items-center justify-center gap-2 hover:bg-primarydark"
           >
             <svg
               width="30px"
@@ -585,6 +703,69 @@ export default function FeedbackFormOrganizer({
             </svg>
             <p className="text-base/7">Add question</p>
           </button>
+
+          {/* TEMPLATE BUTTON */}
+          <button
+            type="button"
+            onClick={handleOpenTemplates}
+            className="sm:w-full sm:max-w-full bg-[#2D3748] rounded-md text-white font-bold px-4 py-2 flex items-center justify-center gap-2 hover:bg-[#1E3A8A]"
+          >
+            <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 4H6C4.89543 4 4 4.89543 4 5.1V18.9C4 19.1046 4.89543 20 6 20H18C19.1046 20 20 19.1046 20 18.9V5.1C20 4.89543 19.1046 4 18 4H16M8 4C8 5.10457 8.89543 6 10 6H14C15.1046 6 16 5.10457 16 4M8 4C8 2.89543 8.89543 2 10 2H14C15.1046 2 16 2.89543 16 4M9 10H15M9 14H15" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <p className="text-base/7">Templates</p>
+          </button>
+
+          {/* TEMPLATE MODAL */}
+          {isTemplateModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+              <div className="bg-[#1C1C1C] p-6 rounded-md shadow-md w-full max-w-md text-white relative">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-white">Form Templates</h2>
+                  <button onClick={() => setIsTemplateModalOpen(false)}>
+                    <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path fillRule="evenodd" clipRule="evenodd" d="M10.9393 12L6.9696 15.9697L8.03026 17.0304L12 13.0607L15.9697 17.0304L17.0304 15.9697L13.0607 12L17.0303 8.03039L15.9696 6.96973L12 10.9393L8.03038 6.96973L6.96972 8.03039L10.9393 12Z" fill="#ffffff" />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="mb-6 flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="New template name..."
+                    value={newTemplateName}
+                    onChange={(e) => setNewTemplateName(e.target.value)}
+                    className="border border-[#444444] bg-[#282828] p-2 rounded w-full text-white"
+                  />
+                  <button 
+                    onClick={handleSaveAsTemplate}
+                    className="bg-[#379A7B] text-white px-4 py-2 rounded hover:bg-primarydark"
+                  >
+                    Save
+                  </button>
+                </div>
+
+                <div className="max-h-60 overflow-y-auto bg-[#282828] border border-[#444444] p-2 rounded">
+                  {templates.length === 0 ? (
+                    <p className="text-gray-400 italic text-sm p-2">No templates saved yet.</p>
+                  ) : (
+                    templates.map((template) => (
+                      <div key={template.id} className="flex justify-between items-center border-b border-[#444444] py-2 last:border-0">
+                        <span className="text-white text-sm pl-2">{template.name}</span>
+                        <button 
+                          onClick={() => handleApplyTemplate(template.questions)}
+                          disabled={isLoading}
+                          className="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 mr-2 disabled:opacity-50"
+                        >
+                          Apply
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {isAddQModalOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -793,7 +974,7 @@ export default function FeedbackFormOrganizer({
                         >
                           <g id="SVGRepo_iconCarrier">
                             <path
-                              d="M18 6L17.1991 18.0129C17.129 19.065 17.0939 19.5911 16.8667 19.99C16.6666 20.3412 16.3648 20.6235 16.0011 20.7998C15.588 21 15.0607 21 14.0062 21H9.99377C8.93927 21 8.41202 21 7.99889 20.7998C7.63517 20.6235 7.33339 20.3412 7.13332 19.99C6.90607 19.5911 6.871 19.065 6.80086 18.0129L6 6M4 6H20M16 6L15.7294 5.18807C15.4671 4.40125 15.3359 4.00784 15.0927 3.71698C14.8779 3.46013 14.6021 3.26132 14.2905 3.13878C13.9376 3 13.523 3 12.6936 3H11.3064C10.477 3 10.0624 3 9.70951 3.13878C9.39792 3.26132 9.12208 3.46013 8.90729 3.71698C8.66405 4.00784 8.53292 4.40125 8.27064 5.18807L8 6M14 10V17M10 10V17"
+                              d="M18 6L17.1991 18.0129C17.129 19.065 17.0939 19.5911 16.8667 19.99C16.6666 20.3412 16.3648 20.6235 16.0011 20.7998C15.588 21 15.0607 21 14.0062 21H9.99377C8.93927 21 8.41202 21 7.99889 20.7998C7.63517 20.6235 7.33339 20.3412 7.13332 19.99C6.90607 19.5911 6.871 19.065 6.80086 18.0129L6 6M4 6H20M16 6L15.7294 5.18807C15.4671 4.40125 15.3359 4.00784 15.0927 3.71698C14.8779 3.46013 14.6021 3.26132 14.2905 3.13878C13.9376 3 13.523 3 12.6936 3H11.3064C10.4770 3 10.0624 3 9.70951 3.13878C9.39792 3.26132 9.12208 3.46013 8.90729 3.71698C8.66405 4.00784 8.53292 4.40125 8.27064 5.18807L8 6M14 10V17M10 10V17"
                               stroke="#ffffff"
                               strokeWidth="2"
                               strokeLinecap="round"
@@ -953,9 +1134,11 @@ export default function FeedbackFormOrganizer({
           >
             {isLoading ? "Deleting..." : "Delete"}
           </button>
+          
+          {/* UPDATED SUBMIT BUTTON */}
           <button
             type="button"
-            onClick={router.back}
+            onClick={handleSubmitForm}
             disabled={isLoading}
             className="rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-primarydark disabled:cursor-not-allowed disabled:bg-charleston"
           >
