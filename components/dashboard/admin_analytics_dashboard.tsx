@@ -1,5 +1,5 @@
 "use client";
-import Preloader from "@/components/preloader";
+import Loader from "@/components/Loader";
 import { createClient } from "@/lib/supabase/client";
 import { User } from "@/node_modules/@supabase/auth-js/src/lib/types";
 import { useEffect, useState } from "react";
@@ -151,7 +151,7 @@ const AdminAnalyticsDashboard = ({ user }: { user: User | null }) => {
     fetchData();
   }, [userId, filter]);
 
-  if (!totalStats) return <Preloader />;
+  if (!totalStats) return <Loader />;
 
   return (
     <div className="">

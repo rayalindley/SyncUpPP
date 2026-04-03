@@ -1,6 +1,6 @@
 "use client";
 import FeedbackFormAttendees from "@/components/feedback_form_attendees";
-import Preloader from "@/components/preloader";
+import Loader from "@/components/Loader";
 import { check_permissions, fetchOrganizationBySlug } from "@/lib/organization";
 import { getUser } from "@/lib/supabase/client";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
@@ -90,7 +90,7 @@ export default function AttendeesFeedbackPage() {
   }, [slug]);
 
   if (loading) {
-    return <Preloader />;
+    return <Loader />;
   }
 
   if(!isRegistered) {

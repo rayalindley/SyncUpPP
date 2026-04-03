@@ -1,5 +1,5 @@
 "use client";
-import Preloader from "@/components/preloader";
+import Loader from "@/components/Loader";
 import { UserProfile } from "@/types/user_profile"; 
 import { User } from "@supabase/auth-js/src/lib/types"; 
 import { useEffect, useMemo, useState } from "react";
@@ -226,7 +226,7 @@ const UsersTable: React.FC<UsersTableProps> = ({ users, userProfiles = [] }) => 
             }}
           />
         ) : (
-          <Preloader />
+          <Loader />
         )}
       </div>
     </div>

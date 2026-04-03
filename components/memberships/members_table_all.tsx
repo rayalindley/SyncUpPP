@@ -10,7 +10,7 @@ import Swal from "sweetalert2";
 import { createClient } from "@/lib/supabase/client";
 import { getUser } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import Preloader from "@/components/preloader";
+import Loader from "@/components/Loader";
 import ActivityFeed from "@/components/activity_feed";
 import { Activity } from "@/types/activities";
 import { isActiveMember } from "@/lib/track";
@@ -416,7 +416,7 @@ const MembersTableAll: React.FC<MembersTableAllProps> = ({
   );
 
   if (!isMounted) {
-    return <Preloader />;
+    return <Loader />;
   }
 
   return (
@@ -505,7 +505,7 @@ const MembersTableAll: React.FC<MembersTableAllProps> = ({
             </div>
           </>
         ) : (
-          <Preloader />
+          <Loader />
         )}
       </div>
 
