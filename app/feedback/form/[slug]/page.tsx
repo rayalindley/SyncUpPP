@@ -11,58 +11,23 @@ export default function OrganizersFeedbackPage() {
   const router = useRouter();
   const params = useParams() as { slug: string };
   const slug = params.slug;
-  const [ userId, setUserId ] = useState<string | null>(null);
-  const [organization, setOrganization] = useState(null);
-  const [error, setError] = useState<string | null>(null);
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [loading, setLoading] = useState(true); // Add a loading state
+  const [userId, setUserId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchOrganization = async () => {
-      if (typeof slug !== "string") {
-        setError("Invalid slug type");
-        setLoading(false);
-        return;
-      }
-
+    const fetchUser = async () => {
       try {
-        const { data, error } = await fetchOrganizationBySlug(slug);
-        if (error) {
-          setError(error.message);
-          console.error(error);
-        } else {
-          setOrganization(data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch organization:", err);
-        setError(err instanceof Error ? err.message : "Unknown error");
-      }
-    };
-
-    const checkPermissions = async () => {
-      const { user } = await getUser();
-      setUserId(user?.id ?? null);
-
-      try {
-        const organization = await fetchOrganizationBySlug(slug as string);
-        if (organization && organization.data) {
-          const permission = await check_permissions(
-            user?.id || "",
-            organization.data.organizationid,
-            "create_events"
-          );
-          setHasPermission(permission);
-        }
+        const { user } = await getUser();
+        setUserId(user?.id ?? null);
       } catch (error) {
-        console.error("Failed to check permissions", error);
+        console.error("Failed to fetch user:", error);
       } finally {
         setLoading(false);
       }
     };
 
     if (slug) {
-      fetchOrganization();
-      checkPermissions();
+      fetchUser();
     }
   }, [slug]);
 
@@ -70,42 +35,30 @@ export default function OrganizersFeedbackPage() {
     return <Loader />;
   }
 
-  // if (!hasPermission) {
-  //   return (
-  //     <div className="bg-raisin flex min-h-screen items-center justify-center p-10 font-sans text-white">
-  //       <div className="text-center">
-  //         <h1 className="mb-4 text-3xl">Events Creation</h1>
-  //         <p className="text-lg">
-  //           You do not have permission to create events for this organization.
-  //         </p>
-  //       </div>
-  //     </div>
-  //   );
-  // }
-
   return (
     <>
       <div className="flex min-h-full flex-1 flex-col justify-center bg-eerieblack px-6 py-12 lg:px-8">
-        <div className="fixed top-10 text-gray-100 hover:cursor-pointer">
-          <a
+        <div className="fixed top-10 left-10 text-gray-100 hover:cursor-pointer z-50">
+          <button
             onClick={() => router.back()}
             className="flex items-center gap-2 hover:opacity-80"
           >
-            <ArrowLeftIcon className="h-5 w-5" /> Back
-          </a>
+            <div className="h-5 w-5">
+              <ArrowLeftIcon />
+            </div>
+            Back
+          </button>
         </div>
 
-        <div className="sm:mx-auto sm:w-full sm:max-w-sm">
+        <div className="sm:mx-auto sm:w-full sm:max-w-sm mt-8">
           <img className="mx-auto h-10 w-auto" src="/syncup.png" alt="SyncUp" />
           <h2 className="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-white">
-            Feedback Form
+            Form Builder
           </h2>
         </div>
 
-        
-
-        <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-lg">
-          <FeedbackFormOrganizer selectedEvent={slug} userId={userId}/>
+        <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-lg pointer-events-auto">
+          <FeedbackFormOrganizer selectedEvent={slug} userId={userId} />
         </div>
       </div>
     </>

@@ -1,7 +1,8 @@
 /* eslint-disable react/no-unescaped-entities */
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import "@yaireo/tagify/dist/tagify.css";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { createClient } from "@/lib/supabase/client";
 import { Question } from "@/types/questions";
@@ -145,6 +146,11 @@ export default function FeedbackFormOrganizer({
   const [showImportance, setShowImportance] = useState(false);
   const [showEffectiveness, setShowEffectiveness] = useState(false);
 
+  // TEMPLATE SYSTEM STATE
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [newTemplateName, setNewTemplateName] = useState("");
+
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
@@ -155,8 +161,16 @@ export default function FeedbackFormOrganizer({
   const [addedQuestions, setAddedQuestions] = useState<string[]>([]);
   const [formQuestions, setFormQuestions] = useState<any[]>([]);
   const [eventId, setEventId] = useState<string | null>(null);
-  const [isClicked, setIsClicked] = useState<boolean[]>([]);
-  const [isRequired, setIsRequired] = useState<boolean[]>([]);
+  
+  // NEW: Store organization slug for redirection
+  const [orgSlug, setOrgSlug] = useState<string | null>(null);
+  
+  // Track selected question by ID rather than index
+  const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
+  const [isRequiredMap, setIsRequiredMap] = useState<Record<string, boolean>>({});
+
+  // Prevent double-execution in React 18 strict mode
+  const isFetchingRef = useRef(false);
 
   // 1. FETCH ALL GLOBAL QUESTIONS FIRST
   useEffect(() => {
@@ -180,77 +194,185 @@ export default function FeedbackFormOrganizer({
 
   // 2. FETCH EVENT AND FORM
   useEffect(() => {
-    if (!selectedEvent) return;
+    if (!selectedEvent || isFetchingRef.current) return;
 
     const fetchEventAndForm = async () => {
-      // Fetch Event ID
-      const { data: eventData, error: eventError } = await supabase
-        .from("events")
-        .select("eventid")
-        .eq("eventslug", selectedEvent)
-        .single();
-
-      if (eventError || !eventData) {
-        console.error("Event fetch error:", eventError);
-        return;
-      }
-
-      const currentEventId = eventData.eventid;
-      setEventId(currentEventId);
-
-      // Fetch or Create Form
-      let currentFormId: string | null = null;
-      const { data: form, error: formError } = await supabase
-        .from("forms")
-        .select("id")
-        .eq("slug", selectedEvent)
-        .maybeSingle();
-
-      if (form) {
-        currentFormId = form.id;
-      } else {
-        const { data: newForm, error: insertError } = await supabase
-          .from("forms")
-          .insert([{ event_id: currentEventId, slug: selectedEvent }])
-          .select()
+      isFetchingRef.current = true;
+      try {
+        const { data: eventData, error: eventError } = await supabase
+          .from("events")
+          .select("id, organizationid") 
+          .eq("eventslug", selectedEvent)
           .single();
 
-        if (insertError || !newForm) {
-          console.error("Error creating new form:", insertError);
+        if (eventError || !eventData) {
+          console.error("Event fetch error:", eventError);
           return;
         }
-        currentFormId = newForm.id;
-      }
 
-      setFormId(currentFormId);
+        const currentEventId = eventData.id;
+        setEventId(currentEventId);
 
-      // Fetch existing added questions
-      const { data: formData, error: fError } = await supabase
-        .from("form_questions")
-        .select("*, question:question_id(*)")
-        .eq("form_id", currentFormId);
+        // Fetch organization slug for redirect
+        if (eventData.organizationid) {
+          const { data: orgData } = await supabase
+            .from("organizations")
+            .select("slug")
+            .eq("organizationid", eventData.organizationid)
+            .maybeSingle();
 
-      if (fError) {
-        console.error("Error fetching form questions:", fError);
-        return;
-      }
+          if (orgData?.slug) {
+            setOrgSlug(orgData.slug);
+          }
+        }
 
-      if (formData) {
-        setFormQuestions(
-          formData.map((fq: any) => ({
-            ...fq.question,
-            question_order: fq.question_order,
-          }))
-        );
-        setAddedQuestions(formData.map((fq: any) => String(fq.question_id).trim()));
-        setIsRequired(formData.map((fq: any) => fq.is_required ?? true));
+        let currentFormId: string | null = null;
+        const { data: form, error: formError } = await supabase
+          .from("forms")
+          .select("id")
+          .eq("slug", selectedEvent)
+          .maybeSingle();
+
+        if (form) {
+          currentFormId = form.id;
+        } else {
+          const { data: checkForm } = await supabase
+            .from("forms")
+            .select("id")
+            .eq("slug", selectedEvent)
+            .maybeSingle();
+            
+          if (checkForm) {
+            currentFormId = checkForm.id;
+          } else {
+            const { data: newForm, error: insertError } = await supabase
+              .from("forms")
+              .insert([{ event_id: currentEventId, slug: selectedEvent }])
+              .select()
+              .single();
+
+            if (insertError || !newForm) {
+              console.error("Error creating new form:", insertError);
+              return;
+            }
+            currentFormId = newForm.id;
+          }
+        }
+
+        setFormId(currentFormId);
+
+        if (currentFormId) {
+          const { data: formData, error: fError } = await supabase
+            .from("form_questions")
+            .select("*, question:question_id(*)")
+            .eq("form_id", currentFormId);
+
+          if (fError) {
+            console.error("Error fetching form questions:", fError);
+            return;
+          }
+
+          if (formData) {
+            setFormQuestions(
+              formData.map((fq: any) => ({
+                ...fq.question,
+                question_order: fq.question_order,
+                form_question_id: fq.id,
+              }))
+            );
+            setAddedQuestions(formData.map((fq: any) => String(fq.question_id).trim()));
+            
+            const requiredMap: Record<string, boolean> = {};
+            formData.forEach((fq: any) => {
+              requiredMap[String(fq.question_id).trim()] = fq.is_required ?? true;
+            });
+            setIsRequiredMap(requiredMap);
+          }
+        }
+      } finally {
+        isFetchingRef.current = false;
       }
     };
 
     fetchEventAndForm();
   }, [selectedEvent]);
 
-  // 3. HANDLE ADDING A QUESTION (FULLY FIXED)
+  // 3. TEMPLATE SYSTEM FUNCTIONS
+  const handleOpenTemplates = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("form_templates")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setTemplates(data || []);
+      setIsTemplateModalOpen(true);
+    } catch (error) {
+      console.error("Error fetching templates:", error);
+      toast.error("Failed to load templates");
+    }
+  };
+
+  const handleSaveAsTemplate = async () => {
+    if (!newTemplateName.trim()) {
+      toast.error("Please provide a template name");
+      return;
+    }
+    if (formQuestions.length === 0) {
+      toast.error("Add some questions before saving a template");
+      return;
+    }
+
+    try {
+      // We save just the array of question IDs
+      const templateQuestions = formQuestions.map((q) => String(q.id).trim());
+
+      const { error } = await supabase.from("form_templates").insert([
+        {
+          name: newTemplateName,
+          user_id: userId,
+          questions: templateQuestions,
+        },
+      ]);
+
+      if (error) throw error;
+
+      toast.success("Template saved successfully!");
+      setNewTemplateName("");
+      // Refresh templates list
+      handleOpenTemplates();
+    } catch (error) {
+      console.error("Error saving template:", error);
+      toast.error("Failed to save template");
+    }
+  };
+
+  const handleApplyTemplate = async (templateQuestionIds: string[]) => {
+    setIsLoading(true);
+    try {
+      // Filter out what is already in addedQuestions
+      const toAdd = templateQuestionIds.filter(
+        (id) => !addedQuestions.includes(id)
+      );
+
+      for (const qId of toAdd) {
+        await handleAddQuestion(qId);
+      }
+      
+      toast.success("Template applied successfully!");
+      setIsTemplateModalOpen(false);
+    } catch (error) {
+      console.error("Error applying template:", error);
+      toast.error("Failed to apply template");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
+  // 4. HANDLE ADDING A QUESTION
   const handleAddQuestion = async (questionId: string) => {
     if (!formId) return;
     const cleanId = String(questionId).trim();
@@ -275,12 +397,12 @@ export default function FeedbackFormOrganizer({
       : 0;
 
     // Insert into DB (Includes is_required: true)
-    const { error: insertError } = await supabase.from("form_questions").insert({
+    const { data: insertedFq, error: insertError } = await supabase.from("form_questions").insert({
       form_id: formId,
       question_id: cleanId,
       question_order: newOrder,
       is_required: true
-    });
+    }).select().single();
 
     if (insertError) {
       console.error("Error adding question:", insertError);
@@ -304,10 +426,11 @@ export default function FeedbackFormOrganizer({
     // Append the full question object to the form list
     setFormQuestions((prev) => [
       ...prev,
-      { ...questionData, question_order: newOrder },
+      { ...questionData, question_order: newOrder, form_question_id: insertedFq.id },
     ]);
     
-    setIsRequired((prev) => [...prev, true]);
+    setIsRequiredMap((prev) => ({ ...prev, [cleanId]: true }));
+    setActiveQuestionId(cleanId);
   };
 
   const handleDeleteQuestion = async (questionId: string) => {
@@ -344,68 +467,73 @@ export default function FeedbackFormOrganizer({
       prev.filter((q) => String(q.id).trim() !== cleanId)
     );
     setAddedQuestions((prev) => prev.filter((id) => id !== cleanId));
+    if (activeQuestionId === cleanId) setActiveQuestionId(null);
   };
 
   const handleMoveUpQuestion = async (index: number) => {
     if (index === 0) return;
-    const curr = formQuestions[index];
-    const above = formQuestions[index - 1];
+    const sortedQuestions = [...formQuestions].sort((a, b) => a.question_order - b.question_order);
+    const curr = sortedQuestions[index];
+    const above = sortedQuestions[index - 1];
 
     const [res1, res2] = await Promise.all([
       supabase
         .from("form_questions")
         .update({ question_order: above.question_order })
-        .eq("question_id", curr.id)
-        .eq("form_id", formId),
+        .eq("id", curr.form_question_id),
       supabase
         .from("form_questions")
         .update({ question_order: curr.question_order })
-        .eq("question_id", above.id)
-        .eq("form_id", formId),
+        .eq("id", above.form_question_id),
     ]);
     if (res1.error || res2.error) return;
 
-    const updated = [...formQuestions];
-    [updated[index - 1], updated[index]] = [updated[index], updated[index - 1]];
-    const t = updated[index].question_order;
-    updated[index].question_order = updated[index - 1].question_order;
-    updated[index - 1].question_order = t;
-    setFormQuestions(updated.sort((a, b) => a.question_order - b.question_order));
+    const t = curr.question_order;
+    curr.question_order = above.question_order;
+    above.question_order = t;
+    
+    setFormQuestions([...formQuestions]);
   };
 
   const handleMoveDownQuestion = async (index: number) => {
     if (index === formQuestions.length - 1) return;
-    const curr = formQuestions[index];
-    const below = formQuestions[index + 1];
+    const sortedQuestions = [...formQuestions].sort((a, b) => a.question_order - b.question_order);
+    const curr = sortedQuestions[index];
+    const below = sortedQuestions[index + 1];
 
     const [res1, res2] = await Promise.all([
       supabase
         .from("form_questions")
         .update({ question_order: below.question_order })
-        .eq("question_id", curr.id)
-        .eq("form_id", formId),
+        .eq("id", curr.form_question_id),
       supabase
         .from("form_questions")
         .update({ question_order: curr.question_order })
-        .eq("question_id", below.id)
-        .eq("form_id", formId),
+        .eq("id", below.form_question_id),
     ]);
     if (res1.error || res2.error) return;
 
-    const updated = [...formQuestions];
-    [updated[index], updated[index + 1]] = [updated[index + 1], updated[index]];
-    const t = updated[index].question_order;
-    updated[index].question_order = updated[index + 1].question_order;
-    updated[index + 1].question_order = t;
-    setFormQuestions(updated.sort((a, b) => a.question_order - b.question_order));
+    const t = curr.question_order;
+    curr.question_order = below.question_order;
+    below.question_order = t;
+    
+    setFormQuestions([...formQuestions]);
   };
 
-  const handleClicked = (index: number) => {
-    setIsClicked((prev) => {
-      const s = [...prev];
-      s[index] = !s[index];
-      return s;
-    });
+  const toggleRequired = async (questionId: string) => {
+    const cleanId = String(questionId).trim();
+    const currentVal = isRequiredMap[cleanId] ?? true;
+    const newVal = !currentVal;
+
+    // Update UI immediately
+    setIsRequiredMap(prev => ({ ...prev, [cleanId]: newVal }));
+
+    // Update in DB
+    await supabase
+      .from("form_questions")
+      .update({ is_required: newVal })
+      .eq("form_id", formId)
+      .eq("question_id", cleanId);
   };
 
   const deleteFeedbackForm = async () => {
@@ -441,6 +569,34 @@ export default function FeedbackFormOrganizer({
           icon: "error",
         });
       }
+    }
+  };
+
+  // NEW SUBMIT FUNCTION
+    // NEW SUBMIT FUNCTION
+  const handleSubmitForm = async () => {
+    setIsLoading(true);
+
+    await Swal.fire({
+      icon: "success",
+      title: "Success!",
+      text: "Successfully Created Feedback Form.",
+      confirmButtonText: "Go to Dashboard",
+      customClass: {
+        title: "text-lg text-white",
+        htmlContainer: "text-base text-gray-300",
+        popup: "bg-[#1C1C1C] rounded-lg p-6 shadow-xl border border-gray-700",
+        confirmButton: "bg-[#379A7B] text-white text-sm px-4 py-2 rounded-md hover:bg-[#2d7d64]",
+      },
+    });
+
+    setIsLoading(false);
+    
+    if (orgSlug) {
+      // Changed from /dashboard/[slug] to /[slug]/dashboard/events
+      router.push(`/${orgSlug}/dashboard`); 
+    } else {
+      router.push("/dashboard"); // Fallback
     }
   };
 
@@ -523,11 +679,11 @@ export default function FeedbackFormOrganizer({
           </button>
         </div>
 
-        <div className="flex justify-center">
+        <div className="flex justify-center gap-4">
           <button
             type="button"
             onClick={() => setIsAddQModalOpen(true)}
-            className="sm:w-full sm:max-w-full bg-[#379A7B] rounded-md text-white font-bold px-4 py-2 flex items-center gap-2 hover:bg-primarydark"
+            className="sm:w-full sm:max-w-full bg-[#379A7B] rounded-md text-white font-bold px-4 py-2 flex items-center justify-center gap-2 hover:bg-primarydark"
           >
             <svg
               width="30px"
@@ -547,6 +703,69 @@ export default function FeedbackFormOrganizer({
             </svg>
             <p className="text-base/7">Add question</p>
           </button>
+
+          {/* TEMPLATE BUTTON */}
+          <button
+            type="button"
+            onClick={handleOpenTemplates}
+            className="sm:w-full sm:max-w-full bg-[#2D3748] rounded-md text-white font-bold px-4 py-2 flex items-center justify-center gap-2 hover:bg-[#1E3A8A]"
+          >
+            <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 4H6C4.89543 4 4 4.89543 4 5.1V18.9C4 19.1046 4.89543 20 6 20H18C19.1046 20 20 19.1046 20 18.9V5.1C20 4.89543 19.1046 4 18 4H16M8 4C8 5.10457 8.89543 6 10 6H14C15.1046 6 16 5.10457 16 4M8 4C8 2.89543 8.89543 2 10 2H14C15.1046 2 16 2.89543 16 4M9 10H15M9 14H15" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <p className="text-base/7">Templates</p>
+          </button>
+
+          {/* TEMPLATE MODAL */}
+          {isTemplateModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+              <div className="bg-[#1C1C1C] p-6 rounded-md shadow-md w-full max-w-md text-white relative">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-white">Form Templates</h2>
+                  <button onClick={() => setIsTemplateModalOpen(false)}>
+                    <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path fillRule="evenodd" clipRule="evenodd" d="M10.9393 12L6.9696 15.9697L8.03026 17.0304L12 13.0607L15.9697 17.0304L17.0304 15.9697L13.0607 12L17.0303 8.03039L15.9696 6.96973L12 10.9393L8.03038 6.96973L6.96972 8.03039L10.9393 12Z" fill="#ffffff" />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="mb-6 flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="New template name..."
+                    value={newTemplateName}
+                    onChange={(e) => setNewTemplateName(e.target.value)}
+                    className="border border-[#444444] bg-[#282828] p-2 rounded w-full text-white"
+                  />
+                  <button 
+                    onClick={handleSaveAsTemplate}
+                    className="bg-[#379A7B] text-white px-4 py-2 rounded hover:bg-primarydark"
+                  >
+                    Save
+                  </button>
+                </div>
+
+                <div className="max-h-60 overflow-y-auto bg-[#282828] border border-[#444444] p-2 rounded">
+                  {templates.length === 0 ? (
+                    <p className="text-gray-400 italic text-sm p-2">No templates saved yet.</p>
+                  ) : (
+                    templates.map((template) => (
+                      <div key={template.id} className="flex justify-between items-center border-b border-[#444444] py-2 last:border-0">
+                        <span className="text-white text-sm pl-2">{template.name}</span>
+                        <button 
+                          onClick={() => handleApplyTemplate(template.questions)}
+                          disabled={isLoading}
+                          className="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 mr-2 disabled:opacity-50"
+                        >
+                          Apply
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {isAddQModalOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -706,191 +925,192 @@ export default function FeedbackFormOrganizer({
 
         {formQuestions
           .sort((a, b) => a.question_order - b.question_order)
-          .map((q, i) => (
-            <div
-              key={q.id}
-              onClick={() => handleClicked(i)}
-              className={`space-y-1 text-light mt-4 mb-4 p-2 hover:bg-white/5 transition-all duration-300 ease-in-out ${
-                isClicked[i]
-                  ? "bg-white/5 border-t-2 border-primary cursor-default"
-                  : "border-t-0 border-transparent cursor-pointer"
-              }`}
-            >
-              {isClicked[i] && (
-                <div className="flex justify-between">
-                  <div className="flex justify-start">
-                    <label className="inline-flex items-center me-5 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="sr-only peer"
-                        checked={isRequired[i] ?? true}
-                        onChange={() => {
-                          const t = [...isRequired];
-                          t[i] = !(t[i] ?? true);
-                          setIsRequired(t);
-                        }}
-                      />
-                      <div className="ml-2 relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-teal-300 dark:peer-focus:ring-teal-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-teal-600 dark:peer-checked:bg-teal-600" />
-                      <span className="ms-3 text-xs font-medium text-white mr-2">
-                        Required
-                      </span>
-                    </label>
-                  </div>
-
-                  <div className="flex justify-end items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteQuestion(String(q.id));
-                      }}
-                    >
-                      <svg
-                        className="hover:fill-red ml-2 mr-2"
-                        width="20px"
-                        height="20px"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <g id="SVGRepo_iconCarrier">
-                          <path
-                            d="M18 6L17.1991 18.0129C17.129 19.065 17.0939 19.5911 16.8667 19.99C16.6666 20.3412 16.3648 20.6235 16.0011 20.7998C15.588 21 15.0607 21 14.0062 21H9.99377C8.93927 21 8.41202 21 7.99889 20.7998C7.63517 20.6235 7.33339 20.3412 7.13332 19.99C6.90607 19.5911 6.871 19.065 6.80086 18.0129L6 6M4 6H20M16 6L15.7294 5.18807C15.4671 4.40125 15.3359 4.00784 15.0927 3.71698C14.8779 3.46013 14.6021 3.26132 14.2905 3.13878C13.9376 3 13.523 3 12.6936 3H11.3064C10.477 3 10.0624 3 9.70951 3.13878C9.39792 3.26132 9.12208 3.46013 8.90729 3.71698C8.66405 4.00784 8.53292 4.40125 8.27064 5.18807L8 6M14 10V17M10 10V17"
-                            stroke="#ffffff"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </g>
-                      </svg>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMoveDownQuestion(i);
-                      }}
-                    >
-                      <svg
-                        className="ml-2 mr-2"
-                        width="20px"
-                        height="20px"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        transform="matrix(-1, 0, 0, -1, 0, 0)"
-                      >
-                        <g id="SVGRepo_iconCarrier">
-                          <path
-                            className={
-                              i === formQuestions.length - 1
-                                ? "fill-white/50"
-                                : "fill-white"
-                            }
-                            fillRule="evenodd"
-                            clipRule="evenodd"
-                            d="M12 3C12.2652 3 12.5196 3.10536 12.7071 3.29289L19.7071 10.2929C20.0976 10.6834 20.0976 11.3166 19.7071 11.7071C19.3166 12.0976 18.6834 12.0976 18.2929 11.7071L13 6.41421V20C13 20.5523 12.5523 21 12 21C11.4477 21 11 20.5523 11 20V6.41421L5.70711 11.7071C5.31658 12.0976 4.68342 12.0976 4.29289 11.7071C3.90237 11.3166 3.90237 10.6834 4.29289 10.2929L11.2929 3.29289C11.4804 3.10536 11.7348 3 12 3Z"
-                          />
-                        </g>
-                      </svg>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMoveUpQuestion(i);
-                      }}
-                    >
-                      <svg
-                        className="ml-2 mr-2"
-                        width="20px"
-                        height="20px"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <g id="SVGRepo_iconCarrier">
-                          <path
-                            className={i === 0 ? "fill-white/50" : "fill-white"}
-                            fillRule="evenodd"
-                            clipRule="evenodd"
-                            d="M12 3C12.2652 3 12.5196 3.10536 12.7071 3.29289L19.7071 10.2929C20.0976 10.6834 20.0976 11.3166 19.7071 11.7071C19.3166 12.0976 18.6834 12.0976 18.2929 11.7071L13 6.41421V20C13 20.5523 12.5523 21 12 21C11.4477 21 11 20.5523 11 20V6.41421L5.70711 11.7071C5.31658 12.0976 4.68342 12.0976 4.29289 11.7071C3.90237 11.3166 3.90237 10.6834 4.29289 10.2929L11.2929 3.29289C11.4804 3.10536 11.7348 3 12 3Z"
-                          />
-                        </g>
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <label
-                className={`text-sm font-medium text-white font-bold ${
-                  isClicked[i] ? "cursor-default" : "cursor-pointer"
+          .map((q, i) => {
+            const cleanId = String(q.id).trim();
+            const isSelected = activeQuestionId === cleanId;
+            
+            return (
+              <div
+                key={cleanId}
+                onClick={() => setActiveQuestionId(isSelected ? null : cleanId)}
+                className={`space-y-1 text-light mt-4 mb-4 p-2 hover:bg-white/5 transition-all duration-300 ease-in-out ${
+                  isSelected
+                    ? "bg-white/5 border-t-2 border-primary cursor-default"
+                    : "border-t-0 border-transparent cursor-pointer"
                 }`}
               >
-                {q.question_text}
-              </label>
+                {isSelected && (
+                  <div className="flex justify-between">
+                    <div className="flex justify-start">
+                      <label className="inline-flex items-center me-5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={isRequiredMap[cleanId] ?? true}
+                          onChange={() => toggleRequired(cleanId)}
+                        />
+                        <div className="ml-2 relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-teal-300 dark:peer-focus:ring-teal-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-teal-600 dark:peer-checked:bg-teal-600" />
+                        <span className="ms-3 text-xs font-medium text-white mr-2">
+                          Required
+                        </span>
+                      </label>
+                    </div>
 
-              {q.question_type === "Text" && (
-                <input
-                  disabled
-                  type="text"
-                  placeholder="Text answer..."
-                  className="block w-full rounded-md border-0 bg-white/5 py-1.5 px-2 text-white shadow-sm ring-1 ring-inset ring-white/10 sm:text-sm cursor-default"
-                />
-              )}
+                    <div className="flex justify-end items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteQuestion(cleanId);
+                        }}
+                      >
+                        <svg
+                          className="hover:fill-red ml-2 mr-2"
+                          width="20px"
+                          height="20px"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <g id="SVGRepo_iconCarrier">
+                            <path
+                              d="M18 6L17.1991 18.0129C17.129 19.065 17.0939 19.5911 16.8667 19.99C16.6666 20.3412 16.3648 20.6235 16.0011 20.7998C15.588 21 15.0607 21 14.0062 21H9.99377C8.93927 21 8.41202 21 7.99889 20.7998C7.63517 20.6235 7.33339 20.3412 7.13332 19.99C6.90607 19.5911 6.871 19.065 6.80086 18.0129L6 6M4 6H20M16 6L15.7294 5.18807C15.4671 4.40125 15.3359 4.00784 15.0927 3.71698C14.8779 3.46013 14.6021 3.26132 14.2905 3.13878C13.9376 3 13.523 3 12.6936 3H11.3064C10.4770 3 10.0624 3 9.70951 3.13878C9.39792 3.26132 9.12208 3.46013 8.90729 3.71698C8.66405 4.00784 8.53292 4.40125 8.27064 5.18807L8 6M14 10V17M10 10V17"
+                              stroke="#ffffff"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </g>
+                        </svg>
+                      </button>
 
-              {q.question_type === "Choice" &&
-                q.metadata?.choices?.map((choice: string, idx: number) => (
-                  <div key={idx} className="cursor-default">
-                    <input
-                      disabled
-                      type="radio"
-                      id={`q${q.id}c${idx}`}
-                      className="ml-2 mr-2 border-gray-300 text-primary focus:ring-primarydark cursor-default"
-                    />
-                    <label
-                      htmlFor={`q${q.id}c${idx}`}
-                      className="text-sm font-light text-white cursor-default"
-                    >
-                      {choice}
-                    </label>
-                    <br />
-                  </div>
-                ))}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMoveDownQuestion(i);
+                        }}
+                      >
+                        <svg
+                          className="ml-2 mr-2"
+                          width="20px"
+                          height="20px"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                          transform="matrix(-1, 0, 0, -1, 0, 0)"
+                        >
+                          <g id="SVGRepo_iconCarrier">
+                            <path
+                              className={
+                                i === formQuestions.length - 1
+                                  ? "fill-white/50"
+                                  : "fill-white"
+                              }
+                              fillRule="evenodd"
+                              clipRule="evenodd"
+                              d="M12 3C12.2652 3 12.5196 3.10536 12.7071 3.29289L19.7071 10.2929C20.0976 10.6834 20.0976 11.3166 19.7071 11.7071C19.3166 12.0976 18.6834 12.0976 18.2929 11.7071L13 6.41421V20C13 20.5523 12.5523 21 12 21C11.4477 21 11 20.5523 11 20V6.41421L5.70711 11.7071C5.31658 12.0976 4.68342 12.0976 4.29289 11.7071C3.90237 11.3166 3.90237 10.6834 4.29289 10.2929L11.2929 3.29289C11.4804 3.10536 11.7348 3 12 3Z"
+                            />
+                          </g>
+                        </svg>
+                      </button>
 
-              {q.question_type === "Likert" &&
-                q.metadata?.category &&
-                likertLabelsMap[q.metadata.category] && (
-                  <div className="cursor-default">
-                    <div className="relative w-full max-w-4xl mx-auto px-4 py-2">
-                      <div className="absolute top-[15px] left-1/2 transform -translate-x-[47.5%] h-0.5 w-[355px] bg-[#379A7B] z-0" />
-                      <div className="absolute top-[17px] left-1/2 transform -translate-x-[47.5%] h-5 w-[349px] bg-[#201c1c] z-0" />
-                      <div className="absolute top-[35px] left-1/2 transform -translate-x-[47.5%] h-0.5 w-[349px] bg-[#379A7B] z-0" />
-                      <div className="flex items-center justify-between relative">
-                        {likertLabelsMap[q.metadata.category].map(
-                          (label: string, index: number) => (
-                            <div
-                              key={index}
-                              className="flex flex-col items-center text-center"
-                            >
-                              <div className="w-10 h-10 border-2 rounded-full flex items-center justify-center border-[#379A7B] bg-[#201c1c]">
-                                <div className="w-6 h-6 rounded-full bg-[#379A7B]" />
-                              </div>
-                              <p className="text-[10px] italic text-white w-24 mt-2">
-                                {label}
-                              </p>
-                            </div>
-                          )
-                        )}
-                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMoveUpQuestion(i);
+                        }}
+                      >
+                        <svg
+                          className="ml-2 mr-2"
+                          width="20px"
+                          height="20px"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <g id="SVGRepo_iconCarrier">
+                            <path
+                              className={i === 0 ? "fill-white/50" : "fill-white"}
+                              fillRule="evenodd"
+                              clipRule="evenodd"
+                              d="M12 3C12.2652 3 12.5196 3.10536 12.7071 3.29289L19.7071 10.2929C20.0976 10.6834 20.0976 11.3166 19.7071 11.7071C19.3166 12.0976 18.6834 12.0976 18.2929 11.7071L13 6.41421V20C13 20.5523 12.5523 21 12 21C11.4477 21 11 20.5523 11 20V6.41421L5.70711 11.7071C5.31658 12.0976 4.68342 12.0976 4.29289 11.7071C3.90237 11.3166 3.90237 10.6834 4.29289 10.2929L11.2929 3.29289C11.4804 3.10536 11.7348 3 12 3Z"
+                            />
+                          </g>
+                        </svg>
+                      </button>
                     </div>
                   </div>
                 )}
-            </div>
-          ))}
+
+                <label
+                  className={`text-sm font-medium text-white font-bold ${
+                    isSelected ? "cursor-default" : "cursor-pointer"
+                  }`}
+                >
+                  {q.question_text}
+                </label>
+
+                {q.question_type === "Text" && (
+                  <input
+                    disabled
+                    type="text"
+                    placeholder="Text answer..."
+                    className="block w-full rounded-md border-0 bg-white/5 py-1.5 px-2 text-white shadow-sm ring-1 ring-inset ring-white/10 sm:text-sm cursor-default"
+                  />
+                )}
+
+                {q.question_type === "Choice" &&
+                  q.metadata?.choices?.map((choice: string, idx: number) => (
+                    <div key={idx} className="cursor-default">
+                      <input
+                        disabled
+                        type="radio"
+                        id={`q${cleanId}c${idx}`}
+                        className="ml-2 mr-2 border-gray-300 text-primary focus:ring-primarydark cursor-default"
+                      />
+                      <label
+                        htmlFor={`q${cleanId}c${idx}`}
+                        className="text-sm font-light text-white cursor-default"
+                      >
+                        {choice}
+                      </label>
+                      <br />
+                    </div>
+                  ))}
+
+                {q.question_type === "Likert" &&
+                  q.metadata?.category &&
+                  likertLabelsMap[q.metadata.category] && (
+                    <div className="cursor-default">
+                      <div className="relative w-full max-w-4xl mx-auto px-4 py-2">
+                        <div className="absolute top-[15px] left-1/2 transform -translate-x-[47.5%] h-0.5 w-[355px] bg-[#379A7B] z-0" />
+                        <div className="absolute top-[17px] left-1/2 transform -translate-x-[47.5%] h-5 w-[349px] bg-[#201c1c] z-0" />
+                        <div className="absolute top-[35px] left-1/2 transform -translate-x-[47.5%] h-0.5 w-[349px] bg-[#379A7B] z-0" />
+                        <div className="flex items-center justify-between relative">
+                          {likertLabelsMap[q.metadata.category].map(
+                            (label: string, index: number) => (
+                              <div
+                                key={index}
+                                className="flex flex-col items-center text-center"
+                              >
+                                <div className="w-10 h-10 border-2 rounded-full flex items-center justify-center border-[#379A7B] bg-[#201c1c]">
+                                  <div className="w-6 h-6 rounded-full bg-[#379A7B]" />
+                                </div>
+                                <p className="text-[10px] italic text-white w-24 mt-2">
+                                  {label}
+                                </p>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+              </div>
+            );
+          })}
 
         <div className="space-y-1 text-light mt-6 mb-6">
           <label
@@ -914,9 +1134,11 @@ export default function FeedbackFormOrganizer({
           >
             {isLoading ? "Deleting..." : "Delete"}
           </button>
+          
+          {/* UPDATED SUBMIT BUTTON */}
           <button
             type="button"
-            onClick={router.back}
+            onClick={handleSubmitForm}
             disabled={isLoading}
             className="rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-primarydark disabled:cursor-not-allowed disabled:bg-charleston"
           >

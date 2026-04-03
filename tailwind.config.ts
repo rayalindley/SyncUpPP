@@ -10,6 +10,40 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      keyframes: {
+        dataWave: {
+          '0%, 100%': { height: '1rem' },
+          '50%': { height: '4rem' },
+        },
+        warpSpin: {
+          '0%': { transform: 'rotate(0deg) scale(1)', opacity: '1' },
+          '50%': { transform: 'rotate(180deg) scale(0.5)', opacity: '0.5' },
+          '100%': { transform: 'rotate(360deg) scale(1)', opacity: '1' },
+        },
+        glitch: {
+          '0%, 100%': { clipPath: 'inset(50% 0 30% 0)', transform: 'translate(0)' },
+          '20%': { clipPath: 'inset(15% 0 65% 0)', transform: 'translate(-2px, 2px)' },
+          '40%': { clipPath: 'inset(40% 0 20% 0)', transform: 'translate(2px, -2px)' },
+          '60%': { clipPath: 'inset(80% 0 5% 0)', transform: 'translate(-2px, -2px)' },
+          '80%': { clipPath: 'inset(10% 0 80% 0)', transform: 'translate(2px, 2px)' },
+        },
+        scanLaser: {
+          '0%, 100%': { top: '0%', opacity: '0' },
+          '10%': { opacity: '1' },
+          '50%': { top: '100%' },
+          '90%': { opacity: '1' },
+        },
+        dataFlash: {
+          '0%, 100%': { opacity: '0.2' },
+          '50%': { opacity: '1' },
+        }
+      },
+      animation: {
+        scanLaser: 'scanLaser 2.5s ease-in-out infinite',
+        dataFlash: 'dataFlash 0.8s steps(2, start) infinite',
+        warpSpin: 'warpSpin 4s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite',
+        glitch: 'glitch 3s linear infinite',
+      },
       colors: {
         eerieblack: "#1C1C1C",
         raisinblack: "#232323",
