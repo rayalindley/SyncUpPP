@@ -1,15 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Pie } from "react-chartjs-2";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import { createClient } from "@/lib/supabase/client";
 import type { Event } from "@/models/Event";
 import type { Organization } from "@/models/Organization";
+import { generateFeedbackPDF } from "@/components/custom/generateFeedbackPDF";
+import { late } from "zod";
 
 ChartJS.register(ArcElement, Tooltip, Legend, ChartDataLabels);
 
@@ -25,10 +29,12 @@ interface FeedbackReport {
     neutral?: number;
     mixed?: number;
   } | null;
-  summaries?: string[] | null;
+  recommendations?: string[] | null;
+  summary?: string | null;
 }
 
 interface FeedbackReportsProps {
+  feedbackreports: FeedbackReport[];
   organization: Organization;
   events: Event[];
   userId: string;
@@ -42,9 +48,16 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
   const supabase = createClient();
 
   const [eventFilter, setEventFilter] = useState<string>("");
+  const [eventName, setEventName] = useState<string>("");
+  const [userName, setUserName] = useState<string>("Unknown");
+  const [model, setModel] = useState<"llama" | "felbert">("llama");
+  const reportRef = useRef<HTMLDivElement>(null);
+
   const [reports, setReports] = useState<FeedbackReport[]>([]);
+  const [sentimentCounts, setSentimentCounts] = useState({ positive: 0, negative: 0 });
   const [summary, setSummary] = useState<string | null>(null);
-  const [topKeywords, setTopKeywords] = useState<string[]>([]);
+  const [recommendations, setRecommendations] = useState<string[]>([]);
+  const [topKeywords, setTopKeywords] = useState<[string, number][]>([]);
   const [averageLikert, setAverageLikert] = useState<string>("0");
   const [reportLimit, setReportLimit] = useState<number>(0);
   const [totalResponses, setTotalResponses] = useState<number>(0);
@@ -55,6 +68,8 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
     if (!eventFilter) {
       setReports([]);
       setSummary(null);
+      setRecommendations([]);
+      setSentimentCounts({ positive: 0, negative: 0 });
       setTopKeywords([]);
       setAverageLikert("0");
       setTotalResponses(0);
@@ -89,19 +104,30 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
       // --- Processed report via API ---
       const res = await fetch(`/api/reports/get-feedback-report?eventId=${eventFilter}`);
       const json = await res.json();
-
       if (!res.ok) throw new Error(json.error || "Failed to fetch reports");
 
       setReports(json.reports ?? []);
-      const latest = json.reports?.[0];
-      setSummary(latest?.summaries?.length ? latest.summaries.join("\n\n") : "No summary available.");
-      setTopKeywords(normalizeKeywords(latest?.top_keywords));
+        const latest = json.reports?.[0];
+      setSummary(latest?.summary ?? "No summary available.");
+      setRecommendations(latest?.recommendations ?? []);  
+        const topFive = Object.entries(latest?.top_keywords ?? {})
+         .sort(([, a], [, b]) => (b as number) - (a as number))
+         .slice(0, 5) as [string, number][];
+
+         setSentimentCounts({
+          positive: latest?.sentiment_counts?.positive ?? 0,
+          negative: latest?.sentiment_counts?.negative ?? 0,
+        });
+      setTopKeywords(topFive);
       setAverageLikert(latest?.avg_likert?.toFixed(1) ?? "0");
+
     } catch (err: any) {
       console.error("Error loading stats:", err.message || err);
       toast.error("Failed to load feedback stats.");
       setReports([]);
       setSummary(null);
+      setRecommendations([]);
+      setSentimentCounts({ positive: 0, negative: 0 });
       setTopKeywords([]);
       setAverageLikert("0");
       setTotalResponses(0);
@@ -109,14 +135,22 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
     }
   };
 
-  const normalizeKeywords = (raw: FeedbackReport["top_keywords"]): string[] => {
-  if (!raw) return [];
-  if (Array.isArray(raw)) return raw; // already array
-  // convert object to array of "keyword: count"
-  return Object.entries(raw)
-    .sort((a, b) => (b[1] as number) - (a[1] as number))
-    .map(([kw, count]) => `${kw}: ${count}`);
-};
+  const handleDownloadPDF = () => {
+    generateFeedbackPDF({
+      eventName: events.find((e) => e.id === eventFilter)?.title ?? "",
+      reportsLeft: events.find((e) => e.id === eventFilter)?.report_limit ?? 0,
+      organization,
+      totalResponses,
+      averageLikert,
+      sentimentCounts,
+      topKeywords,
+      summary,
+      recommendations,
+      userName,
+      model,
+      eventFilter,
+    });
+  };
 
 
   useEffect(() => {
@@ -138,46 +172,152 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
     return () => timer && clearInterval(timer);
   }, [isGenerating]);
 
-  const handleGenerateReport = async () => {
-    if (!eventFilter || reportLimit <= 0) {
-      toast.error("No report generations left.");
-      return;
+  useEffect(() => {
+  const fetchUser = async () => {
+    const { data } = await supabase
+      .from("userprofiles")  
+      .select("first_name, last_name")
+      .eq("userid", userId)
+      .single();
+    if (data) {
+      setUserName(
+        [data.first_name, data.last_name].filter(Boolean).join(" ") || "Unknown"
+      );
     }
+  };
+  fetchUser();
+}, [userId]);
 
-    if (!window.confirm("This will use one report generation. Continue?")) return;
+  const handleGenerateReport = async () => {
+  if (reportLimit === 0 || !eventFilter) return;
 
-    setIsGenerating(true);
+  const confirm = window.confirm("This will decrement your generations. Do you wanna continue?");
+  if (!confirm) return;
 
-    try {
+  setIsGenerating(true);
+  setProgress(0);
+
+  try {
+    if (model === "llama") {
+      // ── Groq / Llama path (existing) ──
       const res = await fetch("/api/ai/process", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ eventId: eventFilter }),
       });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error || "Processing failed");
+      toast.success("Report generated successfully.");
+
+    } else {
+      // ── FELBERT path ──
+      const { data: feedbacks } = await supabase
+        .from("feedbacks")
+        .select("id, text")
+        .eq("event_id", eventFilter)
+        .eq("processed", false);
+
+      if (!feedbacks || feedbacks.length === 0) {
+        toast.error("No unprocessed feedbacks to analyze.");
+        return;
+      }
+
+      const comments = feedbacks.map((f) => f.text).filter(Boolean);
+
+      const res = await fetch("https://felbert.onrender.com/batch-analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comments }),
+      });
 
       const json = await res.json();
+      if (!res.ok) throw new Error("FELBERT processing failed");
 
-      if (!res.ok) throw new Error(json?.error || "Processing failed");
+      // Normalize FELBERT response into the same shape as Groq
+      const positive = json.results.filter((r: any) => r.sentiment === "Positive").length;
+      const negative = json.results.filter((r: any) => r.sentiment === "Negative").length;
 
-      toast.success("Report generated successfully.");
-      await loadStats();
-    } catch (err: any) {
-      console.error("Report Generation Error:", err.message || err);
-      toast.error("Failed to generate report.");
-    } finally {
-      setProgress(100);
-      setTimeout(() => setIsGenerating(false), 600);
+      // Save report to Supabase
+      await supabase.from("feedback_reports").insert({
+        event_id: eventFilter,
+        generated_at: new Date().toISOString(),
+        total_feedbacks: feedbacks.length,
+        sentiment_counts: { positive, negative, neutral: 0, mixed: 0 },
+        top_keywords: json.keywords,
+        summary: json.summary,
+        recommendations: [],
+        raw_analyses: json.results,
+      });
+
+      // Mark feedbacks as processed
+      await supabase
+        .from("feedbacks")
+        .update({ processed: true, processed_at: new Date().toISOString() })
+        .in("id", feedbacks.map((f) => f.id));
+
+      toast.success("Report generated with FELBERT!");
     }
-  };
 
-  const sentimentCounts = reports[0]?.sentiment_counts ?? { positive: 0, negative: 0 };
-  const pieData = {
-    labels: ["Positive", "Negative"],
-    datasets: [
-      { data: [sentimentCounts.positive ?? 0, sentimentCounts.negative ?? 0] },
-    ],
-  };
-  
+    await loadStats();
+  } catch (err: any) {
+    console.error("Report Generation Error:", err.message || err);
+    toast.error("Failed to generate report.");
+  } finally {
+    setProgress(100);
+    setTimeout(() => setIsGenerating(false), 600);
+  }
+};
+
+const total = (sentimentCounts?.positive ?? 0) + (sentimentCounts?.negative ?? 0);
+
+const pieData = {
+  labels: ["Positive", "Negative"],
+  datasets: [
+    {
+      data: [sentimentCounts.positive ?? 0, sentimentCounts.negative ?? 0],
+      backgroundColor: ["rgba(52, 211, 153, 0.8)", "rgba(244, 63, 94, 0.8)"],
+      borderColor: ["rgb(52, 211, 153)", "rgb(244, 63, 94)"],
+      hoverBackgroundColor: ["rgba(52, 211, 153, 1)", "rgba(244, 63, 94, 1)"],
+      borderWidth: 2,
+      hoverOffset: 6,
+    },
+  ],
+};
+
+const pieOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: "bottom" as const,
+      labels: {
+        color: "#d1d5db",
+        padding: 16,
+        font: { size: 13 },
+        usePointStyle: true,
+        pointStyleWidth: 8,
+      },
+    },
+    datalabels: {
+      color: "#ffffff",
+      font: { size: 13, weight: "bold" as const },
+      formatter: (value: number) => {
+        if (total === 0) return "";
+        const pct = Math.round((value / total) * 100);
+        return pct > 0 ? `${pct}%` : "";
+      },
+    },
+    tooltip: {
+      callbacks: {
+        label: (ctx: any) => {
+          const pct = total > 0 ? Math.round((ctx.parsed / total) * 100) : 0;
+          return ` ${ctx.label}: ${ctx.parsed} (${pct}%)`;
+        },
+      },
+    },
+  },
+};
+
   return (
     <>
       <ToastContainer />
@@ -201,7 +341,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
         <h1 className="text-lg font-semibold text-white mt-6">
           Feedback Reports
         </h1>
-
+        <div className="flex items-center justify-between mt-4">
         <select
           value={eventFilter}
           onChange={(e) => setEventFilter(e.target.value)}
@@ -214,42 +354,142 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
             </option>
           ))}
         </select>
+            <button
+              onClick={handleDownloadPDF}
+              disabled={!reports || reports.length === 0}
+              className={`px-4 py-2 text-sm bg-emerald-600 rounded-md border border-[#525252] text-white ${
+                !reports || reports.length === 0
+                  ? "opacity-40 cursor-not-allowed"
+                  : "hover:bg-charleston"
+              }`}
+            >
+              ↓ Download PDF
+            </button>
+            </div>
 
         {eventFilter && (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-              <Metric title="Total Feedbacks" value={totalResponses} />
-              <Metric title="Avg Likert" value={`${averageLikert}/5`} />
-              <Metric title="Reports Left" value={reportLimit} />
+
+
+            
+            <div ref={reportRef}>
+            
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                <Metric title="Total Feedbacks" value={totalResponses} />
+                <Metric title="Avg Likert" value={`${averageLikert}/5`} />
+                <Metric title="Reports Left" value={reportLimit} />
+              </div>
+
+            <div className="mt-6 bg-charleston p-4 rounded-lg">
+              <h3 className="font-semibold text-white mb-3">Top Keywords</h3>
+              <div className="flex flex-wrap gap-2">
+                {topKeywords.map(([word, count], i) => {
+                  const colors = [
+                    "bg-violet-600/20 text-violet-300 border-violet-500",
+                    "bg-sky-600/20 text-sky-300 border-sky-500",
+                    "bg-emerald-600/20 text-emerald-300 border-emerald-500",
+                    "bg-amber-600/20 text-amber-300 border-amber-500",
+                    "bg-rose-600/20 text-rose-300 border-rose-500",
+                  ];
+                  return (
+                    <div key={word} className="relative group">
+                      <span
+                        className={`px-3 py-1 rounded-full border text-xs font-medium cursor-default ${colors[i % colors.length]}`}
+                      >
+                        {word}
+                      </span>
+                      {/* Tooltip */}
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded bg-[#1a1a1a] border border-[#525252] text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                        mentioned {count}×
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
-            <div className="mt-6 bg-charleston p-4 rounded">
-              <h3 className="font-semibold text-white mb-2">Top Keywords</h3>
-              <ul className="text-sm text-white list-disc list-inside">
-                {topKeywords.map((k) => (
-                  <li key={k}>{k}</li>
-                ))}
-              </ul>
+            <div className="mt-4 flex items-center gap-2">
+              {/* Generate */}
+              <button
+                onClick={handleGenerateReport}
+                disabled={reportLimit === 0 || isGenerating}
+                title={reportLimit === 0 ? "No more generations left." : ""}
+                className={`px-4 py-2 bg-emerald-600 text-sm rounded-md ${
+                  reportLimit === 0
+                    ? "bg-gray-500 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700"
+                } text-white`}
+              >
+                {isGenerating ? "Generating..." : "Generate Report"}
+              </button>
+              <select
+              value={model}
+              onChange={(e) => setModel(e.target.value as "llama" | "felbert")}
+              disabled={isGenerating}
+              className="text-sm rounded-md border border-[#525252] bg-charleston text-white px-3 py-2 focus:outline-none focus:border-primary"
+              >
+                <option value="llama">Llama — fast results, general analysis</option>
+                <option value="felbert">FELBERT — deeper analysis, tailored to event feedback</option>
+              </select>
             </div>
 
-            <button
-              onClick={handleGenerateReport}
-              disabled={isGenerating || totalResponses === 0}
-              className="mt-6 px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
-            >
-              Generate Report
-            </button>
+            {(sentimentCounts.positive ?? 0) > 0 || (sentimentCounts.negative ?? 0) > 0 ? (
+                <div className="mt-6 bg-charleston rounded-lg border border-[#525252] p-5">
+                  <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">
+                    Sentiment Breakdown
+                  </h3>
+                  {/* Summary badges */}
+                  <div className="flex gap-3 mb-4">
+                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-emerald-600/20 text-emerald-300 border border-emerald-500">
+                      ↑ {sentimentCounts.positive ?? 0} Positive
+                    </span>
+                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-rose-600/20 text-rose-300 border border-rose-500">
+                      ↓ {sentimentCounts.negative ?? 0} Negative
+                    </span>
+                  </div>
+                  {/* Chart */}
+                  <div className="relative h-56">
+                    <Pie data={pieData} options={pieOptions} />
+                  </div>
+                </div>
+              ) : (
+              <div className="mt-6 w-full h-24 flex items-center justify-center rounded-lg border border-[#525252] bg-charleston">
+                <p className="text-sm text-gray-400">No sentiment data yet</p>
+              </div>
+            )}
+              
+            <div className="mt-6 space-y-4">
+              {/* Summary */}
+              <div className="bg-charleston rounded-lg p-5 border border-[#525252]">
+                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                  Summary
+                </h3>
+                <div className="border-t border-[#525252] mt-2 pt-3">
+                  <p className="text-sm text-gray-200 leading-relaxed">{summary}</p>
+                </div>
+              </div>
 
-            <div className="mt-10 w-80 h-64">
-              <Pie data={pieData} />
+              {/* Recommendations */}
+              {recommendations && recommendations.length > 0 && (
+                <div className="bg-charleston rounded-lg p-5 border border-[#525252]">
+                  <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                    Recommendations
+                  </h3>
+                  <div className="border-t border-[#525252] mt-2 pt-3 space-y-2">
+                    {recommendations.map((rec: string, i: number) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0 translate-y-[6px]" />
+                        <p className="text-sm text-gray-200 leading-relaxed">{rec}</p>
+                      </div>
+                  ))}
+                  </div>
+                </div>
+              )}
             </div>
-
-            <div className="mt-10 bg-charleston p-4 rounded text-white whitespace-pre-line">
-              {summary}
             </div>
-          </>
-        )}
-      </div>
+            </>
+          )}
+    </div>
     </>
   );
 };

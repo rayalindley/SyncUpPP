@@ -28,6 +28,8 @@ export default async function handler(
 
     if (error) throw error;
 
+    console.log(`Fetched ${data?.length ?? 0} feedback reports for event ${eventId}`);  
+    console.log("Sample report:", data?.[0].summary);
     return res.status(200).json({ reports: data });
   } catch (err: any) {
     console.error("Fetch feedback reports error:", err);
