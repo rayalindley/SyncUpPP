@@ -9,9 +9,10 @@ import { TableColumn } from "react-data-table-component";
 import { useDebounce } from "use-debounce";
 import dynamic from 'next/dynamic';
 import Loader from "@/components/Loader";
-import { createClient } from "@/lib/supabase/client"; // Import Supabase client
-import { toast } from "react-toastify"; // Import toast for notifications
-import "react-toastify/dist/ReactToastify.css"; // Import toast styles
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import EventsFilterDropdown from "./event-filters-dropdown";
 
 const supabase = createClient();
 
@@ -19,9 +20,13 @@ const DataTable = dynamic(() => import("react-data-table-component"), {
   ssr: false,
 });
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+interface EventFilters {
+  privacy: string[];
+  status: string[];
+  location: string[];
+  dateRange: "all" | "upcoming" | "past" | "today";
+}
 
-/** Single shared date formatter — avoids duplicating toLocaleString options. */
 const fmtDate = (utcString: string) =>
   new Date(utcString).toLocaleString("en-US", {
     month: "short",
@@ -32,25 +37,21 @@ const fmtDate = (utcString: string) =>
     hour12: true,
   });
 
-/** Derive privacy label from the privacy field. */
 const privacyLabel = (privacy: Event["privacy"]) =>
   privacy && typeof privacy === "object" && privacy.type === "public"
     ? "Public"
     : "Private";
 
-/** Map a normalised status string to Tailwind colour classes. */
 const statusClasses = (status: string | null | undefined) => {
   switch ((status ?? "").trim().toLowerCase()) {
     case "ongoing":
       return "bg-yellow-600/25 text-yellow-300 border-yellow-500 focus:border-yellow-500 focus:ring-yellow-500";
     case "closed":
       return "bg-red-600/25 text-red-300 border-red-700 focus:border-red-700 focus:ring-red-700";
-    default: // "open" and any unknown value
+    default:
       return "bg-green-600/25 text-green-300 border-green-700 focus:border-green-700 focus:ring-green-700";
   }
 };
-
-// ─── Custom Pagination ───────────────────────────────────────────────────────
 
 const CustomPagination = ({
   currentPage,
@@ -82,12 +83,6 @@ const CustomPagination = ({
   </div>
 );
 
-// ─── Shared select style ─────────────────────────────────────────────────────
-
-/**
- * Extracted here so it isn't duplicated between desktop columns and mobile
- * cards.
- */
 const SelectStyle = () => (
   <style jsx>{`
     select {
@@ -104,8 +99,6 @@ const SelectStyle = () => (
     }
   `}</style>
 );
-
-// ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function EventsTableUser({
   organization,
@@ -124,7 +117,6 @@ export default function EventsTableUser({
   const [filterText, setFilterText] = useState<string>("");
   const [debouncedFilterText] = useDebounce(filterText, 300);
 
-  // Sync tableData when parent re-renders with a fresh events array.
   const [tableData, setTableData] = useState<Event[]>(events);
   useEffect(() => {
     setTableData(events);
@@ -133,7 +125,18 @@ export default function EventsTableUser({
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // ── Permission check ───────────────────────────────────────────────────────
+  const [filters, setFilters] = useState<EventFilters>({
+    privacy: [],
+    status: [],
+    location: [],
+    dateRange: "all",
+  });
+
+  // Get unique locations
+  const uniqueLocations = useMemo(
+    () => [...new Set(tableData.map((e) => e.location).filter(Boolean))],
+    [tableData]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -157,8 +160,6 @@ export default function EventsTableUser({
       }
     };
 
-    // FIX: Functional updater ensures the timeout only changes null → false
-    // and never overwrites an already-resolved true value.
     const fallbackTimeout = setTimeout(() => {
       if (!cancelled) {
         setCanCreateEvents((prev) => (prev === null ? false : prev));
@@ -168,21 +169,16 @@ export default function EventsTableUser({
 
     checkPermissions();
 
-    // FIX: canCreateEvents and canEditEvents removed from deps
     return () => {
       cancelled = true;
       clearTimeout(fallbackTimeout);
     };
   }, [userId, organization.organizationid]);
 
-  // ── Handlers ───────────────────────────────────────────────────────────────
-
   const handleCreateEvent = useCallback(() => {
     router.push(`/events/create/${organization.slug}`);
   }, [router, organization.slug]);
 
-  // FIX: useCallback keeps the reference stable so columns isn't recreated
-  // on every render.
   const handleStatusChange = useCallback(
     async (id: string, newStatus: string) => {
       if (!canEditEvents) {
@@ -211,9 +207,6 @@ export default function EventsTableUser({
     [canEditEvents]
   );
 
-  // ── Columns ────────────────────────────────────────────────────────────────
-
-  // FIX: useMemo keeps the array identity stable between renders.
   const columns = useMemo<TableColumn<Event>[]>(
     () => [
       {
@@ -226,13 +219,13 @@ export default function EventsTableUser({
         name: "Start Date & Time",
         selector: (row) => row.starteventdatetime ?? "",
         sortable: true,
-        cell: (row) => row.starteventdatetime ? fmtDate(row.starteventdatetime) : "—",
+        cell: (row) => (row.starteventdatetime ? fmtDate(row.starteventdatetime) : "—"),
       },
       {
         name: "End Date & Time",
         selector: (row) => row.endeventdatetime ?? "",
         sortable: true,
-        cell: (row) => row.endeventdatetime ? fmtDate(row.endeventdatetime) : "—",
+        cell: (row) => (row.endeventdatetime ? fmtDate(row.endeventdatetime) : "—"),
       },
       {
         name: "Location",
@@ -259,18 +252,14 @@ export default function EventsTableUser({
         selector: (row) => row.status ?? "",
         sortable: true,
         cell: (row) =>
-          // FIX: Users without edit permission see a read-only badge instead of
-          // a deceptively interactive dropdown.
           canEditEvents ? (
             <div className="relative">
               <select
-                // FIX: value and option values now use consistent Title Case to
-                // match what Supabase stores. statusClasses normalises internally.
                 value={row.status}
-                onChange={(e) =>
-                  handleStatusChange(row.eventid, e.target.value)
-                }
-                className={`text-center cursor-pointer rounded-2xl border-2 px-4 py-1 text-xs ${statusClasses(row.status)}`}
+                onChange={(e) => handleStatusChange(row.eventid, e.target.value)}
+                className={`text-center cursor-pointer rounded-2xl border-2 px-4 py-1 text-xs ${statusClasses(
+                  row.status
+                )}`}
               >
                 <option value="Open">Open</option>
                 <option value="Ongoing">Ongoing</option>
@@ -280,7 +269,9 @@ export default function EventsTableUser({
             </div>
           ) : (
             <span
-              className={`text-center rounded-2xl border-2 px-4 py-1 text-xs ${statusClasses(row.status)}`}
+              className={`text-center rounded-2xl border-2 px-4 py-1 text-xs ${statusClasses(
+                row.status
+              )}`}
             >
               {row.status}
             </span>
@@ -297,28 +288,78 @@ export default function EventsTableUser({
     [canEditEvents, handleStatusChange, userId]
   );
 
-  // ── Filtering & pagination ─────────────────────────────────────────────────
+  // Apply all filters
+  const applyFilters = (eventsToFilter: Event[]): Event[] => {
+    return eventsToFilter.filter((event) => {
+      // Search filter
+      if (
+        debouncedFilterText &&
+        !event.title
+          .toLowerCase()
+          .includes(debouncedFilterText.toLowerCase())
+      ) {
+        return false;
+      }
 
-  const filteredData = useMemo(
-    () =>
-      debouncedFilterText
-        ? tableData.filter((event) =>
-            event.title
-              .toLowerCase()
-              .includes(debouncedFilterText.toLowerCase())
-          )
-        : tableData,
-    [debouncedFilterText, tableData]
-  );
+      // Privacy filter
+      if (filters.privacy.length > 0) {
+        const eventPrivacy = privacyLabel(event.privacy);
+        if (!filters.privacy.includes(eventPrivacy)) {
+          return false;
+        }
+      }
+
+ // Status filter
+if (filters.status.length > 0) {
+  const eventStatus = event.status ?? ""; // Default to empty string if undefined
+  if (!filters.status.includes(eventStatus)) {
+    return false;
+  }
+}
+
+      // Location filter
+      if (filters.location.length > 0) {
+        if (!filters.location.includes(event.location)) {
+          return false;
+        }
+      }
+
+      // Date range filter
+      if (filters.dateRange !== "all") {
+        const eventDate = new Date(event.starteventdatetime);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        switch (filters.dateRange) {
+          case "upcoming":
+            if (eventDate < today) {
+              return false;
+            }
+            break;
+          case "past":
+            if (eventDate >= today) {
+              return false;
+            }
+            break;
+          case "today":
+            const eventDateOnly = new Date(eventDate);
+            eventDateOnly.setHours(0, 0, 0, 0);
+            if (eventDateOnly.getTime() !== today.getTime()) {
+              return false;
+            }
+            break;
+        }
+      }
+
+      return true;
+    });
+  };
+
+  const filteredData = applyFilters(tableData);
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedData = filteredData.slice(
-    startIndex,
-    startIndex + itemsPerPage
-  );
-
-  // ── Mobile card ────────────────────────────────────────────────────────────
+  const paginatedData = filteredData.slice(startIndex, startIndex + itemsPerPage);
 
   const renderMobileCard = useCallback(
     (row: Event) => (
@@ -327,8 +368,14 @@ export default function EventsTableUser({
           {(
             [
               ["Title", row.title],
-              ["Start Date & Time", row.starteventdatetime ? fmtDate(row.starteventdatetime) : "—"],
-              ["End Date & Time", row.endeventdatetime ? fmtDate(row.endeventdatetime) : "—"],
+              [
+                "Start Date & Time",
+                row.starteventdatetime ? fmtDate(row.starteventdatetime) : "—",
+              ],
+              [
+                "End Date & Time",
+                row.endeventdatetime ? fmtDate(row.endeventdatetime) : "—",
+              ],
               ["Location", row.location],
               ["Registration Fee", String(row.registrationfee || "N/A")],
               ["Capacity", String(row.capacity || "N/A")],
@@ -350,7 +397,9 @@ export default function EventsTableUser({
                   onChange={(e) =>
                     handleStatusChange(row.eventid, e.target.value)
                   }
-                  className={`text-center bg-charleston cursor-pointer rounded-2xl border-2 px-4 py-1 text-xs ml-2 ${statusClasses(row.status)}`}
+                  className={`text-center bg-charleston cursor-pointer rounded-2xl border-2 px-4 py-1 text-xs ml-2 ${statusClasses(
+                    row.status
+                  )}`}
                 >
                   <option value="Open">Open</option>
                   <option value="Ongoing">Ongoing</option>
@@ -360,7 +409,9 @@ export default function EventsTableUser({
               </div>
             ) : (
               <span
-                className={`text-center rounded-2xl border-2 px-4 py-1 text-xs ml-2 ${statusClasses(row.status)}`}
+                className={`text-center rounded-2xl border-2 px-4 py-1 text-xs ml-2 ${statusClasses(
+                  row.status
+                )}`}
               >
                 {row.status}
               </span>
@@ -376,13 +427,9 @@ export default function EventsTableUser({
     [canEditEvents, handleStatusChange, userId]
   );
 
-  // ── Early return ───────────────────────────────────────────────────────────
-
   if (canCreateEvents === null || canEditEvents === null) {
     return <Loader />;
   }
-
-  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <div className="py-4 px-4 sm:px-6 lg:px-8">
@@ -397,7 +444,7 @@ export default function EventsTableUser({
           </p>
         </div>
 
-        {/* Search and Create Event */}
+        {/* Search and Filters */}
         <div className="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4">
           <input
             type="text"
@@ -406,10 +453,14 @@ export default function EventsTableUser({
             onChange={(e) => setFilterText(e.target.value)}
             className="flex-1 rounded-md border border-[#525252] bg-charleston px-3 py-2 text-light shadow-sm focus:border-primary focus:outline-none focus:ring-primary text-sm"
           />
+          <EventsFilterDropdown
+            onFiltersChange={setFilters}
+            locations={uniqueLocations}
+          />
           {canCreateEvents && (
             <button
               onClick={handleCreateEvent}
-              className="w-full sm:w-auto rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-primarydark"
+              className="w-full sm:w-auto rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-primarydark whitespace-nowrap"
             >
               Create Event
             </button>
@@ -418,7 +469,6 @@ export default function EventsTableUser({
 
         {/* Mobile view */}
         <div className="block sm:hidden">
-          {/* FIX: Stable event ID used as key instead of array index. */}
           {paginatedData.map((row) => (
             <div key={row.eventid}>{renderMobileCard(row)}</div>
           ))}

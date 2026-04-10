@@ -1,3 +1,4 @@
+"use client";
 import React, { useRef, useEffect, useState } from "react";
 import SignaturePad from "react-signature-canvas";
 import { useForm, SubmitHandler } from "react-hook-form";
@@ -105,7 +106,7 @@ const EventSchema = z
 
 // Type Definitions
 export interface EventFormValues {
-  eventid?: string;
+  id?: string;
   title: string;
   description: string;
   starteventdatetime: string;
@@ -184,20 +185,21 @@ const CreateEventForm = ({
   const [imageError, setImageError] = useState("");
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [selectedMemberships, setSelectedMemberships] = useState<string[]>([]);
-  const [privacyType, setPrivacyType] = useState<string>(event?.privacy.type || "public");
+  const [privacyType, setPrivacyType] = useState<string>(event?.privacy?.type || "public");
   const [roleSuggestions, setRoleSuggestions] = useState<string[]>([]);
   const [membershipSuggestions, setMembershipSuggestions] = useState<string[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(true);
   const [privacyValue, setPrivacyValue] = useState<string>(event?.privacy || "public");
   const [allowAllRoles, setAllowAllRoles] = useState<boolean>(
-    event?.privacy.allow_all_roles || false
+    event?.privacy?.allow_all_roles || false
   );
   const [allowAllMemberships, setAllowAllMemberships] = useState<boolean>(
-    event?.privacy.allow_all_memberships || false
+    event?.privacy?.allow_all_memberships || false
   );
   const [onsitePayment, setOnsitePayment] = useState<boolean | null>(
     event?.onsite || false
   );
+  const [submissionSuccess, setSubmissionSuccess] = useState(false);
 
   const roleOptions: OptionType[] = roleSuggestions.map((role) => ({
     value: role,
@@ -373,6 +375,7 @@ const CreateEventForm = ({
     setValue,
     trigger,
     watch,
+    clearErrors,
   } = useForm<EventFormValues>({
     resolver: zodResolver(EventSchema),
     mode: "onSubmit",
@@ -455,10 +458,11 @@ const CreateEventForm = ({
       const fetchDiscounts = async () => {
         const supabase = createClient();
         try {
+          // ✅ FIX: Changed from .eq("eventid", event.eventid) to .eq("id", event.id)
           const { data: discountData, error: discountError } = await supabase
             .from("event_discounts")
             .select("role, membership_tier, discount_percent")
-            .eq("eventid", event.eventid);
+            .eq("id", event.id);
           if (discountError) {
             console.error("Error fetching discounts:", discountError);
           } else if (discountData) {
@@ -501,7 +505,9 @@ const CreateEventForm = ({
 
       // Set Certificate Background URL
       setCertificateBackground(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${event.certificate_background}`
+        event.certificate_background
+          ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${event.certificate_background}`
+          : null
       );
 
       // Fetch Signatories
@@ -510,7 +516,7 @@ const CreateEventForm = ({
         const { data: signatoriesData, error } = await supabase
           .from("event_signatories")
           .select("*")
-          .eq("event_id", event.eventid)
+          .eq("event_id", event.id)
           .limit(3);
         if (error) {
           console.error("Error fetching signatories:", error);
@@ -557,7 +563,7 @@ const CreateEventForm = ({
         const { data: certData, error: certError } = await supabase
           .from("event_certificate_settings")
           .select("*")
-          .eq("event_id", event.eventid)
+          .eq("event_id", event.id)
           .maybeSingle();
         if (certError) {
           console.error("Error fetching certificate settings:", certError);
@@ -579,6 +585,7 @@ const CreateEventForm = ({
   // Handle Form Submission
   const onSubmit: SubmitHandler<EventFormValues> = async (formData) => {
     setIsLoading(true);
+    setSubmissionSuccess(false);
     try {
       // Validation for Private Events
       if (
@@ -818,15 +825,14 @@ const CreateEventForm = ({
       };
 
       const { data, error } = event
-        ? await updateEvent(event.eventid!, completeFormData)
+        ? await updateEvent(event.id!, completeFormData)
         : await insertEvent(completeFormData, organizationid);
 
       if (data) {
-        const eventId = event ? event.eventid! : data[0].id;
+        const eventId = event ? event.id! : data[0].id;
 
-        // DEBUG LOGS
-        console.log("DEBUG event insert/update result:", data);
-        console.log("DEBUG resolved eventId for certificate settings:", eventId);
+        // SET FLAG IMMEDIATELY to prevent error callback
+        setSubmissionSuccess(true);
 
         // Auto-register creator if creating a new event
         if (!event) {
@@ -835,7 +841,7 @@ const CreateEventForm = ({
           if (userId) {
             await supabase.from("eventregistrations").insert([
               {
-                eventid: data[0].eventid,
+                eventid: data[0].id,
                 userid: userId,
                 status: "registered",
                 attendance: "present",
@@ -844,7 +850,28 @@ const CreateEventForm = ({
           }
         }
 
-      
+        // Handle Certificate Settings Upsert - ONLY if certificates are enabled
+        if (formData.certificate_enabled) {
+          const certificateSettings = {
+            event_id: eventId,
+            certificate_enabled: formData.certificate_enabled || false,
+            release_option: formData.release_option || "after_event",
+            scheduled_release_date:
+              formData.release_option === "scheduled" && formData.scheduled_release_date
+                ? formData.scheduled_release_date
+                : null,
+            certificate_background:
+              certificateBackgroundUrl || "default-certificate-bg/default-cert-bg.png",
+          };
+          const { error: certError } = await supabase
+            .from("event_certificate_settings")
+            .upsert(certificateSettings, { onConflict: "event_id" });
+          if (certError) {
+            console.error("Error inserting/updating certificate settings:", certError);
+            toast.error("Error saving certificate settings. Please try again.");
+            return;
+          }
+        }
 
         // Record Activity
         await recordActivity({
@@ -894,15 +921,18 @@ const CreateEventForm = ({
               .update({ has_feedback_form: true })
               .eq("eventslug", eventSlug);
 
-            window.location.href = `/feedback/form/${event ? event.eventslug : completeFormData.eventslug}`;
+            window.location.href = `/feedback/form/${
+              event ? event.eventslug : completeFormData.eventslug
+            }`;
           } else {
-            window.location.href = `/e/${event ? event.eventslug : completeFormData.eventslug}`;
+            window.location.href = `/e/${
+              event ? event.eventslug : completeFormData.eventslug
+            }`;
           }
         };
+        handleCreateFeedbackForm();
 
-        // ✅ await so reset happens after dialog
-        await handleCreateFeedbackForm();
-
+        // Reset form and signatories state
         reset();
         setSignatories([]);
       } else if (error) {
@@ -1034,6 +1064,9 @@ const CreateEventForm = ({
 
   // Error Handler for Form Submission
   const onError = (errors: any) => {
+    // Don't log errors if submission was successful
+    if (submissionSuccess) return;
+
     console.error("Form errors:", errors);
     toast.error(
       "Please fix the errors in the form before submitting. Check for blank or invalid fields."
@@ -1176,7 +1209,7 @@ const CreateEventForm = ({
                 type="datetime-local"
                 id="starteventdatetime"
                 min={currentDateTimeLocal}
-                className={`mt-1 block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm ${
+                className={`mt-1 block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6 ${
                   errors.starteventdatetime ? "border-red-500" : ""
                 }`}
                 {...register("starteventdatetime")}
@@ -1198,7 +1231,7 @@ const CreateEventForm = ({
               <input
                 type="datetime-local"
                 id="endeventdatetime"
-                className={`mt-1 block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm ${
+                className={`mt-1 block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6 ${
                   errors.endeventdatetime ? "border-red-500" : ""
                 }`}
                 {...register("endeventdatetime")}
@@ -1401,7 +1434,7 @@ const CreateEventForm = ({
                         </div>
                       </div>
 
-                      {/* Discount Input and Buttons */}
+                      {/* Discount Input and Buttons - Set same width */}
                       <div className="flex w-1/5 flex-col items-center space-y-2">
                         <input
                           type="number"
@@ -1466,7 +1499,7 @@ const CreateEventForm = ({
               <div className="mt-4 space-y-1 text-light">
                 <label className="text-sm font-medium text-white">Select Roles</label>
                 <TagsInput
-                  key={event ? event.eventid : "new-event"}
+                  key={event ? event.id : "new-event"}
                   value={allowAllRoles ? ["All Roles"] : selectedRoles}
                   onChange={handleRolesChange}
                   suggestions={roleSuggestions}
@@ -1480,7 +1513,7 @@ const CreateEventForm = ({
                   Select Membership Tiers
                 </label>
                 <TagsInput
-                  key={event ? event.eventid : "new-event"}
+                  key={event ? event.id : "new-event"}
                   value={
                     allowAllMemberships ? ["All Membership Tiers"] : selectedMemberships
                   }
@@ -1654,7 +1687,7 @@ const CreateEventForm = ({
                           updatedSignatories[index].name = e.target.value;
                           setSignatories(updatedSignatories);
                         }}
-                        className="block w-1/3 rounded-md border-0 bg-white/5 px-2 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm"
+                        className="block w-1/3 rounded-md border-0 bg-white/5 px-2 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                       />
                       {/* Position Input */}
                       <input
@@ -1775,7 +1808,7 @@ const CreateEventForm = ({
             <button
               type="submit"
               disabled={isLoading}
-              className="flex justify-end rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:bg-charleston"
+              className="flex justify-end rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:bg-gray-600"
             >
               {isLoading ? "Submitting..." : "Submit"}
             </button>

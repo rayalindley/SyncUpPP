@@ -1,6 +1,6 @@
 "use client";
 import Loader from "@/components/Loader";
-import { deleteEvent, fetchRegisteredUsersForEvent } from "@/lib/events"; // Assuming you have deleteEvent function
+import { deleteEvent, fetchRegisteredUsersForEvent } from "@/lib/events"; 
 import { check_permissions } from "@/lib/organization";
 import { Event } from "@/types/event";
 import { UserProfile } from "@/types/user_profile";
@@ -16,8 +16,8 @@ import Link from "next/link";
 import { Fragment, useEffect, useState } from "react";
 import { FaRegEdit } from "react-icons/fa";
 import Swal from "sweetalert2";
-import { saveAs } from "file-saver"; // Install file-saver package if not already installed
-import { format } from "date-fns"; // For formatting the current date
+import { saveAs } from "file-saver"; 
+import { format } from "date-fns"; 
 import { recordActivity } from "@/lib/track";
 import { CertificateSettings } from "@/types/event";
 import { fetchCertificateSettings } from "@/lib/events";
@@ -33,10 +33,10 @@ const jsonTheme = {
   main: "line-height:1.3;color:#383a42;background:#ffffff;overflow:hidden;word-wrap:break-word;white-space: pre-wrap;word-wrap: break-word;",
   error:
     "line-height:1.3;color:#e45649;background:#ffffff;overflow:hidden;word-wrap:break-word;white-space: pre-wrap;word-wrap: break-word;",
-  key: "color:#a626a4;", // Purple for keys to stand out
-  string: "color:#50a14f;", // Green for strings for easy readability
-  value: "color:#4078f2;", // Blue for values to differentiate from strings
-  boolean: "color:#986801;", // Brown for booleans for quick identification
+  key: "color:#a626a4;", 
+  string: "color:#50a14f;", 
+  value: "color:#4078f2;", 
+  boolean: "color:#986801;", 
 };
 
 function classNames(...classes: string[]) {
@@ -51,7 +51,7 @@ const truncateText = (text: string, maxLength: number) => {
   return text;
 
   interface UserProfileWithAttendance extends UserProfile {
-    attendance: string; // Add attendance field to the user profile
+    attendance: string; 
   }
 };
 
@@ -63,7 +63,7 @@ export default function EventOptions({
   selectedEvent,
   userId,
 }: {
-  selectedEvent: Event;
+  selectedEvent: any;
   userId: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -78,13 +78,9 @@ export default function EventOptions({
   const [loadingCertificateSettings, setLoadingCertificateSettings] = useState<boolean>(false);
   const [certificateError, setCertificateError] = useState<string | null>(null);
 
-  const hasFeedbackForm = selectedEvent.has_feedback_form;
+  const hasFeedbackForm = selectedEvent?.has_feedback_form || false;
 
   const releaseCertificatesHandler = async () => {
-    // Perform necessary checks here
-    // For example, check if the user is authenticated and has permissions
-  
-    // Then call the API route
     Swal.fire({
       title: "Are you sure?",
       text: "This will release certificates to all attendees.",
@@ -96,7 +92,7 @@ export default function EventOptions({
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          const response = await fetch(`/api/events/${selectedEvent.eventid}/release_certificates`, {
+          const response = await fetch(`/api/events/${selectedEvent.id}/release_certificates`, {
             method: "POST",
           });
           const data = await response.json();
@@ -125,11 +121,12 @@ export default function EventOptions({
   };
   
 
-
   useEffect(() => {
     const fetchCertSettings = async () => {
+      if (!selectedEvent?.id) return;
+      
       setLoadingCertificateSettings(true);
-      const { data, error } = await fetchCertificateSettings(selectedEvent.eventid);
+      const { data, error } = await fetchCertificateSettings(selectedEvent.id);
       setLoadingCertificateSettings(false);
       if (error) {
         setCertificateError("Failed to load certificate settings.");
@@ -138,7 +135,7 @@ export default function EventOptions({
       }
     };
     fetchCertSettings();
-  }, [selectedEvent.eventid]);  
+  }, [selectedEvent?.id]);
 
 
   const deleteBtn = () => {
@@ -152,7 +149,7 @@ export default function EventOptions({
       reverseButtons: true,
     }).then(async (result) => {
       if (result.isConfirmed) {
-        const response = await deleteEvent(selectedEvent.eventid); // Assuming id is used for events
+        const response = await deleteEvent(selectedEvent.id); 
 
         await recordActivity({
           activity_type: "event_delete",
@@ -179,11 +176,10 @@ export default function EventOptions({
     });
   };
 
-  // Define the base URL for your Supabase storage bucket
   const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
 
-  // Function to format date to Philippine Standard Time
   const formattedDateTime = (utcDateString: string) => {
+    if (!utcDateString) return "N/A";
     const date = new Date(utcDateString);
     return date.toLocaleString("en-US", {
       timeZone: "Asia/Manila",
@@ -195,16 +191,14 @@ export default function EventOptions({
     });
   };
 
-  // Format the event date time and created at date
   const startEventDateTimePST = formattedDateTime(
-    selectedEvent.starteventdatetime.toString()
-  ); // Convert Date object to string
+    selectedEvent.starteventdatetime?.toString()
+  ); 
   const endEventDateTimePST = formattedDateTime(
-    selectedEvent.endeventdatetime.toString()
-  ); // Convert Date object to string
-  const createdAtPST = formattedDateTime(selectedEvent.createdat.toString()); // Convert Date object to string
+    selectedEvent.endeventdatetime?.toString()
+  ); 
+  const createdAtPST = formattedDateTime(selectedEvent.createdat?.toString()); 
 
-  // Function to check if the location is a URL
   const isUrl = (string: string) => {
     try {
       new URL(string);
@@ -214,8 +208,7 @@ export default function EventOptions({
     }
   };
 
-  // Render the location as a clickable link if it's a URL
-  const locationContent = isUrl(selectedEvent.location) ? (
+  const locationContent = selectedEvent.location && isUrl(selectedEvent.location) ? (
     <a
       href={selectedEvent.location}
       target="_blank"
@@ -228,12 +221,11 @@ export default function EventOptions({
     selectedEvent.location
   );
 
-  // Fetch attendees when the "Attendees" tab is selected
   useEffect(() => {
-    if (currentTab === "Attendees") {
+    if (currentTab === "Attendees" && selectedEvent?.id) {
       const fetchAttendees = async () => {
         setLoadingAttendees(true);
-        const { users, error } = await fetchRegisteredUsersForEvent(selectedEvent.eventid);
+        const { users, error } = await fetchRegisteredUsersForEvent(selectedEvent.id);
         setLoadingAttendees(false);
         if (!error) {
           setAttendees(users);
@@ -248,7 +240,7 @@ export default function EventOptions({
       };
       fetchAttendees();
     }
-  }, [currentTab, selectedEvent.eventid]);
+  }, [currentTab, selectedEvent?.id]);
 
   useEffect(() => {
     const checkPermissions = async () => {
@@ -271,8 +263,10 @@ export default function EventOptions({
       }
     };
 
-    checkPermissions();
-  }, [userId, selectedEvent.organizationid]);
+    if (selectedEvent?.organizationid) {
+      checkPermissions();
+    }
+  }, [userId, selectedEvent?.organizationid]);
 
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     const query = event.target.value.toLowerCase();
@@ -305,10 +299,10 @@ export default function EventOptions({
       .map((row) => row.join(","))
       .join("\n");
 
-    const currentDate = format(new Date(), "yyyyMMdd"); // Format date as yyyyMMdd
+    const currentDate = format(new Date(), "yyyyMMdd"); 
     const fileName = `${selectedEvent.title}_attendees_${currentDate}.csv`
       .replace(/ /g, "_")
-      .toLowerCase(); // Format file name: remove spaces, lowercase
+      .toLowerCase(); 
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     saveAs(blob, fileName);
@@ -321,19 +315,20 @@ export default function EventOptions({
     const { error } = await supabase
       .from("events")
       .update({ has_feedback_form: true })
-      .eq("eventslug", eventslug);
+      .eq("id", selectedEvent.id);
 
     if (error) {
       console.error("Error updating has_feedback_form:", error);
       return;
     }
 
-    // router.push(`/feedback/form/${eventslug}`);
     window.location.href = `/feedback/form/${eventslug}`;
   };
 
+  const handleViewFeedback = () => {
+    router.push(`/dashboard/feedback/${selectedEvent.eventslug}`);
+  };
 
-  
   return (
     <>
       <Menu as="div" className="relative inline-block text-left">
@@ -383,7 +378,6 @@ export default function EventOptions({
                       active ? "bg-raisinblack text-light" : "text-light",
                       "group flex items-center px-4 py-2 text-sm"
                     )}
-                    // org slug/dashboard.registrations
                     href={`/${selectedEvent.eventslug}/dashboard/registrations`}
                   >
                     <UsersIcon
@@ -396,21 +390,18 @@ export default function EventOptions({
               </Menu.Item>
               
               {canEditEvents && (
-                <Menu.Item>
-                  {({ active }: { active: boolean }) => (
+                <Menu.Item disabled={hasFeedbackForm}>
+                  {({ active, disabled }: { active: boolean; disabled: boolean }) => (
                     <a
-                      href={`/feedback/form/${selectedEvent.eventslug}`}
+                      href="#"
                       className={classNames(
-                        active ? "bg-raisinblack text-light" : "text-light",
+                        active && !disabled ? "bg-raisinblack text-light" : "text-light",
+                        disabled ? "cursor-not-allowed opacity-50" : "",
                         "group flex items-center px-3 py-2 text-sm"
                       )}
-                      // onClick={() => {
-                      //   setCurrentTab("Info");
-                      //   setOpen(true);
-                      // }}
-                      onClick={async(e) => {
-                        if(!hasFeedbackForm) {
-                          e.preventDefault();
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        if (!hasFeedbackForm) {
                           await handleCreateFeedbackForm(selectedEvent.eventslug);
                         }
                       }}
@@ -419,61 +410,43 @@ export default function EventOptions({
                         className="mr-4 h-5 w-5 text-light group-hover:text-light"
                         aria-hidden="true"
                       />
-                      
                       {hasFeedbackForm ? "Edit Feedback Form" : "Create Feedback Form"}
                     </a>
                   )}
                 </Menu.Item>
               )}
               
-              {/* <Menu.Item>
-                {({ active }: { active: boolean }) => (
-                  <a
-                    href="#"
-                    className={classNames(
-                      active ? "bg-raisinblack text-light" : "text-light",
-                      "group flex items-center px-4 py-2 text-sm"
-                    )}
-                    onClick={() => {
-                      setCurrentTab("Attendees");
-                      setOpen(true);
-                    }}
-                  >
-                    <UsersIcon
-                      className="mr-3 h-5 w-5 text-light group-hover:text-light"
-                      aria-hidden="true"
-                    />
-                    View Attendees
-                  </a>
-                )}
-              </Menu.Item> */}
               {canEditEvents && (
                 <Menu.Item disabled={!hasFeedbackForm}>
                   {({ active, disabled }: { active: boolean; disabled: boolean }) => (
-                      <a
+                    <a
                       href="#"
                       className={classNames(
                         active && !disabled ? "bg-raisinblack text-light" : "text-light",
                         disabled ? "cursor-not-allowed opacity-50" : "",
                         "group flex items-center px-4 py-2 text-sm"
                       )}
-                      onClick={() => {
-                        router.push(`/dashboard/feedback/${selectedEvent.eventslug}`);
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (hasFeedbackForm) {
+                          handleViewFeedback();
+                        }
                       }}
-                      >
+                    >
                       <MdOutlineComment
                         className="mr-3 h-5 w-5 text-light group-hover:text-light"
                         aria-hidden="true"
                       />
                       View Feedback
-                      </a>
+                    </a>
                   )}
                 </Menu.Item>
               )}
+
               {/* Certificate Preview - Conditional Rendering */}
               <Menu.Item disabled={!certificateSettings?.certificate_enabled}>
                 {({ active, disabled }: { active: boolean; disabled: boolean }) => (
-                    <a
+                  <a
                     href="#"
                     className={classNames(
                       active && !disabled ? "bg-raisinblack text-light" : "text-light",
@@ -482,19 +455,20 @@ export default function EventOptions({
                     )}
                     onClick={() => {
                       if (certificateSettings?.certificate_enabled) {
-                      setCurrentTab("CertificatePreview");
-                      setOpen(true);
+                        setCurrentTab("CertificatePreview");
+                        setOpen(true);
                       }
                     }}
-                    >
+                  >
                     <FaCertificate
                       className="mr-3 h-5 w-5 text-light group-hover:text-light"
                       aria-hidden="true"
                     />
                     Preview Certificate
-                    </a>
+                  </a>
                 )}
               </Menu.Item>
+
               {canEditEvents && (
                 <Menu.Item disabled={!certificateSettings?.certificate_enabled}>
                   {({ active, disabled }: { active: boolean; disabled: boolean }) => (
@@ -666,7 +640,7 @@ export default function EventOptions({
                                     Description:
                                   </td>
                                   <td className="p-2">
-                                    {truncateText(selectedEvent.description, 100)}
+                                    {truncateText(selectedEvent.description || "", 100)}
                                   </td>
                                 </tr>
                                 <tr>
@@ -729,7 +703,7 @@ export default function EventOptions({
                                                 <div className="mt-2">
                                                   <div className="mt-1 flex flex-wrap gap-2">
                                                     {selectedEvent.privacy.roles.map(
-                                                      (role, index) => (
+                                                      (role: string, index: number) => (
                                                         <span
                                                           key={index}
                                                           className="inline-block rounded bg-primary px-3 py-1 text-sm font-semibold text-white"
@@ -749,7 +723,7 @@ export default function EventOptions({
                                                 <div className="mt-2">
                                                   <div className="mt-1 flex flex-wrap gap-2">
                                                     {selectedEvent.privacy.membership_tiers.map(
-                                                      (tier, index) => (
+                                                      (tier: string, index: number) => (
                                                         <span
                                                           key={index}
                                                           className="inline-block rounded bg-primary px-3 py-1 text-sm font-semibold text-white"
@@ -791,9 +765,8 @@ export default function EventOptions({
                                 <tr>
                                   <td className="p-2 font-bold text-gray-400">Tags:</td>
                                   <td className="flex flex-wrap gap-2 p-2 ">
-                                    {/* Check if selectedEvent.tags is not null or undefined and has length before mapping */}
                                     {selectedEvent.tags && selectedEvent.tags.length > 0
-                                      ? selectedEvent.tags.map((tag, index) => (
+                                      ? selectedEvent.tags.map((tag: string, index: number) => (
                                           <span
                                             key={index}
                                             className="mr-2 inline-block rounded bg-gray-200 px-3 py-1 text-sm font-semibold text-gray-700 transition duration-100 hover:scale-[1.05] hover:bg-gray-200"
@@ -817,7 +790,7 @@ export default function EventOptions({
                               {canEditEvents && (
                                 <Link
                                   className="flex-1 rounded-md bg-charleston px-4 py-2 text-center text-white hover:bg-raisinblack"
-                                  href={`/events/edit/${selectedEvent.eventid}`}
+                                  href={`/events/edit/${selectedEvent.id}`}
                                 >
                                   Edit Event
                                 </Link>
@@ -833,7 +806,7 @@ export default function EventOptions({
                             </div>
                           </>
                         )}
-                       {currentTab === "Attendees" && (
+                        {currentTab === "Attendees" && (
                           <div className="space-y-4">
                             <div className="flex justify-between">
                               <input
@@ -889,7 +862,7 @@ export default function EventOptions({
                               </div>
                             ) : certificateSettings?.certificate_enabled ? (
                               <iframe
-                                src={`/api/certificates/preview?event_id=${selectedEvent.eventid}`}
+                                src={`/api/certificates/preview?event_id=${selectedEvent.id}`}
                                 width="100%"
                                 height="600px"
                                 className="border-none"
@@ -902,7 +875,7 @@ export default function EventOptions({
                                   Certificates are not enabled for this event. To enable certificates, please{" "}
                                   {canEditEvents ? (
                                     <Link
-                                      href={`/events/edit/${selectedEvent.eventid}`}
+                                      href={`/events/edit/${selectedEvent.id}`}
                                       className="text-primary underline hover:text-primarydark"
                                     >
                                       edit the event

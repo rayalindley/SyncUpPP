@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 
 const signInSchema = z.object({
   email: z.string().email({ message: "Invalid email format" }),
-  password: z.string().min(8, { message: "Password must be at least 8 characters long" }), // Customizing the minimum length message
+  password: z.string().min(8, { message: "Password must be at least 8 characters long" }),
 });
 
 const signUpSchema = z.object({
@@ -14,10 +14,10 @@ const signUpSchema = z.object({
   password: z.string().min(8, { message: "Password must be at least 8 characters long" }),
   first_name: z
     .string()
-    .min(2, { message: "First name must be at least 2 characters long" }), // Updated minimum length requirement
+    .min(2, { message: "First name must be at least 2 characters long" }),
   last_name: z
     .string()
-    .min(2, { message: "Last name must be at least 2 characters long" }), // Updated minimum length requirement
+    .min(2, { message: "Last name must be at least 2 characters long" }),
 });
 
 export async function signOut() {
@@ -89,7 +89,8 @@ export async function signUp(formData: FormData) {
     return redirect(`/signup?${errorParams}`);
   }
 
-  return redirect("/signup?success=Check your email to continue signing up.");
+  // ✅ Redirect to role selection instead of dashboard
+  return redirect("/setup/role-selection");
 }
 
 type Provider = "github" | "google";

@@ -113,10 +113,11 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
       const { eventid, userid } = registrationData;
   
       // Fetch event details
+      // ✅ FIXED: Query events table with 'id', not 'eventid'
       const { data: eventData, error: eventError } = await supabase
         .from("events")
         .select("*")
-        .eq("eventid", eventid)
+        .eq("id", eventid)
         .single();
   
       if (eventError || !eventData) {

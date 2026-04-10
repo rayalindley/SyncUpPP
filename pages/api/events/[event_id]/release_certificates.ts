@@ -20,11 +20,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Removed user authentication and permission checks
 
-    // Fetch event data
+    // ✅ FIX: Changed from .select("eventid, organizationid") to .select("id, organizationid")
+    // ✅ FIX: Changed from .eq("eventid", event_id) to .eq("id", event_id)
     const { data: eventData, error: eventError } = await supabase
       .from("events")
-      .select("eventid, organizationid")
-      .eq("eventid", event_id)
+      .select("id, organizationid")
+      .eq("id", event_id)
       .single();
 
     if (eventError || !eventData) {

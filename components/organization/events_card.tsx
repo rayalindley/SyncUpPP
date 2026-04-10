@@ -13,7 +13,7 @@ import Link from "next/link";
 
 const EventsCard = ({ event }: { event: Event }) => {
   const {
-    eventid,
+    id,  // Changed from eventid to id
     imageUrl,
     title,
     description,
@@ -24,7 +24,7 @@ const EventsCard = ({ event }: { event: Event }) => {
     capacity,
     eventslug,
     privacy,
-    status, // Add status from the event
+    status,
   } = event;
   const hasImageUrl = !!imageUrl;
   const truncatedDescription =
@@ -74,7 +74,8 @@ const EventsCard = ({ event }: { event: Event }) => {
 
       const { data, error } = await supabase.from("eventregistrations").insert([
         {
-          eventid: event.eventid,
+          eventid: id,  // Changed from event.eventid to id
+          userid: userId,  // Added userId
           registrationdate: new Date().toISOString(),
           status: "registered",
         },
@@ -85,6 +86,8 @@ const EventsCard = ({ event }: { event: Event }) => {
         toast.error("Registration failed. Please try again.");
       } else {
         toast.success("You have successfully joined the event!");
+        // Refresh the registered count
+        fetchRegisteredCount();
       }
     }
   };
@@ -92,7 +95,13 @@ const EventsCard = ({ event }: { event: Event }) => {
   const [registeredCount, setRegisteredCount] = useState(0);
 
   const fetchRegisteredCount = async () => {
-    const { count, error } = await countRegisteredUsers(event.eventid);
+    // Add a guard clause to prevent undefined IDs
+    if (!id) {
+      console.error("Event ID is undefined");
+      return;
+    }
+
+    const { count, error } = await countRegisteredUsers(id);  // Changed from event.eventid to id
     if (error) {
       toast.error("Failed to fetch the number of registered users.");
       console.error("Error fetching registered count:", error);
@@ -122,7 +131,7 @@ const EventsCard = ({ event }: { event: Event }) => {
 
   useEffect(() => {
     fetchRegisteredCount();
-  }, []);
+  }, [id]);  // Added id as dependency
 
   // Use the status fetched from the database directly
   const eventStatus = status;

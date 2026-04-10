@@ -1,43 +1,61 @@
-import { redirect } from "next/navigation";
+"use client";
 
-import Header from "@/components/dashboard/header";
-import SideNavMenuForAdmins from "@/components/dashboard/side_nav_menu_for_admins";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { getUser } from "@/lib/supabase/client";
 import SideNavMenuForUsers from "@/components/dashboard/side_nav_menu_for_users";
-import { UserProvider } from "@/context/user_context";
-import { fetchOrganizationsForUser, fetchOrganizationsForUserWithViewPermission } from "@/lib/organization";
-import { getUser } from "@/lib/supabase/server";
+import Loader from "@/components/Loader";
+import useSidebarStore from "@/store/useSidebarStore";
 
-export default async function DashboardLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  const { user } = await getUser();
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const { sidebarOpen, setSidebarOpen } = useSidebarStore();
 
-  if (!user) {
-    return redirect("/signin");
-  }
+  useEffect(() => {
+    let alive = true;
 
-  const organizations = await fetchOrganizationsForUserWithViewPermission(user.id);
+    async function checkAuth() {
+      try {
+        const { user } = await getUser();
+
+        const role = user?.user_metadata?.role;
+        const ok = !!user && (role === "attendee" || role === "organizer" || role === "both");
+
+        if (!ok) {
+          if (alive) setLoading(false); // Set loading to false BEFORE redirect
+          router.replace("/signin");
+          return;
+        }
+
+        if (alive) {
+          setIsAuthorized(true);
+          setLoading(false); // Set both states
+        }
+      } catch (error) {
+        console.error("Error checking auth:", error);
+        if (alive) setLoading(false); // Set loading to false BEFORE redirect
+        router.replace("/signin");
+      }
+    }
+
+    checkAuth();
+    return () => {
+      alive = false;
+    };
+  }, [router]);
+
+  if (loading) return <Loader />;
+  if (!isAuthorized) return null;
 
   return (
-    <UserProvider>
-      <div className="">
-        {user.role === "superadmin" ? (
-          <SideNavMenuForAdmins />
-        ) : (
-          organizations &&
-          organizations.data && <SideNavMenuForUsers organizations={organizations.data} />
-        )}
-        <div className="lg:pl-72">
-          <Header user={user} />
-          <main className="bg-gray py-10">
-            <div className="px-4 sm:px-6 lg:px-8">{children}</div>
-          </main>
-        </div>
+    <div className="flex h-screen bg-eerieblack">
+      <SideNavMenuForUsers />
+      <div className="flex-1 overflow-y-auto">
+        {/* ... */}
+        <main className="p-8 lg:p-12">{children}</main>
       </div>
-    </UserProvider>
+    </div>
   );
 }
-
-// ^ we may add or wrap more components above if necessary

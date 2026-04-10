@@ -21,7 +21,7 @@ export default function OrgSection({ organizations }: { organizations: Organizat
         <ul className="mx-auto mt-20 grid max-w-2xl grid-cols-1 gap-6 sm:grid-cols-2 lg:mx-0 lg:max-w-none lg:grid-cols-3 lg:gap-8">
           {organizations.map((org: Organization) => (
             <OrganizationCard
-              key={org.id}
+              key={org.organizationid}
               name={org.name}
               description={org.description}
               organization_size={org.organization_size}

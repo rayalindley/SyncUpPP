@@ -160,11 +160,11 @@ export async function updateEvent(eventId: string, formData: any) {
 
   const supabase = createClient();
   try {
-    // Update the event
+    // ✅ FIX: Changed from .eq("eventid", eventId) to .eq("id", eventId)
     const { data: eventDataUpdated, error } = await supabase
       .from("events")
       .update(updateValues)
-      .eq("eventid", eventId)
+      .eq("id", eventId)
       .select();
 
     if (error) {
@@ -302,6 +302,7 @@ export async function fetchEvents(organizationid: string) {
 export async function fetchEventById(eventId: string) {
   const supabase = createClient();
   try {
+    // ✅ FIX: Changed from .eq("eventid", eventId) to .eq("id", eventId)
     const { data, error } = await supabase
       .from("events")
       .select(
@@ -315,7 +316,7 @@ export async function fetchEventById(eventId: string) {
         )
       `
       )
-      .eq("eventid", eventId)
+      .eq("id", eventId)
       .single();
 
     if (!error && data) {
@@ -356,20 +357,22 @@ export async function deleteEvent(eventId: string) {
   const supabase = createClient();
 
   try {
+    // ✅ FIX: Changed from .eq("eventid", eventId) to .eq("id", eventId)
     const { data: eventData, error: fetchError } = await supabase
       .from("events")
       .select("eventphoto")
-      .eq("eventid", eventId)
+      .eq("id", eventId)
       .single();
 
     if (fetchError) {
       return { data: null, error: { message: fetchError.message } };
     }
 
+    // ✅ FIX: Changed from .eq("eventid", eventId) to .eq("id", eventId)
     const { data, error: deleteError } = await supabase
       .from("events")
       .delete()
-      .eq("eventid", eventId);
+      .eq("id", eventId);
 
     if (deleteError) {
       return { data: null, error: { message: deleteError.message } };
@@ -459,10 +462,11 @@ export async function registerForEvent(
   const supabase = createClient();
 
   try {
+    // ✅ FIX: Changed from .eq("eventid", eventId) to .eq("id", eventId)
     const { data: event, error: eventError } = await supabase
       .from("events")
       .select("privacy, organizationid, onsite")
-      .eq("eventid", eventId)
+      .eq("id", eventId)
       .single();
 
     if (eventError || !event) {
@@ -601,10 +605,11 @@ export async function checkEventPrivacyAndMembership(eventId: string, userId: st
   const supabase = createClient();
 
   try {
+    // ✅ FIX: Changed from .eq("eventid", eventId) to .eq("id", eventId)
     const { data: event, error: eventError } = await supabase
       .from("events")
       .select("privacy, organizationid")
-      .eq("eventid", eventId)
+      .eq("id", eventId)
       .single();
 
     if (eventError || !event) {
@@ -715,10 +720,11 @@ export async function fetchEventsForUser(userId: string) {
       return { data: [], error: null };
     }
 
+    // ✅ FIX: Changed from .in("eventid", eventIds) to .in("id", eventIds)
     const { data: events, error: eventsError } = await supabase
       .from("events")
       .select("*")
-      .in("eventid", eventIds);
+      .in("id", eventIds);
 
     if (eventsError) {
       throw eventsError;
@@ -737,10 +743,11 @@ export async function fetchEventsForUser(userId: string) {
 export async function isEventFull(eventId: string) {
   const supabase = createClient();
   try {
+    // ✅ FIX: Changed from .eq("eventid", eventId) to .eq("id", eventId)
     const { data: event, error: eventError } = await supabase
       .from("events")
       .select("capacity")
-      .eq("eventid", eventId)
+      .eq("id", eventId)
       .single();
 
     if (eventError || !event) {
@@ -813,10 +820,11 @@ export async function fetchEventsForUserAdmin(userId: string) {
       return { data: [], error: null };
     }
 
+    // ✅ FIX: Changed from .in("eventid", eventIds) to .in("id", eventIds)
     const { data: events, error: eventsError } = await supabase
       .from("events")
       .select("*")
-      .in("eventid", eventIds);
+      .in("id", eventIds);
 
     if (eventsError) {
       throw eventsError;
@@ -877,19 +885,18 @@ export async function fetchSignatoriesForEvent(eventId: string) {
  */
 export const fetchCertificateSettings = async (eventId: string) => {
   const supabase = createClient();
-  // console.log(`Fetching certificate settings for event ID: ${eventId}`);
+
   const { data, error } = await supabase
     .from("event_certificate_settings")
     .select("certificate_enabled, release_option, scheduled_release_date")
     .eq("event_id", eventId)
-    .single();
+    .maybeSingle(); // Use maybeSingle to prevent PGRST116 0 rows error
 
   if (error) {
     console.error("Error fetching certificate settings:", error);
     return { error };
   }
 
-  // console.log("Fetched certificate settings:", data);
   return { data };
 };
 

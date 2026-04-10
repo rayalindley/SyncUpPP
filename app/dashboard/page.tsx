@@ -1,130 +1,159 @@
 "use client";
 
-import AdminAnalyticsDashboard from "@/components/dashboard/admin_analytics_dashboard";
-import OrganizationsSection from "@/components/dashboard/organizations_section";
-import { fetchOrganizationsJoinedByUser } from "@/lib/organization";
-import { createClient, getUser } from "@/lib/supabase/client";
-import { PlusCircleIcon } from "@heroicons/react/24/outline";
-import { User } from "@supabase/supabase-js";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { getUser } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
+import Loader from "@/components/Loader";
+import { IoIosAnalytics } from "react-icons/io";
+import { IoCalendarOutline, IoCheckmarkCircleOutline } from "react-icons/io5";
 
-const supabase = createClient();
-
-function classNames(...classes: string[]) {
-  return classes.filter(Boolean).join(" ");
+interface DashboardStats {
+  upcomingEvents: number;
+  attendedEvents: number;
+  registeredEvents: number;
 }
 
-const DashboardPage = () => {
-  const [organizations, setOrganizations] = useState<any[]>([]);
-  const [user, setUser] = useState<User | null>(null);
-  const dashboardRef = useRef(null);
-  const scrollPosition = useRef(0);
+export default function AttendeeDashboard() {
+  const [stats, setStats] = useState<DashboardStats>({
+    upcomingEvents: 0,
+    attendedEvents: 0,
+    registeredEvents: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState("");
 
   useEffect(() => {
-    const fetchUserAndOrganizations = async () => {
-      const { user } = await getUser();
+    async function fetchData() {
+      try {
+        const { user } = await getUser();
+        setUserName(user?.user_metadata?.first_name || "User");
 
-      setUser(user || null);
+        const supabase = createClient();
 
-      if (user?.role === "superadmin") {
-        const { data: organizations, error } = await supabase
-          .from("organization_summary")
-          .select("*");
-        setOrganizations(organizations ?? []);
-      } else {
-        // const { data: organizations, error } = await supabase
-        //   .from("organization_summary")
-        //   .select("*")
-        //   .eq("adminid", user?.id);
+        // Fetch upcoming events
+        const { data: upcomingData } = await supabase
+          .from("events")
+          .select("id")
+          .gt("end_time", new Date().toISOString())
+          .limit(100);
 
-          if (user) {
-            const { data: organizations, error } = await fetchOrganizationsJoinedByUser(
-              user.id
-            );
+        // Fetch attended events
+        const { data: attendedData } = await supabase
+          .from("event_attendees")
+          .select("id")
+          .eq("user_id", user?.id)
+          .eq("attended", true);
 
-            // console.log(organizations);
-            setOrganizations(organizations ?? []);
+        // Fetch registered events
+        const { data: registeredData } = await supabase
+          .from("event_attendees")
+          .select("id")
+          .eq("user_id", user?.id);
 
-          }
-
+        setStats({
+          upcomingEvents: upcomingData?.length || 0,
+          attendedEvents: attendedData?.length || 0,
+          registeredEvents: registeredData?.length || 0,
+        });
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      } finally {
+        setLoading(false);
       }
-    };
-
-    fetchUserAndOrganizations();
-
-    const handleDatabaseChange = () => {
-      fetchUserAndOrganizations();
-    };
-
-    const organizationMembersChannel = supabase
-      .channel("organizationmembers")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "organizationmembers" },
-        handleDatabaseChange
-      )
-      .subscribe();
-
-    const eventsChannel = supabase
-      .channel("events")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "events" },
-        handleDatabaseChange
-      )
-      .subscribe();
-
-    const postsChannel = supabase
-      .channel("posts")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "posts" },
-        handleDatabaseChange
-      )
-      .subscribe();
-
-    const commentsChannel = supabase
-      .channel("comments")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "post_comments" },
-        handleDatabaseChange
-      )
-      .subscribe();
-
-    return () => {
-      organizationMembersChannel.unsubscribe();
-      eventsChannel.unsubscribe();
-      postsChannel.unsubscribe();
-      commentsChannel.unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      scrollPosition.current = window.scrollY;
-    };
-
-    window.addEventListener("scroll", handleScroll);
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (dashboardRef.current) {
-      window.scrollTo(0, scrollPosition.current);
     }
-  }, [organizations]);
 
-  
+    fetchData();
+  }, []);
+
+  if (loading) return <Loader />;
+
   return (
-    <div ref={dashboardRef}>
-      <AdminAnalyticsDashboard user={user} />
-      <OrganizationsSection organizations={organizations} />
+    <div className="space-y-8">
+      {/* Header */}
+      <div>
+        <h1 className="text-4xl font-bold text-light">
+          Welcome back, {userName}! 👋
+        </h1>
+        <p className="text-gray-400 mt-2">
+          Here's what's happening with your events
+        </p>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Upcoming Events Card */}
+        <div className="bg-charleston border border-fadedgrey rounded-lg p-6 hover:border-primary transition-colors">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-gray-400 text-sm font-medium">Upcoming Events</p>
+              <p className="text-4xl font-bold text-light mt-2">
+                {stats.upcomingEvents}
+              </p>
+            </div>
+            <div className="p-3 bg-primary/10 rounded-lg">
+              <IoCalendarOutline className="w-8 h-8 text-primary" />
+            </div>
+          </div>
+          <p className="text-gray-500 text-xs mt-4">
+            Events coming up that you can join
+          </p>
+        </div>
+
+        {/* Registered Events Card */}
+        <div className="bg-charleston border border-fadedgrey rounded-lg p-6 hover:border-primary transition-colors">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-gray-400 text-sm font-medium">Registered Events</p>
+              <p className="text-4xl font-bold text-light mt-2">
+                {stats.registeredEvents}
+              </p>
+            </div>
+            <div className="p-3 bg-primary/10 rounded-lg">
+              <IoIosAnalytics className="w-8 h-8 text-primary" />
+            </div>
+          </div>
+          <p className="text-gray-500 text-xs mt-4">
+            Events you've registered for
+          </p>
+        </div>
+
+        {/* Attended Events Card */}
+        <div className="bg-charleston border border-fadedgrey rounded-lg p-6 hover:border-primary transition-colors">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-gray-400 text-sm font-medium">Attended Events</p>
+              <p className="text-4xl font-bold text-light mt-2">
+                {stats.attendedEvents}
+              </p>
+            </div>
+            <div className="p-3 bg-primary/10 rounded-lg">
+              <IoCheckmarkCircleOutline className="w-8 h-8 text-primary" />
+            </div>
+          </div>
+          <p className="text-gray-500 text-xs mt-4">
+            Events you've attended
+          </p>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="bg-charleston border border-fadedgrey rounded-lg p-6">
+        <h2 className="text-xl font-bold text-light mb-4">Quick Actions</h2>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <a
+            href="/dashboard/events"
+            className="flex-1 bg-primary hover:bg-primarydark text-white font-medium py-3 rounded-lg transition-colors text-center"
+          >
+            Browse Events
+          </a>
+          <a
+            href="/dashboard/faqs"
+            className="flex-1 bg-charleston border border-primary hover:bg-primary/10 text-primary font-medium py-3 rounded-lg transition-colors text-center"
+          >
+            View FAQs
+          </a>
+        </div>
+      </div>
     </div>
   );
-};
-
-export default DashboardPage;
+}
