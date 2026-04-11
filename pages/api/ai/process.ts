@@ -1,3 +1,5 @@
+
+console.log("🔴 process.ts HIT");
 import type { NextApiRequest, NextApiResponse } from "next";
 import Groq from "groq-sdk";
 import { createClient } from "@supabase/supabase-js";
@@ -7,15 +9,13 @@ import { createClient } from "@supabase/supabase-js";
 ========================= */
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // REQUIRED (bypasses RLS)
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
 /* =========================
    Groq Client
 ========================= */
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY!,
-});
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! });
 
 /* =========================
    Types
@@ -23,80 +23,135 @@ const groq = new Groq({
 type FeedbackRow = {
   id: string;
   text: string;
-  likert: number | null;
   event_id: string | null;
 };
 
-type GroqResult = {
-  translation?: string;
-  summary?: string;
-  sentiment?: {
-    label?: string;
-    score?: number;
-  };
-  likert?: number;
-  keywords?: string[];
-  recommendations?: string[];
+type PerFeedbackResult = {
+  translation: string;
+  sentiment: { label: string; score: number };
+  keywords: string[];
+};
+
+type Analysis = {
+  feedback_id: string;
+  translation: string | null;
+  sentiment_label: string | null;
+  sentiment_score: number | null;
+  keywords: string[];
+  raw_response: string;
 };
 
 /* =========================
-   Groq Call
+   Stopwords (mirrors Flask)
 ========================= */
-async function analyzeFeedback(text: string) {
+const STOPWORDS = new Set([
+  "event","the","is","at","which","on","and","a","an","but","or","to","of",
+  "in","for","with","by","it","was","as","be","are","this","that","from",
+  "so","not","no","if","we","they","you","i","me","my","do","does","did",
+  "have","has","had","will","just","about",
+]);
+
+function extractKeywords(text: string): string[] {
+  return text
+    .toLowerCase()
+    .match(/\b\w+\b/g)
+    ?.filter((w) => !STOPWORDS.has(w)) ?? [];
+}
+
+/* =========================
+   Step 1 — Per-feedback:
+   translate + sentiment (parallel, one call each)
+========================= */
+async function analyzeOne(fb: FeedbackRow): Promise<{
+  result: PerFeedbackResult;
+  raw: string;
+}> {
   const prompt = `
-You are a strict JSON generator. Analyze the feedback below and return ONLY a single valid JSON object. 
+You are a strict JSON generator. Analyze the feedback below and return ONLY a valid JSON object.
 
 FEEDBACK:
-"${text}"
+"${fb.text}"
 
-The JSON object must have the following fields:
-
+Return this exact shape:
 {
-  "translation": string,            // English translation of feedback
-  "summary": string,                // 2–3 sentence summary of feedback
+  "translation": string,       // English translation (same text if already English)
   "sentiment": {
-    "label": "Positive" | "Neutral" | "Negative"
-    "score": number                 // 1 (positive), 0 (neutral) and -1 (negative)
+    "label": "Positive" | "Negative",
+    "score": 1 | -1            // 1=Positive, -1=Negative
   },
-  "keywords": string[],             // array of important keywords, may be empty
-  "recommendations": string[]       // actionable recommendations, may be empty
+  "keywords": string[]         // important keywords extracted from the ORIGINAL text
 }
 
 Rules:
-
-1. RETURN ONLY VALID JSON. Do NOT include explanations, markdown, or comments.
-2. Always use numbers, not ranges or placeholders.
-3. Fill missing fields with sensible defaults: 
-   - translation: "" 
-   - summary: "" 
-   - sentiment.label: "Neutral" 
-   - sentiment.score: 0 
-   - keywords: [] 
-   - recommendations: []
-4. The JSON must be parseable by JSON.parse().
-
-Respond with the JSON object only.
-
-`;
+1. Return ONLY valid JSON — no markdown, no explanation.
+2. Defaults: translation="", sentiment.label="Neutral", sentiment.score=0, keywords=[].
+`.trim();
 
   const completion = await groq.chat.completions.create({
     model: "llama-3.1-8b-instant",
     messages: [{ role: "user", content: prompt }],
     temperature: 0.2,
-    max_tokens: 400,
+    max_tokens: 300,
   });
 
-  const raw =
-    completion.choices?.[0]?.message?.content?.trim() ?? "";
+  const raw = completion.choices?.[0]?.message?.content?.trim() ?? "";
 
   try {
+    const parsed = JSON.parse(raw) as PerFeedbackResult;
+    return { result: parsed, raw };
+  } catch {
     return {
-      ok: true,
-      parsed: JSON.parse(raw) as GroqResult,
+      result: {
+        translation: "",
+        sentiment: { label: "Neutral", score: 0 },
+        keywords: extractKeywords(fb.text), // fallback: local extraction
+      },
       raw,
     };
+  }
+}
+
+/* =========================
+   Step 2 — One summary call
+   across ALL translated texts
+   (mirrors Flask's phi-4 call)
+========================= */
+async function summarizeAll(translations: string[]): Promise<{
+  summary: string;
+  recommendations: string[];
+}> {
+  const bullet = translations.map((t) => `- ${t}`).join("\n");
+
+  const prompt = `
+Summarize the following event feedback and provide actionable recommendations.
+
+Return ONLY a valid JSON object with this exact shape:
+{
+  "summary": string,           // 2–3 sentence overall summary
+  "recommendations": string[]  // actionable bullet points
+}
+
+FEEDBACK:
+${bullet}
+
+Rules:
+1. Return ONLY valid JSON — no markdown, no explanation.
+2. Defaults: summary="", recommendations=[].
+`.trim();
+
+  const completion = await groq.chat.completions.create({
+    model: "llama-3.1-8b-instant",
+    messages: [{ role: "user", content: prompt }],
+    temperature: 0.3,
+    max_tokens: 500,
+  });
+
+  const raw = completion.choices?.[0]?.message?.content?.trim() ?? "";
+
+  try {
+    return JSON.parse(raw) as { summary: string; recommendations: string[] };
   } catch {
-    return { ok: false, parsed: null, raw };
+    return { summary: raw, recommendations: [] };
   }
 }
 
@@ -112,19 +167,14 @@ export default async function handler(
   }
 
   try {
-    const { id } = req.body as { id?: string };
+    const { eventId } = req.body as { eventId?: string };
+    if (!eventId) return res.status(400).json({ error: "eventId required" });
 
-    if (!id) {
-      return res.status(400).json({ error: "id required" });
-    }
-
-    /* =========================
-       1. Fetch unprocessed feedbacks
-    ========================= */
+    /* ── 1. Fetch unprocessed feedbacks ── */
     const { data: feedbacks, error } = await supabase
       .from("feedbacks")
-      .select("id, text, likert, event_id")
-      .eq("event_id", id)
+      .select("id, text, event_id")
+      .eq("event_id", eventId)
       .eq("processed", false)
       .limit(200);
 
@@ -132,116 +182,129 @@ export default async function handler(
       console.error(error);
       return res.status(500).json({ error: "Failed to fetch feedbacks" });
     }
-    
+
     if (!feedbacks || feedbacks.length === 0) {
-      return res
-        .status(200)
-        .json({ message: "No feedbacks to process." });
+      return res.status(200).json({ message: "No feedbacks to process." });
     }
 
-    /* =========================
-       2. Analyze feedbacks
-    ========================= */
-    const analyses = [];
+    /* ── 2. Analyze all feedbacks IN PARALLEL (mirrors Flask batch) ── */
+    const rawResults = await Promise.all(
+      (feedbacks as FeedbackRow[]).map((fb) => analyzeOne(fb))
+    );
 
-    for (const fb of feedbacks) {
-      const result = await analyzeFeedback(fb.text);
+    /* ── 3. One summary call across all translations ── */
+    const translations = rawResults.map(
+      (r) => r.result.translation || feedbacks[rawResults.indexOf(r)].text
+    );
+    const { summary, recommendations } = await summarizeAll(translations);
+
+    /* ── 4. Build analyses + aggregate in one pass ── */
+    const analyses: Analysis[] = [];
+    const sentimentCounts = { positive: 0, negative: 0, neutral: 0, mixed: 0 };
+    const keywordFreq: Record<string, number> = {};
+
+    for (let i = 0; i < feedbacks.length; i++) {
+      const fb = feedbacks[i] as FeedbackRow;
+      const { result, raw } = rawResults[i];
+
+      const sentimentLabel = result.sentiment?.label?.toLowerCase() ?? "neutral";
+      const sentimentScore =
+        typeof result.sentiment?.score === "number" ? result.sentiment.score : null;
+
+      // Sentiment counts
+      if (sentimentLabel in sentimentCounts) {
+        sentimentCounts[sentimentLabel as keyof typeof sentimentCounts]++;
+      }
+
+      // Keyword frequency — from original text (mirrors Flask)
+      const words = [
+        ...extractKeywords(fb.text),
+        ...(result.keywords ?? []),
+      ];
+      for (const w of words) {
+        keywordFreq[w] = (keywordFreq[w] || 0) + 1;
+      }
 
       analyses.push({
         feedback_id: fb.id,
-        translation: result.parsed?.translation ?? null,
-        summary: result.parsed?.summary ?? null,
-        sentiment_label:
-          result.parsed?.sentiment?.label?.toLowerCase() ?? null,
-        sentiment_score:
-          typeof result.parsed?.sentiment?.score === "number"
-            ? result.parsed.sentiment.score
-            : null,
-        likert:
-          typeof result.parsed?.likert === "number"
-            ? result.parsed.likert
-            : fb.likert,
-        keywords: result.parsed?.keywords ?? [],
-        recommendations: result.parsed?.recommendations ?? [],
-        raw_response: result.raw,
+        translation: result.translation || null,
+        sentiment_label: sentimentLabel,
+        sentiment_score: sentimentScore,
+        keywords: result.keywords ?? [],
+        raw_response: raw,
       });
-
-      await supabase
-        .from("feedbacks")
-        .update({
-          processed: true,
-          processed_at: new Date().toISOString(),
-        })
-        .eq("id", fb.id);
     }
 
-    /* =========================
-       3. Insert feedback_analyses
-    ========================= */
-    await supabase.from("feedback_analyses").insert(analyses);
 
-    /* =========================
-       4. Aggregate report
-    ========================= */
-    const sentimentCounts = {
-      positive: 0,
-      negative: 0,
-      neutral: 0,
-      mixed: 0,
-    };
+    /* ── 5. Batch insert analyses (one round-trip, not N) ── */
+    const { error: analysesError } = await supabase
+  .from("feedback_analyses")
+  .insert(
+    analyses.map((a) => ({
+      ...a,
+      summary,
+      recommendations,
+    }))
+  );
 
-    const likertCounts: Record<number, number> = {};
-    const keywordFreq: Record<string, number> = {};
-    let sumLikert = 0;
-    let likertTotal = 0;
+console.log("❌ feedback_analyses insert error:", analysesError);
 
-    for (const a of analyses) {
-      const s = a.sentiment_label ?? "neutral";
-      sentimentCounts[s as keyof typeof sentimentCounts]++;
-
-      if (typeof a.likert === "number") {
-        likertCounts[a.likert] =
-          (likertCounts[a.likert] || 0) + 1;
-        sumLikert += a.likert;
-        likertTotal++;
-      }
-
-      for (const k of a.keywords) {
-        keywordFreq[k] = (keywordFreq[k] || 0) + 1;
-      }
-    }
-
-    const avgLikert =
-      likertTotal > 0 ? sumLikert / likertTotal : null;
-
-    const summaries = analyses
-      .map((a) => a.summary)
-      .filter(Boolean)
-      .slice(0, 5);
-
-    /* =========================
-       5. Insert feedback_reports
-    ========================= */
-    const { data: report } = await supabase
-      .from("feedback_reports")
-      .insert({
-        event_id: id,
+    /* ── 6. Insert report ── */
+    console.log("\n--- INSERT: feedback_reports ---");
+    console.log(JSON.stringify({
+    event_id: eventId,
         generated_at: new Date().toISOString(),
         total_feedbacks: analyses.length,
-        avg_likert: avgLikert,
-        likert_counts: likertCounts,
-        sentiment_counts: sentimentCounts,
+        // wrap sentiment_counts in the shape your table expects
+        sentiment_counts: {
+          positive: sentimentCounts.positive,
+          negative: sentimentCounts.negative,
+          neutral: sentimentCounts.neutral,
+          mixed: sentimentCounts.mixed,
+        },
         top_keywords: keywordFreq,
-        summaries,
+        summary,
+        recommendations,
+        raw_analyses: analyses,
+    }, null, 2));
+
+    const { data: report, error: reportError } = await supabase
+      .from("feedback_reports")
+      .insert({
+        event_id: eventId,
+        generated_at: new Date().toISOString(),
+        total_feedbacks: analyses.length,
+        // wrap sentiment_counts in the shape your table expects
+        sentiment_counts: {
+          positive: sentimentCounts.positive,
+          negative: sentimentCounts.negative,
+          neutral: sentimentCounts.neutral,
+          mixed: sentimentCounts.mixed,
+        },
+        top_keywords: keywordFreq,
+        summary,
+        recommendations,
         raw_analyses: analyses,
       })
       .select()
       .single();
 
+    console.log("❌ feedback_reports insert error:", reportError);
+
+    /* ── 7. Return everything at once (mirrors Flask's single response) ── */
     return res.status(200).json({
       message: "Feedback processed",
-      processed: analyses.length,
-      report,
+      total_feedbacks: analyses.length,
+      results: analyses.map((a, i) => ({
+        original: (feedbacks[i] as FeedbackRow).text,
+        translated: a.translation,
+        sentiment: a.sentiment_label,
+        sentiment_score: a.sentiment_score,
+        keywords: a.keywords,
+      })),
+      top_keywords: keywordFreq,
+      summary,
+      recommendations,
     });
   } catch (err) {
     console.error(err);

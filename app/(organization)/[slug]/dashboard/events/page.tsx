@@ -1,13 +1,10 @@
 import EventsTableUser from "@/components/app/events_table_user";
 import { fetchOrganizationBySlug, check_permissions } from "@/lib/organization";
-import { createClient, getUser } from "@/lib/supabase/server"; // Server-side Supabase client
-import { Event } from "@/types/event";
-import { Organization } from "@/types/organization";
+import { createClient, getUser } from "@/lib/supabase/server";
 
 export default async function DashboardPage({ params }: { params: { slug: string } }) {
   const supabase = createClient();
-  
-  // Fetch the current user
+
   const { user } = await getUser();
 
   if (!user) {
@@ -21,15 +18,17 @@ export default async function DashboardPage({ params }: { params: { slug: string
     );
   }
 
-  // Fetch the organization details by slug
   const { data: organization, error: orgError } = await fetchOrganizationBySlug(params.slug);
 
   if (orgError || !organization) {
     return <div>Organization not found</div>;
   }
 
-  // Check if the user has permission to view the dashboard
-  const hasPermission = await check_permissions(user.id, organization.organizationid, "view_dashboard");
+  const hasPermission = await check_permissions(
+    user.id,
+    organization.organizationid,
+    "view_dashboard"
+  );
 
   if (!hasPermission) {
     return (
@@ -44,7 +43,6 @@ export default async function DashboardPage({ params }: { params: { slug: string
     );
   }
 
-  // Fetch events for the organization
   const { data: events, error: eventsError } = await supabase
     .from("events")
     .select("*")
@@ -55,10 +53,14 @@ export default async function DashboardPage({ params }: { params: { slug: string
     return <div>Error loading events</div>;
   }
 
-  // Render the events table if everything is fine
   return (
     <div>
-      <EventsTableUser organization={organization} events={events} userId={user.id} />
+      <EventsTableUser
+        organization={organization}
+        events={events}
+        userId={user.id}
+        orgSlug={params.slug}
+      />
     </div>
   );
 }

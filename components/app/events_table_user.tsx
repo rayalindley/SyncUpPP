@@ -7,11 +7,11 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import EventOptions from "./event_options";
 import { TableColumn } from "react-data-table-component";
 import { useDebounce } from "use-debounce";
-import dynamic from 'next/dynamic';
+import dynamic from "next/dynamic";
 import Loader from "@/components/Loader";
-import { createClient } from "@/lib/supabase/client"; // Import Supabase client
-import { toast } from "react-toastify"; // Import toast for notifications
-import "react-toastify/dist/ReactToastify.css"; // Import toast styles
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const supabase = createClient();
 
@@ -19,9 +19,6 @@ const DataTable = dynamic(() => import("react-data-table-component"), {
   ssr: false,
 });
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-/** Single shared date formatter — avoids duplicating toLocaleString options. */
 const fmtDate = (utcString: string) =>
   new Date(utcString).toLocaleString("en-US", {
     month: "short",
@@ -32,25 +29,21 @@ const fmtDate = (utcString: string) =>
     hour12: true,
   });
 
-/** Derive privacy label from the privacy field. */
 const privacyLabel = (privacy: Event["privacy"]) =>
   privacy && typeof privacy === "object" && privacy.type === "public"
     ? "Public"
     : "Private";
 
-/** Map a normalised status string to Tailwind colour classes. */
 const statusClasses = (status: string | null | undefined) => {
   switch ((status ?? "").trim().toLowerCase()) {
     case "ongoing":
       return "bg-yellow-600/25 text-yellow-300 border-yellow-500 focus:border-yellow-500 focus:ring-yellow-500";
     case "closed":
       return "bg-red-600/25 text-red-300 border-red-700 focus:border-red-700 focus:ring-red-700";
-    default: // "open" and any unknown value
+    default:
       return "bg-green-600/25 text-green-300 border-green-700 focus:border-green-700 focus:ring-green-700";
   }
 };
-
-// ─── Custom Pagination ───────────────────────────────────────────────────────
 
 const CustomPagination = ({
   currentPage,
@@ -82,12 +75,6 @@ const CustomPagination = ({
   </div>
 );
 
-// ─── Shared select style ─────────────────────────────────────────────────────
-
-/**
- * Extracted here so it isn't duplicated between desktop columns and mobile
- * cards.
- */
 const SelectStyle = () => (
   <style jsx>{`
     select {
@@ -105,16 +92,16 @@ const SelectStyle = () => (
   `}</style>
 );
 
-// ─── Main Component ──────────────────────────────────────────────────────────
-
 export default function EventsTableUser({
   organization,
   events,
   userId,
+  orgSlug,
 }: {
   organization: Organization;
   events: Event[];
   userId: string;
+  orgSlug: string;
 }) {
   const router = useRouter();
 
@@ -124,7 +111,6 @@ export default function EventsTableUser({
   const [filterText, setFilterText] = useState<string>("");
   const [debouncedFilterText] = useDebounce(filterText, 300);
 
-  // Sync tableData when parent re-renders with a fresh events array.
   const [tableData, setTableData] = useState<Event[]>(events);
   useEffect(() => {
     setTableData(events);
@@ -132,8 +118,6 @@ export default function EventsTableUser({
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-
-  // ── Permission check ───────────────────────────────────────────────────────
 
   useEffect(() => {
     let cancelled = false;
@@ -157,8 +141,6 @@ export default function EventsTableUser({
       }
     };
 
-    // FIX: Functional updater ensures the timeout only changes null → false
-    // and never overwrites an already-resolved true value.
     const fallbackTimeout = setTimeout(() => {
       if (!cancelled) {
         setCanCreateEvents((prev) => (prev === null ? false : prev));
@@ -168,21 +150,16 @@ export default function EventsTableUser({
 
     checkPermissions();
 
-    // FIX: canCreateEvents and canEditEvents removed from deps
     return () => {
       cancelled = true;
       clearTimeout(fallbackTimeout);
     };
   }, [userId, organization.organizationid]);
 
-  // ── Handlers ───────────────────────────────────────────────────────────────
-
   const handleCreateEvent = useCallback(() => {
     router.push(`/events/create/${organization.slug}`);
   }, [router, organization.slug]);
 
-  // FIX: useCallback keeps the reference stable so columns isn't recreated
-  // on every render.
   const handleStatusChange = useCallback(
     async (id: string, newStatus: string) => {
       if (!canEditEvents) {
@@ -201,9 +178,7 @@ export default function EventsTableUser({
         toast.success("Status updated successfully!");
         setTableData((prev) =>
           prev.map((event) =>
-            event.id === id
-              ? { ...event, status: newStatus, manualstatus: true }
-              : event
+            event.id === id ? { ...event, status: newStatus, manualstatus: true } : event
           )
         );
       }
@@ -211,9 +186,6 @@ export default function EventsTableUser({
     [canEditEvents]
   );
 
-  // ── Columns ────────────────────────────────────────────────────────────────
-
-  // FIX: useMemo keeps the array identity stable between renders.
   const columns = useMemo<TableColumn<Event>[]>(
     () => [
       {
@@ -226,13 +198,13 @@ export default function EventsTableUser({
         name: "Start Date & Time",
         selector: (row) => row.starteventdatetime ?? "",
         sortable: true,
-        cell: (row) => row.starteventdatetime ? fmtDate(row.starteventdatetime) : "—",
+        cell: (row) => (row.starteventdatetime ? fmtDate(row.starteventdatetime) : "—"),
       },
       {
         name: "End Date & Time",
         selector: (row) => row.endeventdatetime ?? "",
         sortable: true,
-        cell: (row) => row.endeventdatetime ? fmtDate(row.endeventdatetime) : "—",
+        cell: (row) => (row.endeventdatetime ? fmtDate(row.endeventdatetime) : "—"),
       },
       {
         name: "Location",
@@ -259,17 +231,11 @@ export default function EventsTableUser({
         selector: (row) => row.status ?? "",
         sortable: true,
         cell: (row) =>
-          // FIX: Users without edit permission see a read-only badge instead of
-          // a deceptively interactive dropdown.
           canEditEvents ? (
             <div className="relative">
               <select
-                // FIX: value and option values now use consistent Title Case to
-                // match what Supabase stores. statusClasses normalises internally.
                 value={row.status}
-                onChange={(e) =>
-                  handleStatusChange(row.id, e.target.value)
-                }
+                onChange={(e) => handleStatusChange(row.id, e.target.value)}
                 className={`text-center cursor-pointer rounded-2xl border-2 px-4 py-1 text-xs ${statusClasses(row.status)}`}
               >
                 <option value="Open">Open</option>
@@ -279,33 +245,33 @@ export default function EventsTableUser({
               <SelectStyle />
             </div>
           ) : (
-            <span
-              className={`text-center rounded-2xl border-2 px-4 py-1 text-xs ${statusClasses(row.status)}`}
-            >
+            <span className={`text-center rounded-2xl border-2 px-4 py-1 text-xs ${statusClasses(row.status)}`}>
               {row.status}
             </span>
           ),
       },
       {
         name: "",
-        cell: (row) => <EventOptions selectedEvent={row} userId={userId} />,
+        cell: (row) => (
+          <EventOptions
+            selectedEvent={row}
+            userId={userId}
+            orgSlug={orgSlug}
+          />
+        ),
         ignoreRowClick: true,
         allowOverflow: true,
         button: true,
       },
     ],
-    [canEditEvents, handleStatusChange, userId]
+    [canEditEvents, handleStatusChange, userId, orgSlug]
   );
-
-  // ── Filtering & pagination ─────────────────────────────────────────────────
 
   const filteredData = useMemo(
     () =>
       debouncedFilterText
         ? tableData.filter((event) =>
-            event.title
-              .toLowerCase()
-              .includes(debouncedFilterText.toLowerCase())
+            event.title.toLowerCase().includes(debouncedFilterText.toLowerCase())
           )
         : tableData,
     [debouncedFilterText, tableData]
@@ -313,12 +279,7 @@ export default function EventsTableUser({
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedData = filteredData.slice(
-    startIndex,
-    startIndex + itemsPerPage
-  );
-
-  // ── Mobile card ────────────────────────────────────────────────────────────
+  const paginatedData = filteredData.slice(startIndex, startIndex + itemsPerPage);
 
   const renderMobileCard = useCallback(
     (row: Event) => (
@@ -347,9 +308,7 @@ export default function EventsTableUser({
               <div className="relative inline-block">
                 <select
                   value={row.status}
-                  onChange={(e) =>
-                    handleStatusChange(row.id, e.target.value)
-                  }
+                  onChange={(e) => handleStatusChange(row.id, e.target.value)}
                   className={`text-center bg-charleston cursor-pointer rounded-2xl border-2 px-4 py-1 text-xs ml-2 ${statusClasses(row.status)}`}
                 >
                   <option value="Open">Open</option>
@@ -359,9 +318,7 @@ export default function EventsTableUser({
                 <SelectStyle />
               </div>
             ) : (
-              <span
-                className={`text-center rounded-2xl border-2 px-4 py-1 text-xs ml-2 ${statusClasses(row.status)}`}
-              >
+              <span className={`text-center rounded-2xl border-2 px-4 py-1 text-xs ml-2 ${statusClasses(row.status)}`}>
                 {row.status}
               </span>
             )}
@@ -369,35 +326,31 @@ export default function EventsTableUser({
         </div>
 
         <div className="absolute bottom-4 right-4">
-          <EventOptions selectedEvent={row} userId={userId} />
+          <EventOptions
+            selectedEvent={row}
+            userId={userId}
+            orgSlug={orgSlug}
+          />
         </div>
       </div>
     ),
-    [canEditEvents, handleStatusChange, userId]
+    [canEditEvents, handleStatusChange, userId, orgSlug]
   );
-
-  // ── Early return ───────────────────────────────────────────────────────────
 
   if (canCreateEvents === null || canEditEvents === null) {
     return <Loader />;
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
-
   return (
     <div className="py-4 px-4 sm:px-6 lg:px-8">
       <div className="flex flex-col space-y-4">
         <div>
-          <h1 className="text-base font-semibold leading-6 text-light">
-            Events
-          </h1>
+          <h1 className="text-base font-semibold leading-6 text-light">Events</h1>
           <p className="mt-2 text-sm text-light">
-            A list of all the events including their title, date and time,
-            location, registration fee, capacity, and privacy.
+            A list of all the events including their title, date and time, location, registration fee, capacity, and privacy.
           </p>
         </div>
 
-        {/* Search and Create Event */}
         <div className="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4">
           <input
             type="text"
@@ -416,20 +369,13 @@ export default function EventsTableUser({
           )}
         </div>
 
-        {/* Mobile view */}
         <div className="block sm:hidden">
-          {/* FIX: Stable event ID used as key instead of array index. */}
           {paginatedData.map((row) => (
             <div key={row.id}>{renderMobileCard(row)}</div>
           ))}
-          <CustomPagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-          />
+          <CustomPagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
         </div>
 
-        {/* Desktop view */}
         <div className="hidden sm:block">
           <DataTable
             columns={columns as unknown as TableColumn<unknown>[]}
@@ -437,45 +383,12 @@ export default function EventsTableUser({
             pagination
             highlightOnHover
             customStyles={{
-              header: {
-                style: {
-                  backgroundColor: "rgb(36, 36, 36)",
-                  color: "rgb(255, 255, 255)",
-                },
-              },
-              subHeader: {
-                style: {
-                  backgroundColor: "none",
-                  color: "rgb(255, 255, 255)",
-                  padding: 0,
-                  marginBottom: 10,
-                },
-              },
-              rows: {
-                style: {
-                  minHeight: "6vh",
-                  backgroundColor: "rgb(33, 33, 33)",
-                  color: "rgb(255, 255, 255)",
-                },
-              },
-              headCells: {
-                style: {
-                  backgroundColor: "rgb(36, 36, 36)",
-                  color: "rgb(255, 255, 255)",
-                },
-              },
-              cells: {
-                style: {
-                  backgroundColor: "rgb(33, 33, 33)",
-                  color: "rgb(255, 255, 255)",
-                },
-              },
-              pagination: {
-                style: {
-                  backgroundColor: "rgb(33, 33, 33)",
-                  color: "rgb(255, 255, 255)",
-                },
-              },
+              header: { style: { backgroundColor: "rgb(36, 36, 36)", color: "rgb(255, 255, 255)" } },
+              subHeader: { style: { backgroundColor: "none", color: "rgb(255, 255, 255)", padding: 0, marginBottom: 10 } },
+              rows: { style: { minHeight: "6vh", backgroundColor: "rgb(33, 33, 33)", color: "rgb(255, 255, 255)" } },
+              headCells: { style: { backgroundColor: "rgb(36, 36, 36)", color: "rgb(255, 255, 255)" } },
+              cells: { style: { backgroundColor: "rgb(33, 33, 33)", color: "rgb(255, 255, 255)" } },
+              pagination: { style: { backgroundColor: "rgb(33, 33, 33)", color: "rgb(255, 255, 255)" } },
             }}
           />
         </div>

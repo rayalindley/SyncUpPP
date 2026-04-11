@@ -1,58 +1,32 @@
 "use client";
+
 import Loader from "@/components/Loader";
-import { deleteEvent, fetchRegisteredUsersForEvent } from "@/lib/events"; // Assuming you have deleteEvent function
+import { deleteEvent, fetchRegisteredUsersForEvent, fetchCertificateSettings } from "@/lib/events";
 import { check_permissions } from "@/lib/organization";
-import { Event } from "@/types/event";
+import { Event, CertificateSettings } from "@/types/event";
 import { UserProfile } from "@/types/user_profile";
 import { Dialog, Menu, Transition } from "@headlessui/react";
-import {
-  ChevronDownIcon,
-  TrashIcon,
-  UserIcon,
-  UsersIcon,
-} from "@heroicons/react/20/solid";
+import { ChevronDownIcon, TrashIcon, UsersIcon } from "@heroicons/react/20/solid";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import Link from "next/link";
 import { Fragment, useEffect, useState } from "react";
-import { FaRegEdit } from "react-icons/fa";
 import Swal from "sweetalert2";
-import { saveAs } from "file-saver"; // Install file-saver package if not already installed
-import { format } from "date-fns"; // For formatting the current date
+import { saveAs } from "file-saver";
+import { format } from "date-fns";
 import { recordActivity } from "@/lib/track";
-import { CertificateSettings } from "@/types/event";
-import { fetchCertificateSettings } from "@/lib/events";
 import { FaCertificate } from "react-icons/fa";
 import { MdOutlineComment } from "react-icons/md";
-import { releaseCertificatesNow } from "@/lib/events";
 import { Cog6ToothIcon } from "@heroicons/react/24/outline";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-
-
-const jsonTheme = {
-  main: "line-height:1.3;color:#383a42;background:#ffffff;overflow:hidden;word-wrap:break-word;white-space: pre-wrap;word-wrap: break-word;",
-  error:
-    "line-height:1.3;color:#e45649;background:#ffffff;overflow:hidden;word-wrap:break-word;white-space: pre-wrap;word-wrap: break-word;",
-  key: "color:#a626a4;", // Purple for keys to stand out
-  string: "color:#50a14f;", // Green for strings for easy readability
-  value: "color:#4078f2;", // Blue for values to differentiate from strings
-  boolean: "color:#986801;", // Brown for booleans for quick identification
-};
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(" ");
 }
 
-// Function to truncate text
 const truncateText = (text: string, maxLength: number) => {
-  if (text.length > maxLength) {
-    return text.substring(0, maxLength) + "...";
-  }
+  if (text.length > maxLength) return text.substring(0, maxLength) + "...";
   return text;
-
-  interface UserProfileWithAttendance extends UserProfile {
-    attendance: string; // Add attendance field to the user profile
-  }
 };
 
 const getInitials = (firstName: string, lastName: string): string => {
@@ -62,9 +36,11 @@ const getInitials = (firstName: string, lastName: string): string => {
 export default function EventOptions({
   selectedEvent,
   userId,
+  orgSlug,
 }: {
   selectedEvent: Event;
   userId: string;
+  orgSlug: string;
 }) {
   const [open, setOpen] = useState(false);
   const [currentTab, setCurrentTab] = useState("Info");
@@ -79,110 +55,11 @@ export default function EventOptions({
   const [certificateError, setCertificateError] = useState<string | null>(null);
 
   const hasFeedbackForm = selectedEvent.has_feedback_form;
+  const supabase = createClient();
+  const router = useRouter();
 
-  const releaseCertificatesHandler = async () => {
-    // Perform necessary checks here
-    // For example, check if the user is authenticated and has permissions
-  
-    // Then call the API route
-    Swal.fire({
-      title: "Are you sure?",
-      text: "This will release certificates to all attendees.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Yes, release certificates!",
-      cancelButtonText: "No, cancel!",
-      reverseButtons: true,
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          const response = await fetch(`/api/events/${selectedEvent.id}/release_certificates`, {
-            method: "POST",
-          });
-          const data = await response.json();
-          if (response.ok) {
-            Swal.fire({
-              title: "Success!",
-              text: "Certificates have been released to all attendees.",
-              icon: "success",
-            });
-          } else {
-            Swal.fire({
-              title: "Error!",
-              text: data.error || "Failed to release certificates.",
-              icon: "error",
-            });
-          }
-        } catch (error) {
-          Swal.fire({
-            title: "Error!",
-            text: error instanceof Error ? error.message : "An unexpected error occurred.",
-            icon: "error",
-          });
-        }
-      }
-    });
-  };
-  
-
-
-  useEffect(() => {
-    const fetchCertSettings = async () => {
-      setLoadingCertificateSettings(true);
-      const { data, error } = await fetchCertificateSettings(selectedEvent.id);
-      setLoadingCertificateSettings(false);
-      if (error) {
-        setCertificateError("Failed to load certificate settings.");
-      } else {
-        setCertificateSettings(data);
-      }
-    };
-    fetchCertSettings();
-  }, [selectedEvent.id]);  
-
-
-  const deleteBtn = () => {
-    Swal.fire({
-      title: "Are you sure?",
-      text: "You won't be able to revert this!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Yes, delete it!",
-      cancelButtonText: "No, cancel!",
-      reverseButtons: true,
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        const response = await deleteEvent(selectedEvent.id); // Assuming id is used for events
-
-        await recordActivity({
-          activity_type: "event_delete",
-          organization_id: selectedEvent.organizationid,
-          description: `${selectedEvent.title} was deleted`,
-        })
-        
-        if (!response.error) {
-          Swal.fire({
-            title: "Deleted!",
-            text: "The event was successfully deleted.",
-            icon: "success",
-          }).then(() => {
-            location.reload();
-          });
-        } else {
-          Swal.fire({
-            title: "Failed!",
-            text: response.error.message,
-            icon: "error",
-          });
-        }
-      }
-    });
-  };
-
-  // Define the base URL for your Supabase storage bucket
   const supabaseStorageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`;
 
-  // Function to format date to Philippine Standard Time
   const formattedDateTime = (utcDateString: string) => {
     const date = new Date(utcDateString);
     return date.toLocaleString("en-US", {
@@ -195,76 +72,101 @@ export default function EventOptions({
     });
   };
 
-  // Format the event date time and created at date
-  const startEventDateTimePST = formattedDateTime(
-    selectedEvent.starteventdatetime.toString()
-  ); // Convert Date object to string
-  const endEventDateTimePST = formattedDateTime(
-    selectedEvent.endeventdatetime.toString()
-  ); // Convert Date object to string
-  const createdAtPST = formattedDateTime(selectedEvent.createdat.toString()); // Convert Date object to string
+  const startEventDateTimePST = formattedDateTime(selectedEvent.starteventdatetime.toString());
+  const endEventDateTimePST = formattedDateTime(selectedEvent.endeventdatetime.toString());
+  const createdAtPST = formattedDateTime(selectedEvent.createdat.toString());
 
-  // Function to check if the location is a URL
-  const isUrl = (string: string) => {
+  const isUrl = (value: string) => {
     try {
-      new URL(string);
+      new URL(value);
       return true;
-    } catch (_) {
+    } catch {
       return false;
     }
   };
 
-  // Render the location as a clickable link if it's a URL
   const locationContent = isUrl(selectedEvent.location) ? (
-    <a
-      href={selectedEvent.location}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="text-primary hover:text-primarydark"
-    >
+    <a href={selectedEvent.location} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primarydark">
       {selectedEvent.location}
     </a>
   ) : (
     selectedEvent.location
   );
 
-  // Fetch attendees when the "Attendees" tab is selected
-  useEffect(() => {
-    if (currentTab === "Attendees") {
-      const fetchAttendees = async () => {
-        setLoadingAttendees(true);
-        const { users, error } = await fetchRegisteredUsersForEvent(selectedEvent.id);
-        setLoadingAttendees(false);
-        if (!error) {
-          setAttendees(users);
-          setFilteredAttendees(users);
+  const releaseCertificatesHandler = async () => {
+    Swal.fire({
+      title: "Are you sure?",
+      text: "This will release certificates to all attendees.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, release certificates!",
+      cancelButtonText: "No, cancel!",
+      reverseButtons: true,
+    }).then(async (result) => {
+      if (!result.isConfirmed) return;
+
+      try {
+        const response = await fetch(`/api/events/${selectedEvent.id}/release_certificates`, {
+          method: "POST",
+        });
+        const data = await response.json();
+
+        if (response.ok) {
+          Swal.fire({ title: "Success!", text: "Certificates have been released to all attendees.", icon: "success" });
         } else {
-          Swal.fire({
-            title: "Error!",
-            text: error.message,
-            icon: "error",
-          });
+          Swal.fire({ title: "Error!", text: data.error || "Failed to release certificates.", icon: "error" });
         }
-      };
-      fetchAttendees();
-    }
+      } catch (error) {
+        Swal.fire({
+          title: "Error!",
+          text: error instanceof Error ? error.message : "An unexpected error occurred.",
+          icon: "error",
+        });
+      }
+    });
+  };
+
+  useEffect(() => {
+    const fetchCertSettings = async () => {
+      setLoadingCertificateSettings(true);
+      const { data, error } = await fetchCertificateSettings(selectedEvent.id);
+      setLoadingCertificateSettings(false);
+
+      if (error) {
+        setCertificateError("Failed to load certificate settings.");
+      } else {
+        setCertificateSettings(data);
+      }
+    };
+    fetchCertSettings();
+  }, [selectedEvent.id]);
+
+  useEffect(() => {
+    if (currentTab !== "Attendees") return;
+
+    const fetchAttendees = async () => {
+      setLoadingAttendees(true);
+      const { users, error } = await fetchRegisteredUsersForEvent(selectedEvent.id);
+      setLoadingAttendees(false);
+
+      if (!error) {
+        setAttendees(users);
+        setFilteredAttendees(users);
+      } else {
+        Swal.fire({ title: "Error!", text: error.message, icon: "error" });
+      }
+    };
+
+    fetchAttendees();
   }, [currentTab, selectedEvent.id]);
 
   useEffect(() => {
     const checkPermissions = async () => {
       try {
-        const editPermission = await check_permissions(
-          userId || "",
-          selectedEvent.organizationid,
-          "edit_events"
-        );
+        const editPermission = await check_permissions(userId || "", selectedEvent.organizationid, "edit_events");
         setCanEditEvents(editPermission);
 
-        const deletePermission = await check_permissions(
-          userId || "",
-          selectedEvent.organizationid,
-          "delete_events"
-        );
+        const deletePermission = await check_permissions(userId || "", selectedEvent.organizationid, "delete_events");
         setCanDeleteEvents(deletePermission);
       } catch (error) {
         console.error("Failed to check permissions", error);
@@ -277,72 +179,83 @@ export default function EventOptions({
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     const query = event.target.value.toLowerCase();
     setSearchQuery(query);
-    if (Array.isArray(attendees)) {
-      const filtered = attendees.filter((attendee: UserProfile) =>
-        `${attendee.first_name} ${attendee.last_name}`.toLowerCase().includes(query)
-      );
-      setFilteredAttendees(filtered);
-    }
+
+    if (!Array.isArray(attendees)) return;
+
+    const filtered = attendees.filter((attendee) =>
+      `${attendee.first_name} ${attendee.last_name}`.toLowerCase().includes(query)
+    );
+    setFilteredAttendees(filtered);
   };
 
   const exportToCsv = () => {
     if (!attendees || attendees.length === 0) {
-      Swal.fire({
-        title: "No Attendees!",
-        text: "There are no attendees to export.",
-        icon: "warning",
-      });
+      Swal.fire({ title: "No Attendees!", text: "There are no attendees to export.", icon: "warning" });
       return;
     }
 
     const csvContent = [
       ["First Name", "Last Name"],
-      ...(Array.isArray(attendees) ? attendees.map((attendee: UserProfile) => [
-        attendee.first_name,
-        attendee.last_name,
-      ]) : []),
+      ...attendees.map((attendee) => [attendee.first_name, attendee.last_name]),
     ]
       .map((row) => row.join(","))
       .join("\n");
 
-    const currentDate = format(new Date(), "yyyyMMdd"); // Format date as yyyyMMdd
-    const fileName = `${selectedEvent.title}_attendees_${currentDate}.csv`
-      .replace(/ /g, "_")
-      .toLowerCase(); // Format file name: remove spaces, lowercase
+    const currentDate = format(new Date(), "yyyyMMdd");
+    const fileName = `${selectedEvent.title}_attendees_${currentDate}.csv`.replace(/ /g, "_").toLowerCase();
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     saveAs(blob, fileName);
   };
 
-  const supabase = createClient();
-  const router = useRouter();
-
   const handleCreateFeedbackForm = async (eventslug: string) => {
-    const { error } = await supabase
-      .from("events")
-      .update({ has_feedback_form: true })
-      .eq("eventslug", eventslug);
+    const { error } = await supabase.from("events").update({ has_feedback_form: true }).eq("eventslug", eventslug);
 
     if (error) {
       console.error("Error updating has_feedback_form:", error);
       return;
     }
 
-    // router.push(`/feedback/form/${eventslug}`);
     window.location.href = `/feedback/form/${eventslug}`;
   };
 
+  const deleteBtn = () => {
+    Swal.fire({
+      title: "Are you sure?",
+      text: "You won't be able to revert this!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "No, cancel!",
+      reverseButtons: true,
+    }).then(async (result) => {
+      if (!result.isConfirmed) return;
 
-  
+      const response = await deleteEvent(selectedEvent.id);
+
+      await recordActivity({
+        activity_type: "event_delete",
+        organization_id: selectedEvent.organizationid,
+        description: `${selectedEvent.title} was deleted`,
+      });
+
+      if (!response.error) {
+        Swal.fire({ title: "Deleted!", text: "The event was successfully deleted.", icon: "success" }).then(() => {
+          location.reload();
+        });
+      } else {
+        Swal.fire({ title: "Failed!", text: response.error.message, icon: "error" });
+      }
+    });
+  };
+
   return (
     <>
       <Menu as="div" className="relative inline-block text-left">
-        <div>
-          <Menu.Button className="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-charleston px-3 py-2 text-sm font-semibold text-light shadow-sm ring-1 ring-inset ring-[#525252] hover:bg-raisinblack">
-            Options
-            <ChevronDownIcon className="-mr-1 h-5 w-5 text-gray-400" aria-hidden="true" />
-          </Menu.Button>
-        </div>
+        <Menu.Button className="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-charleston px-3 py-2 text-sm font-semibold text-light shadow-sm ring-1 ring-inset ring-[#525252] hover:bg-raisinblack">
+          Options
+          <ChevronDownIcon className="-mr-1 h-5 w-5 text-gray-400" />
+        </Menu.Button>
 
         <Transition
           as={Fragment}
@@ -356,154 +269,115 @@ export default function EventOptions({
           <Menu.Items className="fixed right-0 z-[100] mt-2 w-56 origin-top-right divide-y divide-[#525252] rounded-md bg-charleston shadow-lg ring-1 ring-charleston ring-opacity-5 focus:outline-none">
             <div className="py-1">
               <Menu.Item>
-                {({ active }: { active: boolean }) => (
-                  <a
-                    href="#"
+                {({ active }) => (
+                  <button
+                    type="button"
                     className={classNames(
                       active ? "bg-raisinblack text-light" : "text-light",
-                      "group flex items-center px-3 py-2 text-sm"
+                      "group flex w-full items-center px-3 py-2 text-sm"
                     )}
                     onClick={() => {
                       setCurrentTab("Info");
                       setOpen(true);
                     }}
                   >
-                    <Cog6ToothIcon
-                      className="mr-4 h-5 w-5 text-light group-hover:text-light"
-                      aria-hidden="true"
-                    />
+                    <Cog6ToothIcon className="mr-4 h-5 w-5 text-light group-hover:text-light" />
                     Manage Event
-                  </a>
+                  </button>
                 )}
               </Menu.Item>
+
               <Menu.Item>
-                {({ active }: { active: boolean }) => (
-                  <a
+                {({ active }) => (
+                  <button
+                    type="button"
                     className={classNames(
                       active ? "bg-raisinblack text-light" : "text-light",
-                      "group flex items-center px-4 py-2 text-sm"
+                      "group flex w-full items-center px-4 py-2 text-sm"
                     )}
-                    // org slug/dashboard.registrations
-                    href={`/${selectedEvent.eventslug}/dashboard/registrations`}
+                    onClick={() => router.push(`/dashboard/${orgSlug}/registrations/${selectedEvent.id}`)}
                   >
-                    <UsersIcon
-                      className="mr-3 h-5 w-5 text-light group-hover:text-light"
-                      aria-hidden="true"
-                    />
+                    <UsersIcon className="mr-3 h-5 w-5 text-light group-hover:text-light" />
                     View Registrations
-                  </a>
+                  </button>
                 )}
               </Menu.Item>
-              
+
               {canEditEvents && (
                 <Menu.Item>
-                  {({ active }: { active: boolean }) => (
+                  {({ active }) => (
                     <a
                       href={`/feedback/form/${selectedEvent.eventslug}`}
                       className={classNames(
                         active ? "bg-raisinblack text-light" : "text-light",
                         "group flex items-center px-3 py-2 text-sm"
                       )}
-                      // onClick={() => {
-                      //   setCurrentTab("Info");
-                      //   setOpen(true);
-                      // }}
-                      onClick={async(e) => {
-                        if(!hasFeedbackForm) {
+                      onClick={async (e) => {
+                        if (!hasFeedbackForm) {
                           e.preventDefault();
                           await handleCreateFeedbackForm(selectedEvent.eventslug);
                         }
                       }}
                     >
-                      <Cog6ToothIcon
-                        className="mr-4 h-5 w-5 text-light group-hover:text-light"
-                        aria-hidden="true"
-                      />
-                      
+                      <Cog6ToothIcon className="mr-4 h-5 w-5 text-light group-hover:text-light" />
                       {hasFeedbackForm ? "Edit Feedback Form" : "Create Feedback Form"}
                     </a>
                   )}
                 </Menu.Item>
               )}
-              
-              {/* <Menu.Item>
-                {({ active }: { active: boolean }) => (
-                  <a
-                    href="#"
-                    className={classNames(
-                      active ? "bg-raisinblack text-light" : "text-light",
-                      "group flex items-center px-4 py-2 text-sm"
-                    )}
-                    onClick={() => {
-                      setCurrentTab("Attendees");
-                      setOpen(true);
-                    }}
-                  >
-                    <UsersIcon
-                      className="mr-3 h-5 w-5 text-light group-hover:text-light"
-                      aria-hidden="true"
-                    />
-                    View Attendees
-                  </a>
-                )}
-              </Menu.Item> */}
+
               {canEditEvents && (
                 <Menu.Item disabled={!hasFeedbackForm}>
-                  {({ active, disabled }: { active: boolean; disabled: boolean }) => (
-                      <a
-                      href="#"
+                  {({ active, disabled }) => (
+                    <button
+                      type="button"
+                      disabled={disabled}
                       className={classNames(
                         active && !disabled ? "bg-raisinblack text-light" : "text-light",
                         disabled ? "cursor-not-allowed opacity-50" : "",
-                        "group flex items-center px-4 py-2 text-sm"
+                        "group flex w-full items-center px-4 py-2 text-sm"
                       )}
-                      onClick={() => {
-                        router.push(`/dashboard/feedback/${selectedEvent.eventslug}`);
-                      }}
-                      >
-                      <MdOutlineComment
-                        className="mr-3 h-5 w-5 text-light group-hover:text-light"
-                        aria-hidden="true"
-                      />
+                      onClick={() => router.push(`/dashboard/${orgSlug}/feedback/${selectedEvent.eventslug}`)}
+                    >
+                      <MdOutlineComment className="mr-3 h-5 w-5 text-light group-hover:text-light" />
                       View Feedback
-                      </a>
+                    </button>
                   )}
                 </Menu.Item>
               )}
-              {/* Certificate Preview - Conditional Rendering */}
+
               <Menu.Item disabled={!certificateSettings?.certificate_enabled}>
-                {({ active, disabled }: { active: boolean; disabled: boolean }) => (
-                    <a
-                    href="#"
+                {({ active, disabled }) => (
+                  <button
+                    type="button"
+                    disabled={disabled}
                     className={classNames(
                       active && !disabled ? "bg-raisinblack text-light" : "text-light",
                       disabled ? "cursor-not-allowed opacity-50" : "",
-                      "group flex items-center px-4 py-2 text-sm"
+                      "group flex w-full items-center px-4 py-2 text-sm"
                     )}
                     onClick={() => {
-                      if (certificateSettings?.certificate_enabled) {
+                      if (!certificateSettings?.certificate_enabled) return;
                       setCurrentTab("CertificatePreview");
                       setOpen(true);
-                      }
                     }}
-                    >
-                    <FaCertificate
-                      className="mr-3 h-5 w-5 text-light group-hover:text-light"
-                      aria-hidden="true"
-                    />
+                  >
+                    <FaCertificate className="mr-3 h-5 w-5 text-light group-hover:text-light" />
                     Preview Certificate
-                    </a>
+                  </button>
                 )}
               </Menu.Item>
+
               {canEditEvents && (
                 <Menu.Item disabled={!certificateSettings?.certificate_enabled}>
-                  {({ active, disabled }: { active: boolean; disabled: boolean }) => (
-                    <a
-                      href="#"
+                  {({ active, disabled }) => (
+                    <button
+                      type="button"
+                      disabled={disabled}
                       className={classNames(
                         active && !disabled ? "bg-raisinblack text-light" : "text-light",
                         disabled ? "cursor-not-allowed opacity-50" : "",
-                        "group flex items-center px-4 py-2 text-sm"
+                        "group flex w-full items-center px-4 py-2 text-sm"
                       )}
                       onClick={async () => {
                         if (certificateSettings?.certificate_enabled) {
@@ -511,35 +385,29 @@ export default function EventOptions({
                         }
                       }}
                     >
-                      <FaCertificate
-                        className="mr-3 h-5 w-5 text-light group-hover:text-light"
-                        aria-hidden="true"
-                      />
+                      <FaCertificate className="mr-3 h-5 w-5 text-light group-hover:text-light" />
                       Release Certificates Now
-                    </a>
+                    </button>
                   )}
                 </Menu.Item>
               )}
-
             </div>
+
             <div className="py-1">
               {canDeleteEvents && (
                 <Menu.Item>
-                  {({ active }: { active: boolean }) => (
-                    <a
-                      href="#"
+                  {({ active }) => (
+                    <button
+                      type="button"
                       className={classNames(
                         active ? "bg-raisinblack text-light" : "text-light",
-                        "group flex items-center px-4 py-2 text-sm"
+                        "group flex w-full items-center px-4 py-2 text-sm"
                       )}
                       onClick={deleteBtn}
                     >
-                      <TrashIcon
-                        className="mr-3 h-5 w-5 text-light group-hover:text-light"
-                        aria-hidden="true"
-                      />
+                      <TrashIcon className="mr-3 h-5 w-5 text-light group-hover:text-light" />
                       Delete Event
-                    </a>
+                    </button>
                   )}
                 </Menu.Item>
               )}
@@ -579,32 +447,20 @@ export default function EventOptions({
                       <div className="px-4 sm:px-6">
                         <div className="flex items-start justify-between">
                           <Dialog.Title className="text-base font-semibold leading-6 text-light">
-                            {currentTab === "Info"
-                              ? "Manage Event"
-                              : currentTab === "Attendees"
-                              ? "Attendees"
-                              : "Certificate Preview"}
+                            {currentTab === "Info" ? "Manage Event" : currentTab === "Attendees" ? "Attendees" : "Certificate Preview"}
                           </Dialog.Title>
-                          <div className="ml-3 flex h-7 items-center">
-                            <button
-                              type="button"
-                              className="relative rounded-md text-gray-400 hover:text-light focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                              onClick={() => setOpen(false)}
-                            >
-                              <span className="absolute -inset-2.5" />
-                              <span className="sr-only">Close panel</span>
-                              <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-                            </button>
-                          </div>
+                          <button
+                            type="button"
+                            className="relative rounded-md text-gray-400 hover:text-light focus:outline-none"
+                            onClick={() => setOpen(false)}
+                          >
+                            <XMarkIcon className="h-6 w-6" />
+                          </button>
                         </div>
                       </div>
 
-                      {/* Tabs */}
                       <div className="border-b border-gray-700">
-                        <nav
-                          className="-mb-px flex space-x-8 px-4 sm:px-6"
-                          aria-label="Tabs"
-                        >
+                        <nav className="-mb-px flex space-x-8 px-4 sm:px-6">
                           <button
                             onClick={() => setCurrentTab("Info")}
                             className={classNames(
@@ -627,7 +483,6 @@ export default function EventOptions({
                           >
                             Attendees
                           </button>
-                          {/* Add Certificate Preview Tab */}
                           <button
                             onClick={() => setCurrentTab("CertificatePreview")}
                             className={classNames(
@@ -642,10 +497,9 @@ export default function EventOptions({
                         </nav>
                       </div>
 
-                      <div className="relative mt-6 flex-1 flex-wrap overflow-hidden overflow-y-auto px-4 text-light sm:px-6">
+                      <div className="relative mt-6 flex-1 overflow-y-auto px-4 text-light sm:px-6">
                         {currentTab === "Info" && (
                           <>
-                            {/* Event Photo Display */}
                             {selectedEvent.eventphoto ? (
                               <img
                                 src={`${supabaseStorageBaseUrl}/${selectedEvent.eventphoto}`}
@@ -655,185 +509,39 @@ export default function EventOptions({
                             ) : (
                               <div className="mx-auto h-60 w-full rounded-lg bg-white" />
                             )}
+
                             <table className="w-full table-auto">
                               <tbody>
-                                <tr>
-                                  <td className="p-2 font-bold text-gray-400">Title:</td>
-                                  <td className="p-2">{selectedEvent.title}</td>
-                                </tr>
-                                <tr>
-                                  <td className="p-2 font-bold text-gray-400">
-                                    Description:
-                                  </td>
-                                  <td className="p-2">
-                                    {truncateText(selectedEvent.description, 100)}
-                                  </td>
-                                </tr>
-                                <tr>
-                                  <td className="p-2 font-bold text-gray-400">
-                                    Location:
-                                  </td>
-                                  <td className="p-2">{locationContent}</td>
-                                </tr>
-                                <tr>
-                                  <td className="p-2 font-bold text-gray-400">
-                                    Start Event Date Time:
-                                  </td>
-                                  <td className="p-2">{startEventDateTimePST}</td>
-                                </tr>
-                                <tr>
-                                  <td className="p-2 font-bold text-gray-400">
-                                    End Event Date Time:
-                                  </td>
-                                  <td className="p-2">{endEventDateTimePST}</td>
-                                </tr>
-                                <tr>
-                                  <td className="p-2 font-bold text-gray-400">
-                                    Capacity:
-                                  </td>
-                                  <td className="p-2">
-                                    {selectedEvent.capacity || "None"}
-                                  </td>
-                                </tr>
-                                <tr>
-                                  <td className="p-2 font-bold text-gray-400">
-                                    Registration Fee:
-                                  </td>
-                                  <td className="p-2">
-                                    {selectedEvent.registrationfee
-                                      ? `Php ${selectedEvent.registrationfee}`
-                                      : "None"}
-                                  </td>
-                                </tr>
-                                <tr>
-                                  <td className="p-2 font-bold text-gray-400">
-                                    Created At:
-                                  </td>
-                                  <td className="p-2">{createdAtPST}</td>
-                                </tr>
-                                <tr>
-                                  <td className="p-2 font-bold text-gray-400">
-                                    Privacy:
-                                  </td>
-                                  <td className="p-2">
-                                    {selectedEvent.privacy &&
-                                    typeof selectedEvent.privacy === "object" ? (
-                                      <>
-                                        {selectedEvent.privacy.type === "public" ? (
-                                          <span>Public</span>
-                                        ) : (
-                                          <div>
-                                            {/* Show roles as blue tags */}
-                                            {selectedEvent.privacy.roles &&
-                                              selectedEvent.privacy.roles.length > 0 && (
-                                                <div className="mt-2">
-                                                  <div className="mt-1 flex flex-wrap gap-2">
-                                                    {selectedEvent.privacy.roles.map(
-                                                      (role, index) => (
-                                                        <span
-                                                          key={index}
-                                                          className="inline-block rounded bg-primary px-3 py-1 text-sm font-semibold text-white"
-                                                        >
-                                                          {role}
-                                                        </span>
-                                                      )
-                                                    )}
-                                                  </div>
-                                                </div>
-                                              )}
-
-                                            {/* Show membership tiers as pink tags */}
-                                            {selectedEvent.privacy.membership_tiers &&
-                                              selectedEvent.privacy.membership_tiers
-                                                .length > 0 && (
-                                                <div className="mt-2">
-                                                  <div className="mt-1 flex flex-wrap gap-2">
-                                                    {selectedEvent.privacy.membership_tiers.map(
-                                                      (tier, index) => (
-                                                        <span
-                                                          key={index}
-                                                          className="inline-block rounded bg-primary px-3 py-1 text-sm font-semibold text-white"
-                                                        >
-                                                          {tier}
-                                                        </span>
-                                                      )
-                                                    )}
-                                                  </div>
-                                                </div>
-                                              )}
-
-                                            {/* If all roles or all memberships are allowed */}
-                                            {selectedEvent.privacy.allow_all_roles && (
-                                              <div className="mt-2">
-                                                <span className="inline-block rounded bg-primary px-3 py-1 text-sm font-semibold text-white">
-                                                  All roles allowed
-                                                </span>
-                                              </div>
-                                            )}
-
-                                            {selectedEvent.privacy
-                                              .allow_all_memberships && (
-                                              <div className="mt-2">
-                                                <span className="inline-block rounded bg-primary px-3 py-1 text-sm font-semibold text-white">
-                                                  All membership tiers allowed
-                                                </span>
-                                              </div>
-                                            )}
-                                          </div>
-                                        )}
-                                      </>
-                                    ) : (
-                                      "Unknown"
-                                    )}
-                                  </td>
-                                </tr>
-
-                                <tr>
-                                  <td className="p-2 font-bold text-gray-400">Tags:</td>
-                                  <td className="flex flex-wrap gap-2 p-2 ">
-                                    {/* Check if selectedEvent.tags is not null or undefined and has length before mapping */}
-                                    {selectedEvent.tags && selectedEvent.tags.length > 0
-                                      ? selectedEvent.tags.map((tag, index) => (
-                                          <span
-                                            key={index}
-                                            className="mr-2 inline-block rounded bg-gray-200 px-3 py-1 text-sm font-semibold text-gray-700 transition duration-100 hover:scale-[1.05] hover:bg-gray-200"
-                                          >
-                                            {tag}
-                                          </span>
-                                        ))
-                                      : "None"}
-                                  </td>
-                                </tr>
+                                <tr><td className="p-2 font-bold text-gray-400">Title:</td><td className="p-2">{selectedEvent.title}</td></tr>
+                                <tr><td className="p-2 font-bold text-gray-400">Description:</td><td className="p-2">{truncateText(selectedEvent.description, 100)}</td></tr>
+                                <tr><td className="p-2 font-bold text-gray-400">Location:</td><td className="p-2">{locationContent}</td></tr>
+                                <tr><td className="p-2 font-bold text-gray-400">Start Event Date Time:</td><td className="p-2">{startEventDateTimePST}</td></tr>
+                                <tr><td className="p-2 font-bold text-gray-400">End Event Date Time:</td><td className="p-2">{endEventDateTimePST}</td></tr>
+                                <tr><td className="p-2 font-bold text-gray-400">Capacity:</td><td className="p-2">{selectedEvent.capacity || "None"}</td></tr>
+                                <tr><td className="p-2 font-bold text-gray-400">Registration Fee:</td><td className="p-2">{selectedEvent.registrationfee ? `Php ${selectedEvent.registrationfee}` : "None"}</td></tr>
+                                <tr><td className="p-2 font-bold text-gray-400">Created At:</td><td className="p-2">{createdAtPST}</td></tr>
                               </tbody>
                             </table>
-                            {/* Buttons */}
+
                             <div className="mt-4 flex space-x-4">
-                              <Link
-                                href={`/e/${selectedEvent.eventslug}`}
-                                className="flex-1 rounded-md bg-primary px-4 py-2 text-center text-white hover:bg-primarydark"
-                              >
+                              <Link href={`/e/${selectedEvent.eventslug}`} className="flex-1 rounded-md bg-primary px-4 py-2 text-center text-white hover:bg-primarydark">
                                 View Event
                               </Link>
                               {canEditEvents && (
-                                <Link
-                                  className="flex-1 rounded-md bg-charleston px-4 py-2 text-center text-white hover:bg-raisinblack"
-                                  href={`/events/edit/${selectedEvent.id}`}
-                                >
+                                <Link href={`/events/edit/${selectedEvent.id}`} className="flex-1 rounded-md bg-charleston px-4 py-2 text-center text-white hover:bg-raisinblack">
                                   Edit Event
                                 </Link>
                               )}
                               {canDeleteEvents && (
-                                <button
-                                  onClick={deleteBtn}
-                                  className="flex-1 rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700"
-                                >
+                                <button onClick={deleteBtn} className="flex-1 rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700">
                                   Delete Event
                                 </button>
                               )}
                             </div>
                           </>
                         )}
-                       {currentTab === "Attendees" && (
+
+                        {currentTab === "Attendees" && (
                           <div className="space-y-4">
                             <div className="flex justify-between">
                               <input
@@ -843,19 +551,16 @@ export default function EventOptions({
                                 placeholder="Search attendees..."
                                 className="flex-1 rounded-lg border border-charleston bg-charleston px-4 py-2 text-sm text-light focus:border-primary focus:ring-primary"
                               />
-                              <button
-                                onClick={exportToCsv}
-                                className="ml-4 rounded-md bg-primary px-4 py-2 text-white hover:bg-primarydark"
-                              >
+                              <button onClick={exportToCsv} className="ml-4 rounded-md bg-primary px-4 py-2 text-white hover:bg-primarydark">
                                 Export to CSV
                               </button>
                             </div>
+
                             {loadingAttendees ? (
                               <Loader />
                             ) : filteredAttendees && filteredAttendees.length > 0 ? (
-                              filteredAttendees.map((attendee: UserProfile, index: number) => (
+                              filteredAttendees.map((attendee, index) => (
                                 <div key={index} className="flex items-center space-x-3">
-                                  {/* Attendee profile image or initials */}
                                   <div className="relative h-8 w-8 flex-shrink-0">
                                     {attendee.profilepicture ? (
                                       <img
@@ -877,7 +582,7 @@ export default function EventOptions({
                             )}
                           </div>
                         )}
-                        {/* Certificate Preview Tab */}
+
                         {currentTab === "CertificatePreview" && (
                           <div className="space-y-4">
                             {loadingCertificateSettings ? (
@@ -894,29 +599,25 @@ export default function EventOptions({
                                 height="600px"
                                 className="border-none"
                                 title="Certificate Preview"
-                              ></iframe>
+                              />
                             ) : (
                               <div className="p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded">
                                 <p className="font-semibold">Certificates Disabled</p>
                                 <p className="mt-2">
                                   Certificates are not enabled for this event. To enable certificates, please{" "}
                                   {canEditEvents ? (
-                                    <Link
-                                      href={`/events/edit/${selectedEvent.id}`}
-                                      className="text-primary underline hover:text-primarydark"
-                                    >
+                                    <Link href={`/events/edit/${selectedEvent.id}`} className="text-primary underline hover:text-primarydark">
                                       edit the event
                                     </Link>
                                   ) : (
                                     "contact your administrator"
-                                  )}{" "}
-                                  and enable certificates in the Preview tab.
+                                  )}
+                                  .
                                 </p>
                               </div>
                             )}
                           </div>
                         )}
-
                       </div>
                     </div>
                   </Dialog.Panel>

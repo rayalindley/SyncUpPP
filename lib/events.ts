@@ -829,7 +829,7 @@ export const fetchCertificateSettings = async (eventId: string) => {
     .from("event_certificate_settings")
     .select("certificate_enabled, release_option, scheduled_release_date")
     .eq("event_id", eventId)
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error("Error fetching certificate settings:", error);

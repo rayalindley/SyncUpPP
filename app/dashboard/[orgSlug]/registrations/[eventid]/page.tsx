@@ -1,10 +1,11 @@
 import { createClient, getUser } from "@/lib/supabase/server";
-import { fetchOrganizationsForUser } from "@/lib/organization"; // Import the function
-import { redirect } from "next/navigation";
+import { fetchOrganizationsForUser } from "@/lib/organization";
+import { redirect, notFound } from "next/navigation";
 import RegistrationsTable from "@/components/app/event_registrations";
-import Loader from "@/components/Loader";
 
 interface Registration {
+  id: string; // required by RegistrationsTable type
+  eventid: string; // actual event id column from DB/view
   eventregistrationid: string;
   first_name: string;
   last_name: string;
@@ -15,14 +16,18 @@ interface Registration {
   status: string;
   adminid: string;
   organization_slug: string;
-  id: string;
+  organizationid: string;
   attendance: string;
   attendance_updated_at: string;
   has_submitted_feedback: boolean;
   feedback_submitted_at: string;
 }
 
-export default async function RegistrationsPage() {
+export default async function RegistrationsPage({
+  params,
+}: {
+  params: { orgSlug: string; eventid: string };
+}) {
   const { user } = await getUser();
   const supabase = createClient();
 
@@ -30,40 +35,58 @@ export default async function RegistrationsPage() {
     return redirect("/signin");
   }
 
+  const { orgSlug, eventid } = params;
   let registrations: Registration[] = [];
 
-  if (!registrations) {
-    <Loader />;
-  }
-
   if (user.role === "superadmin") {
-    const registrationsData = await supabase
+    const { data, error } = await supabase
       .from("eventregistrations_view")
-      .select("*");
-    registrations = registrationsData.data || [];
-  } else {
-    // Use the provided function to fetch organizations of the user
-    const organizationsData = await fetchOrganizationsForUser(user.id);
+      .select("*")
+      .eq("eventid", eventid); // ✅ correct column
 
-    if (organizationsData.error) {
-      console.error("Error fetching organizations:", organizationsData.error);
-    } else {
-      const organizations = organizationsData.data || [];
-      const organizationIds = organizations.map(
-        (org: { organizationid: string }) => org.organizationid
-      );
-
-      // Fetch registrations for events in these organizations
-      if (organizationIds.length > 0) {
-        const registrationsData = await supabase
-          .from("eventregistrations_view")
-          .select("*")
-          .in("organizationid", organizationIds); // Use 'in' to match any of the organization IDs
-
-        registrations = registrationsData.data || [];
-      }
+    if (error) {
+      console.error("Error fetching registrations (superadmin):", JSON.stringify(error, null, 2));
+      return <div className="p-4">Error loading registrations.</div>;
     }
+
+    registrations = (data || []).map((r: any) => ({
+      ...r,
+      id: r.id ?? r.eventid, // ✅ normalize for table type
+    }));
+  } else {
+    const orgsData = await fetchOrganizationsForUser(user.id);
+
+    if (orgsData.error) {
+      console.error("Error fetching organizations:", orgsData.error);
+      return notFound();
+    }
+
+    const userOrgs = orgsData.data || [];
+    const allowed = userOrgs.find((o: any) => o.slug === orgSlug);
+
+    if (!allowed) return notFound();
+
+    const { data, error } = await supabase
+      .from("eventregistrations_view")
+      .select("*")
+      .eq("organization_slug", orgSlug)
+      .eq("eventid", eventid); // ✅ correct column
+
+    if (error) {
+      console.error("Error fetching registrations:", JSON.stringify(error, null, 2));
+      return <div className="p-4">Error loading registrations.</div>;
+    }
+
+    registrations = (data || []).map((r: any) => ({
+      ...r,
+      id: r.id ?? r.eventid, // ✅ normalize for table type
+    }));
   }
 
-  return <RegistrationsTable registrations={registrations} />;
+  return (
+    <div className="p-4">
+      <h1 className="mb-4 text-xl font-bold">Event Registrations</h1>
+      <RegistrationsTable registrations={registrations} />
+    </div>
+  );
 }

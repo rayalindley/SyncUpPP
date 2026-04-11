@@ -13,6 +13,7 @@ export class Event {
     public organizationid: string,
     public eventphoto: string,
     public tags: string[],
-    public eventslug: string
+    public eventslug: string,
+    public report_limit: number
   ) {}
 }
