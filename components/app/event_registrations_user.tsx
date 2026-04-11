@@ -22,7 +22,7 @@ interface Registration {
   email: string;
   event_name: string;
   organization_slug: string;
-  eventid: string;
+  id: string;
   registrationdate: string;
   status: string;
   attendance: string | null; // Modified to allow null for empty values
@@ -82,10 +82,10 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
 
   // Unique events for filter options
   const uniqueEvents = Array.from(
-    new Set(registrations.map((item) => item.eventid))
+    new Set(registrations.map((item) => item.id))
   ).map((id) => ({
     id,
-    name: registrations.find((item) => item.eventid === id)?.event_name || "",
+    name: registrations.find((item) => item.id === id)?.event_name || "",
   }));
 
   useEffect(() => {
@@ -122,7 +122,7 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
       // Fetch registration to get event data
       const { data: registrationData, error: registrationError } = await supabase
         .from("eventregistrations")
-        .select("eventid, userid")
+        .select("id, userid")
         .eq("eventregistrationid", id)
         .single();
   
@@ -131,13 +131,13 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
         return;
       }
   
-      const { eventid, userid } = registrationData;
+      const { id, userid } = registrationData;
   
       // Fetch event details
       const { data: eventData, error: eventError } = await supabase
         .from("events")
         .select("*")
-        .eq("eventid", eventid)
+        .eq("id", id)
         .single();
   
       if (eventError || !eventData) {
@@ -379,7 +379,7 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
         item.email.toLowerCase().includes(debouncedFilterText.toLowerCase()) ||
         item.event_name.toLowerCase().includes(debouncedFilterText.toLowerCase())) &&
       (!statusFilter || item.status === statusFilter) &&
-      (!eventFilter || item.eventid === eventFilter) &&
+      (!eventFilter || item.id === eventFilter) &&
       (!attendanceFilter || item.attendance === attendanceFilter)
     );
   });

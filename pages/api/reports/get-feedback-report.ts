@@ -14,16 +14,16 @@ export default async function handler(
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
-  const { eventId } = req.query;
-  if (!eventId || typeof eventId !== "string") {
-    return res.status(400).json({ error: "eventId required" });
+  const { id } = req.query;
+  if (!id || typeof id !== "string") {
+    return res.status(400).json({ error: "id required" });
   }
 
   try {
     const { data, error } = await supabase
       .from("feedback_reports")
       .select("*")
-      .eq("event_id", eventId)
+      .eq("event_id", id)
       .order("generated_at", { ascending: false });
 
     if (error) throw error;

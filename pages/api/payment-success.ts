@@ -125,11 +125,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .eq("organizationid", paymentData.organizationId)
       .single();
 
-    // fetch event name with eventid
+    // fetch event name with id
     const { data: eventData, error: eventError } = await supabase
       .from("events")
       .select("title")
-      .eq("eventid", paymentData.target_id)
+      .eq("id", paymentData.target_id)
       .single();
 
     //record activity
@@ -155,13 +155,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 }
 
-async function registerForEvent(eventId: string, userId: string) {
+async function registerForEvent(id: string, userId: string) {
   try {
     // Fetch event to check privacy setting
     const { data: event, error: eventError } = await supabase
       .from("events")
       .select("privacy, organizationid")
-      .eq("eventid", eventId)
+      .eq("id", id)
       .single();
 
     if (eventError || !event) {
@@ -193,7 +193,7 @@ async function registerForEvent(eventId: string, userId: string) {
         .insert([
           {
             userid: userId,
-            eventid: eventId,
+            id: id,
             organizationmemberid: organizationMemberId,
             registrationdate: new Date().toISOString(),
             status: "registered",
@@ -214,7 +214,7 @@ async function registerForEvent(eventId: string, userId: string) {
         .insert([
           {
             userid: userId,
-            eventid: eventId,
+            id: id,
             registrationdate: new Date().toISOString(),
             status: "registered",
           },

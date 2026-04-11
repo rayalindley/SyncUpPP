@@ -17,7 +17,7 @@ ChartJS.register(ArcElement, Tooltip, Legend, ChartDataLabels);
 
 interface FeedbackReport {
   id: string;
-  eventid: string;
+  id: string;
   event_name: string;
   user_id: string;
   rating: number;
@@ -69,7 +69,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
   const { data: eventData } = await supabase
     .from("events")
     .select("report_limit")
-    .eq("eventid", eventFilter)
+    .eq("id", eventFilter)
     .single();
   setReportLimit(eventData?.report_limit ?? 0);
 
@@ -111,7 +111,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
   const { data: feedbackReports, error: feedbackError } = await supabase
     .from("feedbackreports")
     .select("*")
-    .eq("eventid", eventFilter);
+    .eq("id", eventFilter);
 
   if (feedbackError) {
     console.error("Error fetching feedback reports:", feedbackError);
@@ -211,7 +211,7 @@ const handleGenerateReport = async () => {
     // Insert feedback report into feedbackreports table
     await supabase.from("feedbackreports").insert({
       feedbackreportid: crypto.randomUUID(),
-      eventid: eventFilter,
+      id: eventFilter,
       userid: userId,
       feedback_text: json.results.map((r) => r.original).join("\n"),
       sentiment: getSentimentCounts(json.results),
@@ -223,7 +223,7 @@ const handleGenerateReport = async () => {
     const { error: updateError } = await supabase
       .from("events")
       .update({ report_limit: (reportLimit || 1) - 1 })
-      .eq("eventid", eventFilter);
+      .eq("id", eventFilter);
 
     if (updateError) {
 
@@ -322,7 +322,7 @@ const handleGenerateReport = async () => {
           >
             <option value="">Select Event</option>
             {events.map((event) => (
-              <option key={event.eventid} value={event.eventid}>
+              <option key={event.id} value={event.id}>
                 {event.title}
               </option>
             ))}

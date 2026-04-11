@@ -137,7 +137,7 @@ const NewsletterCreation: React.FC<NewsletterCreationProps> = ({
     try {
       const selectedEventUsers = await Promise.all(
         selectedEvents.map((event) =>
-          fetch(`/api/events/${event.eventid}/members`).then((res) => res.json())
+          fetch(`/api/events/${event.id}/members`).then((res) => res.json())
         )
       ).then((results) => results.flat());
       const combinedUsers = [...selectedUsers, ...selectedEventUsers];
@@ -378,7 +378,7 @@ const NewsletterCreation: React.FC<NewsletterCreationProps> = ({
                       )}
                       <div className="overflow-x-auto">
                         <DataTable
-                          keyField="eventid"
+                          keyField="id"
                           columns={eventColumns}
                           data={filteredEvents}
                           selectableRows

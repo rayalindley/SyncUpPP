@@ -211,10 +211,10 @@ export default function EventsPublicView() {
             <div className="mx-auto mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {currentEvents.map((event) => (
                 <EventsCard
-                  key={event.eventid}
+                  key={event.id}
                   event={{
-                    id: event.eventid,
-                    eventid: event.eventid,
+                    id: event.id,
+                    id: event.id,
                     imageUrl: event.eventphoto,
                     title: event.title,
                     description: event.description,

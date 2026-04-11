@@ -23,8 +23,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Fetch event data
     const { data: eventData, error: eventError } = await supabase
       .from("events")
-      .select("eventid, organizationid")
-      .eq("eventid", event_id)
+      .select("id, organizationid")
+      .eq("id", event_id)
       .single();
 
     if (eventError || !eventData) {
@@ -48,7 +48,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { data: registrants, error: registrantsError } = await supabase
       .from("eventregistrations")
       .select("userid")
-      .eq("eventid", event_id)
+      .eq("id", event_id)
       .eq("status", "registered")
       .eq("attendance", "present");
 

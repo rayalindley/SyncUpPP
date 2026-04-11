@@ -1,4 +1,5 @@
 "use client";
+
 import Footer from "@/components/footer";
 import Header from "@/components/header";
 import Loader from "@/components/Loader";
@@ -29,13 +30,12 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import remarkGfm from "remark-gfm";
 import Swal from "sweetalert2";
 import { Invoice as InvoiceClient, Xendit } from "xendit-node";
 import type { CreateInvoiceRequest, Invoice } from "xendit-node/invoice/models";
 import { QRCode } from "react-qrcode-logo";
-import Modal from "react-modal"; // Import modal library
+import Modal from "react-modal";
 import { check_permissions } from "@/lib/organization";
 import ShareButton from "@/components/share-button";
 import Head from "next/head";
@@ -68,10 +68,10 @@ const EventPage = () => {
   const [registrationClosed, setRegistrationClosed] = useState(false);
   const [canJoin, setCanJoin] = useState(false);
   const [paymentPending, setPaymentPending] = useState(false);
-  const [showQRCode, setShowQRCode] = useState(false); // State to show/hide QR code
-  const [qrCodeUrl, setQRCodeUrl] = useState(""); // State for QR code URL
-  const [modalIsOpen, setModalIsOpen] = useState(false); // State for modal visibility
-  const [canManageRegistrations, setCanManageRegistrations] = useState(false); // New state for managing event registrations permission
+  const [showQRCode, setShowQRCode] = useState(false);
+  const [qrCodeUrl, setQRCodeUrl] = useState("");
+  const [modalIsOpen, setModalIsOpen] = useState(false);
+  const [canManageRegistrations, setCanManageRegistrations] = useState(false);
   const [attendanceStatus, setAttendanceStatus] = useState<string | null>(null);
   const [discounts, setDiscounts] = useState<any[]>([]);
   const [discountedFee, setDiscountedFee] = useState<number>(event?.registrationfee ?? 0);
@@ -93,7 +93,6 @@ const EventPage = () => {
     try {
       const supabase = createClient();
 
-      // Fetch user's roles and memberships from organization_members_roles table
       const { data: memberData, error: memberError } = await supabase
         .from("organization_members_roles")
         .select("role, membership_name")
@@ -104,12 +103,10 @@ const EventPage = () => {
         return { discountedFee: event?.registrationfee ?? 0, discountLabel: "" };
       }
 
-      // Iterate through discounts and determine the highest applicable discount
       discounts.forEach((discount) => {
         const hasRoleDiscount = discount.role?.includes('All Roles') || (discount.role && discount.role.some((role: string) => memberData.some((member) => member.role === role)));
-        const hasMembershipDiscount = discount.membership_tier?.includes('All Membership Tiers') || (discount.membership_tier && discount.membership_tier.some((tier: string) => memberData.some((member) => member.membership_name === tier)));
+        const hasMembershipDiscount = discount.membership_tier?.includes('All Membership Tiers') || (discount.membership_tier && discount.membership_tier.some((tier: string) => memberData.some((m) => m.membership_name === tier)));
 
-        // Give preference to higher discount regardless of the source (role or membership tier)
         if (hasRoleDiscount || hasMembershipDiscount) {
           if (discount.discount_percent > maxDiscount) {
             maxDiscount = discount.discount_percent;
@@ -127,7 +124,6 @@ const EventPage = () => {
       return { discountedFee: event?.registrationfee ?? 0, discountLabel: "" };
     }
   }
-
 
   async function checkUserRoleAndMembership(
     userId: string,
@@ -188,11 +184,10 @@ const EventPage = () => {
         if (eventError) throw eventError;
         setEvent(eventData);
 
-        // Fetch the event's discount details
         const { data: discountData, error: discountError } = await supabase
           .from("event_discounts")
           .select("*")
-          .eq("eventid", eventData.eventid);
+          .eq("eventid", eventData.id);
 
         if (discountError) throw discountError;
 
@@ -210,7 +205,6 @@ const EventPage = () => {
           if (orgError) throw orgError;
           setOrganization(organizationData);
 
-          // Check if the user has permission to manage registrations
           if (user) {
             const hasPermission = await check_permissions(
               user.id,
@@ -221,23 +215,22 @@ const EventPage = () => {
           }
         }
 
-
         if (eventData) {
-          const { count } = await countRegisteredUsers(eventData.eventid);
+          const { count } = await countRegisteredUsers(eventData.id);
           setAttendeesCount(count ?? 0);
 
           if (eventData.capacity) {
-            const { isFull } = await isEventFull(eventData.eventid);
+            const { isFull } = await isEventFull(eventData.id);
             setEventFull(isFull);
           }
         }
 
         if (eventData && user) {
-          const { isRegistered } = await checkUserRegistration(
-            eventData.eventid,
+          const { isRegistered: localIsRegistered } = await checkUserRegistration(
+            eventData.id,
             user.id
           );
-          setIsRegistered(isRegistered);
+          setIsRegistered(localIsRegistered);
 
           if (eventData.privacy?.type === "private") {
             const { roles, membership_tiers, allow_all_roles, allow_all_memberships } =
@@ -258,25 +251,25 @@ const EventPage = () => {
             setIsMember(true);
           }
 
-            // Check if a QR code exists for the user and fetch attendance status
+          if (localIsRegistered) {
             const { data: registrationData, error: registrationError } = await supabase
-            .from("eventregistrations")
-            .select("qr_code_data, attendance")
-            .eq("userid", user.id)
-            .eq("eventid", eventData.eventid)
-            .single();
+              .from("eventregistrations")
+              .select("qr_code_data, attendance")
+              .eq("userid", user.id)
+              .eq("eventid", eventData.id)
+              .limit(1)
+              .maybeSingle();
 
             if (registrationError) {
-            console.error("Error fetching registration data:", registrationError);
-            } else {
-            if (registrationData.qr_code_data) {
-              setQRCodeUrl(registrationData.qr_code_data);
-            }
-
-            // Set attendance status
-            setAttendanceStatus(registrationData.attendance);
+              console.error("Error fetching registration data:", registrationError);
+            } else if (registrationData) {
+              if (registrationData.qr_code_data) {
+                setQRCodeUrl(registrationData.qr_code_data);
+              }
+              setAttendanceStatus(registrationData.attendance);
             }
           }
+        }
 
         if (user && eventData) {
           const { isMember } = await checkMembership(user.id, eventData.organizationid);
@@ -301,7 +294,6 @@ const EventPage = () => {
     }
   }, [slug]);
 
-    
   const isUrl = (string: string) => {
     try {
       new URL(string);
@@ -310,52 +302,49 @@ const EventPage = () => {
       return false;
     }
   };
-    // Helper function to generate and save QR code data
-    const generateAndSaveQRCode = async (userId: string, eventId: string) => {
-      // Fetch the event data to check if the location is a URL
-      const { data: eventData, error } = await supabase
-        .from("events")
-        .select("location")
-        .eq("eventid", eventId)
-        .single();
-    
-      if (error) {
-        console.error("Error fetching event data:", error);
-        return;
-      }
-    
-      // Check if the event location is a URL (indicating an online event)
-      if (isUrl(eventData.location)) {
-        // console.log("Event is online. No QR code generation needed.");
-        return; // Exit the function, no QR code generation needed
-      }
-    
-      // Generate QR code data for in-person events
-      const qrCodeData = `${process.env.NEXT_PUBLIC_SITE_URL}/attendance?uid=${userId}&event=${eventId}`;
-  
-      await supabase
-        .from("eventregistrations")
-        .update({ qr_code_data: qrCodeData })
-        .eq("userid", userId)
-        .eq("eventid", eventId);
-      setQRCodeUrl(qrCodeData);
-      setShowQRCode(true);
-    };
-  // Add a new useEffect to check if QR code needs to be generated
+
+  const generateAndSaveQRCode = async (userId: string, id: string) => {
+    const { data: eventData, error } = await supabase
+      .from("events")
+      .select("location")
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      console.error("Error fetching event data:", error);
+      return;
+    }
+
+    if (isUrl(eventData.location)) {
+      return;
+    }
+
+    const qrCodeData = `${process.env.NEXT_PUBLIC_SITE_URL}/attendance?uid=${userId}&event=${id}`;
+
+    await supabase
+      .from("eventregistrations")
+      .update({ qr_code_data: qrCodeData })
+      .eq("userid", userId)
+      .eq("eventid", id);
+      
+    setQRCodeUrl(qrCodeData);
+    setShowQRCode(true);
+  };
+
   useEffect(() => {
     async function checkAndGenerateQRCode() {
       if (user && isRegistered && event && !isUrl(event.location) && !qrCodeUrl) {
-        if (user.id && event.eventid) {
-          await generateAndSaveQRCode(user.id, event.eventid);
+        if (user.id && event.id) {
+          await generateAndSaveQRCode(user.id, event.id);
         } else {
           console.error("User ID or Event ID is missing");
         }
       }
     }
-  
+
     checkAndGenerateQRCode();
   }, [user, isRegistered, event, qrCodeUrl]);
-  
+
   useEffect(() => {
     async function fetchDiscountedPrice() {
       if (user && event && discounts.length > 0) {
@@ -368,7 +357,6 @@ const EventPage = () => {
     fetchDiscountedPrice();
   }, [user, event, discounts]);
 
-
   if (loading) {
     return <Loader />;
   }
@@ -379,31 +367,34 @@ const EventPage = () => {
 
   const handleEventRegistration = async () => {
     const userId = user?.id;
-  
-    if (isRegistered) return;
-  
+
+    if (isRegistered) {
+      toast.error("You are already registered for this event!");
+      return;
+    }
+
     if (!user) {
       toast.error("User not found. Please log in.");
       return;
     }
-  
+
     if (eventFinished || registrationClosed || (eventFull && !isRegistered)) return;
-  
+
     if (event.privacy.type === "private" && !isOrgMember) {
       toast.error("You need to be a member of the organization to register for this event.");
       return;
     }
-  
+
     if (event.privacy.type === "private" && isOrgMember && !canJoin) {
       toast.error("You do not have the required role or membership tier to register for this event.");
       return;
     }
-  
+
     if (eventFull && !isRegistered) {
       toast.error("The event is full.");
       return;
     }
-  
+
     let fullName = `${user?.user_metadata?.first_name ?? ""} ${user?.user_metadata?.last_name ?? ""}`.trim();
     if (!fullName) {
       try {
@@ -421,9 +412,7 @@ const EventPage = () => {
 
     const registrationFeeToCharge = discountedFee && discountedFee < event.registrationfee ? discountedFee : event.registrationfee;
 
-  
     if (event.onsite) {
-      // Onsite payment flow
       const result = await Swal.fire({
         title: "Choose Payment Method",
         icon: "question",
@@ -442,13 +431,13 @@ const EventPage = () => {
         cancelButtonColor: "#d33",
         confirmButtonText: "Proceed",
       });
-  
+
       if (result.isConfirmed) {
         const paymentMethod = result.value;
-  
+
         if (paymentMethod === "onsite") {
-          const { data, error } = await registerForEvent(event.eventid, user.id, paymentMethod);
-  
+          const { data, error } = await registerForEvent(event.id, user.id, paymentMethod);
+
           if (error) {
             toast.error(`Registration failed: ${error.message}`);
           } else {
@@ -456,59 +445,56 @@ const EventPage = () => {
               activity_type: "event_register",
               description: `User registered for the event: ${event.title}`,
             });
-  
+
             await recordActivity({
               activity_type: "event_register",
               organization_id: event.organizationid,
               description: `User ${fullName} registered for the event: ${event.title}`,
             });
-  
+
             toast.success("You have successfully registered! Please proceed to the onsite payment area.");
-            setPaymentPending(true); // Set payment pending state
+            setPaymentPending(true);
             setIsRegistered(true);
             setAttendeesCount((prevCount) => prevCount + 1);
-  
+
             if (event.capacity && attendeesCount + 1 >= event.capacity) {
               setEventFull(true);
             }
-  
-            // Generate QR code after successful registration if the event is not virtual
+
             if (!isUrl(event.location)) {
-              await generateAndSaveQRCode(user.id, event.eventid); // Call QR code generation
+              await generateAndSaveQRCode(user.id, event.id);
             }
           }
         } else if (paymentMethod === "offsite") {
-          // Online payment flow
           try {
             const data = {
               amount: registrationFeeToCharge,
               payerEmail: user.email,
-              externalId: `${event.eventid}-${event.title}-${new Date().toISOString()}`,
+              externalId: `${event.id}-${event.title}-${new Date().toISOString()}`,
               description: `${organization?.name} Registration fee for ${event.title}: ${event.description}`,
               successRedirectUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/e/${event.eventslug}`,
             };
-  
+
             const invoice = await xenditInvoiceClient.createInvoice({ data });
-  
+
             const { error: paymentError } = await supabase.from("payments").insert([
               {
                 amount: registrationFeeToCharge,
                 invoiceId: invoice.id,
                 type: "events",
-                target_id: event.eventid,
+                target_id: event.id,
                 organizationId: event.organizationid,
                 invoiceUrl: invoice.invoiceUrl,
                 invoiceData: invoice,
               },
             ]);
-  
+
             if (paymentError) {
               toast.error(`Registration failed: ${paymentError.message}`);
               return;
             }
-  
-            // Navigate to the payment URL after QR code data is stored successfully
-            await generateAndSaveQRCode(user.id, event.eventid); // Ensure QR Code is generated after registration
+
+            await generateAndSaveQRCode(user.id, event.id);
             window.location.href = invoice.invoiceUrl;
           } catch (error) {
             toast.error("An error occurred during registration. Please try again.");
@@ -517,41 +503,39 @@ const EventPage = () => {
       }
     } else {
       try {
-        // Direct registration without onsite payment
         if (event.registrationfee > 0) {
           const data = {
             amount: registrationFeeToCharge,
             payerEmail: user.email,
-            externalId: `${event.eventid}-${event.title}-${new Date().toISOString()}`,
+            externalId: `${event.id}-${event.title}-${new Date().toISOString()}`,
             description: `${organization?.name} Registration fee for ${event.title}: ${event.description}`,
             successRedirectUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/e/${event.eventslug}`,
           };
-  
+
           const invoice = await xenditInvoiceClient.createInvoice({ data });
-  
+
           const { error: paymentError } = await supabase.from("payments").insert([
             {
               amount: registrationFeeToCharge,
               invoiceId: invoice.id,
               type: "events",
-              target_id: event.eventid,
+              target_id: event.id,
               organizationId: event.organizationid,
               invoiceUrl: invoice.invoiceUrl,
               invoiceData: invoice,
             },
           ]);
-  
+
           if (paymentError) {
             toast.error(`Registration failed: ${paymentError.message}`);
             return;
           }
-  
-          // Generate QR code after successful registration if the event is not virtual
-          await generateAndSaveQRCode(user.id, event.eventid); // Ensure QR Code is generated after registration
+
+          await generateAndSaveQRCode(user.id, event.id);
           window.location.href = invoice.invoiceUrl;
         } else {
-          const { data, error } = await registerForEvent(event.eventid, user.id, "offsite");
-  
+          const { data, error } = await registerForEvent(event.id, user.id, "offsite");
+
           if (error) {
             toast.error(`Registration failed: ${error.message}`);
           } else {
@@ -559,23 +543,22 @@ const EventPage = () => {
               activity_type: "event_register",
               description: `User registered for the event: ${event.title}`,
             });
-  
+
             await recordActivity({
               activity_type: "event_register",
               organization_id: event.organizationid,
               description: `User ${fullName} registered for the event: ${event.title}`,
             });
-  
+
             toast.success("You have successfully joined the event!");
             setIsRegistered(true);
             setAttendeesCount((prevCount) => prevCount + 1);
-  
+
             if (event.capacity && attendeesCount + 1 >= event.capacity) {
               setEventFull(true);
             }
-  
-            // Generate QR code after successful registration if the event is not virtual
-            await generateAndSaveQRCode(user.id, event.eventid);
+
+            await generateAndSaveQRCode(user.id, event.id);
           }
         }
       } catch (error) {
@@ -583,9 +566,6 @@ const EventPage = () => {
       }
     }
   };
-
-  
-
 
   const handleEventUnregistration = async () => {
     const result = await Swal.fire({
@@ -625,7 +605,7 @@ const EventPage = () => {
         description: `User ${fullName} cancelled their registration for the event: ${event.title}`,
       });
 
-      const { data, error: unregisterError } = await unregisterFromEvent(event.eventid, userId);
+      const { data, error: unregisterError } = await unregisterFromEvent(event.id, userId);
 
       if (unregisterError) {
         toast.error(`Unregistration failed: ${unregisterError.message}`);
@@ -634,350 +614,358 @@ const EventPage = () => {
         setIsRegistered(false);
         setAttendeesCount((prevCount) => prevCount - 1);
         setEventFull(false);
-        setQRCodeUrl(""); // Clear QR code on unregistration
-        setShowQRCode(false); // Hide QR code on unregistration
+        setQRCodeUrl("");
+        setShowQRCode(false);
       }
     }
   };
 
-   // Redirect to registrations page with the event ID in query params
-   const redirectToRegistrations = () => {
-    router.push(`/${organization?.slug}/dashboard/registrations?event=${event?.eventid}`);
+  const redirectToRegistrations = () => {
+    router.push(`/${organization?.slug}/dashboard/registrations?event=${event?.id}`);
   };
 
   return (
     <>
-    <div className="flex min-h-screen flex-col bg-eerieblack text-light">
-      <Header user={user} />
-      <ToastContainer />
-      <main className="flex-1 px-4 py-8 sm:px-6 lg:px-8 xl:px-0">
-        <div className="mx-auto max-w-7xl">
-          <div className="grid gap-8 lg:grid-cols-[1fr,1.5fr]">
-            <div className="space-y-6">
-              <div className="relative aspect-video w-full overflow-hidden rounded-lg">
-                {event.eventphoto ? (
-                  <img
-                    src={`${supabaseStorageBaseUrl}/${event.eventphoto}`}
-                    alt={event.title}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="h-full w-full bg-fadedgrey" />
-                )}
-                <span
-                  className={`absolute right-2 top-2 rounded-full bg-opacity-75 px-2 py-1 text-xs font-medium shadow-2xl ${
-                    event.privacy.type === "public"
-                      ? "bg-green-500 text-white"
-                      : "bg-red-500 text-white"
-                  }`}
-                >
-                  {event.privacy.type === "public" ? "Public" : "Members only"}
-                </span>
-              </div>
+      <div className="flex min-h-screen flex-col bg-eerieblack text-light">
+        <Header user={user} />
+        <ToastContainer />
+        <main className="flex-1 px-4 py-8 sm:px-6 lg:px-8 xl:px-0">
+          <div className="mx-auto max-w-7xl">
+            <div className="grid gap-8 lg:grid-cols-[1fr,1.5fr]">
+              <div className="space-y-6">
+                <div className="relative aspect-video w-full overflow-hidden rounded-lg">
+                  {event.eventphoto ? (
+                    <img
+                      src={`${supabaseStorageBaseUrl}/${event.eventphoto}`}
+                      alt={event.title}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-full w-full bg-fadedgrey" />
+                  )}
+                  <span
+                    className={`absolute right-2 top-2 rounded-full bg-opacity-75 px-2 py-1 text-xs font-medium shadow-2xl ${
+                      event.privacy.type === "public"
+                        ? "bg-green-500 text-white"
+                        : "bg-red-500 text-white"
+                    }`}
+                  >
+                    {event.privacy.type === "public" ? "Public" : "Members only"}
+                  </span>
+                </div>
 
-              {organization && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      {organization.photo ? (
-                        <img
-                          src={`${supabaseStorageBaseUrl}/${organization.photo}`}
-                          alt={organization.name}
-                          className="h-10 w-10 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="h-10 w-10 rounded-full bg-white" />
+                {organization && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        {organization.photo ? (
+                          <img
+                            src={`${supabaseStorageBaseUrl}/${organization.photo}`}
+                            alt={organization.name}
+                            className="h-10 w-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded-full bg-white" />
+                        )}
+                        <div>
+                          <p className="text-sm font-medium text-light">Hosted By</p>
+                          <Link href={`/${organization.slug}`}>
+                            <p className="group flex items-center text-base font-semibold text-light hover:text-primary">
+                              {organization.name}
+                              <ChevronRightIcon className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                            </p>
+                          </Link>
+                        </div>
+                      </div>
+                      {!isOrgMember && (
+                        <button
+                          className="rounded-full bg-primary px-4 py-2 text-sm text-white hover:bg-primarydark"
+                          onClick={() => {
+                            router.push(`/${organization.slug}?tab=membership`);
+                          }}
+                        >
+                          Join Org
+                        </button>
                       )}
-                      <div>
-                        <p className="text-sm font-medium text-light">Hosted By</p>
-                        <Link href={`/${organization.slug}`}>
-                          <p className="group flex items-center text-base font-semibold text-light hover:text-primary">
-                            {organization.name}
-                            <ChevronRightIcon className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                          </p>
-                        </Link>
+                    </div>
+
+                    <div
+                      className={`relative ${showFullDescription ? "" : "group max-h-24 overflow-hidden"}`}
+                    >
+                      <p className="text-justify text-sm text-light">
+                        {organization.description}
+                      </p>
+                      {!showFullDescription && organization.description.length > 130 && (
+                        <>
+                          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-b from-transparent to-eerieblack"></div>
+                          <ChevronDownIcon
+                            className="absolute bottom-0 left-1/2 h-5 w-5 -translate-x-1/2 transform cursor-pointer text-white opacity-0 transition-opacity group-hover:opacity-100"
+                            onClick={() => setShowFullDescription(true)}
+                          />
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+                <hr className="border-t border-fadedgrey opacity-50" />
+                {event.privacy?.type === "private" &&
+                  !event.privacy.allow_all_roles &&
+                  !event.privacy.allow_all_memberships && (
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-semibold text-light">
+                        Privacy
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {event.privacy.roles?.map((role) => (
+                          <span
+                            key={role}
+                            className="cursor-pointer rounded-full bg-primary px-3 py-2 text-sm text-light transition-colors duration-300 hover:bg-primarydark"
+                          >
+                            {role}
+                          </span>
+                        ))}
+                        {event.privacy.membership_tiers?.map((tier) => (
+                          <span
+                            key={tier}
+                            className="cursor-pointer rounded-full bg-primary px-3 py-2 text-sm text-light transition-colors duration-300 hover:bg-primarydark"
+                          >
+                            {tier}
+                          </span>
+                        ))}
                       </div>
                     </div>
-                    {!isOrgMember && (
-                      <button
-                        className="rounded-full bg-primary px-4 py-2 text-sm text-white hover:bg-primarydark"
-                        onClick={() => {
-                          router.push(`/${organization.slug}?tab=membership`);
-                        }}
-                      >
-                        Join Org
-                      </button>
-                    )}
-                  </div>
+                  )}
+              </div>
 
-                  <div
-                    className={`relative ${showFullDescription ? "" : "group max-h-24 overflow-hidden"}`}
-                  >
-                    <p className="text-justify text-sm text-light">
-                      {organization.description}
-                    </p>
-                    {!showFullDescription && organization.description.length > 130 && (
-                      <>
-                        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-b from-transparent to-eerieblack"></div>
-                        <ChevronDownIcon
-                          className="absolute bottom-0 left-1/2 h-5 w-5 -translate-x-1/2 transform cursor-pointer text-white opacity-0 transition-opacity group-hover:opacity-100"
-                          onClick={() => setShowFullDescription(true)}
-                        />
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-              <hr className="border-t border-fadedgrey opacity-50" />
-              {event.privacy?.type === "private" &&
-                !event.privacy.allow_all_roles &&
-                !event.privacy.allow_all_memberships && (
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-semibold text-light">
-                      Privacy
-                    </h3>
+              <div className="space-y-4">
+                <h1 className="text-2xl font-bold text-light sm:text-3xl lg:text-4xl">
+                  {event.title} <ShareButton />
+                </h1>
+                {event.tags && (
+                  <div className="flex space-x-2">
                     <div className="flex flex-wrap gap-2">
-                      {event.privacy.roles?.map((role) => (
+                      {event.tags.map((tag) => (
                         <span
-                          key={role}
-                          className="cursor-pointer rounded-full bg-primary px-3 py-2 text-sm text-light transition-colors duration-300 hover:bg-primarydark"
+                          key={tag}
+                          className="cursor-pointer rounded-full bg-charleston px-3 py-2 text-sm text-light transition-colors duration-300 hover:bg-raisinblack"
                         >
-                          {role}
-                        </span>
-                      ))}
-                      {event.privacy.membership_tiers?.map((tier) => (
-                        <span
-                          key={tier}
-                          className="cursor-pointer rounded-full bg-primary px-3 py-2 text-sm text-light transition-colors duration-300 hover:bg-primarydark"
-                        >
-                          {tier}
+                          {tag}
                         </span>
                       ))}
                     </div>
                   </div>
                 )}
-            </div>
-
-            <div className="space-y-4">
-            <h1 className="text-2xl font-bold text-light sm:text-3xl lg:text-4xl">
-                {event.title} <ShareButton />
-            </h1>
-            {event.tags && (
-                <div className="flex space-x-2">
-                  <div className="flex flex-wrap gap-2">
-                    {event.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="cursor-pointer rounded-full bg-charleston px-3 py-2 text-sm text-light transition-colors duration-300 hover:bg-raisinblack"
-                      >
-                        {tag}
-                      </span>
-                    ))}
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <CalendarIcon className="h-6 w-6 text-primary sm:h-8 sm:w-8" />
+                    <span className="text-sm text-light sm:text-base">
+                      {new Date(event.starteventdatetime).toLocaleDateString("en-US", {
+                        weekday: "short",
+                        month: "short",
+                        day: "numeric",
+                      })}
+                      ,{" "}
+                      {new Date(event.starteventdatetime).toLocaleTimeString("en-US", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: true,
+                      })}
+                      &nbsp; - &nbsp;
+                      {new Date(event.endeventdatetime).toLocaleDateString("en-US", {
+                        weekday: "short",
+                        month: "short",
+                        day: "numeric",
+                      })}
+                      ,{" "}
+                      {new Date(event.endeventdatetime).toLocaleTimeString("en-US", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: true,
+                      })}
+                    </span>
                   </div>
-                </div>
-              )}
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <CalendarIcon className="h-6 w-6 text-primary sm:h-8 sm:w-8" />
-                  <span className="text-sm text-light sm:text-base">
-                    {new Date(event.starteventdatetime).toLocaleDateString("en-US", {
-                      weekday: "short",
-                      month: "short",
-                      day: "numeric",
-                    })}
-                    ,{" "}
-                    {new Date(event.starteventdatetime).toLocaleTimeString("en-US", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: true,
-                    })}
-                    &nbsp; - &nbsp;
-                    {new Date(event.endeventdatetime).toLocaleDateString("en-US", {
-                      weekday: "short",
-                      month: "short",
-                      day: "numeric",
-                    })}
-                    ,{" "}
-                    {new Date(event.endeventdatetime).toLocaleTimeString("en-US", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: true,
-                    })}
-                  </span>
-                </div>
 
-                <div className="flex items-center space-x-2">
-                  <MapPinIcon className="h-6 w-6 text-primary sm:h-8 sm:w-8" />
-                  {isUrl(event.location) ? (
-                    isRegistered ? (
-                      <Link href={event.location}>
-                        <p className="text-sm text-primary hover:underline sm:text-base">
-                          Virtual Event
-                        </p>
-                      </Link>
+                  <div className="flex items-center space-x-2">
+                    <MapPinIcon className="h-6 w-6 text-primary sm:h-8 sm:w-8" />
+                    {isUrl(event.location) ? (
+                      isRegistered ? (
+                        <Link href={event.location}>
+                          <p className="text-sm text-primary hover:underline sm:text-base">
+                            Virtual Event
+                          </p>
+                        </Link>
+                      ) : (
+                        <span className="text-sm text-light sm:text-base">
+                          Virtual Event (register to access event link)
+                        </span>
+                      )
                     ) : (
                       <span className="text-sm text-light sm:text-base">
-                        Virtual Event (register to access event link)
+                        {event.location}
                       </span>
-                    )
-                  ) : (
-                    <span className="text-sm text-light sm:text-base">
-                      {event.location}
+                    )}
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <UsersIcon className="h-6 w-6 text-primary sm:h-8 sm:w-8" />
+                    <span
+                      className={`text-sm sm:text-base ${event.capacity && attendeesCount >= event.capacity ? "text-red-500" : "text-light"} ${canManageRegistrations ? "cursor-pointer hover:text-primary" : ""}`}
+                      onClick={canManageRegistrations ? redirectToRegistrations : undefined}
+                    >
+                      {event.capacity > 0
+                        ? `${attendeesCount} / ${event.capacity} attending`
+                        : `${attendeesCount} attending`}
                     </span>
-                  )}
+                  </div>
                 </div>
 
-                <div className="flex items-center space-x-2">
-                  <UsersIcon className="h-6 w-6 text-primary sm:h-8 sm:w-8" />
-                  <span
-                    className={`text-sm sm:text-base ${event.capacity && attendeesCount >= event.capacity ? "text-red-500" : "text-light"} ${canManageRegistrations ? "cursor-pointer hover:text-primary" : ""}`}
-                    onClick={canManageRegistrations ? redirectToRegistrations : undefined} // Only clickable if user has permission
-                  >
-                    {event.capacity > 0
-                      ? `${attendeesCount} / ${event.capacity} attending`
-                      : `${attendeesCount} attending`}
-                  </span>
-                </div>
-              </div>
-
-              <div className="rounded-lg bg-raisinblack p-4 shadow-md">
-                <h2 className="mb-2 text-lg font-semibold text-light">Registration</h2>
-                <p className="mb-4 text-sm text-light">
-                  Hello! To join the event, please register below:
-                </p>
-                <p className="mb-4 text-light">
-                  {event.registrationfee ? (
-                    <>
-                      {discountedFee && discountedFee < event.registrationfee ? (
-                        <>
-                          <span>Registration Fee: </span>
-                          <span className="line-through mr-2">Php {event.registrationfee.toFixed(2)}</span>
-                          <span>Php {discountedFee.toFixed(2)} </span>
-                          <span className="text-primary">({discountLabel})</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>Registration Fee:</span> Php {event.registrationfee.toFixed(2)}
-                        </>
-                      )}
-                    </>
-                  ) : (
-                    <span className="mb-4 text-light">Free Registration</span>
-                  )}
-                </p>
-                {event.registrationfee && discounts.some(discount => discount.discount_percent > 0) && (
-                  <div className="mb-4">
-                  <h3 className="text-md font-medium text-primary">Available Discounts!</h3>
-                  {discounts.map((discount) => (
-                    <p key={discount.discountid} className="text-sm text-light">
-                      {discount.role?.length > 0 && (
-                        <>
-                          {discount.role.join(", ")} - {discount.discount_percent}%
-                        </>
-                      )}
-                      {discount.membership_tier?.length > 0 && (
-                        <>
-                          {discount.membership_tier.join(", ")} - {discount.discount_percent}%
-                        </>
-                      )}
-                    </p>
-                  ))}
-                </div>
-                )}
-                <button
-                  className={`w-full rounded-md px-6 py-3 text-white ${
-                    eventFinished ||
-                    registrationClosed ||
-                    (eventFull && !isRegistered)
-                      ? "cursor-not-allowed bg-fadedgrey"
-                      : isRegistered
-                      ? "bg-red-600 hover:bg-red-700"
-                      : "bg-primary hover:bg-primarydark"
-                  }`}
-                  onClick={
-                    isRegistered ? handleEventUnregistration : handleEventRegistration
-                  }
-                  disabled={
-                    eventFinished ||
-                    registrationClosed ||
-                    (eventFull && !isRegistered)
-                  }
-                >
-                  {eventFinished
-                    ? "Event Finished"
-                    : registrationClosed
-                    ? "Registration Closed"
-                    : eventFull && !isRegistered
-                    ? "Event Full"
-                    : isRegistered
-                    ? "Unregister"
-                    : "Register"}
-                </button>
-                {/* If user has been marked as present or late, do not show the "View QR" button */}
-                {isRegistered && qrCodeUrl && !eventFinished && attendanceStatus !== "present" && attendanceStatus !== "late" && (
-                  <button
-                    className="w-full mt-4 rounded-md bg-primary px-6 py-3 text-white hover:bg-primarydark"
-                    onClick={openModal}
-                  >
-                    View QR
-                  </button>
-                )}
-
-                {/* If the user is already marked as present or late */}
-                {(attendanceStatus === "present" || attendanceStatus === "late") && (
-                  <p className="mt-4 text-center text-sm text-light">
-                    You have already been marked as present for this event.
+                <div className="rounded-lg bg-raisinblack p-4 shadow-md">
+                  <h2 className="mb-2 text-lg font-semibold text-light">Registration</h2>
+                  <p className="mb-4 text-sm text-light">
+                    Hello! To join the event, please register below:
                   </p>
-                )}
+                  <p className="mb-4 text-light">
+                    {event.registrationfee ? (
+                      <>
+                        {discountedFee && discountedFee < event.registrationfee ? (
+                          <>
+                            <span>Registration Fee: </span>
+                            <span className="line-through mr-2">Php {event.registrationfee.toFixed(2)}</span>
+                            <span>Php {discountedFee.toFixed(2)} </span>
+                            <span className="text-primary">({discountLabel})</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>Registration Fee:</span> Php {event.registrationfee.toFixed(2)}
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      <span className="mb-4 text-light">Free Registration</span>
+                    )}
+                  </p>
+                  {event.registrationfee && discounts.some(discount => discount.discount_percent > 0) && (
+                    <div className="mb-4">
+                      <h3 className="text-md font-medium text-primary">Available Discounts!</h3>
+                      {discounts.map((discount) => (
+                        <p key={discount.discountid} className="text-sm text-light">
+                          {discount.role?.length > 0 && (
+                            <>
+                              {discount.role.join(", ")} - {discount.discount_percent}%
+                            </>
+                          )}
+                          {discount.membership_tier?.length > 0 && (
+                            <>
+                              {discount.membership_tier.join(", ")} - {discount.discount_percent}%
+                            </>
+                          )}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                  <button
+                    className={`w-full rounded-md px-6 py-3 text-white ${
+                      isRegistered
+                        ? "bg-red-600 hover:bg-red-700"
+                        : eventFinished ||
+                          registrationClosed ||
+                          (eventFull && !isRegistered)
+                        ? "cursor-not-allowed bg-fadedgrey"
+                        : "bg-primary hover:bg-primarydark"
+                    }`}
+                    onClick={
+                      isRegistered ? handleEventUnregistration : handleEventRegistration
+                    }
+                    disabled={
+                      eventFinished ||
+                      registrationClosed ||
+                      (eventFull && !isRegistered)
+                    }
+                  >
+                    {eventFinished
+                      ? "Event Finished"
+                      : registrationClosed
+                      ? "Registration Closed"
+                      : eventFull && !isRegistered
+                      ? "Event Full"
+                      : isRegistered
+                      ? "Unregister"
+                      : "Register"}
+                  </button>
 
-              </div>
+                  {/* ---------- NEW FEEDBACK BUTTON CODE START ---------- */}
+                  {isRegistered && event.has_feedback_form && (
+                    <button
+                      className="w-full mt-4 rounded-md bg-blue-600 px-6 py-3 text-white hover:bg-blue-700"
+                     onClick={() => router.push(`/feedback/${event.eventslug}`)}
+                    >
+                      Answer Feedback Form
+                    </button>
+                  )}
+                  {/* ---------- NEW FEEDBACK BUTTON CODE END ---------- */}
 
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-light">Event Description</p>
-                <hr className="border-t border-fadedgrey opacity-50" />
-                <div className="prose prose-invert max-w-none">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {event.description}
-                  </ReactMarkdown>
+                  {isRegistered && qrCodeUrl && !eventFinished && attendanceStatus !== "present" && attendanceStatus !== "late" && (
+                    <button
+                      className="w-full mt-4 rounded-md bg-primary px-6 py-3 text-white hover:bg-primarydark"
+                      onClick={openModal}
+                    >
+                      View QR
+                    </button>
+                  )}
+
+                  {(attendanceStatus === "present" || attendanceStatus === "late") && (
+                    <p className="mt-4 text-center text-sm text-light">
+                      You have already been marked as present for this event.
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-light">Event Description</p>
+                  <hr className="border-t border-fadedgrey opacity-50" />
+                  <div className="prose prose-invert max-w-none">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {event.description}
+                    </ReactMarkdown>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </main>
-      <Footer />
-      {/* Modal for QR Code */}
-      <Modal
-        isOpen={modalIsOpen}
-        onRequestClose={closeModal}
-        contentLabel="View QR Code"
-        className="bg-eerieblack p-6 rounded-lg shadow-lg flex flex-col items-center justify-center"
-        overlayClassName="fixed inset-0 bg-eerieblack bg-opacity-70 flex items-center justify-center"
-      >
-        <h2 className="text-2xl text-white mb-4">Your QR Code</h2>
-        {qrCodeUrl ? (
-          <QRCode
-            value={qrCodeUrl.trim()}
-            size={200}
-            qrStyle="dots"
-            ecLevel="H"
-          />
-        ) : (
-          <p className="text-light">Loading QR Code...</p> // Loading message when qrCodeUrl is not available
-        )}
-      <p className="mt-2 text-light text-center">
-        {attendanceStatus === "present" || attendanceStatus === "late"
-          ? "You have already been marked as present for this event."
-          : "Please save this QR Code and present it at the event for your attendance."}
-      </p>        <button
-          className="mt-4 rounded-md bg-primary px-6 py-2 text-white hover:bg-primarydark"
-          onClick={closeModal}
-        >
-          Close
-        </button>
-      </Modal>
+        </main>
+        <Footer />
 
-    </div>
+        <Modal
+          isOpen={modalIsOpen}
+          onRequestClose={closeModal}
+          contentLabel="View QR Code"
+          className="bg-eerieblack p-6 rounded-lg shadow-lg flex flex-col items-center justify-center"
+          overlayClassName="fixed inset-0 bg-eerieblack bg-opacity-70 flex items-center justify-center"
+        >
+          <h2 className="text-2xl text-white mb-4">Your QR Code</h2>
+          {qrCodeUrl ? (
+            <QRCode
+              value={qrCodeUrl.trim()}
+              size={200}
+              qrStyle="dots"
+              ecLevel="H"
+            />
+          ) : (
+            <p className="text-light">Loading QR Code...</p>
+          )}
+          <p className="mt-2 text-light text-center">
+            {attendanceStatus === "present" || attendanceStatus === "late"
+              ? "You have already been marked as present for this event."
+              : "Please save this QR Code and present it at the event for your attendance."}
+          </p>
+          <button
+            className="mt-4 rounded-md bg-primary px-6 py-2 text-white hover:bg-primarydark"
+            onClick={closeModal}
+          >
+            Close
+          </button>
+        </Modal>
+      </div>
     </>
   );
 };

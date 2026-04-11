@@ -3,7 +3,7 @@ export class Notification {
   constructor(
     public notificationId: string,
     public organizationMemberId: string,
-    public eventId: string,
+    public id: string,
     public title: string,
     public eventDateTime: Date,
     public orgName: string,

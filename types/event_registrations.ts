@@ -4,7 +4,7 @@ import { OrganizationMembers } from './organization_members';
 
 export interface EventRegistrations {
   eventregistrationid: string;
-  eventid?: string;
+  id?: string;
   organizationmemberid?: string;
   registrationdate?: string;
   status?: any;

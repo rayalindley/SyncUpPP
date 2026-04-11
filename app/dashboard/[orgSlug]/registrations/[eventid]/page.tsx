@@ -15,7 +15,7 @@ interface Registration {
   status: string;
   adminid: string;
   organization_slug: string;
-  eventid: string;
+  id: string;
   attendance: string;
   attendance_updated_at: string;
   has_submitted_feedback: boolean;

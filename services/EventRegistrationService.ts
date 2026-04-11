@@ -20,7 +20,7 @@ export class EventRegistrationService {
     if (error) throw new Error(error.message);
     return new EventRegistration(
       data.eventRegistrationId,
-      data.eventId,
+      data.id,
       data.organizationMemberId,
       new Date(data.registrationDate),
       data.status,
@@ -40,7 +40,7 @@ export class EventRegistrationService {
     if (error) return null;
     return new EventRegistration(
       data.eventRegistrationId,
-      data.eventId,
+      data.id,
       data.organizationMemberId,
       new Date(data.registrationDate),
       data.status,
@@ -61,7 +61,7 @@ export class EventRegistrationService {
     if (error) return null;
     return new EventRegistration(
       data.eventRegistrationId,
-      data.eventId,
+      data.id,
       data.organizationMemberId,
       new Date(data.registrationDate),
       data.status,

@@ -98,7 +98,7 @@ const Loader = ({
 
   // Inline version for page loads
   return (
-    <div className="flex h-full min-h-[40vh] w-full flex-col items-center justify-center">
+    <div className="flex h-screen w-full flex-col items-center justify-center">
       <div className="scale-75">{FiberOpticLogo}</div>
       {text !== "Loading..." && (
         <h3 className="mt-6 flex items-center space-x-1 text-sm font-bold tracking-widest text-gray-400 uppercase">

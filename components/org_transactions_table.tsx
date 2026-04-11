@@ -32,7 +32,7 @@ interface OrganizationPayment {
     description?: string;
     registrationFee?: number;
     features?: Record<string, string>;
-    eventId?: string;
+    id?: string;
     title?: string;
     eventDateTime?: string;
     location?: string;

@@ -71,7 +71,7 @@ export async function notify(payload: NotifyPayload): Promise<NotifyResponse> {
 //  * @param eventTitle - The title of the event.
 //  * @param eventDate - The date of the event.
 //  * @param eventLocation - The location of the event.
-//  * @param eventId - The ID of the event.
+//  * @param id - The ID of the event.
 //  * @param eventUrl - The URL to the event page.
 //  */
 // export async function notifyUserJoinedEvent(
@@ -79,7 +79,7 @@ export async function notify(payload: NotifyPayload): Promise<NotifyResponse> {
 //   eventTitle: string,
 //   eventDate: string,
 //   eventLocation: string,
-//   eventId: string,
+//   id: string,
 //   eventUrl: string
 // ) {
 //   const result = await notify({
@@ -88,12 +88,12 @@ export async function notify(payload: NotifyPayload): Promise<NotifyResponse> {
 //     message: `Thanks for joining the event. Here are the details: "${eventTitle}" on ${eventDate} at ${eventLocation}.`,
 //     type: "event_registration",
 //     metadata: {
-//       eventId,
+//       id,
 //       eventTitle,
 //       eventDate,
 //       eventLocation,
 //     },
-//     path: `/events/${eventId}`, // Link to the event page within your application
+//     path: `/events/${id}`, // Link to the event page within your application
 //   });
 
 //   if (!result.success) {

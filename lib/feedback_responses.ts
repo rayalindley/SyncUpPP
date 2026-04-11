@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 
-export async function fetchIndividualFeedbackResponses(eventId: string) {
+export async function fetchIndividualFeedbackResponses(id: string) {
   const supabase = createClient();
 
   // Fetch all responses for the event, along with the attendee details and specific answers
@@ -20,7 +20,7 @@ export async function fetchIndividualFeedbackResponses(eventId: string) {
       ),
       forms!inner(event_id)
     `)
-    .eq("forms.event_id", eventId)
+    .eq("forms.event_id", id)
     .order("submitted_at", { ascending: false });
 
   if (error) {

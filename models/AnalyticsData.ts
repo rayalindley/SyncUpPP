@@ -10,7 +10,7 @@ export class AnalyticsData {
   total_registrations: number;
   postid: string;
   total_comments: number;
-  eventid: string;
+  id: string;
   day_registered: string;
   registrations_count: number;
 }

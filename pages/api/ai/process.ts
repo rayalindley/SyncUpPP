@@ -112,10 +112,10 @@ export default async function handler(
   }
 
   try {
-    const { eventId } = req.body as { eventId?: string };
+    const { id } = req.body as { id?: string };
 
-    if (!eventId) {
-      return res.status(400).json({ error: "eventId required" });
+    if (!id) {
+      return res.status(400).json({ error: "id required" });
     }
 
     /* =========================
@@ -124,7 +124,7 @@ export default async function handler(
     const { data: feedbacks, error } = await supabase
       .from("feedbacks")
       .select("id, text, likert, event_id")
-      .eq("event_id", eventId)
+      .eq("event_id", id)
       .eq("processed", false)
       .limit(200);
 
@@ -225,7 +225,7 @@ export default async function handler(
     const { data: report } = await supabase
       .from("feedback_reports")
       .insert({
-        event_id: eventId,
+        event_id: id,
         generated_at: new Date().toISOString(),
         total_feedbacks: analyses.length,
         avg_likert: avgLikert,

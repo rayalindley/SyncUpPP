@@ -74,7 +74,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
         certificate_background
       )
     `)
-    .eq("eventid", event_id)
+    .eq("id", event_id)
     .single();
 
   if (eventError || !data) {

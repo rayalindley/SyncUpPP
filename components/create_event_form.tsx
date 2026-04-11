@@ -105,7 +105,7 @@ const EventSchema = z
 
 // Type Definitions
 export interface EventFormValues {
-  eventid?: string;
+  id?: string;
   title: string;
   description: string;
   starteventdatetime: string;
@@ -458,7 +458,7 @@ const CreateEventForm = ({
           const { data: discountData, error: discountError } = await supabase
             .from("event_discounts")
             .select("role, membership_tier, discount_percent")
-            .eq("eventid", event.eventid);
+            .eq("id", event.id);
           if (discountError) {
             console.error("Error fetching discounts:", discountError);
           } else if (discountData) {
@@ -510,7 +510,7 @@ const CreateEventForm = ({
         const { data: signatoriesData, error } = await supabase
           .from("event_signatories")
           .select("*")
-          .eq("event_id", event.eventid)
+          .eq("event_id", event.id)
           .limit(3);
         if (error) {
           console.error("Error fetching signatories:", error);
@@ -557,7 +557,7 @@ const CreateEventForm = ({
         const { data: certData, error: certError } = await supabase
           .from("event_certificate_settings")
           .select("*")
-          .eq("event_id", event.eventid)
+          .eq("event_id", event.id)
           .maybeSingle();
         if (certError) {
           console.error("Error fetching certificate settings:", certError);
@@ -818,15 +818,15 @@ const CreateEventForm = ({
       };
 
       const { data, error } = event
-        ? await updateEvent(event.eventid!, completeFormData)
+        ? await updateEvent(event.id!, completeFormData)
         : await insertEvent(completeFormData, organizationid);
 
       if (data) {
-        const eventId = event ? event.eventid! : data[0].id;
+        const id = event ? event.id! : data[0].id;
 
         // DEBUG LOGS
         console.log("DEBUG event insert/update result:", data);
-        console.log("DEBUG resolved eventId for certificate settings:", eventId);
+        console.log("DEBUG resolved id for certificate settings:", id);
 
         // Auto-register creator if creating a new event
         if (!event) {
@@ -835,7 +835,7 @@ const CreateEventForm = ({
           if (userId) {
             await supabase.from("eventregistrations").insert([
               {
-                eventid: data[0].eventid,
+                eventid: data[0].id,
                 userid: userId,
                 status: "registered",
                 attendance: "present",
@@ -1466,7 +1466,7 @@ const CreateEventForm = ({
               <div className="mt-4 space-y-1 text-light">
                 <label className="text-sm font-medium text-white">Select Roles</label>
                 <TagsInput
-                  key={event ? event.eventid : "new-event"}
+                  key={event ? event.id : "new-event"}
                   value={allowAllRoles ? ["All Roles"] : selectedRoles}
                   onChange={handleRolesChange}
                   suggestions={roleSuggestions}
@@ -1480,7 +1480,7 @@ const CreateEventForm = ({
                   Select Membership Tiers
                 </label>
                 <TagsInput
-                  key={event ? event.eventid : "new-event"}
+                  key={event ? event.id : "new-event"}
                   value={
                     allowAllMemberships ? ["All Membership Tiers"] : selectedMemberships
                   }

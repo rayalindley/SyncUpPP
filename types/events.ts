@@ -1,7 +1,7 @@
 import { Organizations } from '@/types/organizations';
 import { CombinedUserData } from '@/types/combined_user_data';
 export interface Events {
-  eventid: string;
+  id: string;
   organizationid: string;
   title: string;
   description?: string;

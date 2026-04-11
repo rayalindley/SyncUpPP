@@ -13,7 +13,7 @@ import Link from "next/link";
 
 const EventsCard = ({ event }: { event: Event }) => {
   const {
-    eventid,
+    id,
     imageUrl,
     title,
     description,
@@ -74,7 +74,7 @@ const EventsCard = ({ event }: { event: Event }) => {
 
       const { data, error } = await supabase.from("eventregistrations").insert([
         {
-          eventid: event.eventid,
+          id: event.id,
           registrationdate: new Date().toISOString(),
           status: "registered",
         },
@@ -92,7 +92,7 @@ const EventsCard = ({ event }: { event: Event }) => {
   const [registeredCount, setRegisteredCount] = useState(0);
 
   const fetchRegisteredCount = async () => {
-    const { count, error } = await countRegisteredUsers(event.eventid);
+    const { count, error } = await countRegisteredUsers(event.id);
     if (error) {
       toast.error("Failed to fetch the number of registered users.");
       console.error("Error fetching registered count:", error);

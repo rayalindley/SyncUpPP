@@ -74,7 +74,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
   const { data: event, error: eventError } = await supabase
     .from("events")
     .select("title, starteventdatetime")
-    .eq("eventid", certificate.event_id)
+    .eq("id", certificate.event_id)
     .single();
 
   if (eventError || !event) {

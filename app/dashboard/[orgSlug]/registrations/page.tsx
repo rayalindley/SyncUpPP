@@ -15,7 +15,7 @@ interface Registration {
   status: string;
   adminid: string;
   organization_slug: string;
-  eventid: string;
+  id: string;
   attendance: string;
   attendance_updated_at: string;
   has_submitted_feedback: boolean;
@@ -25,7 +25,7 @@ interface Registration {
 export default async function RegistrationsPage({
   params,
 }: {
-  params: { orgSlug: string; eventId: string};
+  params: { orgSlug: string; id: string};
 }) {
   const { user } = await getUser();
   const supabase = createClient();
@@ -34,7 +34,7 @@ export default async function RegistrationsPage({
     return redirect("/signin");
   }
 
-  const { orgSlug, eventId} = params;
+  const { orgSlug, id} = params;
   let registrations: Registration[] = [];
 
   if (!registrations) {
@@ -45,7 +45,7 @@ export default async function RegistrationsPage({
     const { data } = await supabase
       .from("eventregistrations_view")
       .select("*")
-      .eq("eventid", eventId);
+      .eq("id", id);
     registrations = data || [];
   } else {
     // Verify user belongs to the org based on slug
@@ -64,7 +64,7 @@ export default async function RegistrationsPage({
     const { data } = await supabase
       .from("eventregistrations_view")
       .select("*")
-      .eq("eventid", eventId)
+      .eq("id", id)
       .eq("organization_slug", orgSlug);
 
     registrations = data || [];

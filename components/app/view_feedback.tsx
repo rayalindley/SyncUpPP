@@ -1,47 +1,82 @@
 "use client";
-import { check_permissions } from "@/lib/organization";
-import { Event } from "@/types/event";
-import { Organization } from "@/types/organization";
-import { useRouter } from "next/navigation";
-import { useEffect, useState, useMemo } from "react";
-import EventOptions from "./event_options";
-import dynamic from 'next/dynamic';
-import { useDebounce } from "use-debounce";
-import { TableColumn } from "react-data-table-component";
-import { createClient } from "@/lib/supabase/client";
-import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 
-// Dynamically import DataTable
-const DataTable = dynamic(() => import('react-data-table-component'), {
+import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
+import { useDebounce } from "use-debounce";
+import { createClient } from "@/lib/supabase/client";
+import { ArrowLeftIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { useRouter } from "next/navigation";
+
+const DataTable = dynamic(() => import("react-data-table-component"), {
   ssr: false,
 }) as any;
 
 const supabase = createClient();
 
-// Add this new component near the top of the file
-const CustomPagination = ({ currentPage, totalPages, onPageChange }: any) => (
-  <div className="flex items-center justify-between px-4 py-3 bg-charleston sm:hidden rounded-lg">
-    <button
-      onClick={() => onPageChange(currentPage - 1)}
-      disabled={currentPage === 1}
-      className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-eerieblack rounded-md hover:bg-opacity-80 disabled:opacity-50"
-    >
-      Previous
-    </button>
-    <span className="text-sm text-gray-300">
-      Page {currentPage} of {totalPages}
-    </span>
-    <button
-      onClick={() => onPageChange(currentPage + 1)}
-      disabled={currentPage === totalPages}
-      className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-300 bg-eerieblack rounded-md hover:bg-opacity-80 disabled:opacity-50"
-    >
-      Next
-    </button>
-  </div>
-);
+type QuestionMeta = {
+  choices?: string[];
+  category?: string;
+};
+
+type QuestionObj = {
+  id: string;
+  question_text: string;
+  question_type: string;
+  metadata?: QuestionMeta;
+  question_order?: number;
+};
+
+type FormAnswer = {
+  answer: string;
+  question: QuestionObj | null;
+};
+
+type FeedbackRow = {
+  id: string;
+  attendee_id: string;
+  comment: string | null;
+  submitted_at: string | null;
+  certificate_preference: string | null;
+  certificate_issued: boolean | null;
+  form_answers?: FormAnswer[];
+};
+
+type DrawerQuestionItem = {
+  question: QuestionObj;
+  answer: string;
+};
+
+const likertLabelsMap: Record<string, string[]> = {
+  Agreement: [
+    "Strongly Disagree",
+    "Disagree",
+    "Neutral",
+    "Agree",
+    "Strongly Agree",
+  ],
+  Satisfaction: [
+    "Very Unsatisfied",
+    "Unsatisfied",
+    "Neutral",
+    "Satisfied",
+    "Very Satisfied",
+  ],
+  Frequency: ["Never", "Rarely", "Sometimes", "Often", "Always"],
+  Importance: [
+    "Not Important",
+    "Slightly Important",
+    "Neutral",
+    "Very Important",
+    "Extremely Important",
+  ],
+  Effectiveness: [
+    "Not Effective",
+    "Slightly Effective",
+    "Neutral",
+    "Very Effective",
+    "Extremely Effective",
+  ],
+};
 
 export default function FeedbackTable({
   eventSlug,
@@ -50,461 +85,510 @@ export default function FeedbackTable({
   eventSlug: string;
   userId: string;
 }) {
-  const [selectedOrgId, setSelectedOrgId] = useState("");
   const router = useRouter();
-  const [canCreateEvents, setCanCreateEvents] = useState(false);
-  const [canEditEvents, setCanEditEvents] = useState(false); // State for edit permission
+
+  const [event, setEvent] = useState<any>(null);
+  const [formId, setFormId] = useState<string | null>(null);
+  const [formQuestions, setFormQuestions] = useState<QuestionObj[]>([]);
+  const [rows, setRows] = useState<FeedbackRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const [filterText, setFilterText] = useState<string>("");
   const [debouncedFilterText] = useDebounce(filterText, 300);
-  // const [tableData, setTableData] = useState<Event[]>(events);
 
-  // Filter events based on the selected organization ID
-  // const filteredEvents = selectedOrgId
-  //   ? tableData.filter((eventSlug) => event.organizationid === selectedOrgId)
-  //   : tableData; // Use tableData instead of events
-
-  // Redirect to the create event page for the selected organization
-  // const handleCreateEvent = () => {
-  //   const selectedOrgSlug = organizations.find(
-  //     (org) => org.organizationid === selectedOrgId
-  //   )?.slug;
-  //   if (selectedOrgSlug) {
-  //     router.push(`/events/create/${selectedOrgSlug}`);
-  //   }
-  // };
-  const [event, setEvent] = useState<Event>();
+  // Drawer state
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [selectedResponse, setSelectedResponse] = useState<FeedbackRow | null>(null);
 
   useEffect(() => {
-      const fetchEvent = async () => {
-        const { data, error } = await supabase
-          .from("events")
-          .select("*")
-          .eq("eventslug", eventSlug)
-          .single();
-  
-        if(data) {
-          setEvent(data);
-          console.log(event);
+    const loadFeedback = async () => {
+      setLoading(true);
+
+      // 1) event by slug
+      const { data: eventData, error: eventError } = await supabase
+        .from("events")
+        .select("id, title")
+        .eq("eventslug", eventSlug)
+        .maybeSingle();
+
+      if (eventError || !eventData) {
+        console.error("Error fetching event by slug:", eventError);
+        setEvent(null);
+        setRows([]);
+        setFormQuestions([]);
+        setLoading(false);
+        return;
+      }
+
+      setEvent(eventData);
+
+      // 2) form by event_id (fallback slug)
+      let resolvedFormId: string | null = null;
+
+      const { data: formByEvent, error: formByEventError } = await supabase
+        .from("forms")
+        .select("id")
+        .eq("event_id", eventData.id)
+        .maybeSingle();
+
+      if (!formByEventError && formByEvent?.id) {
+        resolvedFormId = formByEvent.id;
+      } else {
+        const { data: formBySlug, error: formBySlugError } = await supabase
+          .from("forms")
+          .select("id")
+          .eq("slug", eventSlug)
+          .maybeSingle();
+
+        if (formBySlugError || !formBySlug?.id) {
+          console.error("No form found for event:", formByEventError || formBySlugError);
+          setRows([]);
+          setFormQuestions([]);
+          setLoading(false);
+          return;
         }
-      };
-  
-      fetchEvent();
-    }, [eventSlug]);
 
-  useEffect(() => {
-    const checkPermissions = async () => {
-      if (!selectedOrgId) {
-        setCanCreateEvents(false);
-        setCanEditEvents(false);
-        return; // Exit if no organization is selected
+        resolvedFormId = formBySlug.id;
       }
-  
-      try {
-        const createPermission = await check_permissions(
-          userId || "",
-          selectedOrgId,
-          "create_events"
-        );
-        setCanCreateEvents(createPermission);
-  
-        const editPermission = await check_permissions(
-          userId || "",
-          selectedOrgId,
-          "edit_events"
-        );
-        setCanEditEvents(editPermission);
-      } catch (error) {
-        console.error("Failed to check permissions", error);
-        setCanCreateEvents(false);
-        setCanEditEvents(false);
+
+      setFormId(resolvedFormId);
+
+      // 3) fetch ALL questions attached to this form (for drawer full layout)
+      const { data: formQuestionRows, error: fqError } = await supabase
+        .from("form_questions")
+        .select(`
+          question_order,
+          question:questions (
+            id,
+            question_text,
+            question_type,
+            metadata
+          )
+        `)
+        .eq("form_id", resolvedFormId)
+        .order("question_order", { ascending: true });
+
+      if (fqError) {
+        console.error("Error fetching form questions:", fqError);
+        setFormQuestions([]);
+      } else {
+        const normalizedQuestions: QuestionObj[] = (formQuestionRows || [])
+          .map((fq: any) => {
+            const q = Array.isArray(fq.question) ? fq.question[0] : fq.question;
+            if (!q) return null;
+            return {
+              ...q,
+              question_order: fq.question_order ?? 0,
+            } as QuestionObj;
+          })
+          .filter(Boolean) as QuestionObj[];
+
+        setFormQuestions(normalizedQuestions);
       }
+
+      // 4) fetch responses + answers
+      const { data: responses, error: responsesError } = await supabase
+        .from("form_responses")
+        .select(`
+          id,
+          attendee_id,
+          comment,
+          submitted_at,
+          certificate_preference,
+          certificate_issued,
+          form_answers (
+            answer,
+            question:questions (
+              id,
+              question_text,
+              question_type,
+              metadata
+            )
+          )
+        `)
+        .eq("form_id", resolvedFormId)
+        .order("submitted_at", { ascending: false });
+
+      if (responsesError) {
+        console.error("Error fetching feedback responses:", responsesError);
+        setRows([]);
+      } else {
+        const normalized: FeedbackRow[] = (responses || []).map((r: any) => ({
+          id: r.id,
+          attendee_id: r.attendee_id,
+          comment: r.comment,
+          submitted_at: r.submitted_at,
+          certificate_preference: r.certificate_preference,
+          certificate_issued: r.certificate_issued,
+          form_answers: (r.form_answers || []).map((fa: any) => ({
+            answer: fa.answer,
+            question: Array.isArray(fa.question)
+              ? fa.question[0] ?? null
+              : fa.question ?? null,
+          })),
+        }));
+
+        setRows(normalized);
+      }
+
+      setLoading(false);
     };
-  
-    checkPermissions();
-  }, [userId, selectedOrgId]);
-  
 
-  const handleStatusChange = async (id: string, newStatus: string) => {
-    if (!selectedOrgId) {
-      toast.error("Please select an organization to edit the event status.");
-      return;
-    }
-  
-    if (!canEditEvents) {
-      toast.error("You do not have permission to edit this event.");
-      return;
-    }
-  
-    const { error } = await supabase
-      .from("events")
-      .update({ 
-        status: newStatus, 
-        manualstatus: true 
+    loadFeedback();
+  }, [eventSlug]);
+
+  const getLikertAverage = (row: FeedbackRow): string => {
+    const likertAnswers = (row.form_answers || [])
+      .filter((fa) => {
+        const qType = (fa.question?.question_type || "").toLowerCase();
+        return qType === "likert";
       })
-      .eq("eventid", id);
-  
-    if (error) {
-      toast.error("Failed to update status. Please try again.");
-    } else {
-      toast.success("Status updated successfully!");
-  
-      // Update filteredEvents directly
-      // setTableData((prevData) =>
-      //   prevData.map((event) =>
-      //     event.eventid === id ? { ...event, status: newStatus, manualstatus: true } : event
-      //   )
-      // );
-    }
+      .map((fa) => {
+        const n = Number(fa.answer);
+        if (Number.isNaN(n)) return null;
+        return n >= 0 && n <= 4 ? n + 1 : n >= 1 && n <= 5 ? n : null;
+      })
+      .filter((n): n is number => n !== null);
+
+    if (!likertAnswers.length) return "—";
+    const avg = likertAnswers.reduce((sum, n) => sum + n, 0) / likertAnswers.length;
+    return `${avg.toFixed(1)}/5`;
   };
 
-  const formattedDateTime = (utcDateString: string) => {
-    const date = new Date(utcDateString);
-    return date.toLocaleString("en-US", {
-      timeZone: "Asia/Manila",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
+  const filteredData = useMemo(() => {
+    if (!debouncedFilterText) return rows;
+
+    const q = debouncedFilterText.toLowerCase();
+
+    return rows.filter((r) => {
+      const attendee = (r.attendee_id || "").toLowerCase();
+      const comment = (r.comment || "").toLowerCase();
+      const submittedAt = (r.submitted_at || "").toLowerCase();
+      const likertAvg = getLikertAverage(r).toLowerCase();
+
+      const answersText = (r.form_answers || [])
+        .map((a) => `${a.question?.question_text || ""} ${a.answer || ""}`)
+        .join(" ")
+        .toLowerCase();
+
+      return (
+        attendee.includes(q) ||
+        comment.includes(q) ||
+        submittedAt.includes(q) ||
+        answersText.includes(q) ||
+        likertAvg.includes(q)
+      );
     });
+  }, [rows, debouncedFilterText]);
+
+  const formatAnswers = (answers?: FormAnswer[]) => {
+    if (!answers || answers.length === 0) return "—";
+    return answers
+      .map((a) => `${a.question?.question_text || "Question"}: ${a.answer ?? ""}`)
+      .join("\n");
   };
 
-  // Define columns for the data table, including the new Status column
+  const handleExportCSV = () => {
+    const headers = [
+      "Response ID",
+      "Attendee ID",
+      "Comment",
+      "Likert Average",
+      "Submitted At",
+      "Certificate Preference",
+      "Certificate Issued",
+      "Answers",
+    ];
+
+    const csvRows = filteredData.map((r) => [
+      r.id ?? "",
+      r.attendee_id ?? "",
+      (r.comment ?? "").replace(/"/g, '""'),
+      getLikertAverage(r),
+      r.submitted_at ?? "",
+      r.certificate_preference ?? "",
+      String(!!r.certificate_issued),
+      formatAnswers(r.form_answers).replace(/"/g, '""'),
+    ]);
+
+    const csvContent = [headers, ...csvRows]
+      .map((row) => row.map((cell) => `"${cell}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${event?.title || "event"}-feedback-responses.csv`;
+    a.click();
+
+    URL.revokeObjectURL(url);
+  };
+
+  const openDrawer = (row: FeedbackRow) => {
+    setSelectedResponse(row);
+    setIsDrawerOpen(true);
+  };
+
+  const closeDrawer = () => {
+    setIsDrawerOpen(false);
+    setSelectedResponse(null);
+  };
+
+  // merge all form questions with selected response answers (so unanswered text questions still appear)
+  const drawerItems: DrawerQuestionItem[] = useMemo(() => {
+    if (!selectedResponse) return [];
+
+    const answerByQuestionId = new Map<string, string>();
+    (selectedResponse.form_answers || []).forEach((fa) => {
+      const qid = fa.question?.id;
+      if (qid) answerByQuestionId.set(qid, fa.answer ?? "");
+    });
+
+    return [...formQuestions]
+      .sort((a, b) => (a.question_order ?? 0) - (b.question_order ?? 0))
+      .map((q) => ({
+        question: q,
+        answer: answerByQuestionId.get(q.id) ?? "",
+      }));
+  }, [selectedResponse, formQuestions]);
+
+  const renderLikertView = (answer: string, category?: string) => {
+    const labels = category ? likertLabelsMap[category] : null;
+    if (!labels || labels.length === 0) {
+      return <p className="text-sm text-gray-300">{answer || "—"}</p>;
+    }
+
+    const raw = Number(answer);
+    const selectedIndex = Number.isNaN(raw) ? -1 : raw > 4 ? raw - 1 : raw;
+
+    return (
+      <div className="flex flex-wrap gap-2 mt-2">
+        {labels.map((label, idx) => {
+          const active = idx === selectedIndex;
+          return (
+            <div
+              key={idx}
+              className={`px-3 py-1 rounded-full text-xs border ${
+                active
+                  ? "bg-[#379A7B]/30 border-[#379A7B] text-white"
+                  : "bg-transparent border-gray-600 text-gray-400"
+              }`}
+            >
+              {label}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   const columns = [
     {
-      name: "Title",
-      selector: (row: Event) => row.title.toLowerCase(),
+      name: "Submitted At",
+      selector: (row: FeedbackRow) => row.submitted_at || "",
       sortable: true,
-      cell: (row: Event) => row.title,
+      cell: (row: FeedbackRow) =>
+        row.submitted_at
+          ? new Date(row.submitted_at).toLocaleString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+              hour: "numeric",
+              minute: "numeric",
+              hour12: true,
+            })
+          : "N/A",
     },
     {
-      name: "Start Date & Time",
-      selector: (row: Event) => row.starteventdatetime,
+      name: "Attendee ID",
+      selector: (row: FeedbackRow) => row.attendee_id || "",
       sortable: true,
-      cell: (row: Event) => new Date(row.starteventdatetime).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true }),
+      wrap: true,
     },
     {
-      name: "End Date & Time",
-      selector: (row: Event) => row.endeventdatetime,
+      name: "Comment",
+      selector: (row: FeedbackRow) => row.comment || "",
       sortable: true,
-      cell: (row: Event) => new Date(row.endeventdatetime).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true }),
+      grow: 2,
+      wrap: true,
+      cell: (row: FeedbackRow) => row.comment || "—",
     },
     {
-      name: "Location",
-      selector: (row: Event) => row.location.toLocaleLowerCase(),
+      name: "Likert Avg",
+      selector: (row: FeedbackRow) => getLikertAverage(row),
       sortable: true,
-    },
-    {
-      name: "Registration Fee",
-      selector: (row: Event) => row.registrationfee || "N/A",
-      sortable: true,
-    },
-    {
-      name: "Capacity",
-      selector: (row: Event) => row.capacity || "N/A",
-      sortable: true,
-    },
-    {
-      name: "Privacy",
-      selector: (row: Event) => {
-        const privacyInfo = row.privacy && typeof row.privacy === "object" && row.privacy.type === "public" ? "Public" : "Private";
-        return privacyInfo;
-      },
-      sortable: true,
-    },
-    {
-      name: "Status",
-      selector: (row: Event) => row.status,
-      cell: (row: Event) => {
-        // Normalize the status value
-        const status = row.status ? row.status.trim().toLowerCase() : "";
-    
-        return (
-          <div className="relative">
-            <select
-              value={row.status}
-              onChange={(e) => handleStatusChange(row.eventid, e.target.value)}
-              className={`text-center cursor-pointer rounded-2xl border-2 px-4 py-1 text-xs 
-                ${
-                  status === "ongoing"
-                    ? "bg-yellow-600/25 text-yellow-300 border-yellow-500 focus:border-yellow-500 focus:ring-yellow-500"
-                  : status === "open"
-                    ? "bg-green-600/25 text-green-300 border-green-700 focus:border-green-700 focus:ring-green-700"
-                  : status === "closed"
-                    ? "bg-red-600/25 text-red-300 border-red-700 focus:border-red-700 focus:ring-red-700"
-                  // Default styling if status doesn't match expected values
-                  : "bg-green-600/25 text-green-300 border-green-700 focus:border-green-700 focus:ring-green-700"
-                }`}
-            >
-              <option value="Open">Open</option>
-              <option value="Ongoing">Ongoing</option>
-              <option value="Closed">Closed</option>
-            </select>
-            <style jsx>{`
-              select {
-                appearance: none;
-                background-image: none;
-                outline: none;
-                background-color: transparent;
-              }
-    
-              select option {
-                background-color: #2a2a2a;
-                color: #ffffff;
-                text-align: center;
-                margin: 0;
-              }
-            `}</style>
-          </div>
-        );
-      },
-      sortable: true,
-    },
-    {
-      name: "",
-      cell: (row: Event) => (
-        <EventOptions selectedEvent={row} userId={userId} />
+      cell: (row: FeedbackRow) => (
+        <span className="text-sm font-semibold">{getLikertAverage(row)}</span>
       ),
-      ignoreRowClick: true,
-      allowOverflow: true,
+    },
+    {
+      name: "Actions",
+      cell: (row: FeedbackRow) => (
+        <button
+          onClick={() => openDrawer(row)}
+          className="px-3 py-1.5 rounded-md bg-primary text-white text-xs hover:opacity-90"
+        >
+          View
+        </button>
+      ),
       button: true,
+      ignoreRowClick: true,
     },
   ];
 
-  // const filteredData = useMemo(
-  //   () =>
-  //     filteredEvents.filter((event) => {
-  //       if (!debouncedFilterText) return true;
-  //       return (
-  //         event.title.toLowerCase().includes(debouncedFilterText.toLowerCase())
-  //       );
-  //     }),
-  //   [debouncedFilterText, tableData]
-  // );
-
   const subHeaderComponent = (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-2">
       <input
         type="text"
-        placeholder="Search..."
+        placeholder="Search by attendee, comment, answers, avg..."
         value={filterText}
         onChange={(e) => setFilterText(e.target.value)}
         className="block rounded-md border border-[#525252] bg-charleston px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
       />
-      <div className="mt-2 sm:flex sm:items-center sm:space-x-2">
-        <button className="bg-primary p-2 rounded-md"> Export to CSV file </button>
-      </div>
-      {/* <div className="mt-4 sm:flex sm:items-center sm:space-x-2">
-        <select
-          value={selectedOrgId}
-          onChange={(e) => setSelectedOrgId(e.target.value)}
-          className="rounded-md bg-charleston text-sm text-light shadow-sm ring-primary hover:bg-raisinblack focus:ring-2 focus:ring-primary"
-        >
-          <option value="">All Organizations</option>
-          {organizations.map((org) => (
-            <option key={org.organizationid} value={org.organizationid}>
-              {org.name}
-            </option>
-          ))}
-        </select>
-        {canCreateEvents && (
-          <button
-            onClick={handleCreateEvent}
-            disabled={!selectedOrgId} // Button is disabled if no organization is selected
-            className={`rounded-md px-4 py-2 text-sm text-white ${
-              selectedOrgId
-                ? "bg-primary hover:bg-primarydark"
-                : "cursor-not-allowed bg-gray-500"
-            }`}
-          >
-            Create Event
-          </button>
-        )}
-      </div> */}
-    </div>
-  );
-
-  // Add mobile card rendering function
-  const mobileCard = (row: Event) => (
-    <div className="bg-charleston p-4 rounded-lg mb-4 border border-[#525252] relative">
-      <div className="space-y-2">
-        <div>
-          <span className="text-gray-400">Title:</span>{" "}
-          <span className="text-white">{row.title}</span>
-        </div>
-        <div>
-          <span className="text-gray-400">Start Date & Time:</span>{" "}
-          <span className="text-white">
-            {new Date(row.starteventdatetime).toLocaleString('en-US', { 
-              month: 'short', 
-              day: 'numeric', 
-              year: 'numeric', 
-              hour: 'numeric', 
-              minute: 'numeric', 
-              hour12: true 
-            })}
-          </span>
-        </div>
-        <div>
-          <span className="text-gray-400">End Date & Time:</span>{" "}
-          <span className="text-white">
-            {new Date(row.endeventdatetime).toLocaleString('en-US', { 
-              month: 'short', 
-              day: 'numeric', 
-              year: 'numeric', 
-              hour: 'numeric', 
-              minute: 'numeric', 
-              hour12: true 
-            })}
-          </span>
-        </div>
-        <div>
-          <span className="text-gray-400">Location:</span>{" "}
-          <span className="text-white">{row.location}</span>
-        </div>
-        <div>
-          <span className="text-gray-400">Registration Fee:</span>{" "}
-          <span className="text-white">{row.registrationfee || "N/A"}</span>
-        </div>
-        <div>
-          <span className="text-gray-400">Capacity:</span>{" "}
-          <span className="text-white">{row.capacity || "N/A"}</span>
-        </div>
-        <div>
-          <span className="text-gray-400">Privacy:</span>{" "}
-          <span className="text-white">
-            {row.privacy && typeof row.privacy === "object" && row.privacy.type === "public" ? "Public" : "Private"}
-          </span>
-        </div>
-        <div>
-          <span className="text-gray-400">Status:</span>{" "}
-          <div className="relative inline-block">
-            <select
-              value={row.status}
-              onChange={(e) => handleStatusChange(row.eventid, e.target.value)}
-              className={`text-center bg-charleston cursor-pointer rounded-2xl border-2 px-4 py-1 text-xs ml-2
-                ${row.status === "Ongoing"
-                  ? "bg-yellow-600/25 text-yellow-300 border-yellow-500 focus:border-yellow-500 focus:outline-none focus:ring-yellow-500"
-                  : row.status === "Open"
-                    ? "bg-green-600/25 text-green-300 border-green-700 focus:border-green-700 focus:outline-none focus:ring-green-700"
-                    : "bg-red-600/25 text-red-300 border-red-700 focus:border-red-700 focus:outline-none focus:ring-red-700"
-                }`}
-            >
-              <option value="Open" className="bg-charleston text-green-300">Open</option>
-              <option value="Ongoing" className="bg-charleston text-yellow-300">Ongoing</option>
-              <option value="Closed" className="bg-charleston text-red-300">Closed</option>
-            </select>
-            <style jsx>{`
-              select {
-                appearance: none;
-                background-image: none;
-                outline: none;
-              }
-              select option {
-                background-color: #2a2a2a;
-                color: inherit;
-                text-align: center;
-                margin: 0;
-                padding: 8px;
-              }
-            `}</style>
-          </div>
-        </div>
-      </div>
-      <div className="absolute bottom-4 right-4">
-        <EventOptions selectedEvent={row} userId={userId} />
+      <div className="mt-2 sm:mt-0">
+        <button onClick={handleExportCSV} className="bg-primary p-2 rounded-md text-sm">
+          Export to CSV file
+        </button>
       </div>
     </div>
   );
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8">
+    <div className="px-4 sm:px-6 lg:px-8 relative">
       <div className="flex flex-col space-y-4">
         <div className="text-gray-100 hover:cursor-pointer mb-4">
-          <a
-            onClick={() => {router.back(); router.back();}}
-            className="flex items-center gap-2 hover:opacity-80 font-bold"
-          >
-            <ArrowLeftIcon className="h-5 w-5" /> Back
+          <a onClick={() => router.back()} className="flex items-center gap-2 hover:opacity-80 font-bold">
+            <div className="h-5 w-5 flex items-center justify-center">
+              <ArrowLeftIcon />
+            </div>
+            Back
           </a>
         </div>
+
         <div>
-          <h1 className="text-base font-semibold leading-6 text-light text-xl"> {event?.title} </h1>
+          <h1 className="text-base font-semibold leading-6 text-light text-xl">
+            {event?.title || "Feedback Responses"}
+          </h1>
           <p className="mt-2 text-sm text-light">
-            A list of all the events including their title, date and time, location,
-            registration fee, capacity, and privacy.
+            A list of attendee feedback responses for this event.
           </p>
-        </div>
-        {/* Mobile filters - show only on mobile */}
-        <div className="block sm:hidden">
-          {subHeaderComponent}
         </div>
       </div>
 
       <div className="mt-8">
-        {/* Mobile view */}
-        <div className="block sm:hidden">
-          {/* {filteredData.map((row, index) => (
-            <div key={index}>{mobileCard(row)}</div>
-          ))} */}
-          <CustomPagination 
-            currentPage={1}
-            // totalPages={Math.ceil(filteredData.length / 10)}
-            onPageChange={(page: number) => {/* Handle page change */}}
-          />
+        <DataTable
+          columns={columns}
+          data={filteredData}
+          progressPending={loading}
+          pagination
+          subHeader
+          subHeaderComponent={subHeaderComponent}
+          highlightOnHover
+          persistTableHead
+          customStyles={{
+            header: { style: { backgroundColor: "rgb(36, 36, 36)", color: "rgb(255, 255, 255)" } },
+            subHeader: { style: { backgroundColor: "transparent", color: "rgb(255, 255, 255)", padding: 0, marginBottom: 10 } },
+            rows: { style: { minHeight: "6vh", backgroundColor: "rgb(33, 33, 33)", color: "rgb(255, 255, 255)" } },
+            headCells: { style: { backgroundColor: "rgb(36, 36, 36)", color: "rgb(255, 255, 255)", fontWeight: 600 } },
+            cells: { style: { backgroundColor: "rgb(33, 33, 33)", color: "rgb(255, 255, 255)" } },
+            pagination: { style: { backgroundColor: "rgb(33, 33, 33)", color: "rgb(255, 255, 255)" } },
+          }}
+        />
+      </div>
+
+      {isDrawerOpen && <div className="fixed inset-0 bg-black/40 z-40" onClick={closeDrawer} />}
+
+      <div
+        className={`fixed top-0 right-0 h-full w-full sm:w-[520px] bg-[#161616] border-l border-[#2f2f2f] z-50 transform transition-transform duration-300 ${
+          isDrawerOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-between p-4 border-b border-[#2f2f2f]">
+          <h2 className="text-white font-semibold text-lg">Feedback Details</h2>
+          <button onClick={closeDrawer} className="p-2 rounded-md hover:bg-white/10 text-white">
+            <XMarkIcon className="h-5 w-5" />
+          </button>
         </div>
 
-        {/* Desktop view */}
-        <div className="hidden sm:block">
-          <DataTable
-            columns={columns}
-            //data={filteredData}
-            pagination
-            customStyles={{
-              header: {
-                style: {
-                  backgroundColor: "rgb(36, 36, 36)",
-                  color: "rgb(255, 255, 255)",
-                },
-              },
-              subHeader: {
-                style: {
-                  backgroundColor: "none",
-                  color: "rgb(255, 255, 255)",
-                  padding: 0,
-                  marginBottom: 10,
-                },
-              },
-              rows: {
-                style: {
-                  minHeight: "6vh",
-                  backgroundColor: "rgb(33, 33, 33)",
-                  color: "rgb(255, 255, 255)",
-                },
-              },
-              headCells: {
-                style: {
-                  backgroundColor: "rgb(36, 36, 36)",
-                  color: "rgb(255, 255, 255)",
-                },
-              },
-              cells: {
-                style: {
-                  backgroundColor: "rgb(33, 33, 33)",
-                  color: "rgb(255, 255, 255)",
-                },
-              },
-              pagination: {
-                style: {
-                  backgroundColor: "rgb(33, 33, 33)",
-                  color: "rgb(255, 255, 255)",
-                },
-              },
-            }}
-            subHeader
-            subHeaderComponent={subHeaderComponent}
-            highlightOnHover
-          />
+        <div className="p-4 overflow-y-auto h-[calc(100%-65px)] text-white space-y-4">
+          {!selectedResponse ? (
+            <p className="text-sm text-gray-300">No response selected.</p>
+          ) : (
+            <>
+              <div className="bg-charleston rounded-md p-3 text-sm space-y-1">
+                <p><span className="text-gray-400">Attendee ID:</span> {selectedResponse.attendee_id}</p>
+                <p>
+                  <span className="text-gray-400">Submitted:</span>{" "}
+                  {selectedResponse.submitted_at
+                    ? new Date(selectedResponse.submitted_at).toLocaleString()
+                    : "N/A"}
+                </p>
+                <p><span className="text-gray-400">Likert Average:</span> {getLikertAverage(selectedResponse)}</p>
+                <p><span className="text-gray-400">Certificate Preference:</span> {selectedResponse.certificate_preference || "none"}</p>
+                <p><span className="text-gray-400">Certificate Issued:</span> {selectedResponse.certificate_issued ? "Yes" : "No"}</p>
+              </div>
+
+              {drawerItems.length === 0 ? (
+                <p className="text-sm text-gray-300">No form questions found.</p>
+              ) : (
+                drawerItems.map((item, idx) => {
+                  const q = item.question;
+                  const qType = (q.question_type || "").toLowerCase();
+                  const ans = item.answer ?? "";
+
+                  return (
+                    <div key={`${q.id}-${idx}`} className="bg-charleston rounded-md p-3">
+                      <label className="text-sm font-semibold text-white block mb-2">
+                        {q.question_text}
+                      </label>
+
+                      {(qType === "text" || qType === "short_answer" || qType === "input") && (
+                        <input
+                          type="text"
+                          value={ans || "—"}
+                          readOnly
+                          className="w-full rounded-md border border-[#525252] bg-[#232323] px-3 py-2 text-sm text-gray-200"
+                        />
+                      )}
+
+                      {qType === "choice" && (
+                        <div className="space-y-2">
+                          {q.metadata?.choices?.length ? (
+                            q.metadata.choices.map((choice, cIdx) => (
+                              <label key={cIdx} className="flex items-center gap-2 text-sm text-gray-200">
+                                <input type="radio" checked={ans === choice} readOnly disabled />
+                                <span>{choice}</span>
+                              </label>
+                            ))
+                          ) : (
+                            <input
+                              type="text"
+                              value={ans || "—"}
+                              readOnly
+                              className="w-full rounded-md border border-[#525252] bg-[#232323] px-3 py-2 text-sm text-gray-200"
+                            />
+                          )}
+                        </div>
+                      )}
+
+                      {qType === "likert" && renderLikertView(ans, q.metadata?.category)}
+                    </div>
+                  );
+                })
+              )}
+
+              <div className="bg-charleston rounded-md p-3">
+                <label className="text-sm font-semibold text-white block mb-2">Comment</label>
+                <textarea
+                  value={selectedResponse.comment || ""}
+                  readOnly
+                  className="w-full min-h-[110px] rounded-md border border-[#525252] bg-[#232323] px-3 py-2 text-sm text-gray-200"
+                />
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

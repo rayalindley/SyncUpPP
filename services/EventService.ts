@@ -51,12 +51,12 @@ export class EventService {
     }
   }
 
-  async updateEvent(eventId: string, event: Event) {
+  async updateEvent(id: string, event: Event) {
     try {
       const { data, error } = await this.supabase
         .from("events")
         .update(event)
-        .eq("eventid", eventId)
+        .eq("id", id)
         .select();
 
       if (error) {
@@ -75,12 +75,12 @@ export class EventService {
     }
   }
 
-  async fetchEventById(eventId: string) {
+  async fetchEventById(id: string) {
     try {
       const { data, error } = await this.supabase
         .from("events")
         .select("*")
-        .eq("eventid", eventId)
+        .eq("id", id)
         .single();
 
       if (error) {
@@ -99,13 +99,13 @@ export class EventService {
     }
   }
 
-  async deleteEvent(eventId: string) {
+  async deleteEvent(id: string) {
     try {
       // Fetch the event to get the eventphoto URL
       const { data: eventData, error: fetchError } = await this.supabase
         .from("events")
         .select("eventphoto")
-        .eq("eventid", eventId)
+        .eq("id", id)
         .single();
 
       if (fetchError) {
@@ -116,7 +116,7 @@ export class EventService {
       const { data, error: deleteError } = await this.supabase
         .from("events")
         .delete()
-        .eq("eventid", eventId);
+        .eq("id", id);
 
       if (deleteError) {
         throw new Error(deleteError.message);
@@ -150,12 +150,12 @@ export class EventService {
     }
   }
 
-  async countRegisteredUsers(eventId: string) {
+  async countRegisteredUsers(id: string) {
     try {
       const { count, error } = await this.supabase
         .from("eventregistrations")
         .select("*", { count: "exact" })
-        .eq("eventid", eventId)
+        .eq("id", id)
         .eq("status", "registered");
 
       if (error) {
@@ -198,13 +198,13 @@ export class EventService {
     }
   }
 
-  async registerForEvent(eventId: string, userId: string) {
+  async registerForEvent(id: string, userId: string) {
     try {
       // Fetch event to check privacy setting
       const { data: event, error: eventError } = await this.supabase
         .from("events")
         .select("privacy, organizationid")
-        .eq("eventid", eventId)
+        .eq("id", id)
         .single();
 
       if (eventError || !event) {
@@ -232,7 +232,7 @@ export class EventService {
           .from("eventregistrations")
           .insert([
             {
-              eventid: eventId,
+              id: id,
               organizationmemberid: organizationMemberId,
               registrationdate: new Date().toISOString(),
               status: "registered",
@@ -250,7 +250,7 @@ export class EventService {
           .from("eventregistrations")
           .insert([
             {
-              eventid: eventId,
+              id: id,
               registrationdate: new Date().toISOString(),
               status: "registered",
             },
@@ -273,13 +273,13 @@ export class EventService {
     }
   }
 
-  async checkUserRegistration(eventId: string, userId: string) {
+  async checkUserRegistration(id: string, userId: string) {
     try {
       // Fetch the event registration record for the user
       const { data: registration, error } = await this.supabase
         .from("eventregistrations")
         .select("status")
-        .eq("eventid", eventId)
+        .eq("id", id)
         .eq("userid", userId)
         .single();
 
@@ -300,13 +300,13 @@ export class EventService {
     }
   }
 
-  async checkEventPrivacyAndMembership(eventId: string, userId: string) {
+  async checkEventPrivacyAndMembership(id: string, userId: string) {
     try {
       // Fetch the event privacy setting and organization ID
       const { data: event, error: eventError } = await this.supabase
         .from("events")
         .select("privacy, organizationid")
-        .eq("eventid", eventId)
+        .eq("id", id)
         .single();
 
       if (eventError || !event) {
@@ -342,12 +342,12 @@ export class EventService {
     }
   }
 
-  async unregisterFromEvent(eventId: string, userId: string) {
+  async unregisterFromEvent(id: string, userId: string) {
     try {
       const { data, error } = await this.supabase
         .from("eventregistrations")
         .delete()
-        .eq("eventid", eventId)
+        .eq("id", id)
         .eq("userid", userId);
 
       if (error) {
@@ -366,13 +366,13 @@ export class EventService {
     }
   }
 
-  async fetchRegisteredUsersForEvent(eventId: string) {
+  async fetchRegisteredUsersForEvent(id: string) {
     try {
       // Fetch user IDs of registered users for the event
       const { data: registrations, error: registrationsError } = await this.supabase
         .from("eventregistrations")
         .select("userid")
-        .eq("eventid", eventId);
+        .eq("id", id);
 
       if (registrationsError) {
         throw new Error(registrationsError.message);
@@ -408,7 +408,7 @@ export class EventService {
       // Fetch event IDs from the eventregistrations table for the given user
       const { data: registrations, error: registrationsError } = await this.supabase
         .from("eventregistrations")
-        .select("eventid")
+        .select("id")
         .eq("userid", userId);
 
       if (registrationsError) {
@@ -416,7 +416,7 @@ export class EventService {
       }
 
       // Extract event IDs from registrations
-      const eventIds = registrations.map((registration: any) => registration.eventid);
+      const eventIds = registrations.map((registration: any) => registration.id);
 
       // If no event IDs are found, return an empty array
       if (eventIds.length === 0) {
@@ -427,7 +427,7 @@ export class EventService {
       const { data: events, error: eventsError } = await this.supabase
         .from("events")
         .select("*")
-        .in("eventid", eventIds);
+        .in("id", eventIds);
 
       if (eventsError) {
         throw new Error(eventsError.message);
@@ -445,13 +445,13 @@ export class EventService {
     }
   }
 
-  async isEventFull(eventId: string) {
+  async isEventFull(id: string) {
     try {
       // Fetch the event capacity
       const { data: event, error: eventError } = await this.supabase
         .from("events")
         .select("capacity")
-        .eq("eventid", eventId)
+        .eq("id", id)
         .single();
 
       if (eventError || !event) {
@@ -462,7 +462,7 @@ export class EventService {
       const { count, error: registrationError } = await this.supabase
         .from("eventregistrations")
         .select("*", { count: "exact" })
-        .eq("eventid", eventId)
+        .eq("id", id)
         .eq("status", "registered");
 
       if (registrationError) {
@@ -513,7 +513,7 @@ export class EventService {
       // Fetch event IDs from the eventregistrations table for the given user
       const { data: registrations, error: registrationsError } = await this.supabase
         .from("eventregistrations")
-        .select("eventid")
+        .select("id")
         .eq("adminid", userId);
 
       if (registrationsError) {
@@ -521,7 +521,7 @@ export class EventService {
       }
 
       // Extract event IDs from registrations
-      const eventIds = registrations.map((registration: any) => registration.eventid);
+      const eventIds = registrations.map((registration: any) => registration.id);
 
       // If no event IDs are found, return an empty array
       if (eventIds.length === 0) {
@@ -532,7 +532,7 @@ export class EventService {
       const { data: events, error: eventsError } = await this.supabase
         .from("events")
         .select("*")
-        .in("eventid", eventIds);
+        .in("id", eventIds);
 
       if (eventsError) {
         throw new Error(eventsError.message);

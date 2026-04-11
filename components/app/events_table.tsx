@@ -124,7 +124,7 @@ export default function EventsTable({
         status: newStatus, 
         manualstatus: true 
       })
-      .eq("eventid", id);
+      .eq("id", id);
   
     if (error) {
       toast.error("Failed to update status. Please try again.");
@@ -134,7 +134,7 @@ export default function EventsTable({
       // Update filteredEvents directly
       setTableData((prevData) =>
         prevData.map((event) =>
-          event.eventid === id ? { ...event, status: newStatus, manualstatus: true } : event
+          event.id === id ? { ...event, status: newStatus, manualstatus: true } : event
         )
       );
     }
@@ -206,7 +206,7 @@ export default function EventsTable({
           <div className="relative">
             <select
               value={row.status}
-              onChange={(e) => handleStatusChange(row.eventid, e.target.value)}
+              onChange={(e) => handleStatusChange(row.id, e.target.value)}
               className={`text-center cursor-pointer rounded-2xl border-2 px-4 py-1 text-xs 
                 ${
                   status === "ongoing"
@@ -361,7 +361,7 @@ export default function EventsTable({
           <div className="relative inline-block">
             <select
               value={row.status}
-              onChange={(e) => handleStatusChange(row.eventid, e.target.value)}
+              onChange={(e) => handleStatusChange(row.id, e.target.value)}
               className={`text-center bg-charleston cursor-pointer rounded-2xl border-2 px-4 py-1 text-xs ml-2
                 ${row.status === "Ongoing"
                   ? "bg-yellow-600/25 text-yellow-300 border-yellow-500 focus:border-yellow-500 focus:outline-none focus:ring-yellow-500"

@@ -9,7 +9,7 @@ export interface CertificateSettings {
 export interface Event {
   users?: never[];
   id: string;
-  eventid: string;
+  id: string;
   eventphoto: string;
   title: string;
   description: string;

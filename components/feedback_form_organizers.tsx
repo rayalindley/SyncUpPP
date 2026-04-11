@@ -160,7 +160,7 @@ export default function FeedbackFormOrganizer({
   const [likertQuestions, setLikertQuestions] = useState<Question[]>([]);
   const [addedQuestions, setAddedQuestions] = useState<string[]>([]);
   const [formQuestions, setFormQuestions] = useState<any[]>([]);
-  const [eventId, setEventId] = useState<string | null>(null);
+  const [id, setEventId] = useState<string | null>(null);
   
   // NEW: Store organization slug for redirection
   const [orgSlug, setOrgSlug] = useState<string | null>(null);

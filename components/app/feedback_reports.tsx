@@ -87,7 +87,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
       }
 
       // --- Processed report via API ---
-      const res = await fetch(`/api/reports/get-feedback-report?eventId=${eventFilter}`);
+      const res = await fetch(`/api/reports/get-feedback-report?id=${eventFilter}`);
       const json = await res.json();
 
       if (!res.ok) throw new Error(json.error || "Failed to fetch reports");
@@ -152,7 +152,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
       const res = await fetch("/api/ai/process", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ eventId: eventFilter }),
+        body: JSON.stringify({ id: eventFilter }),
       });
 
       const json = await res.json();

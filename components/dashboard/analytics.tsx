@@ -62,7 +62,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ organizationid,
 
         // Automatically select the first event if available
         if (formattedData.length > 0) {
-          const firstEvent = formattedData[0].eventid;
+          const firstEvent = formattedData[0].id;
           setEventFilter(firstEvent);
         }
       }
@@ -73,10 +73,10 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ organizationid,
 
   useEffect(() => {
     if (eventFilter) {
-      const filtered = analyticsData.filter((item) => item.eventid === eventFilter);
+      const filtered = analyticsData.filter((item) => item.id === eventFilter);
       const uniqueFiltered = Array.from(
         new Map(
-          filtered.map((item) => [`${item.eventid}-${item.day_registered}`, item])
+          filtered.map((item) => [`${item.id}-${item.day_registered}`, item])
         ).values()
       );
       setFilteredRegistrations(uniqueFiltered);
@@ -90,7 +90,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ organizationid,
   };
 
   const uniqueEvents = Array.from(
-    new Map(analyticsData.map((item) => [item.eventid, item])).values()
+    new Map(analyticsData.map((item) => [item.id, item])).values()
   );
 
   const uniqueMemberGrowthData = Array.from(
@@ -163,7 +163,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ organizationid,
                 >
                   <option value="">Select an Event</option>
                   {uniqueEvents.map((event) => (
-                    <option key={event.eventid} value={event.eventid}>
+                    <option key={event.id} value={event.id}>
                       {event.event_title}
                     </option>
                   ))}

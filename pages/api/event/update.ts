@@ -9,10 +9,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ message: "Method not allowed" });
   }
 
-  const { eventId } = req.query;
+  const { id } = req.query;
   const eventData = req.body;
   const event = new Event(
-    eventId as string,
+    id as string,
     eventData.title,
     eventData.description,
     new Date(eventData.starteventdatetime),
@@ -30,7 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const service = new EventService();
 
   try {
-    const data = await service.updateEvent(eventId as string, event);
+    const data = await service.updateEvent(id as string, event);
     return res.status(200).json(data);
   } catch (e) {
     return res.status(500).json({ message: e });

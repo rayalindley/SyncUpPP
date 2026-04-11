@@ -27,14 +27,14 @@ export default async function TransactionsPage(props: TransactionsPageProps) {
   // Fetch feedback reports for this organization
   const { data: eventRows } = await supabase
     .from("events")
-    .select("eventid")
+    .select("id")
     .eq("organizationid", organization.organizationid);
-  const eventIds = eventRows?.map((e) => e.eventid) || [];
+  const eventIds = eventRows?.map((e) => e.id) || [];
   
   const { data: feedbackreports } = await supabase
     .from("feedbackreports")
     .select("*")
-    .in("eventid", eventIds);
+    .in("id", eventIds);
 
   // Fetch events for this organization
   const { data: events } = await supabase

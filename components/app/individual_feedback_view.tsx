@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { fetchIndividualFeedbackResponses } from "@/lib/feedback_responses";
 import { format } from "date-fns";
 
-export default function IndividualFeedbackView({ eventId }: { eventId: string }) {
+export default function IndividualFeedbackView({ id }: { id: string }) {
   const [responses, setResponses] = useState<any[]>([]);
   const [selectedResponse, setSelectedResponse] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
@@ -10,13 +10,13 @@ export default function IndividualFeedbackView({ eventId }: { eventId: string })
   useEffect(() => {
     const loadResponses = async () => {
       setLoading(true);
-      const data = await fetchIndividualFeedbackResponses(eventId);
+      const data = await fetchIndividualFeedbackResponses(id);
       if (data) setResponses(data);
       setLoading(false);
     };
 
-    if (eventId) loadResponses();
-  }, [eventId]);
+    if (id) loadResponses();
+  }, [id]);
 
   if (loading) return <p className="text-white">Loading individual responses...</p>;
 

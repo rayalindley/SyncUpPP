@@ -193,7 +193,7 @@ export default function EventsTableUser({
       const { error } = await supabase
         .from("events")
         .update({ status: newStatus, manualstatus: true })
-        .eq("eventid", id);
+        .eq("id", id);
 
       if (error) {
         toast.error("Failed to update status. Please try again.");
@@ -201,7 +201,7 @@ export default function EventsTableUser({
         toast.success("Status updated successfully!");
         setTableData((prev) =>
           prev.map((event) =>
-            event.eventid === id
+            event.id === id
               ? { ...event, status: newStatus, manualstatus: true }
               : event
           )
@@ -268,7 +268,7 @@ export default function EventsTableUser({
                 // match what Supabase stores. statusClasses normalises internally.
                 value={row.status}
                 onChange={(e) =>
-                  handleStatusChange(row.eventid, e.target.value)
+                  handleStatusChange(row.id, e.target.value)
                 }
                 className={`text-center cursor-pointer rounded-2xl border-2 px-4 py-1 text-xs ${statusClasses(row.status)}`}
               >
@@ -348,7 +348,7 @@ export default function EventsTableUser({
                 <select
                   value={row.status}
                   onChange={(e) =>
-                    handleStatusChange(row.eventid, e.target.value)
+                    handleStatusChange(row.id, e.target.value)
                   }
                   className={`text-center bg-charleston cursor-pointer rounded-2xl border-2 px-4 py-1 text-xs ml-2 ${statusClasses(row.status)}`}
                 >
@@ -420,7 +420,7 @@ export default function EventsTableUser({
         <div className="block sm:hidden">
           {/* FIX: Stable event ID used as key instead of array index. */}
           {paginatedData.map((row) => (
-            <div key={row.eventid}>{renderMobileCard(row)}</div>
+            <div key={row.id}>{renderMobileCard(row)}</div>
           ))}
           <CustomPagination
             currentPage={currentPage}

@@ -13,7 +13,7 @@ import { recordActivity } from "@/lib/track";
 const AttendanceContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams(); // Ensure this is inside Suspense
-  const eventid = searchParams?.get("event");
+  const id = searchParams?.get("event");
   const userid = searchParams?.get("uid");
 
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
@@ -27,7 +27,7 @@ const AttendanceContent = () => {
   useEffect(() => {
     const markAttendance = async () => {
       try {
-        if (!userid || !eventid) {
+        if (!userid || !id) {
           toast.error("Invalid URL parameters.");
           router.push("/"); // Redirect to a safe page
           return;
@@ -45,7 +45,7 @@ const AttendanceContent = () => {
         const { data: eventData, error: eventError } = await supabase
           .from("events")
           .select("*")
-          .eq("eventid", eventid)
+          .eq("id", id)
           .single();
   
         if (eventError || !eventData) {
@@ -92,7 +92,7 @@ const AttendanceContent = () => {
           .from("eventregistrations")
           .update({ attendance: "present" })
           .eq("userid", userid)
-          .eq("eventid", eventid);
+          .eq("id", id);
   
         if (error) {
           toast.error("Failed to mark attendance");
@@ -121,7 +121,7 @@ const AttendanceContent = () => {
     };
   
     markAttendance();
-  }, [userid, eventid, router]);
+  }, [userid, id, router]);
   
 
   // Handle the result from the QR scanner

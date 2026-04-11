@@ -96,7 +96,7 @@ export default function EventOptions({
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          const response = await fetch(`/api/events/${selectedEvent.eventid}/release_certificates`, {
+          const response = await fetch(`/api/events/${selectedEvent.id}/release_certificates`, {
             method: "POST",
           });
           const data = await response.json();
@@ -129,7 +129,7 @@ export default function EventOptions({
   useEffect(() => {
     const fetchCertSettings = async () => {
       setLoadingCertificateSettings(true);
-      const { data, error } = await fetchCertificateSettings(selectedEvent.eventid);
+      const { data, error } = await fetchCertificateSettings(selectedEvent.id);
       setLoadingCertificateSettings(false);
       if (error) {
         setCertificateError("Failed to load certificate settings.");
@@ -138,7 +138,7 @@ export default function EventOptions({
       }
     };
     fetchCertSettings();
-  }, [selectedEvent.eventid]);  
+  }, [selectedEvent.id]);  
 
 
   const deleteBtn = () => {
@@ -152,7 +152,7 @@ export default function EventOptions({
       reverseButtons: true,
     }).then(async (result) => {
       if (result.isConfirmed) {
-        const response = await deleteEvent(selectedEvent.eventid); // Assuming id is used for events
+        const response = await deleteEvent(selectedEvent.id); // Assuming id is used for events
 
         await recordActivity({
           activity_type: "event_delete",
@@ -233,7 +233,7 @@ export default function EventOptions({
     if (currentTab === "Attendees") {
       const fetchAttendees = async () => {
         setLoadingAttendees(true);
-        const { users, error } = await fetchRegisteredUsersForEvent(selectedEvent.eventid);
+        const { users, error } = await fetchRegisteredUsersForEvent(selectedEvent.id);
         setLoadingAttendees(false);
         if (!error) {
           setAttendees(users);
@@ -248,7 +248,7 @@ export default function EventOptions({
       };
       fetchAttendees();
     }
-  }, [currentTab, selectedEvent.eventid]);
+  }, [currentTab, selectedEvent.id]);
 
   useEffect(() => {
     const checkPermissions = async () => {
@@ -817,7 +817,7 @@ export default function EventOptions({
                               {canEditEvents && (
                                 <Link
                                   className="flex-1 rounded-md bg-charleston px-4 py-2 text-center text-white hover:bg-raisinblack"
-                                  href={`/events/edit/${selectedEvent.eventid}`}
+                                  href={`/events/edit/${selectedEvent.id}`}
                                 >
                                   Edit Event
                                 </Link>
@@ -889,7 +889,7 @@ export default function EventOptions({
                               </div>
                             ) : certificateSettings?.certificate_enabled ? (
                               <iframe
-                                src={`/api/certificates/preview?event_id=${selectedEvent.eventid}`}
+                                src={`/api/certificates/preview?event_id=${selectedEvent.id}`}
                                 width="100%"
                                 height="600px"
                                 className="border-none"
@@ -902,7 +902,7 @@ export default function EventOptions({
                                   Certificates are not enabled for this event. To enable certificates, please{" "}
                                   {canEditEvents ? (
                                     <Link
-                                      href={`/events/edit/${selectedEvent.eventid}`}
+                                      href={`/events/edit/${selectedEvent.id}`}
                                       className="text-primary underline hover:text-primarydark"
                                     >
                                       edit the event

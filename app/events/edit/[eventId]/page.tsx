@@ -11,8 +11,8 @@ import { Event } from "@/types/event";
 
 export default function EditEventPage() {
   const router = useRouter();
-  const params = useParams() as { eventId: string };
-  const eventId = params.eventId;
+  const params = useParams() as { id: string };
+  const id = params.id;
   const [event, setEvent] = useState<Event | null>(null); // State to hold the event data
   const [error, setError] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
@@ -21,7 +21,7 @@ export default function EditEventPage() {
     const fetchData = async () => {
       try {
         // Fetch event
-        const eventResponse = await fetchEventById(eventId.toString()); // Convert eventId to string
+        const eventResponse = await fetchEventById(id.toString()); // Convert id to string
         if (eventResponse.error) {
           setError(eventResponse.error.message);
           console.error(eventResponse.error);
@@ -35,13 +35,13 @@ export default function EditEventPage() {
       }
     };
 
-    if (eventId) {
+    if (id) {
       fetchData();
     }
     const checkPermissions = async () => {
       const { user } = await getUser();
       try {
-        const eventResponse = await fetchEventById(eventId as string);
+        const eventResponse = await fetchEventById(id as string);
         if (eventResponse.data && "organizationid" in eventResponse.data) {
           const permission = await check_permissions(
             user?.id || "",
@@ -57,11 +57,11 @@ export default function EditEventPage() {
       }
     };
 
-    if (eventId) {
+    if (id) {
       fetchData();
       checkPermissions();
     }
-  }, [eventId]);
+  }, [id]);
 
   if (!event || hasPermission == null) {
     return <Loader />;

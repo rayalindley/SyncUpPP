@@ -2,7 +2,7 @@
 export class EventRegistration {
   constructor(
     public eventRegistrationId: string,
-    public eventId: string,
+    public id: string,
     public organizationMemberId: string,
     public registrationDate: Date,
     public status: string,
