@@ -337,7 +337,7 @@ export default function EventOptions({
                         disabled ? "cursor-not-allowed opacity-50" : "",
                         "group flex w-full items-center px-4 py-2 text-sm"
                       )}
-                      onClick={() => router.push(`/dashboard/${orgSlug}/feedback/${selectedEvent.eventslug}`)}
+                      onClick={() => router.push(`/dashboard/feedback/${selectedEvent.eventslug}`)}
                     >
                       <MdOutlineComment className="mr-3 h-5 w-5 text-light group-hover:text-light" />
                       View Feedback
