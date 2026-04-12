@@ -29,6 +29,8 @@ interface FeedbackReport {
   } | null;
   recommendations?: string[] | null;
   summary?: string | null;
+  model?: string | null;
+  generated_by?: string | null;
 }
 
 interface FeedbackReportsProps {
@@ -119,7 +121,6 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [eventFilter, setEventFilter] = useState<string>("");
-  const [userName, setUserName] = useState<string>("Unknown");
   const [model, setModel] = useState<"llama" | "felbert">("llama");
 
   const [reports, setReports] = useState<FeedbackReport[]>([]);
@@ -134,6 +135,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [generatedBy, setGeneratedBy] = useState<string>("Unknown");
   const [generatingMessage, setGeneratingMessage] = useState("Generating report...");
 
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -246,6 +248,13 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
       if (!res.ok) throw new Error(json.error || "Failed to fetch reports");
 
       const latest = json.reports?.[0];
+
+      if (latest?.generated_by) {
+        fetchUserName(latest.generated_by).then(setGeneratedBy);
+      } else {
+        setGeneratedBy("Unknown");
+      }
+
       setReports(json.reports ?? []);
       setSummary(latest?.summary ?? null);
       setRecommendations(latest?.recommendations ?? []);
@@ -303,37 +312,36 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
     };
   }, [isGenerating]);
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      const { data } = await supabase
-        .from("userprofiles")
-        .select("first_name, last_name")
-        .eq("userid", userId)
-        .single();
-      if (data) {
-        setUserName([data.first_name, data.last_name].filter(Boolean).join(" ") || "Unknown");
-      }
-    };
-    fetchUser();
-  }, [userId]);
-
+  const fetchUserName = useCallback(async (id: string): Promise<string> => {
+    const { data } = await supabase
+      .from("userprofiles")
+      .select("first_name, last_name")
+      .eq("userid", id)
+      .single();
+    return data
+      ? [data.first_name, data.last_name].filter(Boolean).join(" ") || "Unknown"
+      : "Unknown";
+  }, []);
+  
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handleDownloadPDF = useCallback(() => {
-    generateFeedbackPDF({
-      eventName,
-      reportsLeft: events.find((e) => e.id === eventFilter)?.report_limit ?? 0,
-      organization,
-      totalResponses,
-      averageLikert,
-      sentimentCounts,
-      topKeywords,
-      summary,
-      recommendations,
-      userName,
-      model,
-      eventFilter,
-    });
-  }, [eventName, events, eventFilter, organization, totalResponses, averageLikert, sentimentCounts, topKeywords, summary, recommendations, userName, model]);
+  const latestReport = reports[0];
+  
+  generateFeedbackPDF({
+    eventName,
+    reportsLeft: events.find((e) => e.id === eventFilter)?.report_limit ?? 0,
+    organization,
+    totalResponses,
+    averageLikert,
+    sentimentCounts,
+    topKeywords,
+    summary,
+    recommendations,
+    generatedBy,
+    model: (latestReport?.model ?? "llama") as "llama" | "felbert",
+    eventFilter,
+  });
+}, [eventName, events, eventFilter, organization, totalResponses, averageLikert, sentimentCounts, topKeywords, summary, recommendations, generatedBy, reports]);
 
   const handleGenerateReport = useCallback(async () => {
     if (reportLimit === 0 || !eventFilter) return;
@@ -347,10 +355,14 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
 
     try {
       if (model === "llama") {
-        const res = await fetch("/api/ai/process", {
+        const res = await fetch("/api/ai/process-llama", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ eventid: eventFilter }),
+          body: JSON.stringify({
+            eventId: eventFilter,
+            organizationId: organization.organizationid,
+            generatedBy: userId,
+          }),
           signal: abortControllerRef.current.signal,
         });
         const json = await res.json();
@@ -384,29 +396,26 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
         const json = await res.json();
         if (!res.ok) throw new Error("FELBERT processing failed");
 
-        const positive = json.results.filter((r: any) => r.sentiment === "Positive").length;
-        const negative = json.results.filter((r: any) => r.sentiment === "Negative").length;
-
-        await supabase.from("feedback_reports").insert({
-          event_id: eventFilter,
-          generated_at: new Date().toISOString(),
-          total_feedbacks: feedbacks.length,
-          sentiment_counts: { positive, negative, neutral: 0, mixed: 0 },
-          top_keywords: json.keywords,
-          summary: json.summary,
-          recommendations: [],
-          raw_analyses: json.results,
+        // Save report, mark feedbacks processed, decrement limit — all server-side
+        const saveRes = await fetch("/api/ai/process-felbert", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            eventId: eventFilter,
+            organizationId: organization.organizationid, // ← add
+            generatedBy: userId,                          // ← add
+            feedbackIds: feedbacks.map((f) => f.id),
+            results: json.results,
+            keywords: json.keywords,
+            summary: json.summary,
+          }),
+          signal: abortControllerRef.current?.signal,
         });
 
-        await supabase
-          .from("feedbacks")
-          .update({ processed: true, processed_at: new Date().toISOString() })
-          .in("id", feedbacks.map((f) => f.id));
-
-        await supabase
-        .from("events")
-        .update({ report_limit: reportLimit - 1 })
-        .eq("id", eventFilter);
+        if (!saveRes.ok) {
+          const saveJson = await saveRes.json();
+          throw new Error(saveJson?.error || "Failed to save FELBERT report");
+        }
 
         toast.success("Report generated successfully");
       }
@@ -558,7 +567,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
                 className="w-full max-w-xs text-sm rounded-md border border-[#525252] bg-charleston text-white px-3 py-2 focus:outline-none focus:border-primary"
               >
                 <option value="llama">Llama — fast results, general analysis</option>
-                <option value="felbert">FELBERT — deeper analysis, tailored to event feedback</option>
+                <option value="felbert">FELBERT — tailored to event feedback</option>
               </select>
             </div>
 

@@ -1,5 +1,4 @@
 
-console.log("🔴 process.ts HIT");
 import type { NextApiRequest, NextApiResponse } from "next";
 import Groq from "groq-sdk";
 import { createClient } from "@supabase/supabase-js";
@@ -174,11 +173,12 @@ export default async function handler(
   }
 
   try {
-    console.log("🔴 process.ts POST HIT with body:", req.body);
-    console.log("🔴 process.ts POST HIT with bodyid:", req.body.eventid);
 
     // const { eventId } = req.body.id;
-    const { eventId } = req.body.eventid ? { eventId: String(req.body.eventid) } : {};
+    const eventId = req.body.eventId ?? req.body.eventid ?? undefined;
+    const organizationId = req.body.organizationId ?? undefined;
+    const generatedBy = req.body.generatedBy ?? undefined;
+
     if (!eventId) return res.status(400).json({ error: "eventId required" });
 
     /* ── 1. Fetch unprocessed feedbacks ── */
@@ -186,7 +186,6 @@ export default async function handler(
       .from("feedbacks")
       .select("id, text, event_id")
       .eq("event_id", eventId)
-      .eq("processed", false)
       .limit(200);
 
     if (error) {
@@ -258,7 +257,6 @@ export default async function handler(
     }))
   );
 
-console.log("❌ feedback_analyses insert error:", analysesError);
 
     /* ── 6. Insert report ── */
     console.log("\n--- INSERT: feedback_reports ---");
@@ -274,6 +272,7 @@ console.log("❌ feedback_analyses insert error:", analysesError);
         top_keywords: keywordFreq,
         summary,
         recommendations,
+        model: "llama",             
         raw_analyses: analyses,
     }, null, 2));
 
@@ -282,6 +281,8 @@ console.log("❌ feedback_analyses insert error:", analysesError);
       .insert({
         event_id: eventId,
         generated_at: new Date().toISOString(),
+        organization_id: organizationId, 
+        generated_by: generatedBy, 
         total_feedbacks: analyses.length,
         // wrap sentiment_counts in the shape your table expects
         sentiment_counts: {
@@ -291,6 +292,7 @@ console.log("❌ feedback_analyses insert error:", analysesError);
         top_keywords: keywordFreq,
         summary,
         recommendations,
+        model: "llama",             
         raw_analyses: analyses,
       })
       .select()
