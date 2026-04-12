@@ -13,9 +13,11 @@ export default async function handler(
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
-
-  const { eventId } = req.query;
+  // console.log("event id:", req.query.id);
+  
+  const { eventId } = req.query.eventid ? { eventId: String(req.query.eventid) } : {};
   if (!eventId || typeof eventId !== "string") {
+    console.warn("Missing or invalid eventId in query:", eventId);
     return res.status(400).json({ error: "eventId required" });
   }
 
@@ -28,8 +30,6 @@ export default async function handler(
 
     if (error) throw error;
 
-    console.log(`Fetched ${data?.length ?? 0} feedback reports for event ${eventId}`);  
-    console.log("Sample report:", data?.[0].summary);
     return res.status(200).json({ reports: data });
   } catch (err: any) {
     console.error("Fetch feedback reports error:", err);

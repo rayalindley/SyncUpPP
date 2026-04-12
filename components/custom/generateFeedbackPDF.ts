@@ -10,7 +10,7 @@ interface GeneratePDFParams {
   topKeywords: [string, number][];
   summary: string | null;
   recommendations: string[];
-  userName: string;
+  generatedBy: string;
   model: "llama" | "felbert";
   eventFilter: string;
 }
@@ -84,6 +84,12 @@ function drawPieChart(
       pdf.text(`${pct}%`, lx, ly + 3, { align: "center" });
     }
 
+    // after drawing each slice, add border stroke
+    pdf.setDrawColor(255, 255, 255); // white divider between slices
+    pdf.setLineWidth(1);
+    // draw a line from center to edge at startAngle and endAngle
+    pdf.line(cx, cy, cx + radius * Math.cos(startAngle), cy + radius * Math.sin(startAngle));
+
     startAngle = endAngle;
   });
 
@@ -99,7 +105,7 @@ export function generateFeedbackPDF({
   topKeywords,
   summary,
   recommendations,
-  userName,
+  generatedBy,
   model,
   eventFilter,
 }: GeneratePDFParams) {
@@ -160,7 +166,7 @@ export function generateFeedbackPDF({
   const metrics = [
     ["Total Responses", String(totalResponses)],
     ["Avg Likert", averageLikert],
-    ["Reports Left", String(reportsLeft)],
+    ["Generations Left", String(reportsLeft)],
   ];
   const boxW = contentWidth / metrics.length;
 
@@ -195,34 +201,45 @@ export function generateFeedbackPDF({
   // Header label
   pdf.setFontSize(8);
   pdf.setFont("helvetica", "bold");
-  pdf.setTextColor(120, 120, 120);
+  pdf.setTextColor(255, 255, 255);
   pdf.text("TOP KEYWORDS", margin + 10, y + 12);
 
   // Pills
   let kwX = margin + 10;
   const pillY = y + 22; // fixed Y inside the box
 
-  const kwColors: [number, number, number][] = [
-    [56, 189, 248],
-    [52, 211, 153],
-    [167, 139, 250],
-    [251, 146, 60],
-    [244, 114, 182],
+  const kwColors: [number, number, number, number, number, number][] = [
+    // [bgR, bgG, bgB, borderR, borderG, borderB]
+    [139, 92, 246, 167, 139, 250],  // violet
+    [56, 189, 248, 56, 189, 248],   // sky
+    [52, 211, 153, 52, 211, 153],   // emerald
+    [251, 146, 60, 251, 146, 60],   // amber
+    [244, 63, 94, 244, 63, 94],     // rose
   ];
 
   topKeywords.slice(0, 5).forEach(([word, count], i) => {
     const c = kwColors[i % kwColors.length];
-    const label = `${word} ×${count}`;
+    const label = `${word} x${count}`;
     pdf.setFontSize(9);
     pdf.setFont("helvetica", "bold");
     const textW = pdf.getTextWidth(label) + 18;
 
+    // bg with low opacity
     pdf.setFillColor(c[0], c[1], c[2]);
-    pdf.roundedRect(kwX, pillY, textW, 18, 9, 9, "F");
-    pdf.setTextColor(20, 20, 20);
-    pdf.text(label, kwX + 9, pillY + 12);
+    pdf.setGState(new (pdf as any).GState({ opacity: 0.2 }));
+    pdf.roundedRect(kwX, pillY, textW, 16, 8, 8, "F");
+
+    // border
+    pdf.setGState(new (pdf as any).GState({ opacity: 1 }));
+    pdf.setDrawColor(c[3], c[4], c[5]);
+    pdf.setLineWidth(0.5);
+    pdf.roundedRect(kwX, pillY, textW, 16, 8, 8, "D");
+
+    // text
+    pdf.setTextColor(c[0], c[1], c[2]);
+    pdf.text(label, kwX + 9, pillY + 11);
     kwX += textW + 8;
-  });
+  }); 
 
   y += sectionH + 12;
 }
@@ -238,14 +255,14 @@ pdf.roundedRect(margin, y, contentWidth, chartSectionH, 6, 6, "F");
 // Header
 pdf.setFontSize(8);
 pdf.setFont("helvetica", "bold");
-pdf.setTextColor(120, 120, 120);
+pdf.setTextColor(255, 255, 255);
 pdf.text("SENTIMENT BREAKDOWN", margin + 10, y + 12);
 
 // Badges
 const badgeY = y + 22;
 
 // Positive badge (emerald)
-const posLabel = `${sentimentCounts.positive} Positive`;
+const posLabel = `+ ${sentimentCounts.positive} Positive`;
 pdf.setFontSize(9);
 pdf.setFont("helvetica", "bold");
 const posBadgeW = pdf.getTextWidth(posLabel) + 20;
@@ -256,7 +273,7 @@ pdf.setTextColor(52, 211, 153);
 pdf.text(posLabel, margin + 10 + posBadgeW / 2, badgeY + 11, { align: "center" });
 
 // Negative badge (rose)
-const negLabel = `${sentimentCounts.negative} Negative`;
+const negLabel = `- ${sentimentCounts.negative} Negative`;
 const negBadgeW = pdf.getTextWidth(negLabel) + 20;
 const negBadgeX = margin + 10 + posBadgeW + 8;
 pdf.setFillColor(76, 20, 30); // rose dark bg
@@ -298,7 +315,7 @@ y += chartSectionH + 12;
 
   pdf.setFontSize(8);
   pdf.setFont("helvetica", "bold");
-  pdf.setTextColor(120, 120, 120);
+  pdf.setTextColor(255, 255, 255);
   pdf.text("SUMMARY", margin + 10, y + 10);
 
   pdf.setFontSize(10);
@@ -316,7 +333,7 @@ y += chartSectionH + 12;
   recommendations.forEach((rec) => {
     pdf.setFontSize(10);
     pdf.setFont("helvetica", "normal");
-    const lines = pdf.splitTextToSize(`•  ${rec}`, contentWidth - 20);
+    const lines = pdf.splitTextToSize(rec, contentWidth - 26);
     allBulletLines.push(lines);
     totalLinesCount += lines.length;
   });
@@ -329,15 +346,17 @@ y += chartSectionH + 12;
 
   pdf.setFontSize(8);
   pdf.setFont("helvetica", "bold");
-  pdf.setTextColor(120, 120, 120);
+  pdf.setTextColor(255, 255, 255);
   pdf.text("RECOMMENDATIONS", margin + 10, y + 10);
 
   let textY = y + 26;
   allBulletLines.forEach((lines) => {
+    pdf.setFillColor(52, 211, 153); // emerald green
+    pdf.circle(margin + 14, textY - 3, 2, "F"); // green dot
     pdf.setFontSize(10);
     pdf.setFont("helvetica", "normal");
     pdf.setTextColor(210, 210, 210);
-    pdf.text(lines, margin + 10, textY)
+    pdf.text(lines, margin + 20, textY); // indent text past the dot
     textY += lines.length * 14 + 8;
   });
 
@@ -353,7 +372,7 @@ y += chartSectionH + 12;
     pdf.setFont("helvetica", "normal");
     pdf.setTextColor(100, 100, 100);
     pdf.text(
-      `Report Generated: ${new Date().toLocaleDateString("en-US")}   ·   Exported by: ${userName}   ·   Model: ${model === "felbert" ? "FELBERT (SyncUp++)" : "Llama (Groq)"}`,
+      `Report Exported On: ${new Date().toLocaleDateString("en-US")}   ·   Generated by: ${generatedBy}   ·   Model: ${model === "felbert" ? "FELBERT (SyncUp++)" : "Llama (Groq)"}`,
       margin,
       H - 12
     );
