@@ -13,9 +13,12 @@ export default async function handler(
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
-
-  const { eventId } = req.query;
+  console.log("🔵 get-feedback-report HIT with query:", req.query);
+  // console.log("event id:", req.query.id);
+  
+  const { eventId } = req.query.eventid ? { eventId: String(req.query.eventid) } : {};
   if (!eventId || typeof eventId !== "string") {
+    console.warn("Missing or invalid eventId in query:", eventId);
     return res.status(400).json({ error: "eventId required" });
   }
 

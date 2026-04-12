@@ -84,7 +84,7 @@ Return this exact shape:
 
 Rules:
 1. Return ONLY valid JSON — no markdown, no explanation.
-2. Defaults: translation="", sentiment.label="Neutral", sentiment.score=0, keywords=[].
+2. Defaults: translation="", sentiment.label="Negative", sentiment.score=-1, keywords=[].
 `.trim();
 
   const completion = await groq.chat.completions.create({
@@ -103,7 +103,7 @@ Rules:
     return {
       result: {
         translation: "",
-        sentiment: { label: "Neutral", score: 0 },
+        sentiment: { label: "Negative", score: -1 },
         keywords: extractKeywords(fb.text), // fallback: local extraction
       },
       raw,
@@ -123,20 +123,27 @@ async function summarizeAll(translations: string[]): Promise<{
   const bullet = translations.map((t) => `- ${t}`).join("\n");
 
   const prompt = `
-Summarize the following event feedback and provide actionable recommendations.
+You are a strict JSON generator analyzing event feedback. Your output will be parsed directly by JSON.parse() — any deviation will cause a system failure.
 
-Return ONLY a valid JSON object with this exact shape:
-{
-  "summary": string,           // 2–3 sentence overall summary
-  "recommendations": string[]  // actionable bullet points
-}
+Analyze the following event feedback and return ONLY a valid JSON object.
 
 FEEDBACK:
 ${bullet}
 
-Rules:
-1. Return ONLY valid JSON — no markdown, no explanation.
-2. Defaults: summary="", recommendations=[].
+Return this EXACT shape:
+{
+  "summary": string,          // EXACTLY 3 sentences. No more, no less. Each sentence must cover a distinct aspect: (1) overall impression, (2) specific strengths, (3) specific weaknesses.
+  "recommendations": string[] // EXACTLY 3–5 specific, actionable items. Each must start with a verb (e.g. "Improve", "Add", "Reduce"). No vague suggestions.
+}
+
+STRICT RULES — violations will break the system:
+1. Return ONLY the raw JSON object. No markdown, no code fences, no explanation, no preamble.
+2. Do NOT hallucinate, invent, or assume details not present in the feedback.
+3. Do NOT copy feedback text verbatim — paraphrase and synthesize only.
+4. summary MUST be EXACTLY 3 sentences. If feedback is too short, still write 3 sentences based only on what is provided.
+5. recommendations MUST be an array of 3–5 strings. Never empty, never more than 5.
+6. Every recommendation must be grounded in the actual feedback — do not add generic advice not supported by the input.
+7. The JSON must be parseable by JSON.parse() with no modifications.
 `.trim();
 
   const completion = await groq.chat.completions.create({
@@ -167,7 +174,11 @@ export default async function handler(
   }
 
   try {
-    const { eventId } = req.body as { eventId?: string };
+    console.log("🔴 process.ts POST HIT with body:", req.body);
+    console.log("🔴 process.ts POST HIT with bodyid:", req.body.eventid);
+
+    // const { eventId } = req.body.id;
+    const { eventId } = req.body.eventid ? { eventId: String(req.body.eventid) } : {};
     if (!eventId) return res.status(400).json({ error: "eventId required" });
 
     /* ── 1. Fetch unprocessed feedbacks ── */
@@ -200,14 +211,14 @@ export default async function handler(
 
     /* ── 4. Build analyses + aggregate in one pass ── */
     const analyses: Analysis[] = [];
-    const sentimentCounts = { positive: 0, negative: 0, neutral: 0, mixed: 0 };
+    const sentimentCounts = { positive: 0, negative: 0};
     const keywordFreq: Record<string, number> = {};
 
     for (let i = 0; i < feedbacks.length; i++) {
       const fb = feedbacks[i] as FeedbackRow;
       const { result, raw } = rawResults[i];
 
-      const sentimentLabel = result.sentiment?.label?.toLowerCase() ?? "neutral";
+      const sentimentLabel = result.sentiment?.label?.toLowerCase() ?? "negative";
       const sentimentScore =
         typeof result.sentiment?.score === "number" ? result.sentiment.score : null;
 
@@ -259,8 +270,6 @@ console.log("❌ feedback_analyses insert error:", analysesError);
         sentiment_counts: {
           positive: sentimentCounts.positive,
           negative: sentimentCounts.negative,
-          neutral: sentimentCounts.neutral,
-          mixed: sentimentCounts.mixed,
         },
         top_keywords: keywordFreq,
         summary,
@@ -278,8 +287,6 @@ console.log("❌ feedback_analyses insert error:", analysesError);
         sentiment_counts: {
           positive: sentimentCounts.positive,
           negative: sentimentCounts.negative,
-          neutral: sentimentCounts.neutral,
-          mixed: sentimentCounts.mixed,
         },
         top_keywords: keywordFreq,
         summary,
