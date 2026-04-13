@@ -21,7 +21,7 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! });
 ========================= */
 type FeedbackRow = {
   id: string;
-  text: string;
+  comment: string;
   event_id: string | null;
 };
 
@@ -69,7 +69,7 @@ async function analyzeOne(fb: FeedbackRow): Promise<{
 You are a strict JSON generator. Analyze the feedback below and return ONLY a valid JSON object.
 
 FEEDBACK:
-"${fb.text}"
+"${fb.comment}"
 
 Return this exact shape:
 {
@@ -103,7 +103,7 @@ Rules:
       result: {
         translation: "",
         sentiment: { label: "Negative", score: -1 },
-        keywords: extractKeywords(fb.text), // fallback: local extraction
+        keywords: extractKeywords(fb.comment), // fallback: local extraction
       },
       raw,
     };
@@ -183,8 +183,8 @@ export default async function handler(
 
     /* ── 1. Fetch unprocessed feedbacks ── */
     const { data: feedbacks, error } = await supabase
-      .from("feedbacks")
-      .select("id, text, event_id")
+      .from("form_responses")
+      .select("id, comment, event_id")
       .eq("event_id", eventId)
       .limit(200);
 
@@ -194,6 +194,7 @@ export default async function handler(
     }
 
     if (!feedbacks || feedbacks.length === 0) {
+      console.log("No feedbacks to process for eventId:", eventId);
       return res.status(200).json({ message: "No feedbacks to process." });
     }
 
@@ -204,7 +205,7 @@ export default async function handler(
 
     /* ── 3. One summary call across all translations ── */
     const translations = rawResults.map(
-      (r) => r.result.translation || feedbacks[rawResults.indexOf(r)].text
+      (r) => r.result.translation || feedbacks[rawResults.indexOf(r)].comment
     );
     const { summary, recommendations } = await summarizeAll(translations);
 
@@ -228,7 +229,7 @@ export default async function handler(
 
       // Keyword frequency — from original text (mirrors Flask)
       const words = [
-        ...extractKeywords(fb.text),
+        ...extractKeywords(fb.comment),
         ...(result.keywords ?? []),
       ];
       for (const w of words) {
@@ -305,7 +306,7 @@ export default async function handler(
       message: "Feedback processed",
       total_feedbacks: analyses.length,
       results: analyses.map((a, i) => ({
-        original: (feedbacks[i] as FeedbackRow).text,
+        original: (feedbacks[i] as FeedbackRow).comment,
         translated: a.translation,
         sentiment: a.sentiment_label,
         sentiment_score: a.sentiment_score,

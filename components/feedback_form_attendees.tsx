@@ -155,6 +155,7 @@ export default function FeedbackFormAttendees({
         .insert({
           form_id: formId,
           attendee_id: userId,
+          event_id: id,
           comment: comment,
         })
         .select("id")
@@ -165,6 +166,8 @@ export default function FeedbackFormAttendees({
 
       const answersPayload = Object.entries(answers).map(([questionId, answer]) => ({
         response_id: responseId,
+        event_id: id,
+        form_id: formId,
         question_id: questionId,
         answer,
       }));
@@ -172,6 +175,7 @@ export default function FeedbackFormAttendees({
       const { error: answersError } = await supabase
         .from("form_answers")
         .insert(answersPayload);
+        
 
       if (answersError) throw answersError;
 
@@ -397,7 +401,7 @@ export default function FeedbackFormAttendees({
               id="comment"
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              className="block max-h-[300px] min-h-[150px] w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+              className="block max-h-[300px] min-h-[150px] w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm"
             ></textarea>
           </div>
 
@@ -406,7 +410,7 @@ export default function FeedbackFormAttendees({
             <button
               type="submit"
               disabled={isLoading}
-              className="flex justify-end rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:bg-charleston"
+              className="flex justify-end rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               {isLoading ? "Submitting..." : "Submit"}
             </button>

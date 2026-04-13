@@ -35,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 
   // inside insert:
-  const { error: insertError } = await supabase.from("feedback_reports").insert({
+  const { error: insertError } = await supabase.from("form_responses").insert({
     event_id: eventId,
     organization_id: organizationId,  // ← add
     generated_by: generatedBy,        // ← add

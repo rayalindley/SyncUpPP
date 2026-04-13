@@ -1,7 +1,7 @@
 // @/models/Event.ts
 export class Event {
   constructor(
-    public Id: string,
+    public id: string,
     public title: string,
     public description: string,
     public starteventdatetime: Date,

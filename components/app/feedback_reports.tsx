@@ -231,7 +231,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
 
       // Feedback count
       const { data: feedbacks, error: feedbackErr } = await supabase
-        .from("feedbacks")
+        .from("form_responses")
         .select("*")
         .eq("event_id", eventFilter);
 
@@ -376,10 +376,10 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
         toast.success("Report generated successfully.");
       } else {
         const { data: feedbacks } = await supabase
-          .from("feedbacks")
-          .select("id, text")
+          .from("form_responses")
+          .select("id, comment")
           .eq("event_id", eventFilter)
-          .eq("processed", false);
+          
 
         if (!feedbacks || feedbacks.length === 0) {
           toast.error("No unprocessed feedbacks to analyze.");
@@ -389,7 +389,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
         const res = await fetch("https://felbert.onrender.com/batch-analyze", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ comments: feedbacks.map((f) => f.text).filter(Boolean) }),
+          body: JSON.stringify({ comments: feedbacks.map((f) => f.comment).filter(Boolean) }),
           signal: abortControllerRef.current.signal,
         });
 

@@ -24,25 +24,10 @@ const EventsCard = ({ event }: { event: Event }) => {
     capacity,
     eventslug,
     privacy,
-    status, // Add status from the event
+    status,
   } = event;
-  const hasImageUrl = !!imageUrl;
-  const truncatedDescription =
-    description.length > 250 ? `${description.slice(0, 245)}...` : description;
 
   const router = useRouter();
-
-  const formattedDateTime = (utcDateString: string) => {
-    const date = new Date(utcDateString);
-    return date.toLocaleString("en-US", {
-      timeZone: "Asia/Manila",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  };
 
   const locationContent =
     location && location.startsWith("http") ? "Virtual Event" : location;
@@ -124,12 +109,11 @@ const EventsCard = ({ event }: { event: Event }) => {
     fetchRegisteredCount();
   }, []);
 
-  // Use the status fetched from the database directly
   const eventStatus = status;
 
   return (
     <Link
-      href={`/e/${event.eventslug}`}
+      href={`/e/${event.eventslug}`}   // ✅ /e route
       className="mb-4 flex w-full max-w-sm flex-col overflow-hidden rounded-md bg-eerieblack transition duration-100 hover:scale-[1.01] hover:bg-raisinblack sm:w-64 md:w-72 lg:w-64 xl:w-72"
     >
       <div className="relative h-40 w-full overflow-hidden">
@@ -143,7 +127,6 @@ const EventsCard = ({ event }: { event: Event }) => {
           <div className="h-full w-full rounded-t-lg bg-fadedgrey" />
         )}
         <div className="absolute right-2 top-2 flex space-x-2">
-          {/* Privacy Tag */}
           {privacy && (
             <span
               className={`rounded-full bg-opacity-75 px-2 py-1 text-xs font-medium shadow-2xl ${
@@ -156,7 +139,6 @@ const EventsCard = ({ event }: { event: Event }) => {
             </span>
           )}
 
-          {/* Event Status Tag */}
           <span
             className={`rounded-full bg-opacity-75 px-2 py-1 text-xs font-medium shadow-2xl ${
               eventStatus === "Open"
