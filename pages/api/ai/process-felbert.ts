@@ -35,14 +35,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 
   // inside insert:
-  const { error: insertError } = await supabase.from("form_responses").insert({
+  const { error: insertError } = await supabase.from("feedback_reports").insert({
     event_id: eventId,
     organization_id: organizationId,  // ← add
     generated_by: generatedBy,        // ← add
     model: "felbert",
     generated_at: new Date().toISOString(),
     total_feedbacks: results.length,
-    sentiment_counts: { positive, negative, neutral: 0, mixed: 0 },
+    sentiment_counts: { positive, negative},
     top_keywords: keywords,
     summary: parsedSummary,
     recommendations,

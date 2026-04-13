@@ -209,52 +209,33 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
     setReportLimit(0);
   }, []);
 
-  // ── Load stats ─────────────────────────────────────────────────────────────
   const loadStats = useCallback(async () => {
-    if (!eventFilter) {
-      resetStats();
-      return;
-    }
-
+    if (!eventFilter) { resetStats(); return; }
     setIsLoadingStats(true);
 
     try {
-      // Event metadata
-      const { data: eventData, error: eventErr } = await supabase
-        .from("events")
-        .select("report_limit")
-        .eq("id", eventFilter)
-        .single();
-
+      const [
+        { data: eventData, error: eventErr },
+        { data: formResponses },
+        { data: likertQuestions },
+        reportRes,
+      ] = await Promise.all([
+        supabase.from("events").select("report_limit").eq("id", eventFilter).single(),
+        supabase.from("form_responses").select("id").eq("event_id", eventFilter),
+        supabase.from("questions").select("id").eq("question_type", "Likert"),
+        fetch(`/api/reports/get-feedback-report?eventid=${eventFilter}`),
+      ]);
       if (eventErr) throw eventErr;
       setReportLimit(eventData?.report_limit ?? 0);
+      setTotalResponses(formResponses?.length ?? 0);
 
-      // Feedback count
-      const { data: feedbacks, error: feedbackErr } = await supabase
-        .from("form_responses")
-        .select("*")
-        .eq("event_id", eventFilter);
+      const responseIds = formResponses?.map((r) => r.id) ?? [];
+      const likertIds = likertQuestions?.map((q) => q.id) ?? [];
 
-      if (feedbackErr) {
-        console.error("Error fetching feedbacks:", feedbackErr);
-        setTotalResponses(0);
-      } else {
-        setTotalResponses(feedbacks?.length ?? 0);
-      }
-
-      // Report
-      const res = await fetch(`/api/reports/get-feedback-report?eventid=${eventFilter}`);
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Failed to fetch reports");
+      const json = await reportRes.json();
+      if (!reportRes.ok) throw new Error(json.error || "Failed to fetch reports");
 
       const latest = json.reports?.[0];
-
-      if (latest?.generated_by) {
-        fetchUserName(latest.generated_by).then(setGeneratedBy);
-      } else {
-        setGeneratedBy("Unknown");
-      }
-
       setReports(json.reports ?? []);
       setSummary(latest?.summary ?? null);
       setRecommendations(latest?.recommendations ?? []);
@@ -267,7 +248,43 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
           .sort(([, a], [, b]) => (b as number) - (a as number))
           .slice(0, 5) as [string, number][]
       );
-      setAverageLikert(latest?.avg_likert?.toFixed(1) ?? "0");
+
+      if (latest?.generated_by) {
+        const { data: generator } = await supabase
+          .from("userprofiles")
+          .select("first_name, last_name")
+          .eq("userid", latest.generated_by)
+          .single();
+        setGeneratedBy(
+          generator
+            ? [generator.first_name, generator.last_name].filter(Boolean).join(" ") || "Unknown"
+            : "Unknown"
+        );
+      } else {
+        setGeneratedBy("Unknown");
+      }
+
+      // Likert average
+      if (likertIds.length > 0 && responseIds.length > 0) {
+        const { data: likertAnswers } = await supabase
+          .from("form_answers")
+          .select("answer")
+          .in("response_id", responseIds)
+          .in("question_id", likertIds);
+
+          const values = likertAnswers
+          ?.map((a) => parseFloat(a.answer))
+          .filter((v) => !isNaN(v)) ?? [];
+
+        setAverageLikert(
+          values.length > 0
+            ? (values.reduce((sum, v) => sum + v, 0) / values.length).toFixed(1)
+            : "0"
+        );
+      } else {
+        setAverageLikert("0");
+      }
+
     } catch (err: any) {
       console.error("Error loading stats:", err.message || err);
       toast.info("No feedbacks to process.");
@@ -275,7 +292,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
     } finally {
       setIsLoadingStats(false);
     }
-  }, [eventFilter, resetStats]);
+  }, [eventFilter, resetStats]);   
 
   // ── Effects ────────────────────────────────────────────────────────────────
   useEffect(() => {
