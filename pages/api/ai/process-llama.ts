@@ -1,4 +1,3 @@
-
 import type { NextApiRequest, NextApiResponse } from "next";
 import Groq from "groq-sdk";
 import { createClient } from "@supabase/supabase-js";
@@ -8,7 +7,7 @@ import { createClient } from "@supabase/supabase-js";
 ========================= */
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_SERVICE_KEY!
 );
 
 /* =========================
@@ -103,7 +102,7 @@ Rules:
       result: {
         translation: "",
         sentiment: { label: "Negative", score: -1 },
-        keywords: extractKeywords(fb.comment), // fallback: local extraction
+        keywords: extractKeywords(fb.comment),
       },
       raw,
     };
@@ -173,8 +172,6 @@ export default async function handler(
   }
 
   try {
-
-    // const { eventId } = req.body.id;
     const eventId = req.body.eventId ?? req.body.eventid ?? undefined;
     const organizationId = req.body.organizationId ?? undefined;
     const generatedBy = req.body.generatedBy ?? undefined;
@@ -211,7 +208,7 @@ export default async function handler(
 
     /* ── 4. Build analyses + aggregate in one pass ── */
     const analyses: Analysis[] = [];
-    const sentimentCounts = { positive: 0, negative: 0};
+    const sentimentCounts = { positive: 0, negative: 0 };
     const keywordFreq: Record<string, number> = {};
 
     for (let i = 0; i < feedbacks.length; i++) {
@@ -222,12 +219,10 @@ export default async function handler(
       const sentimentScore =
         typeof result.sentiment?.score === "number" ? result.sentiment.score : null;
 
-      // Sentiment counts
       if (sentimentLabel in sentimentCounts) {
         sentimentCounts[sentimentLabel as keyof typeof sentimentCounts]++;
       }
 
-      // Keyword frequency — from original text (mirrors Flask)
       const words = [
         ...extractKeywords(fb.comment),
         ...(result.keywords ?? []),
@@ -246,46 +241,32 @@ export default async function handler(
       });
     }
 
-
     /* ── 5. Batch insert analyses (one round-trip, not N) ── */
     const { error: analysesError } = await supabase
-  .from("feedback_analyses")
-  .insert(
-    analyses.map((a) => ({
-      ...a,
-      summary,
-      recommendations,
-    }))
-  );
+      .from("feedback_analyses")
+      .insert(
+        analyses.map((a) => ({
+          ...a,
+          summary,
+          recommendations,
+        }))
+      );
 
+    if (analysesError) {
+      console.error("❌ feedback_analyses insert error:", analysesError);
+    } else {
+      console.log("✅ feedback_analyses inserted successfully");
+    }
 
     /* ── 6. Insert report ── */
-    console.log("\n--- INSERT: feedback_reports ---");
-    console.log(JSON.stringify({
-    event_id: eventId,
-        generated_at: new Date().toISOString(),
-        total_feedbacks: analyses.length,
-        // wrap sentiment_counts in the shape your table expects
-        sentiment_counts: {
-          positive: sentimentCounts.positive,
-          negative: sentimentCounts.negative,
-        },
-        top_keywords: keywordFreq,
-        summary,
-        recommendations,
-        model: "llama",             
-        raw_analyses: analyses,
-    }, null, 2));
-
     const { data: report, error: reportError } = await supabase
       .from("feedback_reports")
       .insert({
         event_id: eventId,
         generated_at: new Date().toISOString(),
-        organization_id: organizationId, 
-        generated_by: generatedBy, 
+        organization_id: organizationId,
+        generated_by: generatedBy,
         total_feedbacks: analyses.length,
-        // wrap sentiment_counts in the shape your table expects
         sentiment_counts: {
           positive: sentimentCounts.positive,
           negative: sentimentCounts.negative,
@@ -293,13 +274,17 @@ export default async function handler(
         top_keywords: keywordFreq,
         summary,
         recommendations,
-        model: "llama",             
+        model: "llama",
         raw_analyses: analyses,
       })
       .select()
       .single();
 
-    console.log("❌ feedback_reports insert error:", reportError);
+    if (reportError) {
+      console.error("❌ feedback_reports insert error:", reportError);
+    } else {
+      console.log("✅ feedback_reports inserted successfully");
+    }
 
     /* ── 7. Return everything at once (mirrors Flask's single response) ── */
     return res.status(200).json({

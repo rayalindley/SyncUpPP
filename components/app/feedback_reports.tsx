@@ -148,6 +148,16 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
 
   const total = sentimentCounts.positive + sentimentCounts.negative;
 
+  // ── Derived disabled state ─────────────────────────────────────────────────
+  // Only block when: no generations left, or currently generating.
+  // reportLimit is decremented server-side on each successful generation,
+  // so it is the sole gate — models can be switched freely between runs.
+  const isGenerateDisabled = reportLimit === 0 || isGenerating;
+
+  const generateTitle = reportLimit === 0
+    ? "No more generations left."
+    : "";
+
   // ── Chart config ───────────────────────────────────────────────────────────
   const pieData = useMemo(() => ({
     labels: ["Positive", "Negative"],
@@ -209,6 +219,17 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
     setReportLimit(0);
   }, []);
 
+  const fetchUserName = useCallback(async (id: string): Promise<string> => {
+    const { data } = await supabase
+      .from("userprofiles")
+      .select("first_name, last_name")
+      .eq("userid", id)
+      .single();
+    return data
+      ? [data.first_name, data.last_name].filter(Boolean).join(" ") || "Unknown"
+      : "Unknown";
+  }, [supabase]);
+
   const loadStats = useCallback(async () => {
     if (!eventFilter) { resetStats(); return; }
     setIsLoadingStats(true);
@@ -225,6 +246,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
         supabase.from("questions").select("id").eq("question_type", "Likert"),
         fetch(`/api/reports/get-feedback-report?eventid=${eventFilter}`),
       ]);
+
       if (eventErr) throw eventErr;
       setReportLimit(eventData?.report_limit ?? 0);
       setTotalResponses(formResponses?.length ?? 0);
@@ -232,8 +254,11 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
       const responseIds = formResponses?.map((r) => r.id) ?? [];
       const likertIds = likertQuestions?.map((q) => q.id) ?? [];
 
+      if (!reportRes.ok) {
+        const text = await reportRes.text();
+        throw new Error(`API error ${reportRes.status}: ${text.slice(0, 200)}`);
+      }
       const json = await reportRes.json();
-      if (!reportRes.ok) throw new Error(json.error || "Failed to fetch reports");
 
       const latest = json.reports?.[0];
       setReports(json.reports ?? []);
@@ -250,16 +275,8 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
       );
 
       if (latest?.generated_by) {
-        const { data: generator } = await supabase
-          .from("userprofiles")
-          .select("first_name, last_name")
-          .eq("userid", latest.generated_by)
-          .single();
-        setGeneratedBy(
-          generator
-            ? [generator.first_name, generator.last_name].filter(Boolean).join(" ") || "Unknown"
-            : "Unknown"
-        );
+        const name = await fetchUserName(latest.generated_by);
+        setGeneratedBy(name);
       } else {
         setGeneratedBy("Unknown");
       }
@@ -272,7 +289,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
           .in("response_id", responseIds)
           .in("question_id", likertIds);
 
-          const values = likertAnswers
+        const values = likertAnswers
           ?.map((a) => parseFloat(a.answer))
           .filter((v) => !isNaN(v)) ?? [];
 
@@ -292,7 +309,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
     } finally {
       setIsLoadingStats(false);
     }
-  }, [eventFilter, resetStats]);   
+  }, [eventFilter, resetStats, fetchUserName]);
 
   // ── Effects ────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -329,38 +346,28 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
     };
   }, [isGenerating]);
 
-  const fetchUserName = useCallback(async (id: string): Promise<string> => {
-    const { data } = await supabase
-      .from("userprofiles")
-      .select("first_name, last_name")
-      .eq("userid", id)
-      .single();
-    return data
-      ? [data.first_name, data.last_name].filter(Boolean).join(" ") || "Unknown"
-      : "Unknown";
-  }, []);
-  
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handleDownloadPDF = useCallback(() => {
-  const latestReport = reports[0];
-  
-  generateFeedbackPDF({
-    eventName,
-    reportsLeft: events.find((e) => e.id === eventFilter)?.report_limit ?? 0,
-    organization,
-    totalResponses,
-    averageLikert,
-    sentimentCounts,
-    topKeywords,
-    summary,
-    recommendations,
-    generatedBy,
-    model: (latestReport?.model ?? "llama") as "llama" | "felbert",
-    eventFilter,
-  });
-}, [eventName, events, eventFilter, organization, totalResponses, averageLikert, sentimentCounts, topKeywords, summary, recommendations, generatedBy, reports]);
+    const latestReport = reports[0];
+
+    generateFeedbackPDF({
+      eventName,
+      reportsLeft: events.find((e) => e.id === eventFilter)?.report_limit ?? 0,
+      organization,
+      totalResponses,
+      averageLikert,
+      sentimentCounts,
+      topKeywords,
+      summary,
+      recommendations,
+      generatedBy,
+      model: (latestReport?.model ?? "llama") as "llama" | "felbert",
+      eventFilter,
+    });
+  }, [eventName, events, eventFilter, organization, totalResponses, averageLikert, sentimentCounts, topKeywords, summary, recommendations, generatedBy, reports]);
 
   const handleGenerateReport = useCallback(async () => {
+    // Guard: need a valid event and remaining generation quota
     if (reportLimit === 0 || !eventFilter) return;
 
     const confirmed = window.confirm("This will decrement your generations. Do you wanna continue?");
@@ -382,21 +389,19 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
           }),
           signal: abortControllerRef.current.signal,
         });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json?.error || "Processing failed");
 
-        await supabase
-        .from("events")
-        .update({ report_limit: reportLimit - 1 })
-        .eq("id", eventFilter);
-        
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`Processing failed (${res.status}): ${text.slice(0, 200)}`);
+        }
+        await res.json();
+
         toast.success("Report generated successfully.");
       } else {
         const { data: feedbacks } = await supabase
           .from("form_responses")
           .select("id, comment")
-          .eq("event_id", eventFilter)
-          
+          .eq("event_id", eventFilter);
 
         if (!feedbacks || feedbacks.length === 0) {
           toast.error("No unprocessed feedbacks to analyze.");
@@ -410,17 +415,19 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
           signal: abortControllerRef.current.signal,
         });
 
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`FELBERT processing failed (${res.status}): ${text.slice(0, 200)}`);
+        }
         const json = await res.json();
-        if (!res.ok) throw new Error("FELBERT processing failed");
 
-        // Save report, mark feedbacks processed, decrement limit — all server-side
         const saveRes = await fetch("/api/ai/process-felbert", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             eventId: eventFilter,
-            organizationId: organization.organizationid, // ← add
-            generatedBy: userId,                          // ← add
+            organizationId: organization.organizationid,
+            generatedBy: userId,
             feedbackIds: feedbacks.map((f) => f.id),
             results: json.results,
             keywords: json.keywords,
@@ -430,7 +437,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
         });
 
         if (!saveRes.ok) {
-          const saveJson = await saveRes.json();
+          const saveJson = await saveRes.json().catch(() => ({}));
           throw new Error(saveJson?.error || "Failed to save FELBERT report");
         }
 
@@ -450,7 +457,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
       setTimeout(() => setIsGenerating(false), 600);
       abortControllerRef.current = null;
     }
-  }, [eventFilter, model, reportLimit, loadStats]);
+  }, [eventFilter, model, reportLimit, loadStats, organization, userId]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -567,10 +574,10 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
             <div className="mt-4 flex items-center gap-2 flex-wrap">
               <button
                 onClick={handleGenerateReport}
-                disabled={reportLimit === 0 || isGenerating}
-                title={reportLimit === 0 ? "No more generations left." : ""}
-                className={`px-4 py-2 bg-emerald-600 text-sm rounded-md ${
-                  reportLimit === 0
+                disabled={isGenerateDisabled}
+                title={generateTitle}
+                className={`px-4 py-2 text-sm rounded-md ${
+                  isGenerateDisabled
                     ? "bg-gray-500 cursor-not-allowed"
                     : "bg-blue-600 hover:bg-blue-700"
                 } text-white`}

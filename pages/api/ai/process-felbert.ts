@@ -3,13 +3,12 @@ import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_SERVICE_KEY!
 );
 
 function parseFelbertSummary(raw: string): { summary: string; recommendations: string[] } {
-  // Split on "Suggestions:" or "Suggestions :"
   const parts = raw.split(/Suggestions\s*:/i);
-  
+
   const summaryRaw = parts[0]
     .replace(/^Summary\s*:/i, "")
     .trim();
@@ -33,16 +32,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const { summary: parsedSummary, recommendations } = parseFelbertSummary(summary);
 
-
-  // inside insert:
   const { error: insertError } = await supabase.from("feedback_reports").insert({
     event_id: eventId,
-    organization_id: organizationId,  // ← add
-    generated_by: generatedBy,        // ← add
+    organization_id: organizationId,
+    generated_by: generatedBy,
     model: "felbert",
     generated_at: new Date().toISOString(),
     total_feedbacks: results.length,
-    sentiment_counts: { positive, negative},
+    sentiment_counts: { positive, negative },
     top_keywords: keywords,
     summary: parsedSummary,
     recommendations,
@@ -51,7 +48,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (insertError) return res.status(500).json({ error: insertError.message });
 
-  // Decrement report_limit
   const { data: eventData, error: fetchError } = await supabase
     .from("events")
     .select("report_limit")
