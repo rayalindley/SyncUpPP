@@ -1,3 +1,5 @@
+// Filename: D:\Repositories\SyncUp\components\create_event_form.tsx
+
 import React, { useRef, useEffect, useState } from "react";
 import SignaturePad from "react-signature-canvas";
 import { useForm, SubmitHandler } from "react-hook-form";
@@ -55,7 +57,7 @@ const EventSchema = z
       .optional()
       .default([]),
     certificate_enabled: z.boolean().optional(),
-    release_option: z.enum(["after_event", "scheduled"]).optional(),
+    release_option: z.enum(["after_event", "scheduled","after_feedback_submission","manual","after_event"]).optional(),
     scheduled_release_date: z.string().optional().nullable(),
     certificate_background: z.string().optional().nullable(),
     discounts: z
@@ -108,8 +110,8 @@ export interface EventFormValues {
   id?: string;
   title: string;
   description: string;
-  starteventdatetime: string;
-  endeventdatetime: string;
+  starteventdatetime: string; // Changed to string
+  endeventdatetime: string; // Changed to string
   location: string;
   capacity?: number | null;
   registrationfee?: number | null;
@@ -126,7 +128,7 @@ export interface EventFormValues {
   }[];
   certificate_enabled?: boolean;
   release_option?: "after_event" | "scheduled" | "after_feedback_submission";
-  scheduled_release_date?: string | null;
+  scheduled_release_date?: string | null; // Changed to string
   certificate_background?: string | null;
   discounts?: Array<{
     roles: string[];
@@ -187,7 +189,7 @@ const CreateEventForm = ({
   const [privacyType, setPrivacyType] = useState<string>(event?.privacy.type || "public");
   const [roleSuggestions, setRoleSuggestions] = useState<string[]>([]);
   const [membershipSuggestions, setMembershipSuggestions] = useState<string[]>([]);
-  const [loadingSuggestions, setLoadingSuggestions] = useState(true);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(true); // Loading state for suggestions
   const [privacyValue, setPrivacyValue] = useState<string>(event?.privacy || "public");
   const [allowAllRoles, setAllowAllRoles] = useState<boolean>(
     event?.privacy.allow_all_roles || false
@@ -458,7 +460,7 @@ const CreateEventForm = ({
           const { data: discountData, error: discountError } = await supabase
             .from("event_discounts")
             .select("role, membership_tier, discount_percent")
-            .eq("id", event.id);
+            .eq("eventid", event.id);
           if (discountError) {
             console.error("Error fetching discounts:", discountError);
           } else if (discountData) {
@@ -489,6 +491,31 @@ const CreateEventForm = ({
       setPrivacyType(event.privacy?.type || "public");
       setAllowAllRoles(event.privacy?.allow_all_roles || false);
       setAllowAllMemberships(event.privacy?.allow_all_memberships || false);
+
+      // console.log(
+      //   "Dates: ",
+      //   event.starteventdatetime,
+      //   event.endeventdatetime,
+      //   event.scheduled_release_date
+      // );
+
+      // Set form values based on the event data
+      // Since defaultValues are already set correctly, no need to setValue here
+      // (Object.keys(event) as (keyof typeof event)[]).forEach((key) => {
+      //   if (key === "starteventdatetime" || key === "endeventdatetime") {
+      //     const formattedDate = formatDateForInput(
+      //       new Date(event[key] as unknown as string)
+      //     );
+      //     setValue(key as keyof EventFormValues, formattedDate);
+      //   } else if (key === "scheduled_release_date" && event[key]) {
+      //     const date = new Date(event[key] as Date);
+      //     const formattedDate = formatDateForInput(date);
+      //     setValue(key as keyof EventFormValues, formattedDate);
+      //     // console.log("Formatted Date 2:", formattedDate);
+      //   } else {
+      //     setValue(key as keyof EventFormValues, event[key] as any);
+      //   }
+      // });
 
       setOnsitePayment(event.onsite || false);
 
@@ -524,6 +551,7 @@ const CreateEventForm = ({
               : null,
           }));
           setSignatories(formattedSignatories);
+          // No need to setValue here as defaultValues already include signatories
           formattedSignatories.forEach((signatory, index) => {
             const signaturePad = signaturePadRefs.current[index];
             if (signaturePad && signatory.signature) {
@@ -564,6 +592,7 @@ const CreateEventForm = ({
           toast.error("Error fetching certificate settings.");
         } else if (certData) {
           setCertificateEnabled(certData.certificate_enabled);
+          // No need to setValue as defaultValues are already set
           setCertificateBackground(certData.certificate_background);
         }
       };
@@ -574,6 +603,7 @@ const CreateEventForm = ({
   // Update Form Values when Signatories Change
   useEffect(() => {
     setValue("signatories", signatories);
+    // console.log("Signatories:", signatories);
   }, [signatories, setValue]);
 
   // Handle Form Submission
@@ -807,7 +837,7 @@ const CreateEventForm = ({
         endeventdatetime: endEventDateTimeWithTimezone,
         scheduled_release_date: scheduledReleaseDateWithTimezone,
         capacity: capacityValue,
-        registrationfee: formData.registrationfee,
+        registrationfee: formData.registrationfee, // Use formData directly
         tags: formattedTags,
         eventslug: event ? event.eventslug : slug,
         privacy: privacySettings,
@@ -817,16 +847,13 @@ const CreateEventForm = ({
         certificate_background: certificateBackgroundUrl,
       };
 
+
       const { data, error } = event
         ? await updateEvent(event.id!, completeFormData)
         : await insertEvent(completeFormData, organizationid);
 
       if (data) {
-        const id = event ? event.id! : data[0].id;
-
-        // DEBUG LOGS
-        console.log("DEBUG event insert/update result:", data);
-        console.log("DEBUG resolved id for certificate settings:", id);
+        const eventId = event ? event.id! : data[0].id;
 
         // Auto-register creator if creating a new event
         if (!event) {
@@ -835,7 +862,7 @@ const CreateEventForm = ({
           if (userId) {
             await supabase.from("eventregistrations").insert([
               {
-                eventid: data[0].id,
+                eventid: data[0].eventid,
                 userid: userId,
                 status: "registered",
                 attendance: "present",
@@ -844,7 +871,26 @@ const CreateEventForm = ({
           }
         }
 
-      
+        // Handle Certificate Settings Upsert
+        const certificateSettings = {
+          event_id: eventId,
+          certificate_enabled: formData.certificate_enabled || false,
+          release_option: formData.release_option || "after_event",
+          scheduled_release_date:
+            formData.release_option === "scheduled" && formData.scheduled_release_date
+              ? formData.scheduled_release_date
+              : null,
+          certificate_background:
+            certificateBackgroundUrl || "default-certificate-bg/default-cert-bg.png",
+        };
+        const { error: certError } = await supabase
+          .from("event_certificate_settings")
+          .upsert(certificateSettings, { onConflict: "event_id" });
+        if (certError) {
+          console.error("Error inserting/updating certificate settings:", certError);
+          toast.error("Error saving certificate settings. Please try again.");
+          return;
+        }
 
         // Record Activity
         await recordActivity({
@@ -867,44 +913,48 @@ const CreateEventForm = ({
           event ? "Event was updated successfully." : "Event was created successfully."
         );
 
+
+
         // Feedback Creation Confirmation
-        const handleCreateFeedbackForm = async () => {
+        const handleCreateFeedbackForm = async() => {
           const result = await Swal.fire({
             title: "Create Feedback Form",
             text: "Do you want to create a feedback form for this event?",
+            
             confirmButtonText: "Create Now",
-            confirmButtonColor: "#379A7B",
+            confirmButtonColor: '#379A7B',
             cancelButtonText: "Later",
-            cancelButtonColor: "#d33",
+            cancelButtonColor: '#d33',
             showCancelButton: true,
+
             customClass: {
               title: "text-lg",
               htmlContainer: "text-base",
               popup: "rounded-lg p-6 shadow-xl border border-gray-700",
               confirmButton: "text-sm px-4 py-2 rounded-md",
               cancelButton: "text-sm px-4 py-2 rounded-md",
-            },
+            }
           });
 
           const eventSlug = event ? event.eventslug : completeFormData.eventslug;
 
-          if (result.isConfirmed) {
+          if(result.isConfirmed) {
             await supabase
               .from("events")
-              .update({ has_feedback_form: true })
+              .update({has_feedback_form: true})
               .eq("eventslug", eventSlug);
 
             window.location.href = `/feedback/form/${event ? event.eventslug : completeFormData.eventslug}`;
           } else {
             window.location.href = `/e/${event ? event.eventslug : completeFormData.eventslug}`;
           }
-        };
+        }
+        handleCreateFeedbackForm();
+        //window.location.href = `/e/${event ? event.eventslug : completeFormData.eventslug}`;
 
-        // ✅ await so reset happens after dialog
-        await handleCreateFeedbackForm();
-
+        // Reset form and signatories state
         reset();
-        setSignatories([]);
+        setSignatories([]); // Reset signatories after form submission
       } else if (error) {
         toast.error(
           error.message ||
@@ -1179,7 +1229,7 @@ const CreateEventForm = ({
                 className={`mt-1 block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm ${
                   errors.starteventdatetime ? "border-red-500" : ""
                 }`}
-                {...register("starteventdatetime")}
+                {...register("starteventdatetime")} // Removed valueAsDate: true
               />
               {errors.starteventdatetime && isSubmitted && (
                 <p className="mt-2 text-sm text-red-600">
@@ -1201,7 +1251,7 @@ const CreateEventForm = ({
                 className={`mt-1 block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm ${
                   errors.endeventdatetime ? "border-red-500" : ""
                 }`}
-                {...register("endeventdatetime")}
+                {...register("endeventdatetime")} // Removed valueAsDate: true
               />
               {errors.endeventdatetime && isSubmitted && (
                 <p className="mt-2 text-sm text-red-600">
@@ -1295,7 +1345,7 @@ const CreateEventForm = ({
                 checked={!hasRegistrationFee}
                 onChange={() => {
                   handleRegistrationFeeChange(false);
-                  setValue("registrationfee", null);
+                  setValue("registrationfee", null); // Explicitly set to null
                 }}
                 className="mr-2 border-gray-300 text-primary focus:ring-primarydark"
               />
@@ -1401,7 +1451,7 @@ const CreateEventForm = ({
                         </div>
                       </div>
 
-                      {/* Discount Input and Buttons */}
+                      {/* Discount Input and Buttons - Set same width */}
                       <div className="flex w-1/5 flex-col items-center space-y-2">
                         <input
                           type="number"

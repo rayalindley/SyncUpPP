@@ -33,6 +33,7 @@ export default function FeedbackFormAttendees({
 
   const [certificateId, setCertificateId] = useState<string | null>(null);
 
+  console.log("Component received slug:", slug, "Type:", typeof slug);
   useEffect(() => {
     const fetchEvent = async () => {
       const { data, error } = await supabase
@@ -86,8 +87,16 @@ export default function FeedbackFormAttendees({
         return;
       }
 
-      setChoiceQuestions(allQuestions.filter((q) => (q.question_type || "").toLowerCase() === "choice"));
-      setLikertQuestions(allQuestions.filter((q) => (q.question_type || "").toLowerCase() === "likert"));
+      setChoiceQuestions(
+        allQuestions.filter(
+          (q) => (q.question_type || "").toLowerCase() === "choice"
+        )
+      );
+      setLikertQuestions(
+        allQuestions.filter(
+          (q) => (q.question_type || "").toLowerCase() === "likert"
+        )
+      );
 
       const { data: formData, error: fError } = await supabase
         .from("form_questions")
@@ -164,18 +173,17 @@ export default function FeedbackFormAttendees({
       if (responseError) throw responseError;
       const responseId = responseData.id;
 
-      const answersPayload = Object.entries(answers).map(([questionId, answer]) => ({
-        response_id: responseId,
-        event_id: id,
-        form_id: formId,
-        question_id: questionId,
-        answer,
-      }));
+      const answersPayload = Object.entries(answers).map(
+        ([questionId, answer]) => ({
+          response_id: responseId,
+          question_id: questionId,
+          answer,
+        })
+      );
 
       const { error: answersError } = await supabase
         .from("form_answers")
         .insert(answersPayload);
-        
 
       if (answersError) throw answersError;
 
@@ -209,8 +217,14 @@ export default function FeedbackFormAttendees({
             title: "Form submitted successfully!",
             html: `
               <p>Thank you for your feedback.</p>
-              <a href="/api/certificates/${cert.certificate_id}" target="_blank" class="mt-4 inline-block bg-primary text-white px-4 py-2 rounded-md shadow hover:bg-primarydark transition">
-                View Certificate
+              <div style="margin-top: 15px; padding: 12px; background: rgba(55, 154, 123, 0.1); border: 1px solid rgba(55, 154, 123, 0.2); border-radius: 8px;">
+                <p style="font-size: 0.95em; color: #fff; margin-bottom: 0;">
+                  You can also view your certificates anytime by going to 
+                  <strong style="color: #379A7B;">"My Profile"</strong>.
+                </p>
+              </div>
+              <a href="/api/certificates/${cert.certificate_id}" target="_blank" class="mt-4 inline-block bg-primary text-white px-4 py-2 rounded-md shadow hover:bg-primarydark transition no-underline">
+                View Certificate Now
               </a>
             `,
             showConfirmButton: true,
@@ -219,7 +233,7 @@ export default function FeedbackFormAttendees({
               icon: "text-xs",
               title: "text-lg",
               htmlContainer: "text-base",
-              popup: "rounded-lg p-6 shadow-xl border border-gray-700",
+              popup: "rounded-lg p-6 shadow-xl border border-gray-700 bg-charleston",
               confirmButton:
                 "bg-gray-200 text-gray-800 text-sm px-4 py-2 rounded-md hover:bg-gray-300",
             },
@@ -290,13 +304,18 @@ export default function FeedbackFormAttendees({
                   </label>
 
                   {/* TEXT QUESTIONS */}
-                  {(type === "text" || type === "short_answer" || type === "input") && (
+                  {(type === "text" ||
+                    type === "short_answer" ||
+                    type === "input") && (
                     <div className="mt-2">
                       <input
                         type="text"
                         value={answers[q.id] ?? ""}
                         onChange={(e) =>
-                          setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))
+                          setAnswers((prev) => ({
+                            ...prev,
+                            [q.id]: e.target.value,
+                          }))
                         }
                         className="block w-full rounded-md border-0 bg-white/5 py-2 px-3 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm"
                         placeholder="Type your answer"
@@ -313,7 +332,10 @@ export default function FeedbackFormAttendees({
                             <input
                               type="radio"
                               onChange={() =>
-                                setAnswers((prev) => ({ ...prev, [q.id]: choice }))
+                                setAnswers((prev) => ({
+                                  ...prev,
+                                  [q.id]: choice,
+                                }))
                               }
                               name={`question-${q.id}`}
                               className="ml-2 mr-2 border-gray-300 text-primary focus:ring-primarydark"
@@ -329,7 +351,10 @@ export default function FeedbackFormAttendees({
                           type="text"
                           value={answers[q.id] ?? ""}
                           onChange={(e) =>
-                            setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))
+                            setAnswers((prev) => ({
+                              ...prev,
+                              [q.id]: e.target.value,
+                            }))
                           }
                           className="block w-full rounded-md border-0 bg-white/5 py-2 px-3 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm"
                           placeholder="Type your answer"
@@ -349,37 +374,39 @@ export default function FeedbackFormAttendees({
                           <div className="absolute top-[35px] left-1/2 transform -translate-x-[47.5%] h-0.5 w-[349px] bg-[#379A7B] z-0" />
 
                           <div className="flex items-center justify-between relative">
-                            {likertLabelsMap[q.metadata.category].map((label, index) => (
-                              <div
-                                key={index}
-                                className="flex flex-col items-center text-center cursor-pointer"
-                                onClick={() =>
-                                  setAnswers((prev) => ({
-                                    ...prev,
-                                    [q.id]: index.toString(),
-                                  }))
-                                }
-                              >
+                            {likertLabelsMap[q.metadata.category].map(
+                              (label, index) => (
                                 <div
-                                  className={`w-10 h-10 border-2 rounded-full flex items-center justify-center transition-colors ${
-                                    answers[q.id] === index.toString()
-                                      ? "border-[#379A7B] bg-[#201c1c]"
-                                      : "border-[#379A7B] bg-[#201c1c]"
-                                  }`}
+                                  key={index}
+                                  className="flex flex-col items-center text-center cursor-pointer"
+                                  onClick={() =>
+                                    setAnswers((prev) => ({
+                                      ...prev,
+                                      [q.id]: index.toString(),
+                                    }))
+                                  }
                                 >
                                   <div
-                                    className={`w-6 h-6 rounded-full ${
+                                    className={`w-10 h-10 border-2 rounded-full flex items-center justify-center transition-colors ${
                                       answers[q.id] === index.toString()
-                                        ? "bg-[#379A7B]"
-                                        : "bg-transparent border-2 border-[#379A7B]"
+                                        ? "border-[#379A7B] bg-[#201c1c]"
+                                        : "border-[#379A7B] bg-[#201c1c]"
                                     }`}
-                                  />
+                                  >
+                                    <div
+                                      className={`w-6 h-6 rounded-full ${
+                                        answers[q.id] === index.toString()
+                                          ? "bg-[#379A7B]"
+                                          : "bg-transparent border-2 border-[#379A7B]"
+                                      }`}
+                                    />
+                                  </div>
+                                  <p className="text-[10px] italic text-white w-24 mt-2">
+                                    {label}
+                                  </p>
                                 </div>
-                                <p className="text-[10px] italic text-white w-24 mt-2">
-                                  {label}
-                                </p>
-                              </div>
-                            ))}
+                              )
+                            )}
                           </div>
                         </div>
                       </div>
@@ -417,13 +444,18 @@ export default function FeedbackFormAttendees({
           </div>
         </form>
 
+        {/* --- Post-Submission Certificate UI --- */}
         {certificateId && (
-          <div className="mt-4 text-center">
+          <div className="mt-8 p-6 border border-white/10 bg-white/5 rounded-lg text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <p className="text-gray-300 text-sm mb-4">
+              🎉 Your certificate is ready! You can view it here or find it later by going to your 
+              <span className="text-primary font-bold"> "My Profile"</span> page.
+            </p>
             <a
               href={`/api/certificates/${certificateId}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-light bg-primary hover:bg-primarydark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+              className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-semibold rounded-md shadow-sm text-white bg-primary hover:bg-primarydark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all"
             >
               🎓 View Your Certificate
             </a>
