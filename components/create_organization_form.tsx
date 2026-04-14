@@ -622,7 +622,7 @@ const CreateOrganizationForm = ({ formValues = null }: { formValues: any | null 
                   }}
                 />
                 <span className="text-xs text-gray-400">
-                  Your organization address will be at https://localhost:3001/
+                  Your organization address will be at https://syncup-pp.vercel.app/
                   {getValues("slug")}
                 </span>
                 {errors.slug && <p className="text-red-500">{errors.slug.message}</p>}

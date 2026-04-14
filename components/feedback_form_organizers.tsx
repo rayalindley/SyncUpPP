@@ -1063,21 +1063,14 @@ export default function FeedbackFormOrganizer({
 
                 {q.question_type === "Choice" &&
                   q.metadata?.choices?.map((choice: string, idx: number) => (
-                    <div key={idx} className="cursor-default">
-                      <input
-                        disabled
-                        type="radio"
-                        id={`q${cleanId}c${idx}`}
-                        className="ml-2 mr-2 border-gray-300 text-primary focus:ring-primarydark cursor-default"
-                      />
-                      <label
-                        htmlFor={`q${cleanId}c${idx}`}
-                        className="text-sm font-light text-white cursor-default"
-                      >
-                        {choice}
-                      </label>
-                      <br />
-                    </div>
+                    <label
+                      key={idx}
+                      htmlFor={`q${cleanId}c${idx}`}
+                      className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-white/10 bg-white/5 cursor-default"
+                    >
+                      <div className="w-4 h-4 rounded-full border border-white/30 flex-shrink-0" />
+                      <span className="text-sm text-white/80 font-light">{choice}</span>
+                    </label>
                   ))}
 
                 {q.question_type === "Likert" &&

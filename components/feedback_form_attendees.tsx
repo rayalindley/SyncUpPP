@@ -323,45 +323,46 @@ export default function FeedbackFormAttendees({
                     </div>
                   )}
 
-                  {/* CHOICE QUESTIONS */}
                   {type === "choice" && (
-                    <div className="mt-2">
-                      {q.metadata?.choices?.length ? (
-                        q.metadata.choices.map((choice: string, i: number) => (
-                          <div key={i}>
-                            <input
-                              type="radio"
-                              onChange={() =>
-                                setAnswers((prev) => ({
-                                  ...prev,
-                                  [q.id]: choice,
-                                }))
-                              }
-                              name={`question-${q.id}`}
-                              className="ml-2 mr-2 border-gray-300 text-primary focus:ring-primarydark"
-                            />
-                            <label className="text-sm font-medium font-light text-white">
-                              {choice}
-                            </label>
-                            <br />
-                          </div>
-                        ))
-                      ) : (
-                        <input
-                          type="text"
-                          value={answers[q.id] ?? ""}
-                          onChange={(e) =>
-                            setAnswers((prev) => ({
-                              ...prev,
-                              [q.id]: e.target.value,
-                            }))
-                          }
-                          className="block w-full rounded-md border-0 bg-white/5 py-2 px-3 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm"
-                          placeholder="Type your answer"
-                        />
-                      )}
-                    </div>
-                  )}
+  <div className="mt-2 flex flex-col gap-2">
+    {q.metadata?.choices?.length ? (
+      q.metadata.choices.map((choice: string, i: number) => (
+        <label
+          key={i}
+          className={`flex items-center gap-3 px-4 py-2.5 rounded-lg border transition-colors cursor-pointer
+            ${answers[q.id] === choice ? "border-green-500/50 bg-green-500/10" : "border-white/10 bg-white/5 hover:bg-white/10"}`}
+        >
+          <input
+            type="radio"
+            name={`question-${q.id}`}
+            onChange={() =>
+              setAnswers((prev) => ({ ...prev, [q.id]: choice }))
+            }
+            className="sr-only"
+          />
+          <div className={`w-4 h-4 rounded-full border flex-shrink-0 flex items-center justify-center transition-colors
+            ${answers[q.id] === choice ? "border-green-500 bg-green-500" : "border-white/30"}`}
+          >
+            {answers[q.id] === choice && (
+              <div className="w-2 h-2 rounded-full bg-green-900" />
+            )}
+          </div>
+          <span className="text-sm font-light text-white">{choice}</span>
+        </label>
+      ))
+    ) : (
+      <input
+        type="text"
+        value={answers[q.id] ?? ""}
+        onChange={(e) =>
+          setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))
+        }
+        className="block w-full rounded-md border-0 bg-white/5 py-2 px-3 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm"
+        placeholder="Type your answer"
+      />
+    )}
+  </div>
+)}
 
                   {/* LIKERT QUESTIONS */}
                   {type === "likert" &&
