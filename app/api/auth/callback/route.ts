@@ -3,21 +3,33 @@ import { recordActivity } from "@/lib/track";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
-  // Mainly for OAuth2 callbacks
-  // https://supabase.com/docs/guides/auth/server-side/nextjs
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const origin = requestUrl.origin;
 
   if (code) {
-    const supabase = createClient();
-    await supabase.auth.exchangeCodeForSession(code);
-    await recordActivity({
-      activity_type: "user_signin",
-      description: "User signed in",
-    });
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+      if (error) {
+        console.error("Auth exchange error:", error.message);
+        return NextResponse.redirect(`${origin}/login?error=auth_failed`);
+      }
+
+      try {
+        await recordActivity({
+          activity_type: "user_signin",
+          description: "User signed in",
+        });
+      } catch (trackErr) {
+        console.error("recordActivity failed:", trackErr);
+      }
+    } catch (err) {
+      console.error("Callback handler error:", err);
+      return NextResponse.redirect(`${origin}/login?error=server_error`);
+    }
   }
 
-  // URL to redirect to after sign up process completes
   return NextResponse.redirect(`${origin}/dashboard`);
 }
