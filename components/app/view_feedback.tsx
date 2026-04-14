@@ -83,7 +83,8 @@ export default function FeedbackTable({
         .from("events")
         .select("id, title, organizationid")
         .eq("eventslug", eventSlug)
-        .maybeSingle();
+        .or("is_deleted.eq.false,is_deleted.is.null")
+	      .maybeSingle();
 
       if (eventError || !eventData) {
         console.error("Error fetching event:", eventError);

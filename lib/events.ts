@@ -279,6 +279,7 @@ export async function fetchEvents(organizationid: string) {
       .from("events")
       .select("*")
       .eq("organizationid", organizationid)
+      .or("is_deleted.eq.false,is_deleted.is.null")
       .order("createdat", { ascending: false });
 
     if (!error) {
@@ -315,7 +316,8 @@ export async function fetchEventById(id: string) {
       `
       )
       .eq("id", id)
-      .single();
+      .or("is_deleted.eq.false,is_deleted.is.null")
+	    .maybeSingle()
 
     if (!error && data) {
       type EventData = typeof data & {
@@ -359,23 +361,24 @@ export async function deleteEvent(id: string) {
       .from("events")
       .select("eventphoto")
       .eq("id", id)
-      .single();
+      .maybeSingle();
 
     if (fetchError) {
       return { data: null, error: { message: fetchError.message } };
     }
 
+    // SOFT DELETE (recommended)
     const { data, error: deleteError } = await supabase
       .from("events")
-      .delete()
+      .update({ is_deleted: true })
       .eq("id", id);
 
     if (deleteError) {
       return { data: null, error: { message: deleteError.message } };
     }
 
-    // Check if eventData.eventphoto exists before processing
-    if (eventData.eventphoto) {
+    // delete image if exists
+    if (eventData?.eventphoto) {
       const fileName = eventData.eventphoto.split("/").pop();
 
       const { error: storageError } = await supabase.storage
@@ -383,12 +386,13 @@ export async function deleteEvent(id: string) {
         .remove([fileName]);
 
       if (storageError) {
-        console.error("Error deleting event photo:", storageError.message);
+        console.error("Storage error:", storageError.message);
         return {
           data,
           error: {
             message:
-              "Event deleted, but failed to delete event photo: " + storageError.message,
+              "Event deleted, but failed to delete event photo: " +
+              storageError.message,
           },
         };
       }
@@ -396,13 +400,13 @@ export async function deleteEvent(id: string) {
 
     return { data, error: null };
   } catch (e: any) {
-    console.error("Unexpected error:", e);
     return {
       data: null,
-      error: { message: e.message || "An unexpected error occurred" },
+      error: { message: e.message || "Unexpected error" },
     };
   }
 }
+
 
 export async function countRegisteredUsers(id: string) {
   const supabase = createClient();
@@ -435,8 +439,8 @@ export async function getEventBySlug(slug: string) {
       .from("events")
       .select("*")
       .eq("eventslug", slug)
-      .single();
-
+      .or("is_deleted.eq.false,is_deleted.is.null")
+	    .maybeSingle()
     if (!error && data) {
       return { data, error: null };
     } else {
@@ -463,7 +467,8 @@ export async function registerForEvent(
       .from("events")
       .select("privacy, organizationid, onsite")
       .eq("id", id)
-      .single();
+      .or("is_deleted.eq.false,is_deleted.is.null")
+	    .maybeSingle()
 
     if (eventError || !event) {
       return { data: null, error: { message: eventError?.message || "Event not found" } };
@@ -586,7 +591,8 @@ export async function checkEventPrivacyAndMembership(id: string, userId: string)
       .from("events")
       .select("privacy, organizationid")
       .eq("id", id)
-      .single();
+      .or("is_deleted.eq.false,is_deleted.is.null")
+	    .maybeSingle()
 
     if (eventError || !event) {
       throw new Error(eventError?.message || "Event not found");
@@ -703,7 +709,9 @@ export async function fetchEventsForUser(userId: string) {
     const { data: events, error: eventsError } = await supabase
       .from("events")
       .select("*")
-      .in("id", eventIds);
+      .in("id", eventIds)
+      .or("is_deleted.eq.false,is_deleted.is.null");
+
 
     if (eventsError) {
       throw new Error(eventsError.message);
@@ -728,7 +736,9 @@ export async function isEventFull(id: string) {
       .from("events")
       .select("capacity")
       .eq("id", id)
-      .single();
+      .or("is_deleted.eq.false,is_deleted.is.null")
+	    .maybeSingle();
+
 
     if (eventError || !event) {
       throw new Error(eventError?.message || "Event not found");

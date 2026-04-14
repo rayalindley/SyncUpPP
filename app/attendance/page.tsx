@@ -46,8 +46,10 @@ const AttendanceContent = () => {
           .from("events")
           .select("*")
           .eq("id", id)
+          .or("is_deleted.eq.false,is_deleted.is.null")
           .single();
   
+          
         if (eventError || !eventData) {
           toast.error("Event not found");
           setLoading(false);

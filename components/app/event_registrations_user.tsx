@@ -138,7 +138,8 @@ const RegistrationsTable: React.FC<RegistrationsTableProps> = ({
         .from("events")
         .select("*")
         .eq("id", id)
-        .single();
+        .or("is_deleted.eq.false,is_deleted.is.null")
+	      .maybeSingle();
   
       if (eventError || !eventData) {
         toast.error("Failed to fetch event details.");

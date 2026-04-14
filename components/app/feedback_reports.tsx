@@ -241,7 +241,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
         { data: likertQuestions },
         reportRes,
       ] = await Promise.all([
-        supabase.from("events").select("report_limit").eq("id", eventFilter).single(),
+        supabase.from("events").select("report_limit").eq("id", eventFilter).or("is_deleted.eq.false,is_deleted.is.null").maybeSingle(),
         supabase.from("form_responses").select("id").eq("event_id", eventFilter),
         supabase.from("questions").select("id").eq("question_type", "Likert"),
         fetch(`/api/reports/get-feedback-report?eventid=${eventFilter}`),

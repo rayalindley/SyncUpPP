@@ -397,6 +397,7 @@ const CreateEventForm = ({
       .from("events")
       .select("eventslug")
       .eq("eventslug", slug)
+      .or("is_deleted.eq.false,is_deleted.is.null")
       .maybeSingle();
     if (error) {
       console.error("Error fetching slug:", error);
@@ -940,9 +941,12 @@ const CreateEventForm = ({
 
           if(result.isConfirmed) {
             await supabase
-              .from("events")
-              .update({has_feedback_form: true})
-              .eq("eventslug", eventSlug);
+            .from("events")
+            .update({ has_feedback_form: true })
+            .eq("eventslug", eventSlug)
+            .or("is_deleted.eq.false,is_deleted.is.null")
+            .select()
+            .maybeSingle();
 
             window.location.href = `/feedback/form/${event ? event.eventslug : completeFormData.eventslug}`;
           } else {

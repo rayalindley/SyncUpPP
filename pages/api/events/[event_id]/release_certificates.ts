@@ -25,7 +25,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .from("events")
       .select("id, organizationid")
       .eq("id", event_id)
-      .single();
+      .or("is_deleted.eq.false,is_deleted.is.null")
+	    .maybeSingle();
 
     if (eventError || !eventData) {
       return res.status(404).json({ error: "Event not found" });
@@ -38,7 +39,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .from("event_certificate_settings")
       .select("certificate_enabled")
       .eq("event_id", event_id)
-      .single();
+      .or("is_deleted.eq.false,is_deleted.is.null")
+	    .maybeSingle();
 
     if (certError || !certSettings?.certificate_enabled) {
       return res.status(400).json({ error: "Certificates are not enabled for this event" });

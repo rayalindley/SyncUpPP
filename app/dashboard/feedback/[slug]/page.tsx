@@ -38,6 +38,7 @@ export default async function ViewFeedbackPage(
       const { data: eventsData, error } = await supabase
         .from("events")
         .select("*")
+        .or("is_deleted.eq.false,is_deleted.is.null")
         .in("organizationid", organizationIds);
 
       if (error) {

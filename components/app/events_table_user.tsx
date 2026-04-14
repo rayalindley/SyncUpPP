@@ -170,7 +170,9 @@ export default function EventsTableUser({
       const { error } = await supabase
         .from("events")
         .update({ status: newStatus, manualstatus: true })
-        .eq("id", id);
+        .eq("id", id)
+        .or("is_deleted.eq.false,is_deleted.is.null");
+
 
       if (error) {
         toast.error("Failed to update status. Please try again.");

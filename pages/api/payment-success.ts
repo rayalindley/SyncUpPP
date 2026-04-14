@@ -130,7 +130,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .from("events")
       .select("title")
       .eq("id", paymentData.target_id)
-      .single();
+      .or("is_deleted.eq.false,is_deleted.is.null")
+	    .maybeSingle();
 
     //record activity
     await recordActivity({
@@ -162,7 +163,8 @@ async function registerForEvent(id: string, userId: string) {
       .from("events")
       .select("privacy, organizationid")
       .eq("id", id)
-      .single();
+      .or("is_deleted.eq.false,is_deleted.is.null")
+	    .maybeSingle();
 
     if (eventError || !event) {
       return { data: null, error: { message: eventError?.message || "Event not found" } };

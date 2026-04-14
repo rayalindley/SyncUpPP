@@ -52,7 +52,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     .from("events")
     .select("report_limit")
     .eq("id", eventId)
-    .single();
+    .or("is_deleted.eq.false,is_deleted.is.null")
+	  .maybeSingle();
 
   if (!fetchError && eventData) {
     await supabase

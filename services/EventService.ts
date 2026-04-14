@@ -32,6 +32,7 @@ export class EventService {
         .from("events")
         .select("*")
         .eq("organizationid", organizationid)
+        .or("is_deleted.eq.false,is_deleted.is.null")
         .range(currentPage * eventsPerPage - eventsPerPage, currentPage * eventsPerPage)
         .order("createdat", { ascending: false });
 
@@ -81,7 +82,8 @@ export class EventService {
         .from("events")
         .select("*")
         .eq("id", id)
-        .single();
+        .or("is_deleted.eq.false,is_deleted.is.null")
+	      .maybeSingle();
 
       if (error) {
         throw new Error(error.message);
@@ -106,7 +108,8 @@ export class EventService {
         .from("events")
         .select("eventphoto")
         .eq("id", id)
-        .single();
+        .or("is_deleted.eq.false,is_deleted.is.null")
+	      .maybeSingle();
 
       if (fetchError) {
         throw new Error(fetchError.message);
@@ -180,7 +183,8 @@ export class EventService {
         .from("events")
         .select("*")
         .eq("slug", slug)
-        .single();
+        .or("is_deleted.eq.false,is_deleted.is.null")
+	      .maybeSingle();
 
       if (error) {
         throw new Error(error.message);
@@ -205,7 +209,8 @@ export class EventService {
         .from("events")
         .select("privacy, organizationid")
         .eq("id", id)
-        .single();
+        .or("is_deleted.eq.false,is_deleted.is.null")
+	      .maybeSingle();
 
       if (eventError || !event) {
         throw new Error(eventError?.message || "Event not found");
@@ -307,7 +312,8 @@ export class EventService {
         .from("events")
         .select("privacy, organizationid")
         .eq("id", id)
-        .single();
+        .or("is_deleted.eq.false,is_deleted.is.null")
+	      .maybeSingle();
 
       if (eventError || !event) {
         throw new Error(eventError?.message || "Event not found");
@@ -427,6 +433,7 @@ export class EventService {
       const { data: events, error: eventsError } = await this.supabase
         .from("events")
         .select("*")
+        .or("is_deleted.eq.false,is_deleted.is.null")
         .in("id", eventIds);
 
       if (eventsError) {
@@ -452,7 +459,8 @@ export class EventService {
         .from("events")
         .select("capacity")
         .eq("id", id)
-        .single();
+        .or("is_deleted.eq.false,is_deleted.is.null")
+	      .maybeSingle();
 
       if (eventError || !event) {
         throw new Error(eventError?.message || "Event not found");
@@ -532,6 +540,7 @@ export class EventService {
       const { data: events, error: eventsError } = await this.supabase
         .from("events")
         .select("*")
+        .or("is_deleted.eq.false,is_deleted.is.null")
         .in("id", eventIds);
 
       if (eventsError) {

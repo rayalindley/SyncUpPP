@@ -75,7 +75,8 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
     .from("events")
     .select("title, starteventdatetime")
     .eq("id", certificate.event_id)
-    .single();
+    .or("is_deleted.eq.false,is_deleted.is.null")
+	  .maybeSingle();
 
   if (eventError || !event) {
     res.status(404).json({ error: "Event not found" });

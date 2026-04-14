@@ -25,10 +25,12 @@ export default async function TransactionsPage(props: TransactionsPageProps) {
   if (!hasPermission) return <div>No permission</div>;
 
   // Fetch feedback reports for this organization
-  const { data: eventRows } = await supabase
-    .from("events")
-    .select("id")
-    .eq("organizationid", organization.organizationid);
+  const { data: eventRows, error: eventsError } = await supabase
+  .from("events")
+  .select("*")
+  .eq("organizationid", organization.organizationid)
+  .or("is_deleted.eq.false,is_deleted.is.null");
+
   const eventIds = eventRows?.map((e) => e.id) || [];
   
   const { data: feedbackreports } = await supabase
@@ -38,9 +40,10 @@ export default async function TransactionsPage(props: TransactionsPageProps) {
 
   // Fetch events for this organization
   const { data: events } = await supabase
-    .from("events")
-    .select("*")
-    .eq("organizationid", organization.organizationid);
+  .from("events")
+  .select("*")
+  .eq("organizationid", organization.organizationid)
+  .or("is_deleted.eq.false,is_deleted.is.null");
 
   return (
     <FeedbackReports

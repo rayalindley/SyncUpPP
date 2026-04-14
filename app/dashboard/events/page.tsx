@@ -35,10 +35,11 @@ export default async function DashboardPage() {
     );
 
     if (organizationIds.length > 0) {
-      const { data, error } = await supabase
-        .from("events")
-        .select("*")
-        .in("organizationid", organizationIds);
+      const { data: data, error } = await supabase
+      .from("events")
+      .select("*")
+      .in("organizationid", organizationIds)
+      .or("is_deleted.eq.false,is_deleted.is.null");
 
       if (error) {
         console.error("Error fetching events:", error);

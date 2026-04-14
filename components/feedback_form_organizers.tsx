@@ -203,7 +203,8 @@ export default function FeedbackFormOrganizer({
           .from("events")
           .select("id, organizationid") 
           .eq("eventslug", selectedEvent)
-          .single();
+          .or("is_deleted.eq.false,is_deleted.is.null")
+	        .maybeSingle()
 
         if (eventError || !eventData) {
           console.error("Event fetch error:", eventError);

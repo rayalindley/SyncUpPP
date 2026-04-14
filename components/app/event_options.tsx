@@ -209,7 +209,7 @@ export default function EventOptions({
   };
 
   const handleCreateFeedbackForm = async (eventslug: string) => {
-    const { error } = await supabase.from("events").update({ has_feedback_form: true }).eq("eventslug", eventslug);
+    const { error } = await supabase.from("events").update({ has_feedback_form: true }).eq("eventslug", eventslug).or("is_deleted.eq.false,is_deleted.is.null");
 
     if (error) {
       console.error("Error updating has_feedback_form:", error);

@@ -40,7 +40,8 @@ export default function FeedbackFormAttendees({
         .from("events")
         .select("id")
         .eq("eventslug", slug)
-        .single();
+        .or("is_deleted.eq.false,is_deleted.is.null")
+	      .maybeSingle()
 
       if (error) {
         console.error("Error fetching event:", error);

@@ -75,7 +75,8 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
       )
     `)
     .eq("id", event_id)
-    .single();
+    .or("is_deleted.eq.false,is_deleted.is.null")
+	  .maybeSingle();
 
   if (eventError || !data) {
     res.status(404).json({ error: "Event not found" });

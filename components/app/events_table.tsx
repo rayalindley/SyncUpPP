@@ -58,6 +58,7 @@ export default function EventsTable({
   const [filterText, setFilterText] = useState<string>("");
   const [debouncedFilterText] = useDebounce(filterText, 300);
   const [tableData, setTableData] = useState<Event[]>(events);
+  const [permissionsLoading, setPermissionsLoading] = useState(true)  
 
   // Filter events based on the selected organization ID
   const filteredEvents = selectedOrgId
@@ -79,30 +80,27 @@ export default function EventsTable({
       if (!selectedOrgId) {
         setCanCreateEvents(false);
         setCanEditEvents(false);
-        return; // Exit if no organization is selected
+        setPermissionsLoading(false);
+        return;
       }
-  
+
+      setPermissionsLoading(true);
       try {
-        const createPermission = await check_permissions(
-          userId || "",
-          selectedOrgId,
-          "create_events"
-        );
+        const [createPermission, editPermission] = await Promise.all([
+          check_permissions(userId || "", selectedOrgId, "create_events"),
+          check_permissions(userId || "", selectedOrgId, "edit_events"),
+        ]);
         setCanCreateEvents(createPermission);
-  
-        const editPermission = await check_permissions(
-          userId || "",
-          selectedOrgId,
-          "edit_events"
-        );
         setCanEditEvents(editPermission);
       } catch (error) {
         console.error("Failed to check permissions", error);
         setCanCreateEvents(false);
         setCanEditEvents(false);
+      } finally {
+        setPermissionsLoading(false);
       }
     };
-  
+
     checkPermissions();
   }, [userId, selectedOrgId]);
   
@@ -124,7 +122,9 @@ export default function EventsTable({
         status: newStatus, 
         manualstatus: true 
       })
-      .eq("id", id);
+      .eq("id", id)
+      .or("is_deleted.eq.false,is_deleted.is.null");
+
   
     if (error) {
       toast.error("Failed to update status. Please try again.");
@@ -287,14 +287,14 @@ export default function EventsTable({
             </option>
           ))}
         </select>
-        {canCreateEvents && (
+        {permissionsLoading ? (
+          <div className="h-9 w-28 rounded-md bg-gray-700 animate-pulse" />
+        ) : canCreateEvents && (
           <button
             onClick={handleCreateEvent}
-            disabled={!selectedOrgId} // Button is disabled if no organization is selected
+            disabled={!selectedOrgId}
             className={`rounded-md px-4 py-2 text-sm text-white ${
-              selectedOrgId
-                ? "bg-primary hover:bg-primarydark"
-                : "cursor-not-allowed bg-gray-500"
+              selectedOrgId ? "bg-primary hover:bg-primarydark" : "cursor-not-allowed bg-gray-500"
             }`}
           >
             Create Event

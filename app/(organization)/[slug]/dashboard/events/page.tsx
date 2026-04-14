@@ -44,9 +44,10 @@ export default async function DashboardPage({ params }: { params: { slug: string
   }
 
   const { data: events, error: eventsError } = await supabase
-    .from("events")
-    .select("*")
-    .eq("organizationid", organization.organizationid);
+  .from("events")
+  .select("*")
+  .eq("organizationid", organization.organizationid)
+  .or("is_deleted.eq.false,is_deleted.is.null");
 
   if (eventsError) {
     console.error("Error fetching events:", eventsError);

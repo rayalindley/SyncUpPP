@@ -9,7 +9,9 @@ export const checkIfRegisteredUser = async (userId: string, slug: string) => {
     .from("events")
     .select("id, title")
     .eq("eventslug", slug)
-    .maybeSingle();
+    .or("is_deleted.eq.false,is_deleted.is.null")
+	  .maybeSingle();
+
 
   if (eventError || !event) {
     console.error("[checkIfRegisteredUser] Event lookup failed", {
@@ -26,7 +28,9 @@ export const checkIfRegisteredUser = async (userId: string, slug: string) => {
     .select("eventregistrationid, eventid, userid, status")
     .eq("eventid", event.id)
     .eq("userid", userId)
-    .maybeSingle();
+    .or("is_deleted.eq.false,is_deleted.is.null")
+	  .maybeSingle();
+
 
   if (regError) {
     console.error("[checkIfRegisteredUser] Registration lookup failed", {
@@ -57,7 +61,8 @@ export async function deleteForm(formId: number, slug: string) {
   await supabase
     .from("events")
     .update({ has_feedback_form: false })
-    .eq("eventslug", slug);
+    .eq("eventslug", slug)
+    .or("is_deleted.eq.false,is_deleted.is.null");
 
   return await supabase
     .from("forms")

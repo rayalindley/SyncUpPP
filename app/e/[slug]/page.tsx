@@ -180,7 +180,8 @@ const EventPage = () => {
           .from("events")
           .select("*")
           .eq("eventslug", slug)
-          .single();
+          .or("is_deleted.eq.false,is_deleted.is.null")
+          .maybeSingle(); 
 
         if (eventError) throw eventError;
         setEvent(eventData);
