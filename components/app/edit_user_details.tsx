@@ -116,6 +116,14 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
   }, [userId]);
 
   const handleEdit = async (data: UserProfile) => {
+
+    const actualUserId = (userProfile as any)?.ouserid || "";
+  
+    if (!actualUserId) {
+      toast.error("User ID is missing. Please refresh and try again.");
+      return;
+    }
+
     setIsUpdating(true);
 
     let profilePictureUrl = userProfile?.profilepicture;
@@ -157,13 +165,13 @@ const EditUserDetails: React.FC<{ userId: string }> = ({ userId }) => {
 
     const updatedData: UserProfile = {
       ...data,
-      userid: userProfile?.userid || "",
+      userid: actualUserId,
       updatedat: new Date(),
       dateofbirth: data.dateofbirth ? data.dateofbirth : undefined,
       profilepicture: profilePictureUrl,
     };
 
-    const response = await updateUserProfileById(userProfile?.userid || "", updatedData);
+    const response = await updateUserProfileById(actualUserId, updatedData);
 
     if (response === null) {
       Swal.fire("Error", "Error updating user profile.", "error");
