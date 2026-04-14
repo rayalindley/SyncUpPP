@@ -214,7 +214,6 @@ export default function EventsPublicView() {
                   key={event.id}
                   event={{
                     id: event.id,
-                    id: event.id,
                     imageUrl: event.eventphoto,
                     title: event.title,
                     description: event.description,
