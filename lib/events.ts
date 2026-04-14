@@ -13,7 +13,6 @@ export async function insertEvent(formData: any, organizationid: string) {
     ...eventData
   } = formData;
 
-  // Prepare data for the events table
   const insertValues = {
     title: eventData.title,
     description: eventData.description,
@@ -32,7 +31,6 @@ export async function insertEvent(formData: any, organizationid: string) {
 
   const supabase = createClient();
   try {
-    // Insert into events table
     const { data: eventDataInserted, error } = await supabase
       .from("events")
       .insert([insertValues])
@@ -55,7 +53,6 @@ export async function insertEvent(formData: any, organizationid: string) {
 
     const id = eventDataInserted[0].id;
 
-    // Handle event_certificate_settings insertion
     if (certificate_enabled) {
       const certificateSettings = {
         event_id: id,
@@ -73,7 +70,6 @@ export async function insertEvent(formData: any, organizationid: string) {
       }
     }
 
-    // Handle event_signatories insertion
     if (signatories && signatories.length > 0) {
       const signatoryInserts = signatories.map((signatory: any) => ({
         event_id: id,
@@ -90,10 +86,9 @@ export async function insertEvent(formData: any, organizationid: string) {
       }
     }
 
-    // Handle event_discounts insertion
     if (discounts && discounts.length > 0) {
       const discountInserts = discounts.map((discount: any) => ({
-        eventid: id, // <--- FIXED
+        eventid: id,
         role: discount.roles,
         membership_tier: discount.memberships,
         discount_percent: discount.discount,
@@ -128,10 +123,8 @@ export async function updateEvent(id: string, formData: any) {
     ...eventData
   } = formData;
 
-  // Exclude fields that should not be updated
   const { id: _extractedId, organizationid, createdat, adminid, ...updateValues } = eventData;
 
-  // Convert date fields to ISO strings
   if (updateValues.starteventdatetime) {
     updateValues.starteventdatetime = new Date(
       updateValues.starteventdatetime
@@ -141,7 +134,6 @@ export async function updateEvent(id: string, formData: any) {
     updateValues.endeventdatetime = new Date(updateValues.endeventdatetime).toISOString();
   }
 
-  // Ensure numerical fields are numbers
   if (updateValues.capacity !== undefined && updateValues.capacity !== null) {
     updateValues.capacity = Number(updateValues.capacity);
   }
@@ -152,14 +144,12 @@ export async function updateEvent(id: string, formData: any) {
     updateValues.registrationfee = Number(updateValues.registrationfee);
   }
 
-  // Remove undefined values
   Object.keys(updateValues).forEach(
     (key) => updateValues[key] === undefined && delete updateValues[key]
   );
 
   const supabase = createClient();
   try {
-    // Update the event
     const { data: eventDataUpdated, error } = await supabase
       .from("events")
       .update(updateValues)
@@ -181,11 +171,10 @@ export async function updateEvent(id: string, formData: any) {
       };
     }
 
-    // Handle discounts
     const { error: deleteDiscountError } = await supabase
       .from("event_discounts")
       .delete()
-      .eq("eventid", id); // <--- FIXED
+      .eq("eventid", id);
     if (deleteDiscountError) {
       console.error("Error deleting old discounts:", deleteDiscountError);
       return { data: null, error: { message: deleteDiscountError.message } };
@@ -193,7 +182,7 @@ export async function updateEvent(id: string, formData: any) {
 
     if (discounts && discounts.length > 0) {
       const discountInserts = discounts.map((discount: any) => ({
-        eventid: id, // <--- FIXED
+        eventid: id,
         role: discount.roles,
         membership_tier: discount.memberships,
         discount_percent: discount.discount,
@@ -207,7 +196,6 @@ export async function updateEvent(id: string, formData: any) {
       }
     }
 
-    // Handle certificate settings
     if (certificate_enabled) {
       const certificateSettings = {
         event_id: id,
@@ -234,8 +222,6 @@ export async function updateEvent(id: string, formData: any) {
       }
     }
 
-    // Handle signatories
-    // Delete existing signatories
     const { error: deleteSignatoriesError } = await supabase
       .from("event_signatories")
       .delete()
@@ -245,7 +231,6 @@ export async function updateEvent(id: string, formData: any) {
       return { data: null, error: { message: deleteSignatoriesError.message } };
     }
 
-    // Insert new signatories
     if (signatories && signatories.length > 0) {
       const signatoryInserts = signatories.map((signatory: any) => ({
         event_id: id,
@@ -317,7 +302,7 @@ export async function fetchEventById(id: string) {
       )
       .eq("id", id)
       .or("is_deleted.eq.false,is_deleted.is.null")
-	    .maybeSingle()
+      .maybeSingle()
 
     if (!error && data) {
       type EventData = typeof data & {
@@ -367,7 +352,6 @@ export async function deleteEvent(id: string) {
       return { data: null, error: { message: fetchError.message } };
     }
 
-    // SOFT DELETE (recommended)
     const { data, error: deleteError } = await supabase
       .from("events")
       .update({ is_deleted: true })
@@ -377,7 +361,6 @@ export async function deleteEvent(id: string) {
       return { data: null, error: { message: deleteError.message } };
     }
 
-    // delete image if exists
     if (eventData?.eventphoto) {
       const fileName = eventData.eventphoto.split("/").pop();
 
@@ -407,14 +390,13 @@ export async function deleteEvent(id: string) {
   }
 }
 
-
 export async function countRegisteredUsers(id: string) {
   const supabase = createClient();
   try {
     const { count, error } = await supabase
       .from("eventregistrations")
       .select("*", { count: "exact", head: true })
-      .eq("eventid", id) // <--- FIXED
+      .eq("eventid", id)
       .in("status", ["registered", "pending"]);
 
     if (error) {
@@ -440,7 +422,7 @@ export async function getEventBySlug(slug: string) {
       .select("*")
       .eq("eventslug", slug)
       .or("is_deleted.eq.false,is_deleted.is.null")
-	    .maybeSingle()
+      .maybeSingle()
     if (!error && data) {
       return { data, error: null };
     } else {
@@ -468,7 +450,7 @@ export async function registerForEvent(
       .select("privacy, organizationid, onsite")
       .eq("id", id)
       .or("is_deleted.eq.false,is_deleted.is.null")
-	    .maybeSingle()
+      .maybeSingle()
 
     if (eventError || !event) {
       return { data: null, error: { message: eventError?.message || "Event not found" } };
@@ -497,7 +479,7 @@ export async function registerForEvent(
         .from("eventregistrations")
         .insert([
           {
-            eventid: id, // <--- FIXED
+            eventid: id,
             organizationmemberid: organizationMemberId,
             registrationdate: new Date().toISOString(),
             status: registrationStatus,
@@ -534,7 +516,7 @@ export async function registerForEvent(
         .from("eventregistrations")
         .insert([
           {
-            eventid: id, // <--- FIXED
+            eventid: id,
             registrationdate: new Date().toISOString(),
             status: registrationStatus,
             userid: userId,
@@ -563,7 +545,7 @@ export async function checkUserRegistration(id: string, userId: string) {
     const { data: registration, error } = await supabase
       .from("eventregistrations")
       .select("status")
-      .eq("eventid", id) // <--- FIXED
+      .eq("eventid", id)
       .eq("userid", userId)
       .single();
 
@@ -592,7 +574,7 @@ export async function checkEventPrivacyAndMembership(id: string, userId: string)
       .select("privacy, organizationid")
       .eq("id", id)
       .or("is_deleted.eq.false,is_deleted.is.null")
-	    .maybeSingle()
+      .maybeSingle()
 
     if (eventError || !event) {
       throw new Error(eventError?.message || "Event not found");
@@ -631,7 +613,7 @@ export async function unregisterFromEvent(id: string, userId: string) {
     const { data, error } = await supabase
       .from("eventregistrations")
       .delete()
-      .eq("eventid", id) // <--- FIXED
+      .eq("eventid", id)
       .eq("userid", userId);
 
     if (error) {
@@ -648,6 +630,7 @@ export async function unregisterFromEvent(id: string, userId: string) {
   }
 }
 
+// ✅ FIXED: Now shows all registered users, not just those marked present/late
 export async function fetchRegisteredUsersForEvent(id: string) {
   const supabase = createClient();
 
@@ -655,11 +638,15 @@ export async function fetchRegisteredUsersForEvent(id: string) {
     const { data: registrations, error: registrationsError } = await supabase
       .from("eventregistrations_view")
       .select("userid")
-      .eq("eventid", id) // <--- FIXED
-      .in("attendance", ["present", "late"]);
+      .eq("eventid", id)
+      .eq("status", "registered");
 
     if (registrationsError) {
       throw registrationsError;
+    }
+
+    if (!registrations || registrations.length === 0) {
+      return { users: [], error: null };
     }
 
     const userIds = registrations.map((registration: any) => registration.userid);
@@ -687,31 +674,26 @@ export async function fetchEventsForUser(userId: string) {
   const supabase = createClient();
 
   try {
-    // Fetch event IDs from the eventregistrations table for the given user
     const { data: registrations, error: registrationsError } = await supabase
       .from("eventregistrations")
-      .select("eventid") // <--- FIXED
+      .select("eventid")
       .eq("userid", userId);
 
     if (registrationsError) {
       throw new Error(registrationsError.message);
     }
 
-    // Extract event IDs from registrations
-    const eventIds = registrations.map((registration: any) => registration.eventid); // <--- FIXED
+    const eventIds = registrations.map((registration: any) => registration.eventid);
 
-    // If no event IDs are found, return an empty array
     if (eventIds.length === 0) {
       return { data: [], error: null };
     }
 
-    // Fetch event details from the events table for the registered events
     const { data: events, error: eventsError } = await supabase
       .from("events")
       .select("*")
       .in("id", eventIds)
       .or("is_deleted.eq.false,is_deleted.is.null");
-
 
     if (eventsError) {
       throw new Error(eventsError.message);
@@ -731,24 +713,21 @@ export async function isEventFull(id: string) {
   try {
     const supabase = createClient();
 
-    // Fetch the event capacity
     const { data: event, error: eventError } = await supabase
       .from("events")
       .select("capacity")
       .eq("id", id)
       .or("is_deleted.eq.false,is_deleted.is.null")
-	    .maybeSingle();
-
+      .maybeSingle();
 
     if (eventError || !event) {
       throw new Error(eventError?.message || "Event not found");
     }
 
-    // Fetch the count of registered users
     const { count, error: registrationError } = await supabase
       .from("eventregistrations")
       .select("*", { count: "exact", head: true })
-      .eq("eventid", id) // <--- FIXED
+      .eq("eventid", id)
       .eq("status", "registered");
 
     if (registrationError) {
@@ -790,6 +769,7 @@ export async function checkMembership(userId: string, organizationId: string) {
     };
   }
 }
+
 export async function fetchCertificatesForUser(userId: string) {
   const supabase = createClient();
   try {
@@ -828,11 +808,6 @@ export async function fetchSignatoriesForEvent(eventId: string) {
   }
 }
 
-/**
- * Fetch certificate settings for a given event ID.
- * @param eventId - The UUID of the event.
- * @returns An object containing certificate_enabled and other settings.
- */
 export const fetchCertificateSettings = async (eventId: string) => {
   const supabase = createClient();
   const { data, error } = await supabase

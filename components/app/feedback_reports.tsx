@@ -149,13 +149,12 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
   const total = sentimentCounts.positive + sentimentCounts.negative;
 
   // ── Derived disabled state ─────────────────────────────────────────────────
-  // Only block when: no generations left, or currently generating.
-  // reportLimit is decremented server-side on each successful generation,
-  // so it is the sole gate — models can be switched freely between runs.
-  const isGenerateDisabled = reportLimit === 0 || isGenerating;
+  const isGenerateDisabled = reportLimit === 0 || isGenerating || totalResponses === 0;
 
   const generateTitle = reportLimit === 0
     ? "No more generations left."
+    : totalResponses === 0
+    ? "No feedbacks to analyze."
     : "";
 
   // ── Chart config ───────────────────────────────────────────────────────────
@@ -367,8 +366,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
   }, [eventName, events, eventFilter, organization, totalResponses, averageLikert, sentimentCounts, topKeywords, summary, recommendations, generatedBy, reports]);
 
   const handleGenerateReport = useCallback(async () => {
-    // Guard: need a valid event and remaining generation quota
-    if (reportLimit === 0 || !eventFilter) return;
+    if (reportLimit === 0 || !eventFilter || totalResponses === 0) return;
 
     const confirmed = window.confirm("This will decrement your generations. Do you wanna continue?");
     if (!confirmed) return;
@@ -457,7 +455,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
       setTimeout(() => setIsGenerating(false), 600);
       abortControllerRef.current = null;
     }
-  }, [eventFilter, model, reportLimit, loadStats, organization, userId]);
+  }, [eventFilter, model, reportLimit, totalResponses, loadStats, organization, userId]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (

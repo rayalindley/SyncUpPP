@@ -11,23 +11,22 @@ import { Event } from "@/types/event";
 
 export default function EditEventPage() {
   const router = useRouter();
-  const params = useParams() as { id: string };
-  const id = params.id;
-  const [event, setEvent] = useState<Event | null>(null); // State to hold the event data
+  const params = useParams() as { eventId: string };
+  const eventId = params.eventId;
+  const [event, setEvent] = useState<Event | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch event
-        const eventResponse = await fetchEventById(id.toString()); // Convert id to string
+        const eventResponse = await fetchEventById(eventId.toString());
         if (eventResponse.error) {
           setError(eventResponse.error.message);
           console.error(eventResponse.error);
         } else {
           setEvent(eventResponse.data);
-          // console.log(eventResponse.data);
         }
       } catch (err) {
         console.error("Failed to fetch data:", err);
@@ -35,13 +34,10 @@ export default function EditEventPage() {
       }
     };
 
-    if (id) {
-      fetchData();
-    }
     const checkPermissions = async () => {
       const { user } = await getUser();
       try {
-        const eventResponse = await fetchEventById(id as string);
+        const eventResponse = await fetchEventById(eventId as string);
         if (eventResponse.data && "organizationid" in eventResponse.data) {
           const permission = await check_permissions(
             user?.id || "",
@@ -57,11 +53,11 @@ export default function EditEventPage() {
       }
     };
 
-    if (id) {
+    if (eventId) {
       fetchData();
       checkPermissions();
     }
-  }, [id]);
+  }, [eventId]);
 
   if (!event || hasPermission == null) {
     return <Loader />;
@@ -94,7 +90,6 @@ export default function EditEventPage() {
             <ArrowLeftIcon className="h-5 w-5" /> Back
           </a>
         </div>
-
         <div className="sm:mx-auto sm:w-full sm:max-w-sm">
           <img className="mx-auto h-10 w-auto" src="/syncup.png" alt="SyncUp" />
           <h2 className="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-white">
@@ -102,7 +97,7 @@ export default function EditEventPage() {
           </h2>
         </div>
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-lg">
-        <CreateEventForm organizationid={event.organizationid} event={event} />
+          <CreateEventForm organizationid={event.organizationid} event={event} />
         </div>
       </div>
     </>

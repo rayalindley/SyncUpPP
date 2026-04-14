@@ -1,17 +1,16 @@
 "use client";
-import { check_permissions } from "@/lib/organization";
 import { Event } from "@/types/event";
 import { Organization } from "@/types/organization";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import EventOptions from "./event_options";
 import { TableColumn } from "react-data-table-component";
 import { useDebounce } from "use-debounce";
 import dynamic from "next/dynamic";
-import Loader from "@/components/Loader";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { ChevronDownIcon } from "@heroicons/react/24/outline";
 
 const supabase = createClient();
 
@@ -34,16 +33,167 @@ const privacyLabel = (privacy: Event["privacy"]) =>
     ? "Public"
     : "Private";
 
-const statusClasses = (status: string | null | undefined) => {
-  switch ((status ?? "").trim().toLowerCase()) {
-    case "ongoing":
-      return "bg-yellow-600/25 text-yellow-300 border-yellow-500 focus:border-yellow-500 focus:ring-yellow-500";
-    case "closed":
-      return "bg-red-600/25 text-red-300 border-red-700 focus:border-red-700 focus:ring-red-700";
-    default:
-      return "bg-green-600/25 text-green-300 border-green-700 focus:border-green-700 focus:ring-green-700";
-  }
+const STATUS_STYLES: Record<
+  string,
+  { color: string; borderColor: string; backgroundColor: string }
+> = {
+  open: {
+    color: "#86efac",
+    borderColor: "#15803d",
+    backgroundColor: "rgba(22, 163, 74, 0.25)",
+  },
+  ongoing: {
+    color: "#fde047",
+    borderColor: "#eab308",
+    backgroundColor: "rgba(202, 138, 4, 0.25)",
+  },
+  closed: {
+    color: "#fca5a5",
+    borderColor: "#b91c1c",
+    backgroundColor: "rgba(220, 38, 38, 0.25)",
+  },
 };
+
+const STATUS_OPTIONS = [
+  { value: "Open", label: "Open" },
+  { value: "Ongoing", label: "Ongoing" },
+  { value: "Closed", label: "Closed" },
+];
+
+function getStatusStyle(value: string) {
+  return STATUS_STYLES[value?.toLowerCase()] ?? STATUS_STYLES["open"];
+}
+
+// ✅ Client-side permission check — calls Supabase RPC directly from the browser
+async function checkPermissionClient(
+  userId: string,
+  orgId: string,
+  permKey: string
+): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc("check_org_permissions", {
+      p_user_id: userId,
+      p_org_id: orgId,
+      p_perm_key: permKey,
+    });
+
+    if (error) {
+      console.error("Error checking permissions (client):", error);
+      return false;
+    }
+
+    return !!data;
+  } catch (e) {
+    console.error("Unexpected error in checkPermissionClient:", e);
+    return false;
+  }
+}
+
+function StatusDropdown({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const style = getStatusStyle(value);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
+
+  return (
+    <div
+      ref={dropdownRef}
+      className="relative inline-block"
+      onMouseDown={(e) => e.stopPropagation()}
+    >
+      <button
+        onClick={() => setOpen((prev) => !prev)}
+        style={{
+          color: style.color,
+          borderColor: style.borderColor,
+          backgroundColor: style.backgroundColor,
+        }}
+        className="flex items-center gap-1 rounded-2xl border-2 px-3 py-1 text-xs cursor-pointer"
+      >
+        {STATUS_OPTIONS.find(
+          (o) => o.value.toLowerCase() === value?.toLowerCase()
+        )?.label ?? "Open"}
+        <ChevronDownIcon className="h-3 w-3" />
+      </button>
+
+      {open && (
+        <div
+          style={{
+            position: "fixed",
+            zIndex: 9999,
+            top: dropdownRef.current
+              ? dropdownRef.current.getBoundingClientRect().bottom + 4
+              : 0,
+            left: dropdownRef.current
+              ? dropdownRef.current.getBoundingClientRect().left
+              : 0,
+            width: "8rem",
+            backgroundColor: "#1e1e1e",
+            border: "1px solid #525252",
+            borderRadius: "0.5rem",
+            boxShadow: "0 10px 25px rgba(0, 0, 0, 0.5)",
+            overflow: "hidden",
+          }}
+        >
+          {STATUS_OPTIONS.map((option) => {
+            const optStyle = getStatusStyle(option.value);
+            const isActive =
+              option.value.toLowerCase() === value?.toLowerCase();
+            return (
+              <button
+                key={option.value}
+                onClick={() => {
+                  onChange(option.value);
+                  setOpen(false);
+                }}
+                style={{
+                  color: optStyle.color,
+                  backgroundColor: isActive
+                    ? optStyle.backgroundColor
+                    : "transparent",
+                  borderLeft: `3px solid ${optStyle.borderColor}`,
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                    optStyle.backgroundColor;
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    (
+                      e.currentTarget as HTMLButtonElement
+                    ).style.backgroundColor = "transparent";
+                  }
+                }}
+                className="w-full px-3 py-2 text-left text-xs font-medium"
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const CustomPagination = ({
   currentPage,
@@ -75,23 +225,6 @@ const CustomPagination = ({
   </div>
 );
 
-const SelectStyle = () => (
-  <style jsx>{`
-    select {
-      appearance: none;
-      background-image: none;
-      outline: none;
-      background-color: transparent;
-    }
-    select option {
-      background-color: #2a2a2a;
-      color: #ffffff;
-      text-align: center;
-      margin: 0;
-    }
-  `}</style>
-);
-
 export default function EventsTableUser({
   organization,
   events,
@@ -105,8 +238,9 @@ export default function EventsTableUser({
 }) {
   const router = useRouter();
 
-  const [canCreateEvents, setCanCreateEvents] = useState<boolean | null>(null);
-  const [canEditEvents, setCanEditEvents] = useState<boolean | null>(null);
+  const [canCreateEvents, setCanCreateEvents] = useState<boolean>(false);
+  const [canEditEvents, setCanEditEvents] = useState<boolean>(false);
+  const [permissionsLoaded, setPermissionsLoaded] = useState(false);
 
   const [filterText, setFilterText] = useState<string>("");
   const [debouncedFilterText] = useDebounce(filterText, 300);
@@ -119,40 +253,35 @@ export default function EventsTableUser({
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  // ✅ Use client-side RPC directly instead of server action
   useEffect(() => {
     let cancelled = false;
 
     const checkPermissions = async () => {
       try {
         const [createPerm, editPerm] = await Promise.all([
-          check_permissions(userId, organization.organizationid, "create_events"),
-          check_permissions(userId, organization.organizationid, "edit_events"),
+          checkPermissionClient(userId, organization.organizationid, "create_events"),
+          checkPermissionClient(userId, organization.organizationid, "edit_events"),
         ]);
         if (!cancelled) {
           setCanCreateEvents(createPerm);
           setCanEditEvents(editPerm);
+          setPermissionsLoaded(true);
         }
       } catch (error) {
         console.error("Failed to check permissions", error);
         if (!cancelled) {
           setCanCreateEvents(false);
           setCanEditEvents(false);
+          setPermissionsLoaded(true);
         }
       }
     };
-
-    const fallbackTimeout = setTimeout(() => {
-      if (!cancelled) {
-        setCanCreateEvents((prev) => (prev === null ? false : prev));
-        setCanEditEvents((prev) => (prev === null ? false : prev));
-      }
-    }, 5000);
 
     checkPermissions();
 
     return () => {
       cancelled = true;
-      clearTimeout(fallbackTimeout);
     };
   }, [userId, organization.organizationid]);
 
@@ -173,14 +302,15 @@ export default function EventsTableUser({
         .eq("id", id)
         .or("is_deleted.eq.false,is_deleted.is.null");
 
-
       if (error) {
         toast.error("Failed to update status. Please try again.");
       } else {
         toast.success("Status updated successfully!");
         setTableData((prev) =>
           prev.map((event) =>
-            event.id === id ? { ...event, status: newStatus, manualstatus: true } : event
+            event.id === id
+              ? { ...event, status: newStatus, manualstatus: true }
+              : event
           )
         );
       }
@@ -200,13 +330,15 @@ export default function EventsTableUser({
         name: "Start Date & Time",
         selector: (row) => row.starteventdatetime ?? "",
         sortable: true,
-        cell: (row) => (row.starteventdatetime ? fmtDate(row.starteventdatetime) : "—"),
+        cell: (row) =>
+          row.starteventdatetime ? fmtDate(row.starteventdatetime) : "—",
       },
       {
         name: "End Date & Time",
         selector: (row) => row.endeventdatetime ?? "",
         sortable: true,
-        cell: (row) => (row.endeventdatetime ? fmtDate(row.endeventdatetime) : "—"),
+        cell: (row) =>
+          row.endeventdatetime ? fmtDate(row.endeventdatetime) : "—",
       },
       {
         name: "Location",
@@ -234,21 +366,16 @@ export default function EventsTableUser({
         sortable: true,
         cell: (row) =>
           canEditEvents ? (
-            <div className="relative">
-              <select
-                value={row.status}
-                onChange={(e) => handleStatusChange(row.id, e.target.value)}
-                className={`text-center cursor-pointer rounded-2xl border-2 px-4 py-1 text-xs ${statusClasses(row.status)}`}
-              >
-                <option value="Open">Open</option>
-                <option value="Ongoing">Ongoing</option>
-                <option value="Closed">Closed</option>
-              </select>
-              <SelectStyle />
-            </div>
+            <StatusDropdown
+              value={row.status ?? "Open"}
+              onChange={(newStatus) => handleStatusChange(row.id, newStatus)}
+            />
           ) : (
-            <span className={`text-center rounded-2xl border-2 px-4 py-1 text-xs ${statusClasses(row.status)}`}>
-              {row.status}
+            <span
+              style={getStatusStyle(row.status ?? "open")}
+              className="rounded-2xl border-2 px-3 py-1 text-xs"
+            >
+              {row.status ?? "Open"}
             </span>
           ),
       },
@@ -273,7 +400,9 @@ export default function EventsTableUser({
     () =>
       debouncedFilterText
         ? tableData.filter((event) =>
-            event.title.toLowerCase().includes(debouncedFilterText.toLowerCase())
+            event.title
+              .toLowerCase()
+              .includes(debouncedFilterText.toLowerCase())
           )
         : tableData,
     [debouncedFilterText, tableData]
@@ -281,17 +410,30 @@ export default function EventsTableUser({
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedData = filteredData.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedData = filteredData.slice(
+    startIndex,
+    startIndex + itemsPerPage
+  );
 
+  // ✅ FIX: Removed absolute positioning for Options button,
+  // placed Status and Options in the same flex row
   const renderMobileCard = useCallback(
     (row: Event) => (
-      <div className="bg-charleston p-4 rounded-lg mb-4 border border-[#525252] relative">
+      <div className="bg-charleston p-4 rounded-lg mb-4 border border-[#525252]">
         <div className="space-y-2">
           {(
             [
               ["Title", row.title],
-              ["Start Date & Time", row.starteventdatetime ? fmtDate(row.starteventdatetime) : "—"],
-              ["End Date & Time", row.endeventdatetime ? fmtDate(row.endeventdatetime) : "—"],
+              [
+                "Start Date & Time",
+                row.starteventdatetime
+                  ? fmtDate(row.starteventdatetime)
+                  : "—",
+              ],
+              [
+                "End Date & Time",
+                row.endeventdatetime ? fmtDate(row.endeventdatetime) : "—",
+              ],
               ["Location", row.location],
               ["Registration Fee", String(row.registrationfee || "N/A")],
               ["Capacity", String(row.capacity || "N/A")],
@@ -304,52 +446,47 @@ export default function EventsTableUser({
             </div>
           ))}
 
-          <div>
-            <span className="text-gray-400">Status:</span>{" "}
-            {canEditEvents ? (
-              <div className="relative inline-block">
-                <select
-                  value={row.status}
-                  onChange={(e) => handleStatusChange(row.id, e.target.value)}
-                  className={`text-center bg-charleston cursor-pointer rounded-2xl border-2 px-4 py-1 text-xs ml-2 ${statusClasses(row.status)}`}
+          {/* Status and Options on the same row */}
+          <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center gap-2">
+              <span className="text-gray-400">Status:</span>
+              {canEditEvents ? (
+                <StatusDropdown
+                  value={row.status ?? "Open"}
+                  onChange={(newStatus) => handleStatusChange(row.id, newStatus)}
+                />
+              ) : (
+                <span
+                  style={getStatusStyle(row.status ?? "open")}
+                  className="rounded-2xl border-2 px-3 py-1 text-xs"
                 >
-                  <option value="Open">Open</option>
-                  <option value="Ongoing">Ongoing</option>
-                  <option value="Closed">Closed</option>
-                </select>
-                <SelectStyle />
-              </div>
-            ) : (
-              <span className={`text-center rounded-2xl border-2 px-4 py-1 text-xs ml-2 ${statusClasses(row.status)}`}>
-                {row.status}
-              </span>
-            )}
-          </div>
-        </div>
+                  {row.status ?? "Open"}
+                </span>
+              )}
+            </div>
 
-        <div className="absolute bottom-4 right-4">
-          <EventOptions
-            selectedEvent={row}
-            userId={userId}
-            orgSlug={orgSlug}
-          />
+            <EventOptions
+              selectedEvent={row}
+              userId={userId}
+              orgSlug={orgSlug}
+            />
+          </div>
         </div>
       </div>
     ),
     [canEditEvents, handleStatusChange, userId, orgSlug]
   );
 
-  if (canCreateEvents === null || canEditEvents === null) {
-    return <Loader />;
-  }
-
   return (
     <div className="py-4 px-4 sm:px-6 lg:px-8">
       <div className="flex flex-col space-y-4">
         <div>
-          <h1 className="text-base font-semibold leading-6 text-light">Events</h1>
+          <h1 className="text-base font-semibold leading-6 text-light">
+            Events
+          </h1>
           <p className="mt-2 text-sm text-light">
-            A list of all the events including their title, date and time, location, registration fee, capacity, and privacy.
+            A list of all the events including their title, date and time,
+            location, registration fee, capacity, and privacy.
           </p>
         </div>
 
@@ -361,13 +498,17 @@ export default function EventsTableUser({
             onChange={(e) => setFilterText(e.target.value)}
             className="flex-1 rounded-md border border-[#525252] bg-charleston px-3 py-2 text-light shadow-sm focus:border-primary focus:outline-none focus:ring-primary text-sm"
           />
-          {canCreateEvents && (
-            <button
-              onClick={handleCreateEvent}
-              className="w-full sm:w-auto rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-primarydark"
-            >
-              Create Event
-            </button>
+          {!permissionsLoaded ? (
+            <div className="w-full sm:w-28 h-10 rounded-md bg-gray-700 animate-pulse" />
+          ) : (
+            canCreateEvents && (
+              <button
+                onClick={handleCreateEvent}
+                className="w-full sm:w-auto rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-primarydark"
+              >
+                Create Event
+              </button>
+            )
           )}
         </div>
 
@@ -375,7 +516,11 @@ export default function EventsTableUser({
           {paginatedData.map((row) => (
             <div key={row.id}>{renderMobileCard(row)}</div>
           ))}
-          <CustomPagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+          <CustomPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
         </div>
 
         <div className="hidden sm:block">
@@ -385,12 +530,57 @@ export default function EventsTableUser({
             pagination
             highlightOnHover
             customStyles={{
-              header: { style: { backgroundColor: "rgb(36, 36, 36)", color: "rgb(255, 255, 255)" } },
-              subHeader: { style: { backgroundColor: "none", color: "rgb(255, 255, 255)", padding: 0, marginBottom: 10 } },
-              rows: { style: { minHeight: "6vh", backgroundColor: "rgb(33, 33, 33)", color: "rgb(255, 255, 255)" } },
-              headCells: { style: { backgroundColor: "rgb(36, 36, 36)", color: "rgb(255, 255, 255)" } },
-              cells: { style: { backgroundColor: "rgb(33, 33, 33)", color: "rgb(255, 255, 255)" } },
-              pagination: { style: { backgroundColor: "rgb(33, 33, 33)", color: "rgb(255, 255, 255)" } },
+              header: {
+                style: {
+                  backgroundColor: "rgb(36, 36, 36)",
+                  color: "rgb(255, 255, 255)",
+                },
+              },
+              subHeader: {
+                style: {
+                  backgroundColor: "none",
+                  color: "rgb(255, 255, 255)",
+                  padding: 0,
+                  marginBottom: 10,
+                },
+              },
+              rows: {
+                style: {
+                  minHeight: "6vh",
+                  backgroundColor: "rgb(33, 33, 33)",
+                  color: "rgb(255, 255, 255)",
+                  overflow: "visible",
+                },
+              },
+              headCells: {
+                style: {
+                  backgroundColor: "rgb(36, 36, 36)",
+                  color: "rgb(255, 255, 255)",
+                },
+              },
+              cells: {
+                style: {
+                  backgroundColor: "rgb(33, 33, 33)",
+                  color: "rgb(255, 255, 255)",
+                  overflow: "visible",
+                },
+              },
+              pagination: {
+                style: {
+                  backgroundColor: "rgb(33, 33, 33)",
+                  color: "rgb(255, 255, 255)",
+                },
+              },
+              tableWrapper: {
+                style: {
+                  overflow: "visible",
+                },
+              },
+              responsiveWrapper: {
+                style: {
+                  overflow: "visible",
+                },
+              },
             }}
           />
         </div>
