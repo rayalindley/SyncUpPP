@@ -1,4 +1,5 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
 export const createClient = () => {
@@ -6,9 +7,7 @@ export const createClient = () => {
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    // process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    process.env.NEXT_PUBLIC_SUPABASE_SERVICE_KEY!,
-
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         get(name: string) {
@@ -17,60 +16,46 @@ export const createClient = () => {
         set(name: string, value: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value, ...options });
-          } catch (error) {
-            // The `set` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
+          } catch (error) {}
         },
         remove(name: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value: "", ...options });
-          } catch (error) {
-            // The `delete` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
+          } catch (error) {}
         },
       },
     }
   );
 };
 
+const createAdminClient = () =>
+  createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_SERVICE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+
 export async function getUser() {
   const supabase = createClient();
   const { data } = await supabase.auth.getUser();
-
   return data;
 }
 
 export async function getAllUsers() {
-  const supabase = createClient();
-  const {
-    data: { users },
-    error,
-  } = await supabase.auth.admin.listUsers({
+  const supabase = createAdminClient(); 
+  const { data: { users }, error } = await supabase.auth.admin.listUsers({
     page: 1,
     perPage: 1000,
   });
-
-  // console.log(users);
-
-  if (!error) {
-    return users;
-  }
-
+  if (!error) return users;
   return;
 }
 
 export async function sendPasswordRecovery(email: string) {
   const supabase = createClient();
-  let { data, error } = await supabase.auth.resetPasswordForEmail(email);
-
-  if (!error) {
-    // console.log(data);
-    return data;
-  }
-
+  const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/api/auth/confirm?next=/reset-password`,
+  });
+  if (!error) return data;
   return;
 }
