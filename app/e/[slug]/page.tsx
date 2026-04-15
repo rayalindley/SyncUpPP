@@ -1,4 +1,3 @@
-
 "use client";
 
 import Footer from "@/components/footer";
@@ -181,7 +180,7 @@ const EventPage = () => {
           .select("*")
           .eq("eventslug", slug)
           .or("is_deleted.eq.false,is_deleted.is.null")
-          .maybeSingle(); 
+          .maybeSingle();
 
         if (eventError) throw eventError;
         setEvent(eventData);
@@ -328,7 +327,7 @@ const EventPage = () => {
       .update({ qr_code_data: qrCodeData })
       .eq("userid", userId)
       .eq("eventid", id);
-      
+
     setQRCodeUrl(qrCodeData);
     setShowQRCode(true);
   };
@@ -714,9 +713,7 @@ const EventPage = () => {
                   !event.privacy.allow_all_roles &&
                   !event.privacy.allow_all_memberships && (
                     <div className="space-y-2">
-                      <h3 className="text-lg font-semibold text-light">
-                        Privacy
-                      </h3>
+                      <h3 className="text-lg font-semibold text-light">Privacy</h3>
                       <div className="flex flex-wrap gap-2">
                         {event.privacy.roles?.map((role) => (
                           <span
@@ -822,7 +819,23 @@ const EventPage = () => {
                 </div>
 
                 <div className="rounded-lg bg-raisinblack p-4 shadow-md">
-                  <h2 className="mb-2 text-lg font-semibold text-light">Registration</h2>
+                  {/* Registration header with inline QR icon button */}
+                  <div className="flex items-center justify-between mb-2">
+                    <h2 className="text-lg font-semibold text-light">Registration</h2>
+                    {isRegistered && qrCodeUrl && !eventFinished && attendanceStatus !== "present" && attendanceStatus !== "late" && (
+                      <button
+                        onClick={openModal}
+                        title="View QR Code"
+                        className="flex items-center gap-1.5 rounded-md border border-primary bg-primary/10 px-3 py-1.5 text-xs text-primary hover:bg-primary hover:text-white transition-colors"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                        </svg>
+                        View QR
+                      </button>
+                    )}
+                  </div>
+
                   <p className="mb-4 text-sm text-light">
                     Hello! To join the event, please register below:
                   </p>
@@ -895,23 +908,13 @@ const EventPage = () => {
                       : "Register"}
                   </button>
 
-                  {/* ---------- NEW FEEDBACK BUTTON CODE START ---------- */}
+                  {/* Answer Feedback Form button — uses primary color to match site theme */}
                   {isRegistered && event.has_feedback_form && (
                     <button
-                      className="w-full mt-4 rounded-md bg-blue-600 px-6 py-3 text-white hover:bg-blue-700"
-                     onClick={() => router.push(`/feedback/${event.eventslug}`)}
+                      className="w-full mt-4 rounded-md bg-primary px-6 py-3 text-white hover:bg-primarydark"
+                      onClick={() => router.push(`/feedback/${event.eventslug}`)}
                     >
                       Answer Feedback Form
-                    </button>
-                  )}
-                  {/* ---------- NEW FEEDBACK BUTTON CODE END ---------- */}
-
-                  {isRegistered && qrCodeUrl && !eventFinished && attendanceStatus !== "present" && attendanceStatus !== "late" && (
-                    <button
-                      className="w-full mt-4 rounded-md bg-primary px-6 py-3 text-white hover:bg-primarydark"
-                      onClick={openModal}
-                    >
-                      View QR
                     </button>
                   )}
 

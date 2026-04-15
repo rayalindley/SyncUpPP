@@ -5,6 +5,7 @@ import { Pie } from "react-chartjs-2";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import { toast } from "react-toastify";
+import Link from "next/link";
 
 import { createClient } from "@/lib/supabase/client";
 import type { Event } from "@/models/Event";
@@ -119,7 +120,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
 }) => {
   const supabase = createClient();
 
-  // ── State ──────────────────────────────────────────────────────────────────
+  // ── State ─────────────────────────────────────────────────────────────────
   const [eventFilter, setEventFilter] = useState<string>("");
   const [model, setModel] = useState<"llama" | "felbert">("llama");
 
@@ -140,15 +141,20 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // ── Derived ────────────────────────────────────────────────────────────────
+  // ── Derived ───────────────────────────────────────────────────────────────
   const eventName = useMemo(
     () => events.find((e) => e.id === eventFilter)?.title ?? "",
     [events, eventFilter]
   );
 
+  const eventSlug = useMemo(
+    () => (events.find((e) => e.id === eventFilter) as any)?.eventslug ?? "",
+    [events, eventFilter]
+  );
+
   const total = sentimentCounts.positive + sentimentCounts.negative;
 
-  // ── Derived disabled state ─────────────────────────────────────────────────
+  // ── Derived disabled state ────────────────────────────────────────────────
   const isGenerateDisabled = reportLimit === 0 || isGenerating || totalResponses === 0;
 
   const generateTitle = reportLimit === 0
@@ -157,7 +163,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
     ? "No feedbacks to analyze."
     : "";
 
-  // ── Chart config ───────────────────────────────────────────────────────────
+  // ── Chart config ──────────────────────────────────────────────────────────
   const pieData = useMemo(() => ({
     labels: ["Positive", "Negative"],
     datasets: [
@@ -206,7 +212,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
     },
   }), [total]);
 
-  // ── Reset state helper ─────────────────────────────────────────────────────
+  // ── Reset state helper ────────────────────────────────────────────────────
   const resetStats = useCallback(() => {
     setReports([]);
     setSummary(null);
@@ -310,7 +316,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
     }
   }, [eventFilter, resetStats, fetchUserName]);
 
-  // ── Effects ────────────────────────────────────────────────────────────────
+  // ── Effects ───────────────────────────────────────────────────────────────
   useEffect(() => {
     loadStats();
   }, [loadStats]);
@@ -345,7 +351,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
     };
   }, [isGenerating]);
 
-  // ── Handlers ───────────────────────────────────────────────────────────────
+  // ── Handlers ──────────────────────────────────────────────────────────────
   const handleDownloadPDF = useCallback(() => {
     const latestReport = reports[0];
 
@@ -457,7 +463,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
     }
   }, [eventFilter, model, reportLimit, totalResponses, loadStats, organization, userId]);
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
       {/* Generating modal */}
@@ -532,7 +538,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
                 : "hover:bg-charleston"
             }`}
           >
-            ↓ Download PDF
+            �� Download PDF
           </button>
         </div>
 
@@ -569,28 +575,41 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
             </div>
 
             {/* Generate controls */}
-            <div className="mt-4 flex items-center gap-2 flex-wrap">
-              <button
-                onClick={handleGenerateReport}
-                disabled={isGenerateDisabled}
-                title={generateTitle}
-                className={`px-4 py-2 text-sm rounded-md ${
-                  isGenerateDisabled
-                    ? "bg-gray-500 cursor-not-allowed"
-                    : "bg-blue-600 hover:bg-blue-700"
-                } text-white`}
-              >
-                {isGenerating ? "Generating..." : "Generate Report"}
-              </button>
-              <select
-                value={model}
-                onChange={(e) => setModel(e.target.value as "llama" | "felbert")}
-                disabled={isGenerating}
-                className="w-full max-w-xs text-sm rounded-md border border-[#525252] bg-charleston text-white px-3 py-2 focus:outline-none focus:border-primary"
-              >
-                <option value="llama">Llama — fast results, general analysis</option>
-                <option value="felbert">FELBERT — tailored to event feedback</option>
-              </select>
+            <div className="mt-4 flex items-center justify-between gap-2 flex-wrap">
+              {/* Left side: Generate button + model selector */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleGenerateReport}
+                  disabled={isGenerateDisabled}
+                  title={generateTitle}
+                  className={`px-4 py-2 text-sm rounded-md ${
+                    isGenerateDisabled
+                      ? "bg-gray-500 cursor-not-allowed"
+                      : "bg-blue-600 hover:bg-blue-700"
+                  } text-white`}
+                >
+                  {isGenerating ? "Generating..." : "Generate Report"}
+                </button>
+                <select
+                  value={model}
+                  onChange={(e) => setModel(e.target.value as "llama" | "felbert")}
+                  disabled={isGenerating}
+                  className="w-full max-w-xs text-sm rounded-md border border-[#525252] bg-charleston text-white px-3 py-2 focus:outline-none focus:border-primary"
+                >
+                  <option value="llama">Llama — fast results, general analysis</option>
+                  <option value="felbert">FELBERT — tailored to event feedback</option>
+                </select>
+              </div>
+
+              {/* Right side: View Feedback button */}
+              {eventSlug && (
+                <Link
+                  href={`/dashboard/feedback/${eventSlug}`}
+                  className="px-4 py-2 text-sm rounded-md border border-primary bg-primary/10 text-primary hover:bg-primary hover:text-white transition-colors"
+                >
+                  View Feedback →
+                </Link>
+              )}
             </div>
 
             {/* Sentiment chart */}
