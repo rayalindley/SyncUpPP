@@ -41,7 +41,7 @@ export default function FeedbackFormAttendees({
         .select("id")
         .eq("eventslug", slug)
         .or("is_deleted.eq.false,is_deleted.is.null")
-	      .maybeSingle()
+        .maybeSingle();
 
       if (error) {
         console.error("Error fetching event:", error);
@@ -160,6 +160,8 @@ export default function FeedbackFormAttendees({
     setIsLoading(true);
 
     try {
+      const now = new Date().toISOString();
+
       const { data: responseData, error: responseError } = await supabase
         .from("form_responses")
         .insert({
@@ -167,6 +169,7 @@ export default function FeedbackFormAttendees({
           attendee_id: userId,
           event_id: id,
           comment: comment,
+          submitted_at: now,
         })
         .select("id")
         .single();
@@ -187,6 +190,20 @@ export default function FeedbackFormAttendees({
         .insert(answersPayload);
 
       if (answersError) throw answersError;
+
+      // ✅ Mark the registration as having submitted feedback with the actual timestamp
+      const { error: regUpdateError } = await supabase
+        .from("eventregistrations")
+        .update({
+          has_submitted_feedback: true,
+          feedback_submitted_at: now,
+        })
+        .eq("userid", userId)
+        .eq("eventid", id);
+
+      if (regUpdateError) {
+        console.error("Failed to update registration feedback status:", regUpdateError);
+      }
 
       const { data: certSettings } = await supabase
         .from("event_certificate_settings")
@@ -325,45 +342,51 @@ export default function FeedbackFormAttendees({
                   )}
 
                   {type === "choice" && (
-  <div className="mt-2 flex flex-col gap-2">
-    {q.metadata?.choices?.length ? (
-      q.metadata.choices.map((choice: string, i: number) => (
-        <label
-          key={i}
-          className={`flex items-center gap-3 px-4 py-2.5 rounded-lg border transition-colors cursor-pointer
-            ${answers[q.id] === choice ? "border-green-500/50 bg-green-500/10" : "border-white/10 bg-white/5 hover:bg-white/10"}`}
-        >
-          <input
-            type="radio"
-            name={`question-${q.id}`}
-            onChange={() =>
-              setAnswers((prev) => ({ ...prev, [q.id]: choice }))
-            }
-            className="sr-only"
-          />
-          <div className={`w-4 h-4 rounded-full border flex-shrink-0 flex items-center justify-center transition-colors
-            ${answers[q.id] === choice ? "border-green-500 bg-green-500" : "border-white/30"}`}
-          >
-            {answers[q.id] === choice && (
-              <div className="w-2 h-2 rounded-full bg-green-900" />
-            )}
-          </div>
-          <span className="text-sm font-light text-white">{choice}</span>
-        </label>
-      ))
-    ) : (
-      <input
-        type="text"
-        value={answers[q.id] ?? ""}
-        onChange={(e) =>
-          setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))
-        }
-        className="block w-full rounded-md border-0 bg-white/5 py-2 px-3 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm"
-        placeholder="Type your answer"
-      />
-    )}
-  </div>
-)}
+                    <div className="mt-2 flex flex-col gap-2">
+                      {q.metadata?.choices?.length ? (
+                        q.metadata.choices.map((choice: string, i: number) => (
+                          <label
+                            key={i}
+                            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg border transition-colors cursor-pointer
+                              ${answers[q.id] === choice ? "border-green-500/50 bg-green-500/10" : "border-white/10 bg-white/5 hover:bg-white/10"}`}
+                          >
+                            <input
+                              type="radio"
+                              name={`question-${q.id}`}
+                              onChange={() =>
+                                setAnswers((prev) => ({ ...prev, [q.id]: choice }))
+                              }
+                              className="sr-only"
+                            />
+                            <div
+                              className={`w-4 h-4 rounded-full border flex-shrink-0 flex items-center justify-center transition-colors
+                              ${answers[q.id] === choice ? "border-green-500 bg-green-500" : "border-white/30"}`}
+                            >
+                              {answers[q.id] === choice && (
+                                <div className="w-2 h-2 rounded-full bg-green-900" />
+                              )}
+                            </div>
+                            <span className="text-sm font-light text-white">
+                              {choice}
+                            </span>
+                          </label>
+                        ))
+                      ) : (
+                        <input
+                          type="text"
+                          value={answers[q.id] ?? ""}
+                          onChange={(e) =>
+                            setAnswers((prev) => ({
+                              ...prev,
+                              [q.id]: e.target.value,
+                            }))
+                          }
+                          className="block w-full rounded-md border-0 bg-white/5 py-2 px-3 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm"
+                          placeholder="Type your answer"
+                        />
+                      )}
+                    </div>
+                  )}
 
                   {/* LIKERT QUESTIONS */}
                   {type === "likert" &&
@@ -430,7 +453,7 @@ export default function FeedbackFormAttendees({
               id="comment"
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              className="block max-h-[300px] min-h-[150px] w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm"
+              className="block max-h-[300px] min-h-[150px] w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
             ></textarea>
           </div>
 
@@ -450,14 +473,19 @@ export default function FeedbackFormAttendees({
         {certificateId && (
           <div className="mt-8 p-6 border border-white/10 bg-white/5 rounded-lg text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
             <p className="text-gray-300 text-sm mb-4">
-              🎉 Your certificate is ready! You can view it here or find it later by going to your 
-              <span className="text-primary font-bold"> "My Profile"</span> page.
+              🎉 Your certificate is ready! You can view it here or find it
+              later by going to your
+              <span className="text-primary font-bold">
+                {" "}
+                &quot;My Profile&quot;
+              </span>{" "}
+              page.
             </p>
             <a
               href={`/api/certificates/${certificateId}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-semibold rounded-md shadow-sm text-white bg-primary hover:bg-primarydark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all"
+              className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-semibold rounded-md shadow-sm text-white bg-primary hover:bg-primarydark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
             >
               🎓 View Your Certificate
             </a>

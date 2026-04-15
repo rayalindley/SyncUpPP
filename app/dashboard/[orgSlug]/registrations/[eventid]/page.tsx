@@ -4,8 +4,8 @@ import { redirect, notFound } from "next/navigation";
 import RegistrationsTable from "@/components/app/event_registrations";
 
 interface Registration {
-  id: string; // required by RegistrationsTable type
-  eventid: string; // actual event id column from DB/view
+  id: string;
+  eventid: string;
   eventregistrationid: string;
   first_name: string;
   last_name: string;
@@ -42,7 +42,7 @@ export default async function RegistrationsPage({
     const { data, error } = await supabase
       .from("eventregistrations_view")
       .select("*")
-      .eq("eventid", eventid); // ✅ correct column
+      .eq("eventid", eventid);
 
     if (error) {
       console.error("Error fetching registrations (superadmin):", JSON.stringify(error, null, 2));
@@ -51,7 +51,7 @@ export default async function RegistrationsPage({
 
     registrations = (data || []).map((r: any) => ({
       ...r,
-      id: r.id ?? r.eventid, // ✅ normalize for table type
+      id: r.id ?? r.eventid,
     }));
   } else {
     const orgsData = await fetchOrganizationsForUser(user.id);
@@ -70,7 +70,7 @@ export default async function RegistrationsPage({
       .from("eventregistrations_view")
       .select("*")
       .eq("organization_slug", orgSlug)
-      .eq("eventid", eventid); // ✅ correct column
+      .eq("eventid", eventid);
 
     if (error) {
       console.error("Error fetching registrations:", JSON.stringify(error, null, 2));
@@ -79,13 +79,20 @@ export default async function RegistrationsPage({
 
     registrations = (data || []).map((r: any) => ({
       ...r,
-      id: r.id ?? r.eventid, // ✅ normalize for table type
+      id: r.id ?? r.eventid,
     }));
   }
 
   return (
-    <div className="p-4">
-      <h1 className="mb-4 text-xl font-bold">Event Registrations</h1>
+    <div>
+      <div className="px-4 sm:px-6 lg:px-8 pt-6">
+        <h1 className="text-base font-semibold leading-6 text-light">
+          Event Registrations
+        </h1>
+        <p className="mt-2 text-sm text-light">
+          A list of all event registrations.
+        </p>
+      </div>
       <RegistrationsTable registrations={registrations} />
     </div>
   );
