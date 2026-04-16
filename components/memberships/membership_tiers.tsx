@@ -379,9 +379,9 @@ const MembershipTiers: React.FC<MembershipTiersProps> = ({
               ))}
             </div>
           ) : (
-            <p className="col-span-full text-center text-white">
+            <p className="col-span-full text-left text-white">
               No memberships available. Create one to get started!
-p            </p>
+            </p>
           )}
           {editable && (
             <div className="w-full h-full min-h-[300px] sm:min-h-[400px]">
