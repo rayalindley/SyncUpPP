@@ -1,11 +1,10 @@
 import RegistrationsTable from "@/components/app/event_registrations_user";
 import { fetchOrganizationBySlug, check_permissions } from "@/lib/organization";
-import { createClient, getUser } from "@/lib/supabase/server"; // Import server-based supabase client
+import { createClient, getUser } from "@/lib/supabase/server";
 import Loader from "@/components/Loader";
 
 export default async function RegistrationsPageUser({ params }: { params: { slug: string } }) {
   const supabase = createClient();
-  // Fetch the current user
   const { user } = await getUser();
 
   if (!user) {
@@ -19,14 +18,12 @@ export default async function RegistrationsPageUser({ params }: { params: { slug
     );
   }
 
-  // Fetch the organization details by slug
   const { data: organization, error: orgError } = await fetchOrganizationBySlug(params.slug);
 
   if (orgError || !organization) {
     return <div>Organization not found</div>;
   }
 
-  // Check if the user has permission to view the dashboard and registrations
   const hasViewDashboardPermission = await check_permissions(user.id, organization.organizationid, "view_dashboard");
   const hasViewRegistrationsPermission = await check_permissions(user.id, organization.organizationid, "manage_event_registrations");
 
@@ -43,7 +40,6 @@ export default async function RegistrationsPageUser({ params }: { params: { slug
     );
   }
 
-  // Fetch the event registrations for this organization
   const { data: registrations, error: registrationsError } = await supabase
     .from("eventregistrations_view")
     .select("*")
@@ -54,14 +50,11 @@ export default async function RegistrationsPageUser({ params }: { params: { slug
     return <div>Error loading registrations</div>;
   }
 
-  // Display the event registrations
   return (
-    <div>
-      <RegistrationsTable
-        registrations={registrations}
-        userId={user.id}
-        organizationId={organization.organizationid}
-      />
-    </div>
+    <RegistrationsTable
+      registrations={registrations}
+      userId={user.id}
+      organizationId={organization.organizationid}
+    />
   );
 }

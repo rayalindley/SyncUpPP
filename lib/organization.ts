@@ -110,15 +110,13 @@ export async function fetchOrganizationBySlug(slug: string) {
       .from("organizations")
       .select("*")
       .eq("slug", slug)
-      .maybeSingle(); // ✅ changed from .single()
+      .maybeSingle();
 
-    // If DB error (not "0 rows"), return it
     if (error) {
       console.error("Error fetching organization:", error);
       return { data: null, error: { message: error.message, code: (error as any).code } };
     }
 
-    // 0 rows is valid with maybeSingle -> data will be null
     if (!data) {
       return { data: null, error: null };
     }
@@ -162,7 +160,7 @@ export async function fetchOrganizationsForUser(userId: string) {
     const { data, error } = await supabase
       .from("organizations")
       .select("*")
-      .eq("adminid", userId); // Assuming 'user_id' is the field that relates organizations to users
+      .eq("adminid", userId);
 
     if (!error) {
       return { data, error: null };
@@ -205,8 +203,6 @@ export async function fetchOrganizationsForUserWithViewPermission(userId: string
 
 export async function getUserOrganizationInfo(userId: string, organizationid: string) {
   const supabase = createClient();
-  // console.log("orgaiztion.ts userId", userId);
-  // console.log("orgaiztion.ts organizationid", organizationid);
 
   const { data, error } = await supabase
     .rpc("get_user_organization_info", {
@@ -223,25 +219,31 @@ export async function getUserOrganizationInfo(userId: string, organizationid: st
   return data;
 }
 
+// ✅ FIXED: Now always returns a boolean (true/false), never null
 export async function check_permissions(
   userid: string,
   org_id: string,
   perm_key: string
-) {
+): Promise<boolean> {
   const supabase = createClient();
 
-  const { data, error } = await supabase.rpc("check_org_permissions", {
-    p_user_id: userid,
-    p_org_id: org_id,
-    p_perm_key: perm_key,
-  });
+  try {
+    const { data, error } = await supabase.rpc("check_org_permissions", {
+      p_user_id: userid,
+      p_org_id: org_id,
+      p_perm_key: perm_key,
+    });
 
-  if (error) {
-    console.error("Error checking permissions", error);
-    return null;
+    if (error) {
+      console.error("Error checking permissions", error);
+      return false;
+    }
+
+    return !!data; // ✅ Coerce null/undefined to false, true stays true
+  } catch (e) {
+    console.error("Unexpected error in check_permissions:", e);
+    return false;
   }
-
-  return data;
 }
 
 // fetch all orgs
@@ -263,27 +265,24 @@ export async function fetchOrganizationsJoinedByUser(userId: string) {
 
   try {
     const { data: memberships, error: membershipsError } = await supabase
-      .from("organizationmembers") // Changed to organizationmembers table
-      .select("organizationid") // Selecting organizationid from organizationmembers
-      .eq("userid", userId); // Filtering by userid
+      .from("organizationmembers")
+      .select("organizationid")
+      .eq("userid", userId);
 
     if (membershipsError) {
       console.error("Error fetching organizations joined by user:", membershipsError);
       return { data: null, error: { message: membershipsError.message } };
     }
 
-    // Extract organization IDs from memberships
     const organizationIds = memberships.map((membership: any) => membership.organizationid);
 
-    // If no organization IDs are found, return an empty array
     if (organizationIds.length === 0) {
       return { data: [], error: null };
     }
 
-    // Fetch organization details from the organizations table for the joined organizations
     const { data: organizations, error: organizationsError } = await supabase
-      .from("organization_summary") // Assuming the table name is organizations
-      .select("*, total_members, total_posts, total_events") // Include total_members, total_posts, total_events
+      .from("organization_summary")
+      .select("*, total_members, total_posts, total_events")
       .in("organizationid", organizationIds);
 
     if (organizationsError) {
@@ -291,7 +290,6 @@ export async function fetchOrganizationsJoinedByUser(userId: string) {
       return { data: null, error: { message: organizationsError.message } };
     }
 
-    // Return the organizations directly without additional formatting
     return { data: organizations, error: null };
   } catch (e: any) {
     console.error("Unexpected error:", e);

@@ -7,12 +7,12 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Loader from "@/components/Loader";
 import { Dialog } from "@headlessui/react";
-import QrScannerComponent from "@/components/qrscanner"; // Import the updated QrScanner component
+import QrScannerComponent from "@/components/qrscanner";
 import { recordActivity } from "@/lib/track";
 
 const AttendanceContent = () => {
   const router = useRouter();
-  const searchParams = useSearchParams(); // Ensure this is inside Suspense
+  const searchParams = useSearchParams();
   const id = searchParams?.get("event");
   const userid = searchParams?.get("uid");
 
@@ -21,7 +21,7 @@ const AttendanceContent = () => {
   const [event, setEvent] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [showQrScanner, setShowQrScanner] = useState(false); // State to toggle QR scanner
+  const [showQrScanner, setShowQrScanner] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
@@ -29,18 +29,18 @@ const AttendanceContent = () => {
       try {
         if (!userid || !id) {
           toast.error("Invalid URL parameters.");
-          router.push("/"); // Redirect to a safe page
+          router.push("/");
           return;
         }
-  
+
         const { user } = await getUser();
-  
+
         if (!user) {
           toast.error("User not logged in");
           router.push("/signin");
           return;
         }
-  
+
         // Fetch event details
         const { data: eventData, error: eventError } = await supabase
           .from("events")
@@ -48,66 +48,65 @@ const AttendanceContent = () => {
           .eq("id", id)
           .or("is_deleted.eq.false,is_deleted.is.null")
           .single();
-  
-          
+
         if (eventError || !eventData) {
           toast.error("Event not found");
           setLoading(false);
           return;
         }
         setEvent(eventData);
-  
+
         // Check user permissions
         const permission = await check_permissions(
           user.id,
           eventData.organizationid,
           "manage_event_registrations"
         );
-  
+
         if (!permission) {
           setHasPermission(false);
           setLoading(false);
           return;
         }
-  
+
         setHasPermission(true);
-  
+
         // Fetch user profile
         const { data: userProfileData, error: userProfileError } = await supabase
           .from("userprofiles")
           .select("*")
           .eq("userid", userid)
           .single();
-  
+
         if (userProfileError || !userProfileData) {
           toast.error("User profile not found");
           setLoading(false);
           return;
         }
         setUserProfile(userProfileData);
-  
-        // Ensure fullName is generated correctly
+
         const fullName = `${userProfileData.first_name} ${userProfileData.last_name}`;
-  
-        // Mark attendance
+
+        // ✅ FIX: Use "eventid" column (foreign key to events) instead of "id" (primary key of registrations)
         const { error } = await supabase
           .from("eventregistrations")
-          .update({ attendance: "present" })
+          .update({
+            attendance: "present",
+            attendance_updated_at: new Date().toISOString(),
+          })
           .eq("userid", userid)
-          .eq("id", id);
-  
+          .eq("eventid", id);
+
         if (error) {
           toast.error("Failed to mark attendance");
         } else {
           setShowSuccessModal(true);
-  
-          // Log user activity
+
           await recordActivity({
             activity_type: "event_attendance",
             description: `User marked as present for event: ${eventData.title}`,
           });
-  
-          // Log organization activity AFTER full name is properly fetched
+
           await recordActivity({
             activity_type: "event_attendance",
             organization_id: eventData.organizationid,
@@ -121,12 +120,10 @@ const AttendanceContent = () => {
         setLoading(false);
       }
     };
-  
+
     markAttendance();
   }, [userid, id, router]);
-  
 
-  // Handle the result from the QR scanner
   const handleQrScan = async (scannedResult: string) => {
     try {
       const url = new URL(scannedResult);
@@ -144,7 +141,6 @@ const AttendanceContent = () => {
     }
   };
 
-  // Handle errors from the QR scanner
   const handleQrError = (error: Error) => {
     console.error("QR Scan Error:", error);
   };
@@ -174,18 +170,13 @@ const AttendanceContent = () => {
 
   return (
     <div className="flex min-h-full flex-col justify-between bg-raisinblack px-6 py-12 lg:px-8">
-      {/* Centering the Scan Again button */}
       <div className="flex flex-col items-center justify-center h-screen bg-eerieblack px-6 py-12 lg:px-8">
-        {/* Logo */}
         <img className="h-10 w-auto mb-6" src="/syncup.png" alt="SyncUp" />
-
-        {/* Success message */}
         <h2 className="text-3xl font-bold text-white mb-6">Attendance Check</h2>
-        {/* Centered Scan Again button */}
         <button
           onClick={() => {
             setShowSuccessModal(false);
-            setShowQrScanner(true); // Open the QR scanner
+            setShowQrScanner(true);
           }}
           className="mt-2 block w-40 rounded-md bg-primary px-4 py-2 text-white hover:bg-primarydark"
         >
@@ -228,7 +219,7 @@ const AttendanceContent = () => {
           <button
             onClick={() => {
               setShowSuccessModal(false);
-              setShowQrScanner(true); // Open the QR scanner
+              setShowQrScanner(true);
             }}
             className="mt-4 block w-full rounded-md bg-primary px-4 py-2 text-white hover:bg-primarydark"
           >

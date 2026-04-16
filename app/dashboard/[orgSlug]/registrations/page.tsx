@@ -1,5 +1,5 @@
 import { createClient, getUser } from "@/lib/supabase/server";
-import { fetchOrganizationsForUser } from "@/lib/organization"; // Import the function
+import { fetchOrganizationsForUser } from "@/lib/organization";
 import { redirect, notFound } from "next/navigation";
 import RegistrationsTable from "@/components/app/event_registrations";
 import Loader from "@/components/Loader";
@@ -25,7 +25,7 @@ interface Registration {
 export default async function RegistrationsPage({
   params,
 }: {
-  params: { orgSlug: string; id: string};
+  params: { orgSlug: string; id: string };
 }) {
   const { user } = await getUser();
   const supabase = createClient();
@@ -34,7 +34,7 @@ export default async function RegistrationsPage({
     return redirect("/signin");
   }
 
-  const { orgSlug, id} = params;
+  const { orgSlug, id } = params;
   let registrations: Registration[] = [];
 
   if (!registrations) {
@@ -48,7 +48,6 @@ export default async function RegistrationsPage({
       .eq("id", id);
     registrations = data || [];
   } else {
-    // Verify user belongs to the org based on slug
     const orgsData = await fetchOrganizationsForUser(user.id);
 
     if (orgsData.error) {
@@ -72,7 +71,6 @@ export default async function RegistrationsPage({
 
   return (
     <div className="p-4">
-      <h1 className="text-xl font-bold mb-4">Event Registrations</h1>
       <RegistrationsTable registrations={registrations} />
     </div>
   );

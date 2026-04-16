@@ -4,55 +4,24 @@ import { createClient } from "@/lib/supabase/server";
 export const checkIfRegisteredUser = async (userId: string, slug: string) => {
   const supabase = createClient();
 
-  // 1) Resolve event by slug (events table uses `id`)
+  // ✅ FIX: Select "id" (primary key) instead of "eventid"
   const { data: event, error: eventError } = await supabase
     .from("events")
-    .select("id, title")
+    .select("id")
     .eq("eventslug", slug)
     .or("is_deleted.eq.false,is_deleted.is.null")
-	  .maybeSingle();
+    .maybeSingle();
 
+  if (eventError || !event) return false;
 
-  if (eventError || !event) {
-    console.error("[checkIfRegisteredUser] Event lookup failed", {
-      slug,
-      eventError,
-      event,
-    });
-    return false;
-  }
-
-  // 2) Check registration by eventid + userid (eventregistrations uses `eventid`)
   const { data: reg, error: regError } = await supabase
     .from("eventregistrations")
-    .select("eventregistrationid, eventid, userid, status")
-    .eq("eventid", event.id)
+    .select("eventregistrationid")
+    .eq("eventid", event.id)    // ✅ Use event.id (primary key) to match
     .eq("userid", userId)
-    .or("is_deleted.eq.false,is_deleted.is.null")
-	  .maybeSingle();
+    .maybeSingle();
 
-
-  if (regError) {
-    console.error("[checkIfRegisteredUser] Registration lookup failed", {
-      slug,
-      eventId: event.id,
-      userId,
-      regError,
-    });
-    return false;
-  }
-
-  const isRegistered = !!reg;
-
-  console.log("[checkIfRegisteredUser] Result", {
-    slug,
-    eventId: event.id,
-    userId,
-    matchedRegistration: reg ?? null,
-    isRegistered,
-  });
-
-  return isRegistered;
+  return !!reg && !regError;
 };
 
 export async function deleteForm(formId: number, slug: string) {
