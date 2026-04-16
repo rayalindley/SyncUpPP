@@ -65,7 +65,7 @@ export default function EventsPublicView() {
 
     async function fetchEvents() {
       const supabase = createClient();
-      const { data: events, error } = await supabase.from("events").select("*");
+      const { data: events, error } = await supabase.from("events").select("*").or("is_deleted.eq.false,is_deleted.is.null");
 
       if (!error) {
         setEvents(events);
