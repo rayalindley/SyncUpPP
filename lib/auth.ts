@@ -11,7 +11,12 @@ const signInSchema = z.object({
 
 const signUpSchema = z.object({
   email: z.string().email({ message: "Invalid email format" }),
-  password: z.string().min(8, { message: "Password must be at least 8 characters long" }),
+  password: z
+  .string()
+  .min(8, { message: "Password must be at least 8 characters long" })
+  .regex(/[A-Z]/, { message: "Password must contain at least one uppercase letter" })
+  .regex(/[a-z]/, { message: "Password must contain at least one lowercase letter" })
+  .regex(/[!@#$%^&*(),.?":{}|<>]/, { message: "Password must contain at least one special character" }),
   first_name: z
     .string()
     .min(2, { message: "First name must be at least 2 characters long" }), // Updated minimum length requirement
@@ -113,8 +118,11 @@ export async function signInWith(provider: Provider) {
 
 const resetPasswordSchema = z.object({
   password: z
-    .string()
-    .min(8, { message: "Password must be at least 8 characters long." }),
+  .string()
+  .min(8, { message: "Password must be at least 8 characters long." })
+  .regex(/[A-Z]/, { message: "Password must contain at least one uppercase letter" })
+  .regex(/[a-z]/, { message: "Password must contain at least one lowercase letter" })
+  .regex(/[!@#$%^&*(),.?":{}|<>]/, { message: "Password must contain at least one special character" }),
 });
 
 const forgotPasswordSchema = z.object({
