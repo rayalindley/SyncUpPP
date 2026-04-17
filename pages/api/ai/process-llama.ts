@@ -286,7 +286,28 @@ export default async function handler(
       console.log("✅ feedback_reports inserted successfully");
     }
 
-    /* ── 7. Return everything at once (mirrors Flask's single response) ── */
+    /* ── 7. Decrement report_limit ── */
+    const { data: eventData, error: fetchLimitError } = await supabase
+      .from("events")
+      .select("report_limit")
+      .eq("id", eventId)
+      .or("is_deleted.eq.false,is_deleted.is.null")
+      .maybeSingle();
+
+    if (!fetchLimitError && eventData) {
+      const { error: limitError } = await supabase
+        .from("events")
+        .update({ report_limit: (eventData.report_limit ?? 1) - 1 })
+        .eq("id", eventId);
+
+      if (limitError) {
+        console.error("❌ Failed to decrement report_limit:", limitError);
+      } else {
+        console.log("✅ report_limit decremented successfully");
+      }
+    }
+
+    /* ── 8. Return everything at once (mirrors Flask's single response) ── */
     return res.status(200).json({
       message: "Feedback processed",
       total_feedbacks: analyses.length,

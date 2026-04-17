@@ -6,7 +6,7 @@ import ChartDataLabels from "chartjs-plugin-datalabels";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import { toast } from "react-toastify";
 import Link from "next/link";
-
+import Loader from "../Loader";
 import { createClient } from "@/lib/supabase/client";
 import type { Event } from "@/models/Event";
 import type { Organization } from "@/models/Organization";
@@ -133,6 +133,7 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
   const [reportLimit, setReportLimit] = useState<number>(0);
   const [totalResponses, setTotalResponses] = useState<number>(0);
 
+  const [isMounted, setIsMounted] = useState(false);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -318,6 +319,10 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
 
   // ── Effects ───────────────────────────────────────────────────────────────
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
     loadStats();
   }, [loadStats]);
 
@@ -483,27 +488,17 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
 
             <div className="w-full bg-gray-800 h-2 rounded-full overflow-hidden">
               <div
-                className="bg-gradient-to-r from-blue-500 to-violet-500 h-full rounded-full transition-all duration-500"
+                className="h-full bg-primary transition-all duration-500 ease-out rounded-full"
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <p className="text-xs text-center text-gray-500">{progress}%</p>
-
-            {generatingMessage.includes("switch models") && (
-              <button
-                onClick={() => {
-                  setModel((m) => (m === "llama" ? "felbert" : "llama"));
-                  abortControllerRef.current?.abort();
-                }}
-                className="w-full px-3 py-2 text-sm rounded-md bg-primary hover:bg-primarydark text-white transition-colors"
-              >
-                Switch to {model === "llama" ? "FELBERT" : "Llama"}
-              </button>
-            )}
 
             <button
-              onClick={() => abortControllerRef.current?.abort()}
-              className="w-full px-3 py-2 text-sm rounded-md border border-[#525252] text-gray-400 hover:text-white hover:border-gray-400 transition-colors"
+              onClick={() => {
+                abortControllerRef.current?.abort();
+                setIsGenerating(false);
+              }}
+              className="w-full py-2 text-sm rounded-md border border-[#525252] text-gray-400 hover:text-white hover:border-white transition-colors"
             >
               Cancel
             </button>
@@ -511,9 +506,13 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
         </div>
       )}
 
-      <div className="px-6">
-        <h1 className="text-lg font-semibold text-white mt-6">Feedback Reports</h1>
+      {!isMounted && (
+        <div className="flex justify-center items-center py-24">
+          <Loader />
+        </div>
+      )}
 
+      <div className={`px-4 sm:px-6 lg:px-8 py-6 space-y-6 ${!isMounted ? "hidden" : ""}`}>
         {/* Header row */}
         <div className="flex items-center justify-between mt-4 flex-wrap gap-2">
           <select
@@ -538,137 +537,139 @@ const FeedbackReports: React.FC<FeedbackReportsProps> = ({
                 : "hover:bg-charleston"
             }`}
           >
-            �� Download PDF
+            ↓ Download PDF
           </button>
         </div>
 
         {eventFilter && (
           <>
-            {/* Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-              <Metric title="Total Feedbacks" value={totalResponses} />
-              <Metric title="Avg Likert" value={`${averageLikert}/5`} />
-              <Metric title="Generations Left" value={reportLimit} />
-            </div>
-
-            {/* Keywords */}
-            <div className="mt-6 bg-charleston p-4 rounded-lg">
-              <h3 className="font-semibold text-white mb-3">Top Keywords</h3>
-              {isLoadingStats ? (
-                <p className="text-sm text-gray-400">Fetching keywords...</p>
-              ) : topKeywords.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {topKeywords.map(([word, count], i) => (
-                    <div key={word} className="relative group">
-                      <span className={`px-3 py-1 rounded-full border text-xs font-medium cursor-default ${KEYWORD_COLORS[i % KEYWORD_COLORS.length]}`}>
-                        {word}
-                      </span>
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded bg-[#1a1a1a] border border-[#525252] text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                        mentioned {count}×
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-400">No keywords yet</p>
-              )}
-            </div>
-
-            {/* Generate controls */}
-            <div className="mt-4 flex items-center justify-between gap-2 flex-wrap">
-              {/* Left side: Generate button + model selector */}
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleGenerateReport}
-                  disabled={isGenerateDisabled}
-                  title={generateTitle}
-                  className={`px-4 py-2 text-sm rounded-md ${
-                    isGenerateDisabled
-                      ? "bg-gray-500 cursor-not-allowed"
-                      : "bg-blue-600 hover:bg-blue-700"
-                  } text-white`}
-                >
-                  {isGenerating ? "Generating..." : "Generate Report"}
-                </button>
-                <select
-                  value={model}
-                  onChange={(e) => setModel(e.target.value as "llama" | "felbert")}
-                  disabled={isGenerating}
-                  className="w-full max-w-xs text-sm rounded-md border border-[#525252] bg-charleston text-white px-3 py-2 focus:outline-none focus:border-primary"
-                >
-                  <option value="llama">Llama — fast results, general analysis</option>
-                  <option value="felbert">FELBERT — tailored to event feedback</option>
-                </select>
-              </div>
-
-              {/* Right side: View Feedback button */}
-              {eventSlug && (
-                <Link
-                  href={`/dashboard/feedback/${eventSlug}`}
-                  className="px-4 py-2 text-sm rounded-md border border-primary bg-primary/10 text-primary hover:bg-primary hover:text-white transition-colors"
-                >
-                  View Feedback →
-                </Link>
-              )}
-            </div>
-
-            {/* Sentiment chart */}
+            {/* ── Loader while fetching stats ── */}
             {isLoadingStats ? (
-              <EmptyCard text="Fetching report..." />
-            ) : total > 0 ? (
-              <div className="mt-6 bg-charleston rounded-lg border border-[#525252] p-5">
-                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">
-                  Sentiment Breakdown
-                </h3>
-                <div className="flex gap-3 mb-4">
-                  <span className="px-3 py-1 rounded-full text-xs font-medium bg-emerald-600/20 text-emerald-300 border border-emerald-500">
-                    ↑ {sentimentCounts.positive} Positive
-                  </span>
-                  <span className="px-3 py-1 rounded-full text-xs font-medium bg-rose-600/20 text-rose-300 border border-rose-500">
-                    ↓ {sentimentCounts.negative} Negative
-                  </span>
-                </div>
-                <div className="relative h-56">
-                  <Pie data={pieData} options={pieOptions} />
-                </div>
+              <div className="flex justify-center items-center py-24">
+                <Loader />
               </div>
             ) : (
-              <EmptyCard text="No sentiment data yet" />
-            )}
+              <>
+                {/* Metrics */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                  <Metric title="Total Feedbacks" value={totalResponses} />
+                  <Metric title="Avg Likert" value={`${averageLikert}/5`} />
+                  <Metric title="Generations Left" value={reportLimit} />
+                </div>
 
-            {/* Summary & Recommendations */}
-            <div className="mt-6 space-y-4">
-              <div className="bg-charleston rounded-lg p-5 border border-[#525252]">
-                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-1">
-                  Summary
-                </h3>
-                <div className="border-t border-[#525252] mt-2 pt-3">
-                  {isLoadingStats ? (
-                    <p className="text-sm text-gray-400">Fetching summary...</p>
+                {/* Keywords */}
+                <div className="mt-6 bg-charleston p-4 rounded-lg">
+                  <h3 className="font-semibold text-white mb-3">Top Keywords</h3>
+                  {topKeywords.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {topKeywords.map(([word, count], i) => (
+                        <div key={word} className="relative group">
+                          <span
+                            className={`px-3 py-1 rounded-full border text-xs font-medium cursor-default ${KEYWORD_COLORS[i % KEYWORD_COLORS.length]}`}
+                          >
+                            {word}
+                          </span>
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded bg-[#1a1a1a] border border-[#525252] text-xs text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                            mentioned {count}×
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   ) : (
-                    <p className="text-sm text-gray-200 leading-relaxed">
-                      {summary ?? "No summary available."}
-                    </p>
+                    <p className="text-sm text-gray-400">No keywords yet</p>
                   )}
                 </div>
-              </div>
 
-              {!isLoadingStats && recommendations.length > 0 && (
-                <div className="bg-charleston rounded-lg p-5 border border-[#525252]">
-                  <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-1">
-                    Recommendations
-                  </h3>
-                  <div className="border-t border-[#525252] mt-2 pt-3 space-y-2">
-                    {recommendations.map((rec, i) => (
-                      <div key={i} className="flex items-start gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0 translate-y-[6px]" />
-                        <p className="text-sm text-gray-200 leading-relaxed">{rec}</p>
-                      </div>
-                    ))}
+                {/* Generate controls */}
+                <div className="mt-4 flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleGenerateReport}
+                      disabled={isGenerateDisabled}
+                      title={generateTitle}
+                      className={`px-4 py-2 text-sm rounded-md whitespace-nowrap flex-shrink-0 ${
+                        isGenerateDisabled
+                          ? "bg-gray-500 cursor-not-allowed"
+                          : "bg-blue-600 hover:bg-blue-700"
+                      } text-white`}
+                    >
+                      {isGenerating ? "Generating..." : "Generate Report"}
+                    </button>
+                    <select
+                      value={model}
+                      onChange={(e) => setModel(e.target.value as "llama" | "felbert")}
+                      disabled={isGenerating}
+                      className="w-full max-w-xs text-sm rounded-md border border-[#525252] bg-charleston text-white px-3 py-2 focus:outline-none focus:border-primary"
+                    >
+                      <option value="llama">Llama — fast results, general analysis</option>
+                      <option value="felbert">FELBERT — tailored to event feedback</option>
+                    </select>
                   </div>
+
+                  {/* View Feedback — far right */}
+                  {eventSlug && (
+                    <Link
+                      href={`/dashboard/feedback/${eventSlug}`}
+                      className="px-4 py-2 text-sm rounded-md border border-primary bg-primary/10 text-primary hover:bg-primary hover:text-white transition-colors"
+                    >
+                      View Feedback →
+                    </Link>
+                  )}
                 </div>
-              )}
-            </div>
+
+                {/* Sentiment chart */}
+                {total > 0 ? (
+                  <div className="mt-6 bg-charleston rounded-lg border border-[#525252] p-5">
+                    <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">
+                      Sentiment Breakdown
+                    </h3>
+                    <div className="flex gap-3 mb-4">
+                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-emerald-600/20 text-emerald-300 border border-emerald-500">
+                        ↑ {sentimentCounts.positive} Positive
+                      </span>
+                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-rose-600/20 text-rose-300 border border-rose-500">
+                        ↓ {sentimentCounts.negative} Negative
+                      </span>
+                    </div>
+                    <div className="relative h-56">
+                      <Pie data={pieData} options={pieOptions} />
+                    </div>
+                  </div>
+                ) : (
+                  <EmptyCard text="No sentiment data yet" />
+                )}
+
+                {/* Summary & Recommendations */}
+                <div className="mt-6 space-y-4">
+                  <div className="bg-charleston rounded-lg p-5 border border-[#525252]">
+                    <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                      Summary
+                    </h3>
+                    <div className="border-t border-[#525252] mt-2 pt-3">
+                      <p className="text-sm text-gray-200 leading-relaxed">
+                        {summary ?? "No summary available."}
+                      </p>
+                    </div>
+                  </div>
+
+                  {recommendations.length > 0 && (
+                    <div className="bg-charleston rounded-lg p-5 border border-[#525252]">
+                      <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                        Recommendations
+                      </h3>
+                      <div className="border-t border-[#525252] mt-2 pt-3 space-y-2">
+                        {recommendations.map((rec, i) => (
+                          <div key={i} className="flex items-start gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0 translate-y-[6px]" />
+                            <p className="text-sm text-gray-200 leading-relaxed">{rec}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </>
         )}
       </div>
