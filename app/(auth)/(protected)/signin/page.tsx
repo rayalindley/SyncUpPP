@@ -2,9 +2,35 @@
 import { useState, use } from "react"; // Add this import
 import { signInWithGoogle, signInWithPassword } from "@/lib/auth";
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'; // Add Heroicons import
+import { useFormStatus } from 'react-dom';
 
 export default function SignUp({ searchParams }: { searchParams: any }) {
   const [showPassword, setShowPassword] = useState(false); // Add state for password visibility
+
+  function SubmitButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="flex w-full justify-center items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-light shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      {pending ? (
+        <>
+          Signing in
+          <span className="flex gap-1">
+            <span className="w-1.5 h-1.5 bg-light rounded-full animate-bounce [animation-delay:-0.3s]" />
+            <span className="w-1.5 h-1.5 bg-light rounded-full animate-bounce [animation-delay:-0.15s]" />
+            <span className="w-1.5 h-1.5 bg-light rounded-full animate-bounce" />
+          </span>
+        </>
+      ) : (
+        "Sign in"
+      )}
+    </button>
+  );
+}
 
   return (
     <>
@@ -109,12 +135,7 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
               </div>
 
               <div>
-                <button
-                  type="submit"
-                  className="flex w-full justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-light *:shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                >
-                  Sign in
-                </button>
+                <SubmitButton />
               </div>
             </form>
 
@@ -168,7 +189,7 @@ export default function SignUp({ searchParams }: { searchParams: any }) {
               className="font-semibold leading-6 text-primarydark hover:text-primary"
             >
               Sign up
-            </a>
+            </a>  
           </p>
         </div>
       </div>
