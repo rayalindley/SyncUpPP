@@ -154,17 +154,17 @@ export default function FeedbackFormOrganizer({
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const [formId, setFormId] = useState<string | null>(null); 
+  const [formId, setFormId] = useState<string | null>(null);
   const [textQuestions, setTextQuestions] = useState<Question[]>([]);
   const [choiceQuestions, setChoiceQuestions] = useState<Question[]>([]);
   const [likertQuestions, setLikertQuestions] = useState<Question[]>([]);
   const [addedQuestions, setAddedQuestions] = useState<string[]>([]);
   const [formQuestions, setFormQuestions] = useState<any[]>([]);
   const [id, setEventId] = useState<string | null>(null);
-  
+
   // NEW: Store organization slug for redirection
   const [orgSlug, setOrgSlug] = useState<string | null>(null);
-  
+
   // Track selected question by ID rather than index
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
   const [isRequiredMap, setIsRequiredMap] = useState<Record<string, boolean>>({});
@@ -201,10 +201,10 @@ export default function FeedbackFormOrganizer({
       try {
         const { data: eventData, error: eventError } = await supabase
           .from("events")
-          .select("id, organizationid") 
+          .select("id, organizationid")
           .eq("eventslug", selectedEvent)
           .or("is_deleted.eq.false,is_deleted.is.null")
-	        .maybeSingle()
+          .maybeSingle();
 
         if (eventError || !eventData) {
           console.error("Event fetch error:", eventError);
@@ -242,7 +242,7 @@ export default function FeedbackFormOrganizer({
             .select("id")
             .eq("slug", selectedEvent)
             .maybeSingle();
-            
+
           if (checkForm) {
             currentFormId = checkForm.id;
           } else {
@@ -282,7 +282,7 @@ export default function FeedbackFormOrganizer({
               }))
             );
             setAddedQuestions(formData.map((fq: any) => String(fq.question_id).trim()));
-            
+
             const requiredMap: Record<string, boolean> = {};
             formData.forEach((fq: any) => {
               requiredMap[String(fq.question_id).trim()] = fq.is_required ?? true;
@@ -327,7 +327,6 @@ export default function FeedbackFormOrganizer({
     }
 
     try {
-      // We save just the array of question IDs
       const templateQuestions = formQuestions.map((q) => String(q.id).trim());
 
       const { error } = await supabase.from("form_templates").insert([
@@ -342,7 +341,6 @@ export default function FeedbackFormOrganizer({
 
       toast.success("Template saved successfully!");
       setNewTemplateName("");
-      // Refresh templates list
       handleOpenTemplates();
     } catch (error) {
       console.error("Error saving template:", error);
@@ -353,7 +351,6 @@ export default function FeedbackFormOrganizer({
   const handleApplyTemplate = async (templateQuestionIds: string[]) => {
     setIsLoading(true);
     try {
-      // Filter out what is already in addedQuestions
       const toAdd = templateQuestionIds.filter(
         (id) => !addedQuestions.includes(id)
       );
@@ -361,7 +358,7 @@ export default function FeedbackFormOrganizer({
       for (const qId of toAdd) {
         await handleAddQuestion(qId);
       }
-      
+
       toast.success("Template applied successfully!");
       setIsTemplateModalOpen(false);
     } catch (error) {
@@ -372,19 +369,15 @@ export default function FeedbackFormOrganizer({
     }
   };
 
-
   // 4. HANDLE ADDING A QUESTION
   const handleAddQuestion = async (questionId: string) => {
     if (!formId) return;
     const cleanId = String(questionId).trim();
 
-    // Prevent adding duplicates to state immediately
     if (addedQuestions.includes(cleanId)) return;
 
-    // Optimistically update UI so it feels instant
     setAddedQuestions((prev) => [...prev, cleanId]);
 
-    // Fetch current max order
     const { data: existingQuestions } = await supabase
       .from("form_questions")
       .select("question_order")
@@ -392,27 +385,28 @@ export default function FeedbackFormOrganizer({
       .order("question_order", { ascending: false })
       .limit(1);
 
-    // Safely calculate next integer order
-    const newOrder = existingQuestions && existingQuestions.length > 0 
-      ? existingQuestions[0].question_order + 1 
-      : 0;
+    const newOrder =
+      existingQuestions && existingQuestions.length > 0
+        ? existingQuestions[0].question_order + 1
+        : 0;
 
-    // Insert into DB (Includes is_required: true)
-    const { data: insertedFq, error: insertError } = await supabase.from("form_questions").insert({
-      form_id: formId,
-      question_id: cleanId,
-      question_order: newOrder,
-      is_required: true
-    }).select().single();
+    const { data: insertedFq, error: insertError } = await supabase
+      .from("form_questions")
+      .insert({
+        form_id: formId,
+        question_id: cleanId,
+        question_order: newOrder,
+        is_required: true,
+      })
+      .select()
+      .single();
 
     if (insertError) {
       console.error("Error adding question:", insertError);
-      // Revert optimistic update on failure
-      setAddedQuestions((prev) => prev.filter(id => id !== cleanId));
+      setAddedQuestions((prev) => prev.filter((id) => id !== cleanId));
       return;
     }
 
-    // Fetch full question data to render in the bottom preview
     const { data: questionData, error: fetchError } = await supabase
       .from("questions")
       .select("*")
@@ -424,12 +418,11 @@ export default function FeedbackFormOrganizer({
       return;
     }
 
-    // Append the full question object to the form list
     setFormQuestions((prev) => [
       ...prev,
       { ...questionData, question_order: newOrder, form_question_id: insertedFq.id },
     ]);
-    
+
     setIsRequiredMap((prev) => ({ ...prev, [cleanId]: true }));
     setActiveQuestionId(cleanId);
   };
@@ -473,7 +466,9 @@ export default function FeedbackFormOrganizer({
 
   const handleMoveUpQuestion = async (index: number) => {
     if (index === 0) return;
-    const sortedQuestions = [...formQuestions].sort((a, b) => a.question_order - b.question_order);
+    const sortedQuestions = [...formQuestions].sort(
+      (a, b) => a.question_order - b.question_order
+    );
     const curr = sortedQuestions[index];
     const above = sortedQuestions[index - 1];
 
@@ -492,13 +487,15 @@ export default function FeedbackFormOrganizer({
     const t = curr.question_order;
     curr.question_order = above.question_order;
     above.question_order = t;
-    
+
     setFormQuestions([...formQuestions]);
   };
 
   const handleMoveDownQuestion = async (index: number) => {
     if (index === formQuestions.length - 1) return;
-    const sortedQuestions = [...formQuestions].sort((a, b) => a.question_order - b.question_order);
+    const sortedQuestions = [...formQuestions].sort(
+      (a, b) => a.question_order - b.question_order
+    );
     const curr = sortedQuestions[index];
     const below = sortedQuestions[index + 1];
 
@@ -517,24 +514,38 @@ export default function FeedbackFormOrganizer({
     const t = curr.question_order;
     curr.question_order = below.question_order;
     below.question_order = t;
-    
+
     setFormQuestions([...formQuestions]);
   };
 
+  // ✅ FIXED: uses form_question_id (PK) for precise DB update
   const toggleRequired = async (questionId: string) => {
     const cleanId = String(questionId).trim();
     const currentVal = isRequiredMap[cleanId] ?? true;
     const newVal = !currentVal;
 
     // Update UI immediately
-    setIsRequiredMap(prev => ({ ...prev, [cleanId]: newVal }));
+    setIsRequiredMap((prev) => ({ ...prev, [cleanId]: newVal }));
 
-    // Update in DB
-    await supabase
+    // Find the exact row by form_question_id
+    const targetQuestion = formQuestions.find(
+      (q) => String(q.id).trim() === cleanId
+    );
+    if (!targetQuestion?.form_question_id) {
+      console.error("Could not find form_question_id for question:", cleanId);
+      return;
+    }
+
+    const { error } = await supabase
       .from("form_questions")
       .update({ is_required: newVal })
-      .eq("form_id", formId)
-      .eq("question_id", cleanId);
+      .eq("id", targetQuestion.form_question_id);
+
+    if (error) {
+      console.error("Failed to update is_required:", error);
+      // Revert on failure
+      setIsRequiredMap((prev) => ({ ...prev, [cleanId]: currentVal }));
+    }
   };
 
   const deleteFeedbackForm = async () => {
@@ -573,8 +584,6 @@ export default function FeedbackFormOrganizer({
     }
   };
 
-  // NEW SUBMIT FUNCTION
-    // NEW SUBMIT FUNCTION
   const handleSubmitForm = async () => {
     setIsLoading(true);
 
@@ -587,17 +596,17 @@ export default function FeedbackFormOrganizer({
         title: "text-lg text-white",
         htmlContainer: "text-base text-gray-300",
         popup: "bg-[#1C1C1C] rounded-lg p-6 shadow-xl border border-gray-700",
-        confirmButton: "bg-[#379A7B] text-white text-sm px-4 py-2 rounded-md hover:bg-[#2d7d64]",
+        confirmButton:
+          "bg-[#379A7B] text-white text-sm px-4 py-2 rounded-md hover:bg-[#2d7d64]",
       },
     });
 
     setIsLoading(false);
-    
+
     if (orgSlug) {
-      // Changed from /dashboard/[slug] to /[slug]/dashboard/events
-      router.push(`/${orgSlug}/dashboard`); 
+      router.push(`/${orgSlug}/dashboard`);
     } else {
-      router.push("/dashboard"); // Fallback
+      router.push("/dashboard");
     }
   };
 
@@ -711,8 +720,20 @@ export default function FeedbackFormOrganizer({
             onClick={handleOpenTemplates}
             className="sm:w-full sm:max-w-full bg-[#2D3748] rounded-md text-white font-bold px-4 py-2 flex items-center justify-center gap-2 hover:bg-[#1E3A8A]"
           >
-            <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M8 4H6C4.89543 4 4 4.89543 4 5.1V18.9C4 19.1046 4.89543 20 6 20H18C19.1046 20 20 19.1046 20 18.9V5.1C20 4.89543 19.1046 4 18 4H16M8 4C8 5.10457 8.89543 6 10 6H14C15.1046 6 16 5.10457 16 4M8 4C8 2.89543 8.89543 2 10 2H14C15.1046 2 16 2.89543 16 4M9 10H15M9 14H15" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <svg
+              width="24px"
+              height="24px"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M8 4H6C4.89543 4 4 4.89543 4 5.1V18.9C4 19.1046 4.89543 20 6 20H18C19.1046 20 20 19.1046 20 18.9V5.1C20 4.89543 19.1046 4 18 4H16M8 4C8 5.10457 8.89543 6 10 6H14C15.1046 6 16 5.10457 16 4M8 4C8 2.89543 8.89543 2 10 2H14C15.1046 2 16 2.89543 16 4M9 10H15M9 14H15"
+                stroke="#ffffff"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
             <p className="text-base/7">Templates</p>
           </button>
@@ -722,10 +743,23 @@ export default function FeedbackFormOrganizer({
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
               <div className="bg-[#1C1C1C] p-6 rounded-md shadow-md w-full max-w-md text-white relative">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-white">Form Templates</h2>
+                  <h2 className="text-lg font-semibold text-white">
+                    Form Templates
+                  </h2>
                   <button onClick={() => setIsTemplateModalOpen(false)}>
-                    <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path fillRule="evenodd" clipRule="evenodd" d="M10.9393 12L6.9696 15.9697L8.03026 17.0304L12 13.0607L15.9697 17.0304L17.0304 15.9697L13.0607 12L17.0303 8.03039L15.9696 6.96973L12 10.9393L8.03038 6.96973L6.96972 8.03039L10.9393 12Z" fill="#ffffff" />
+                    <svg
+                      width="24px"
+                      height="24px"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        clipRule="evenodd"
+                        d="M10.9393 12L6.9696 15.9697L8.03026 17.0304L12 13.0607L15.9697 17.0304L17.0304 15.9697L13.0607 12L17.0303 8.03039L15.9696 6.96973L12 10.9393L8.03038 6.96973L6.96972 8.03039L10.9393 12Z"
+                        fill="#ffffff"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -738,7 +772,7 @@ export default function FeedbackFormOrganizer({
                     onChange={(e) => setNewTemplateName(e.target.value)}
                     className="border border-[#444444] bg-[#282828] p-2 rounded w-full text-white"
                   />
-                  <button 
+                  <button
                     onClick={handleSaveAsTemplate}
                     className="bg-[#379A7B] text-white px-4 py-2 rounded hover:bg-primarydark"
                   >
@@ -748,13 +782,22 @@ export default function FeedbackFormOrganizer({
 
                 <div className="max-h-60 overflow-y-auto bg-[#282828] border border-[#444444] p-2 rounded">
                   {templates.length === 0 ? (
-                    <p className="text-gray-400 italic text-sm p-2">No templates saved yet.</p>
+                    <p className="text-gray-400 italic text-sm p-2">
+                      No templates saved yet.
+                    </p>
                   ) : (
                     templates.map((template) => (
-                      <div key={template.id} className="flex justify-between items-center border-b border-[#444444] py-2 last:border-0">
-                        <span className="text-white text-sm pl-2">{template.name}</span>
-                        <button 
-                          onClick={() => handleApplyTemplate(template.questions)}
+                      <div
+                        key={template.id}
+                        className="flex justify-between items-center border-b border-[#444444] py-2 last:border-0"
+                      >
+                        <span className="text-white text-sm pl-2">
+                          {template.name}
+                        </span>
+                        <button
+                          onClick={() =>
+                            handleApplyTemplate(template.questions)
+                          }
                           disabled={isLoading}
                           className="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 mr-2 disabled:opacity-50"
                         >
@@ -771,7 +814,6 @@ export default function FeedbackFormOrganizer({
           {isAddQModalOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
               <div className="bg-[#1C1C1C] p-6 rounded-md shadow-md w-full max-w-md text-white relative">
-
                 <div className="flex items-center justify-center mb-4 relative">
                   <h2 className="text-m font-semibold text-white">
                     Add question
@@ -826,7 +868,8 @@ export default function FeedbackFormOrganizer({
                     ) : (
                       textQuestions
                         .filter(
-                          (q) => !addedQuestions.includes(String(q.id).trim())
+                          (q) =>
+                            !addedQuestions.includes(String(q.id).trim())
                         )
                         .map((q) => (
                           <QuestionPickerRow
@@ -851,7 +894,8 @@ export default function FeedbackFormOrganizer({
                     ) : (
                       choiceQuestions
                         .filter(
-                          (q) => !addedQuestions.includes(String(q.id).trim())
+                          (q) =>
+                            !addedQuestions.includes(String(q.id).trim())
                         )
                         .map((q) => (
                           <QuestionPickerRow
@@ -929,11 +973,13 @@ export default function FeedbackFormOrganizer({
           .map((q, i) => {
             const cleanId = String(q.id).trim();
             const isSelected = activeQuestionId === cleanId;
-            
+
             return (
               <div
                 key={cleanId}
-                onClick={() => setActiveQuestionId(isSelected ? null : cleanId)}
+                onClick={() =>
+                  setActiveQuestionId(isSelected ? null : cleanId)
+                }
                 className={`space-y-1 text-light mt-4 mb-4 p-2 hover:bg-white/5 transition-all duration-300 ease-in-out ${
                   isSelected
                     ? "bg-white/5 border-t-2 border-primary cursor-default"
@@ -943,7 +989,12 @@ export default function FeedbackFormOrganizer({
                 {isSelected && (
                   <div className="flex justify-between">
                     <div className="flex justify-start">
-                      <label className="inline-flex items-center me-5 cursor-pointer">
+                      {/* ✅ FIX: stopPropagation prevents parent onClick from firing,
+                          which was collapsing the panel and making the toggle appear broken */}
+                      <label
+                        className="inline-flex items-center me-5 cursor-pointer"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <input
                           type="checkbox"
                           className="sr-only peer"
@@ -1033,7 +1084,9 @@ export default function FeedbackFormOrganizer({
                         >
                           <g id="SVGRepo_iconCarrier">
                             <path
-                              className={i === 0 ? "fill-white/50" : "fill-white"}
+                              className={
+                                i === 0 ? "fill-white/50" : "fill-white"
+                              }
                               fillRule="evenodd"
                               clipRule="evenodd"
                               d="M12 3C12.2652 3 12.5196 3.10536 12.7071 3.29289L19.7071 10.2929C20.0976 10.6834 20.0976 11.3166 19.7071 11.7071C19.3166 12.0976 18.6834 12.0976 18.2929 11.7071L13 6.41421V20C13 20.5523 12.5523 21 12 21C11.4477 21 11 20.5523 11 20V6.41421L5.70711 11.7071C5.31658 12.0976 4.68342 12.0976 4.29289 11.7071C3.90237 11.3166 3.90237 10.6834 4.29289 10.2929L11.2929 3.29289C11.4804 3.10536 11.7348 3 12 3Z"
@@ -1063,16 +1116,20 @@ export default function FeedbackFormOrganizer({
                 )}
 
                 {q.question_type === "Choice" &&
-                  q.metadata?.choices?.map((choice: string, idx: number) => (
-                    <label
-                      key={idx}
-                      htmlFor={`q${cleanId}c${idx}`}
-                      className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-white/10 bg-white/5 cursor-default"
-                    >
-                      <div className="w-4 h-4 rounded-full border border-white/30 flex-shrink-0" />
-                      <span className="text-sm text-white/80 font-light">{choice}</span>
-                    </label>
-                  ))}
+                  q.metadata?.choices?.map(
+                    (choice: string, idx: number) => (
+                      <label
+                        key={idx}
+                        htmlFor={`q${cleanId}c${idx}`}
+                        className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-white/10 bg-white/5 cursor-default"
+                      >
+                        <div className="w-4 h-4 rounded-full border border-white/30 flex-shrink-0" />
+                        <span className="text-sm text-white/80 font-light">
+                          {choice}
+                        </span>
+                      </label>
+                    )
+                  )}
 
                 {q.question_type === "Likert" &&
                   q.metadata?.category &&
@@ -1128,7 +1185,7 @@ export default function FeedbackFormOrganizer({
           >
             {isLoading ? "Deleting..." : "Delete"}
           </button>
-          
+
           {/* UPDATED SUBMIT BUTTON */}
           <button
             type="button"

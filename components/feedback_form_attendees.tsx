@@ -20,20 +20,34 @@ export default function FeedbackFormAttendees({
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const [formId, setFormId] = useState<number | null>(null);
+  const [formId, setFormId] = useState<string | null>(null);
   const [choiceQuestions, setChoiceQuestions] = useState<Question[]>([]);
   const [likertQuestions, setLikertQuestions] = useState<Question[]>([]);
-  const [addedQuestions, setAddedQuestions] = useState<number[]>([]);
+  const [addedQuestions, setAddedQuestions] = useState<string[]>([]);
   const [formQuestions, setFormQuestions] = useState<any[]>([]);
+
+  // Track which questions are required
+  const [isRequiredMap, setIsRequiredMap] = useState<Record<string, boolean>>({});
 
   const [id, setEventId] = useState<string | null>(null);
 
   const [answers, setAnswers] = useState<{ [questionId: string]: string }>({});
   const [comment, setComment] = useState("");
 
+  // Track validation errors
+  const [missingRequired, setMissingRequired] = useState<Set<string>>(new Set());
+  const [missingComment, setMissingComment] = useState(false);
+
   const [certificateId, setCertificateId] = useState<string | null>(null);
 
-  console.log("Component received slug:", slug, "Type:", typeof slug);
+  const likertLabelsMap: Record<string, string[]> = {
+    Agreement: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"],
+    Satisfaction: ["Very Unsatisfied", "Unsatisfied", "Neutral", "Satisfied", "Very Satisfied"],
+    Frequency: ["Never", "Rarely", "Sometimes", "Often", "Always"],
+    Importance: ["Not Important", "Slightly Important", "Neutral", "Very Important", "Extremely Important"],
+    Effectiveness: ["Not Effective", "Slightly Effective", "Neutral", "Very Effective", "Extremely Effective"],
+  };
+
   useEffect(() => {
     const fetchEvent = async () => {
       const { data, error } = await supabase
@@ -89,14 +103,10 @@ export default function FeedbackFormAttendees({
       }
 
       setChoiceQuestions(
-        allQuestions.filter(
-          (q) => (q.question_type || "").toLowerCase() === "choice"
-        )
+        allQuestions.filter((q) => (q.question_type || "").toLowerCase() === "choice")
       );
       setLikertQuestions(
-        allQuestions.filter(
-          (q) => (q.question_type || "").toLowerCase() === "likert"
-        )
+        allQuestions.filter((q) => (q.question_type || "").toLowerCase() === "likert")
       );
 
       const { data: formData, error: fError } = await supabase
@@ -110,53 +120,62 @@ export default function FeedbackFormAttendees({
       }
 
       setFormQuestions(
-        formData.map((fq) => ({
+        formData.map((fq: any) => ({
           ...fq.question,
           question_order: fq.question_order,
         }))
       );
 
-      setAddedQuestions(formData.map((fq) => fq.question_id));
+      setAddedQuestions(formData.map((fq: any) => String(fq.question_id)));
+
+      // Build isRequiredMap from DB values
+      const requiredMap: Record<string, boolean> = {};
+      formData.forEach((fq: any) => {
+        requiredMap[String(fq.question_id)] = fq.is_required ?? true;
+      });
+      setIsRequiredMap(requiredMap);
     };
 
     fetchFormAndQuestions();
   }, [slug, id]);
 
-  const likertLabelsMap: Record<string, string[]> = {
-    Agreement: [
-      "Strongly Disagree",
-      "Disagree",
-      "Neutral",
-      "Agree",
-      "Strongly Agree",
-    ],
-    Satisfaction: [
-      "Very Unsatisfied",
-      "Unsatisfied",
-      "Neutral",
-      "Satisfied",
-      "Very Satisfied",
-    ],
-    Frequency: ["Never", "Rarely", "Sometimes", "Often", "Always"],
-    Importance: [
-      "Not Important",
-      "Slightly Important",
-      "Neutral",
-      "Very Important",
-      "Extremely Important",
-    ],
-    Effectiveness: [
-      "Not Effective",
-      "Slightly Effective",
-      "Neutral",
-      "Very Effective",
-      "Extremely Effective",
-    ],
-  };
-
-  const [isRequired, setIsRequired] = useState(formQuestions.map(() => true));
-
   const handleSubmit = async () => {
+    // Validate required questions
+    const missing = new Set<string>();
+
+    for (const q of formQuestions) {
+      const qId = String(q.id);
+      const isRequired = isRequiredMap[qId] ?? true;
+      if (isRequired && (!answers[qId] || answers[qId].trim() === "")) {
+        missing.add(qId);
+      }
+    }
+
+    // Validate comment field
+    const commentMissing = !comment || comment.trim() === "";
+    if (commentMissing) setMissingComment(true);
+
+    if (missing.size > 0 || commentMissing) {
+      setMissingRequired(missing);
+      Swal.fire({
+        icon: "warning",
+        title: "Please answer all required questions.",
+        text: "Some required fields are missing. They are highlighted below.",
+        timer: 3000,
+        showConfirmButton: false,
+        customClass: {
+          icon: "text-xs",
+          title: "text-lg",
+          htmlContainer: "text-base",
+          popup: "rounded-lg p-6 shadow-xl border border-gray-700",
+        },
+      });
+      return;
+    }
+
+    // Clear any previous error highlights
+    setMissingRequired(new Set());
+    setMissingComment(false);
     setIsLoading(true);
 
     try {
@@ -177,21 +196,21 @@ export default function FeedbackFormAttendees({
       if (responseError) throw responseError;
       const responseId = responseData.id;
 
-      const answersPayload = Object.entries(answers).map(
-        ([questionId, answer]) => ({
-          response_id: responseId,
-          question_id: questionId,
-          answer,
-        })
-      );
+      const answersPayload = Object.entries(answers).map(([questionId, answer]) => ({
+        response_id: responseId,
+        question_id: questionId,
+        answer,
+      }));
 
-      const { error: answersError } = await supabase
-        .from("form_answers")
-        .insert(answersPayload);
+      if (answersPayload.length > 0) {
+        const { error: answersError } = await supabase
+          .from("form_answers")
+          .insert(answersPayload);
 
-      if (answersError) throw answersError;
+        if (answersError) throw answersError;
+      }
 
-      // ✅ Mark the registration as having submitted feedback with the actual timestamp
+      // Mark registration as having submitted feedback
       const { error: regUpdateError } = await supabase
         .from("eventregistrations")
         .update({
@@ -252,8 +271,7 @@ export default function FeedbackFormAttendees({
               title: "text-lg",
               htmlContainer: "text-base",
               popup: "rounded-lg p-6 shadow-xl border border-gray-700 bg-charleston",
-              confirmButton:
-                "bg-gray-200 text-gray-800 text-sm px-4 py-2 rounded-md hover:bg-gray-300",
+              confirmButton: "bg-gray-200 text-gray-800 text-sm px-4 py-2 rounded-md hover:bg-gray-300",
             },
           });
 
@@ -284,7 +302,7 @@ export default function FeedbackFormAttendees({
       Swal.fire({
         icon: "error",
         title: "Failed to submit your feedback.",
-        text: "Please make sure to answer the required questions.",
+        text: "An unexpected error occurred. Please try again.",
         timer: 3000,
         showConfirmButton: false,
         customClass: {
@@ -314,76 +332,96 @@ export default function FeedbackFormAttendees({
             .sort((a, b) => a.question_order - b.question_order)
             .map((q) => {
               const type = (q.question_type || "").toLowerCase();
+              const qId = String(q.id);
+              const isRequired = isRequiredMap[qId] ?? true;
+              const isMissing = missingRequired.has(qId);
 
               return (
-                <div key={q.id} className="space-y-1 text-light mt-4 mb-4 p-2">
+                <div
+                  key={q.id}
+                  className={`space-y-1 text-light mt-4 mb-4 p-2 rounded-md transition-all ${
+                    isMissing ? "ring-2 ring-red-500 bg-red-500/5" : ""
+                  }`}
+                >
                   <label className="text-sm font-medium text-white font-extrabold">
                     {q.question_text}
+                    {isRequired && (
+                      <span className="text-red-400 ml-1">*</span>
+                    )}
                   </label>
 
+                  {isMissing && (
+                    <p className="text-xs text-red-400 mt-1">
+                      This question is required.
+                    </p>
+                  )}
+
                   {/* TEXT QUESTIONS */}
-                  {(type === "text" ||
-                    type === "short_answer" ||
-                    type === "input") && (
+                  {(type === "text" || type === "short_answer" || type === "input") && (
                     <div className="mt-2">
                       <input
                         type="text"
-                        value={answers[q.id] ?? ""}
-                        onChange={(e) =>
-                          setAnswers((prev) => ({
-                            ...prev,
-                            [q.id]: e.target.value,
-                          }))
-                        }
-                        className="block w-full rounded-md border-0 bg-white/5 py-2 px-3 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm"
+                        value={answers[qId] ?? ""}
+                        onChange={(e) => {
+                          setAnswers((prev) => ({ ...prev, [qId]: e.target.value }));
+                          if (missingRequired.has(qId)) {
+                            setMissingRequired((prev) => {
+                              const next = new Set(prev);
+                              next.delete(qId);
+                              return next;
+                            });
+                          }
+                        }}
+                        className={`block w-full rounded-md border-0 bg-white/5 py-2 px-3 text-white shadow-sm ring-1 ring-inset sm:text-sm focus:ring-2 focus:ring-inset focus:ring-primary ${
+                          isMissing ? "ring-red-500" : "ring-white/10"
+                        }`}
                         placeholder="Type your answer"
                       />
                     </div>
                   )}
 
+                  {/* CHOICE QUESTIONS */}
                   {type === "choice" && (
                     <div className="mt-2 flex flex-col gap-2">
                       {q.metadata?.choices?.length ? (
-                        q.metadata.choices.map((choice: string, i: number) => (
+                        q.metadata.choices.map((choice: string, idx: number) => (
                           <label
-                            key={i}
-                            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg border transition-colors cursor-pointer
-                              ${answers[q.id] === choice ? "border-green-500/50 bg-green-500/10" : "border-white/10 bg-white/5 hover:bg-white/10"}`}
+                            key={idx}
+                            className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-white/10 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors"
                           >
                             <input
                               type="radio"
-                              name={`question-${q.id}`}
-                              onChange={() =>
-                                setAnswers((prev) => ({ ...prev, [q.id]: choice }))
-                              }
+                              name={`question_${qId}`}
+                              value={choice}
+                              checked={answers[qId] === choice}
+                              onChange={() => {
+                                setAnswers((prev) => ({ ...prev, [qId]: choice }));
+                                if (missingRequired.has(qId)) {
+                                  setMissingRequired((prev) => {
+                                    const next = new Set(prev);
+                                    next.delete(qId);
+                                    return next;
+                                  });
+                                }
+                              }}
                               className="sr-only"
                             />
                             <div
-                              className={`w-4 h-4 rounded-full border flex-shrink-0 flex items-center justify-center transition-colors
-                              ${answers[q.id] === choice ? "border-green-500 bg-green-500" : "border-white/30"}`}
+                              className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
+                                answers[qId] === choice
+                                  ? "border-primary bg-primary"
+                                  : "border-white/30"
+                              }`}
                             >
-                              {answers[q.id] === choice && (
-                                <div className="w-2 h-2 rounded-full bg-green-900" />
+                              {answers[qId] === choice && (
+                                <div className="w-2 h-2 rounded-full bg-white" />
                               )}
                             </div>
-                            <span className="text-sm font-light text-white">
-                              {choice}
-                            </span>
+                            <span className="text-sm text-white/80 font-light">{choice}</span>
                           </label>
                         ))
                       ) : (
-                        <input
-                          type="text"
-                          value={answers[q.id] ?? ""}
-                          onChange={(e) =>
-                            setAnswers((prev) => ({
-                              ...prev,
-                              [q.id]: e.target.value,
-                            }))
-                          }
-                          className="block w-full rounded-md border-0 bg-white/5 py-2 px-3 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm"
-                          placeholder="Type your answer"
-                        />
+                        <p className="text-xs text-gray-400 italic">No choices available.</p>
                       )}
                     </div>
                   )}
@@ -392,36 +430,42 @@ export default function FeedbackFormAttendees({
                   {type === "likert" &&
                     q.metadata?.category &&
                     likertLabelsMap[q.metadata.category] && (
-                      <div>
+                      <div className="mt-2">
                         <div className="relative w-full max-w-4xl mx-auto px-4 py-2">
                           <div className="absolute top-[15px] left-1/2 transform -translate-x-[47.5%] h-0.5 w-[355px] bg-[#379A7B] z-0" />
                           <div className="absolute top-[17px] left-1/2 transform -translate-x-[47.5%] h-5 w-[349px] bg-[#201c1c] z-0" />
                           <div className="absolute top-[35px] left-1/2 transform -translate-x-[47.5%] h-0.5 w-[349px] bg-[#379A7B] z-0" />
-
                           <div className="flex items-center justify-between relative">
                             {likertLabelsMap[q.metadata.category].map(
-                              (label, index) => (
+                              (label: string, index: number) => (
                                 <div
                                   key={index}
                                   className="flex flex-col items-center text-center cursor-pointer"
-                                  onClick={() =>
+                                  onClick={() => {
                                     setAnswers((prev) => ({
                                       ...prev,
-                                      [q.id]: index.toString(),
-                                    }))
-                                  }
+                                      [qId]: index.toString(),
+                                    }));
+                                    if (missingRequired.has(qId)) {
+                                      setMissingRequired((prev) => {
+                                        const next = new Set(prev);
+                                        next.delete(qId);
+                                        return next;
+                                      });
+                                    }
+                                  }}
                                 >
                                   <div
-                                    className={`w-10 h-10 border-2 rounded-full flex items-center justify-center transition-colors ${
-                                      answers[q.id] === index.toString()
-                                        ? "border-[#379A7B] bg-[#201c1c]"
+                                    className={`w-10 h-10 border-2 rounded-full flex items-center justify-center ${
+                                      answers[qId] === index.toString()
+                                        ? "border-[#379A7B] bg-[#379A7B]"
                                         : "border-[#379A7B] bg-[#201c1c]"
                                     }`}
                                   >
                                     <div
                                       className={`w-6 h-6 rounded-full ${
-                                        answers[q.id] === index.toString()
-                                          ? "bg-[#379A7B]"
+                                        answers[qId] === index.toString()
+                                          ? "bg-white"
                                           : "bg-transparent border-2 border-[#379A7B]"
                                       }`}
                                     />
@@ -441,20 +485,36 @@ export default function FeedbackFormAttendees({
             })}
 
           {/* Comments and Suggestions TextArea */}
-          <div className="space-y-1 text-light mt-6 mb-6">
+          <div
+            className={`space-y-1 text-light mt-6 mb-6 p-2 rounded-md transition-all ${
+              missingComment ? "ring-2 ring-red-500 bg-red-500/5" : ""
+            }`}
+          >
             <label
               htmlFor="comment"
               className="text-sm font-medium font-bold text-white"
             >
               Comments and Suggestions
+              <span className="text-red-400 ml-1">*</span>
             </label>
+
+            {missingComment && (
+              <p className="text-xs text-red-400 mt-1">
+                This field is required.
+              </p>
+            )}
+
             <textarea
-              required
               id="comment"
               value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              className="block max-h-[300px] min-h-[150px] w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-            ></textarea>
+              onChange={(e) => {
+                setComment(e.target.value);
+                if (missingComment) setMissingComment(false);
+              }}
+              className={`block max-h-[300px] min-h-[150px] w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset sm:text-sm sm:leading-6 focus:ring-2 focus:ring-inset focus:ring-primary ${
+                missingComment ? "ring-red-500" : "ring-white/10"
+              }`}
+            />
           </div>
 
           {/* Submit Button */}
@@ -462,7 +522,7 @@ export default function FeedbackFormAttendees({
             <button
               type="submit"
               disabled={isLoading}
-              className="flex justify-end rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="flex justify-end rounded-md bg-primary px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primarydark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:bg-charleston"
             >
               {isLoading ? "Submitting..." : "Submit"}
             </button>
@@ -473,19 +533,20 @@ export default function FeedbackFormAttendees({
         {certificateId && (
           <div className="mt-8 p-6 border border-white/10 bg-white/5 rounded-lg text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
             <p className="text-gray-300 text-sm mb-4">
-              🎉 Your certificate is ready! You can view it here or find it
-              later by going to your
-              <span className="text-primary font-bold">
-                {" "}
+              🎉 Your certificate is ready! You can view it here or find it later by going to your{" "}
+              <a
+                href={`/user/profile/${userId}?tab=certificates`}
+                className="text-primary font-bold hover:underline"
+              >
                 &quot;My Profile&quot;
-              </span>{" "}
+              </a>{" "}
               page.
             </p>
             <a
               href={`/api/certificates/${certificateId}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-semibold rounded-md shadow-sm text-white bg-primary hover:bg-primarydark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-light bg-primary hover:bg-primarydark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
             >
               🎓 View Your Certificate
             </a>
